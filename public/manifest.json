@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "Google AI Studio Mobile",
+  "short_name": "AI Studio",
+  "description": "Mobile-optimized Android client and interface for Google AI Studio with responsive Gemini prompt engineering.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#131314",
+  "theme_color": "#1a73e8",
+  "categories": ["developer", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
