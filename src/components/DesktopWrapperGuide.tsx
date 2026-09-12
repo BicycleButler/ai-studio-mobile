@@ -57,14 +57,14 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
         <div className="flex flex-wrap gap-2 pt-1">
           <button
             onClick={openDesktopAiStudio}
-            className="flex-1 min-w-[140px] px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+            className="flex-1 min-w-[140px] px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-colors"
           >
             <span>Open Desktop Site</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={openApiKeyPage}
-            className="px-3 py-2 rounded-xl bg-[#252830] hover:bg-[#2e313b] text-zinc-200 text-xs font-medium flex items-center gap-1.5 border border-[#383b45] transition-all"
+            className="px-3 py-2 rounded-xl bg-[#252830] hover:bg-[#2e313b] text-zinc-200 text-xs font-medium flex items-center gap-1.5 border border-[#383b45] transition-colors"
           >
             <Key className="w-3.5 h-3.5 text-amber-400" />
             <span>Get API Key</span>
@@ -81,7 +81,7 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
 
         <div className="grid grid-cols-1 gap-2.5 text-xs">
           <div className="p-2.5 rounded-lg bg-[#1e2025] border border-[#2c2e35] flex items-start gap-2.5">
-            <div className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">
+            <div className="w-5 h-5 rounded-full bg-muted/60 text-zinc-300 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">
               1
             </div>
             <div>
@@ -95,7 +95,7 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
           </div>
 
           <div className="p-2.5 rounded-lg bg-[#1e2025] border border-[#2c2e35] flex items-start gap-2.5">
-            <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">
+            <div className="w-5 h-5 rounded-full bg-muted/60 text-zinc-300 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">
               2
             </div>
             <div>
@@ -109,7 +109,7 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
           </div>
 
           <div className="p-2.5 rounded-lg bg-[#1e2025] border border-[#2c2e35] flex items-start gap-2.5">
-            <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">
+            <div className="w-5 h-5 rounded-full bg-muted/60 text-zinc-300 flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">
               3
             </div>
             <div>

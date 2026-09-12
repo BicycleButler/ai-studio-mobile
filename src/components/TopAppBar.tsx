@@ -147,7 +147,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-[#131314]/95 backdrop-blur-md border-b border-[#2b2c31] px-3 py-2 transition-all">
+    <header className="sticky top-0 z-30 bg-[#131314]/95 backdrop-blur-md border-b border-[#2b2c31] px-3 py-2 transition-colors">
       {/* Top Bar Row: Sparkle Icon (Top Left Corner) & Menu / Tokens (Right) */}
       <div className="flex items-center justify-between gap-3">
         {/* Top Left Corner: Sparkle Icon button to expand or compress the drawer */}
@@ -156,7 +156,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             type="button"
             id="sparkle-drawer-toggle-btn"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className={`flex items-center gap-1.5 p-1.5 px-2 rounded-xl border transition-all ${
+            className={`flex items-center gap-1.5 p-1.5 px-2 rounded-xl border transition-colors ${
               isExpanded
                 ? "bg-blue-600/20 text-blue-300 border-blue-500/50 shadow-sm shadow-blue-500/25"
                 : "bg-[#1f1f23] hover:bg-[#282a30] text-[#c4c7c5] hover:text-white border-[#31333a] shadow-sm"
@@ -175,7 +175,6 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                   isExpanded ? "text-blue-400 rotate-12 scale-110" : "text-blue-400"
                 }`}
               />
-              <span className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-[#131314]" />
             </div>
             <ChevronDown
               className={`w-3.5 h-3.5 text-[#9aa0a6] transition-transform duration-200 ${
@@ -190,7 +189,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               type="button"
               id="header-prompt-state-btn"
               onClick={() => setIsModeMenuOpen((prev) => !prev)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1a1b20] hover:bg-[#25272e] text-[#e3e3e3] hover:text-white border border-[#2b2d35] hover:border-[#383b45] text-xs font-semibold shadow-sm transition-all active:scale-[0.98] group cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1a1b20] hover:bg-[#25272e] text-[#e3e3e3] hover:text-white border border-[#2b2d35] hover:border-[#383b45] text-xs font-semibold shadow-sm transition-colors active:scale-[0.98] group cursor-pointer"
               title="Select prompt state or open Mobile IDE"
               aria-haspopup="true"
               aria-expanded={isModeMenuOpen}
@@ -238,7 +237,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                           onSelectPromptType(mode.id);
                           setIsModeMenuOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-all ${
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors ${
                           isSelected
                             ? "bg-[#252833] text-white border border-[#3b3f4f]"
                             : "text-[#c4c7c5] hover:text-white hover:bg-[#20222a]"
@@ -256,7 +255,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs font-medium leading-tight">{mode.label}</span>
                               {mode.id === "code" && (
-                                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-semibold">
+                                <span className="text-[9px] px-1 py-0.2 rounded bg-muted/60 text-zinc-300 border border-border/40 font-mono font-semibold">
                                   IDE
                                 </span>
                               )}
@@ -286,9 +285,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                   type="button"
                   id="header-project-switcher-btn"
                   onClick={() => setIsProjectMenuOpen((prev) => !prev)}
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-semibold shadow-sm transition-all active:scale-[0.98] group cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-semibold shadow-sm transition-colors active:scale-[0.98] group cursor-pointer ${
                     isAttentionRequired
-                      ? "bg-amber-950/40 hover:bg-amber-950/60 text-amber-200 border-amber-500/50"
+                      ? "bg-[#261f1c] hover:bg-[#322722] text-zinc-200 border-[#4a3429]"
                       : "bg-[#1a1b20] hover:bg-[#25272e] text-[#e3e3e3] hover:text-white border-[#2b2d35] hover:border-[#383b45]"
                   }`}
                   title={
@@ -356,12 +355,12 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
                   {/* Attention Required Banner in Dropdown */}
                   {activeProject && (!activeProject.isValid || activeProject.status === "invalid_key" || activeProject.status === "attention_required") && (
-                    <div className="p-2 rounded-lg bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs mb-1.5">
+                    <div className="p-2 rounded-lg bg-[#241c19] border border-[#482f23] text-zinc-200 text-xs mb-1.5">
                       <div className="flex items-start gap-1.5">
-                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <span className="font-semibold text-white block">Key Expired or Revoked</span>
-                          <span className="text-[11px] text-amber-300/90 leading-tight block mt-0.5">
+                          <span className="text-[11px] text-zinc-400 leading-tight block mt-0.5">
                             Update API Key in AI Studio to resume requests
                           </span>
                         </div>
@@ -373,7 +372,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                             setIsProjectMenuOpen(false);
                             onOpenCustomTabBrowser();
                           }}
-                          className="mt-2 w-full py-1 px-2 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                          className="mt-2 w-full py-1 px-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>Update in AI Studio</span>
@@ -383,7 +382,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                   )}
 
                   {projects.length === 0 ? (
-                    <div className="p-3 text-center rounded-lg bg-[#14151a] border border-[#262833]">
+                    <div className="p-3 text-center rounded-lg bg-[#14151a] border border-[#262823]">
                       <p className="text-xs text-zinc-300">No projects saved yet</p>
                       <p className="text-[10px] text-zinc-500 mt-0.5">
                         Import an AI Studio key to configure a workspace project.
@@ -404,10 +403,10 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                               onSelectProject?.(proj);
                               setIsProjectMenuOpen(false);
                             }}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-all ${
+                            className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors ${
                               isSelected
                                 ? hasProblem
-                                  ? "bg-amber-950/30 text-white border border-amber-500/50"
+                                  ? "bg-[#271d19] text-white border border-[#482f23]"
                                   : "bg-[#252833] text-white border border-blue-500/40"
                                 : "hover:bg-[#20222a] text-[#c4c7c5] hover:text-white border border-transparent"
                             }`}
@@ -416,7 +415,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                               <div
                                 className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
                                   hasProblem
-                                    ? "bg-amber-500/20 text-amber-400"
+                                    ? "bg-muted text-foreground"
                                     : isSelected
                                     ? "bg-blue-500/20 text-blue-400"
                                     : "bg-zinc-800 text-zinc-400"
@@ -432,7 +431,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-xs font-medium truncate">{proj.name}</span>
                                   {hasProblem && (
-                                    <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold">
+                                    <span className="text-[9px] px-1 py-0.2 rounded bg-muted/60 text-zinc-400 border border-border/40 font-semibold">
                                       Expired
                                     </span>
                                   )}
@@ -443,62 +442,32 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                                   )}
                                 </div>
                                 <span className="text-[10px] text-zinc-500 block truncate">
-                                  {proj.defaultModel || "gemini-2.5-flash"}
+                                  {proj.defaultModel || "Default Model"}
                                 </span>
                               </div>
                             </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 ml-2" />}
+                            {isSelected && (
+                              <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 ml-1.5" />
+                            )}
                           </button>
                         );
                       })}
                     </div>
                   )}
-
-                  <div className="pt-1.5 border-t border-[#262833] flex items-center gap-1.5">
-                    {onOpenImportProject && (
-                      <button
-                        type="button"
-                        id="header-project-add-btn"
-                        onClick={() => {
-                          setIsProjectMenuOpen(false);
-                          onOpenImportProject();
-                        }}
-                        className="flex-1 py-1.5 px-2 rounded-lg bg-[#22252f] hover:bg-[#2c303d] text-zinc-200 hover:text-white text-xs font-medium border border-[#353947] flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <FolderPlus className="w-3.5 h-3.5 text-amber-400" />
-                        <span>+ Project</span>
-                      </button>
-                    )}
-                    {onOpenCustomTabBrowser && (
-                      <button
-                        type="button"
-                        id="header-project-getkey-btn"
-                        onClick={() => {
-                          setIsProjectMenuOpen(false);
-                          onOpenCustomTabBrowser();
-                        }}
-                        className="flex-1 py-1.5 px-2 rounded-lg bg-blue-600/15 hover:bg-blue-600/25 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/30 flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Get Key</span>
-                      </button>
-                    )}
-                  </div>
                 </div>
               </>
             )}
           </div>
         </div>
 
-        {/* Right: Google Account, Token Counter Visualization & Hamburger Menu Icon */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Google Account Profile or Sign In button */}
+        {/* Top Right Corner Actions: Google Account, Token Counter & Hamburger Menu */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {googleUser ? (
             <button
               type="button"
-              id="header-google-account-btn"
+              id="header-google-user-btn"
               onClick={() => onOpenSettings("auth")}
-              className="flex items-center gap-1.5 p-1 sm:px-2 sm:py-1 rounded-full bg-[#1b1f2e] hover:bg-[#252b3e] border border-blue-500/30 text-white transition-all group shadow-sm"
+              className="flex items-center gap-1.5 p-1 sm:px-2 sm:py-1 rounded-full bg-[#1b1f2e] hover:bg-[#252b3e] border border-blue-500/30 text-white transition-colors group shadow-sm"
               title={`Signed in as ${googleUser.email} (Google AI Studio Synced)`}
             >
               <div className="relative w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[11px] font-bold overflow-hidden border border-blue-400/50">
@@ -512,7 +481,6 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                 ) : (
                   googleUser.name.slice(0, 1).toUpperCase()
                 )}
-                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-[#1b1f2e]" />
               </div>
               <span className="hidden sm:inline text-[11px] font-medium text-zinc-200 max-w-[85px] truncate">
                 {googleUser.name.split(" ")[0]}
@@ -523,7 +491,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               type="button"
               id="header-google-signin-btn"
               onClick={() => onOpenSettings("auth")}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-zinc-100 text-[#1f1f23] text-xs font-semibold shadow-sm transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-zinc-100 text-[#1f1f23] text-xs font-semibold shadow-sm transition-colors active:scale-95"
               title="Sign in with Google Account"
             >
               <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
@@ -559,13 +527,15 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             type="button"
             id="top-settings-btn"
             onClick={() => onOpenSettings("tune")}
-            className="p-2 rounded-lg bg-[#1f1f23] hover:bg-[#2b2c31] text-[#c4c7c5] hover:text-white border border-[#2b2c31] transition-all relative group"
+            className="p-2 rounded-lg bg-[#1f1f23] hover:bg-[#2b2c31] text-[#c4c7c5] hover:text-white border border-[#2b2c31] transition-colors relative group"
             title="Menu (Tune, Library, Get Code, Companion, Audio, Settings)"
             aria-label="Open menu"
           >
             <Menu className="w-4 h-4 transition-transform duration-150 group-active:scale-95" />
             {!hasApiKey && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#1f1f23]" />
+              <span className="absolute top-1 right-1 px-1 py-0.2 rounded text-[8px] font-mono text-zinc-400 bg-muted/80 border border-border/40">
+                !
+              </span>
             )}
           </button>
         </div>
@@ -674,7 +644,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                   onChange={(e) => onUpdateSystemInstruction?.(e.target.value)}
                   placeholder="Give the model behavioral instructions, persona, guidelines, or formatting rules..."
                   rows={3}
-                  className="w-full text-xs bg-[#1f1f23] border border-[#2f3136] rounded-lg p-2 text-[#e3e3e3] placeholder-[#71767b] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none pr-8"
+                  className="w-full text-xs bg-[#1f1f23] border border-[#2f3136] rounded-lg p-2 text-[#e3e3e3] placeholder-[#71767b] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none pr-8"
                 />
                 <button
                   type="button"
@@ -817,7 +787,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                         type="button"
                         id={`drawer-project-pill-${proj.id}`}
                         onClick={() => onSelectProject?.(proj)}
-                        className={`px-2 py-1 rounded-lg text-xs font-medium shrink-0 transition-all flex items-center gap-1.5 border ${
+                        className={`px-2 py-1 rounded-lg text-xs font-medium shrink-0 transition-colors flex items-center gap-1.5 border ${
                           isSelected
                             ? "bg-blue-600/25 border-blue-500/60 text-white shadow-sm"
                             : "bg-[#1f2128] hover:bg-[#262933] border-[#30333d] text-zinc-300 hover:text-white"

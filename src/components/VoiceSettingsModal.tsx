@@ -260,7 +260,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                 type="button"
                 id="engine-select-gemini"
                 onClick={() => handleSelectEngine("gemini")}
-                className={`p-3.5 rounded-xl border text-left transition-all relative ${
+                className={`p-3.5 rounded-xl border text-left transition-colors relative ${
                   currentSettings.engine === "gemini"
                     ? "bg-blue-950/40 border-blue-500 shadow-sm shadow-blue-500/10 ring-1 ring-blue-500"
                     : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -290,7 +290,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                 type="button"
                 id="engine-select-device"
                 onClick={() => handleSelectEngine("device")}
-                className={`p-3.5 rounded-xl border text-left transition-all relative ${
+                className={`p-3.5 rounded-xl border text-left transition-colors relative ${
                   currentSettings.engine === "device"
                     ? "bg-blue-950/40 border-blue-500 shadow-sm shadow-blue-500/10 ring-1 ring-blue-500"
                     : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -298,7 +298,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-1.5 font-semibold text-sm text-zinc-100">
-                    <Cpu className="w-4 h-4 text-emerald-400" />
+                    <Cpu className="w-4 h-4 text-blue-400" />
                     <span>Device System</span>
                   </div>
                   {currentSettings.engine === "device" && (
@@ -310,7 +310,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   On-device browser speech synthesis. Instant start and operates offline.
                 </p>
-                <span className="inline-block mt-2 px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="inline-block mt-2 px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted/60 text-zinc-300 border border-border/40 font-mono">
                   Zero Latency
                 </span>
               </button>
@@ -337,31 +337,20 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                     <div
                       key={v.id}
                       onClick={() => handleSelectGeminiVoice(v.id)}
-                      className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-colors cursor-pointer ${
                         isSelected
                           ? "bg-blue-950/30 border-blue-500/80 shadow-sm shadow-blue-500/5 ring-1 ring-blue-500/40"
                           : "bg-[#21242f]/60 border-[#313543] hover:border-zinc-500 hover:bg-[#262a37]"
                       }`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                            isSelected
-                              ? "border-blue-500 bg-blue-500 text-white"
-                              : "border-zinc-500 bg-transparent"
-                          }`}
-                        >
-                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-semibold text-xs text-zinc-100">{v.name}</span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 font-mono">
+                            {v.gender}
+                          </span>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm text-zinc-100">{v.name}</span>
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700">
-                              {v.personality}
-                            </span>
-                          </div>
-                          <p className="text-xs text-zinc-400 mt-0.5">{v.description}</p>
-                        </div>
+                        <p className="text-[11px] text-zinc-400">{v.personality || v.description}</p>
                       </div>
 
                       {/* Audition Button */}
@@ -372,7 +361,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                           e.stopPropagation();
                           handlePreviewVoice(v.id, "gemini");
                         }}
-                        className={`p-2 rounded-lg border text-xs font-medium shrink-0 flex items-center gap-1.5 transition-all ${
+                        className={`p-2 rounded-lg border text-xs font-medium shrink-0 flex items-center gap-1.5 transition-colors ${
                           isPlaying
                             ? "bg-blue-600 border-blue-400 text-white shadow-md"
                             : "bg-[#282c39] border-[#3e4456] text-zinc-300 hover:text-white hover:border-blue-400"
@@ -413,7 +402,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
               </div>
 
               {deviceVoices.length === 0 ? (
-                <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-xs text-amber-300">
+                <div className="p-4 rounded-xl bg-[#21242f] border border-[#343846] text-xs text-zinc-300">
                   No system voices reported by the browser yet. Browser default will be used.
                 </div>
               ) : (
@@ -426,7 +415,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                       <div
                         key={v.voiceURI}
                         onClick={() => handleSelectDeviceVoice(v.voiceURI)}
-                        className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        className={`flex items-center justify-between p-2.5 rounded-xl border transition-colors cursor-pointer ${
                           isSelected
                             ? "bg-blue-950/30 border-blue-500/80 ring-1 ring-blue-500/40"
                             : "bg-[#21242f]/60 border-[#313543] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -444,7 +433,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                                 {v.name}
                               </span>
                               {v.isNatural && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-medium bg-muted/60 text-zinc-300 border border-border/40 font-mono">
                                   Natural
                                 </span>
                               )}
@@ -460,7 +449,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                             e.stopPropagation();
                             handlePreviewVoice(v.voiceURI, "device");
                           }}
-                          className={`p-1.5 rounded-lg border text-[11px] font-medium shrink-0 flex items-center gap-1 transition-all ${
+                          className={`p-1.5 rounded-lg border text-[11px] font-medium shrink-0 flex items-center gap-1 transition-colors ${
                             isPlaying
                               ? "bg-blue-600 border-blue-400 text-white"
                               : "bg-[#282c39] border-[#3e4456] text-zinc-300 hover:text-white"
@@ -493,7 +482,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                   type="button"
                   id={`rate-btn-${rate}`}
                   onClick={() => handleSelectRate(rate)}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
+                  className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-colors ${
                     currentSettings.playbackRate === rate
                       ? "bg-blue-600 border-blue-400 text-white shadow-sm shadow-blue-500/20 ring-2 ring-blue-500/20"
                       : "bg-[#21242f] border-[#343846] text-zinc-300 hover:text-white hover:bg-[#292e3c]"
@@ -516,7 +505,9 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
         {/* Footer */}
         <div className="px-5 py-3.5 border-t border-[#2d313e] bg-[#16171f] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-300 bg-muted/60 px-1.5 py-0.5 rounded border border-border/40">
+              Ready
+            </span>
             <span className="text-xs text-zinc-400">
               Active:{" "}
               <strong className="text-zinc-200">
@@ -534,7 +525,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
               stopPreview();
               onClose();
             }}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all shadow-md active:scale-95"
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors shadow-md active:scale-95"
           >
             Done
           </button>

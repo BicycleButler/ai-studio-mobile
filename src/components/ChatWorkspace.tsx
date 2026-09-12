@@ -392,7 +392,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   <button
                     type="button"
                     onClick={onOpenAuth}
-                    className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-md active:scale-95 transition-colors flex items-center justify-center gap-1.5"
                   >
                     <span>Connect Google Account</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -400,11 +400,13 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 )}
               </div>
             ) : googleUser ? (
-              <div className="w-full mb-3 p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between gap-2 text-left">
+              <div className="w-full mb-3 p-2.5 rounded-xl bg-blue-950/20 border border-blue-500/30 flex items-center justify-between gap-2 text-left">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                  <span className="text-[11px] text-emerald-300 truncate">
-                    Live Synced: <span className="font-semibold text-white">{googleUser.email}</span>
+                  <span className="text-[10px] uppercase font-mono tracking-wider text-blue-400 bg-blue-500/20 px-1.5 py-0.5 rounded shrink-0">
+                    Live
+                  </span>
+                  <span className="text-[11px] text-zinc-300 truncate">
+                    Synced: <span className="font-semibold text-white">{googleUser.email}</span>
                   </span>
                 </div>
                 <button
@@ -422,7 +424,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 <button
                   key={idx}
                   onClick={() => onSendMessage(chip)}
-                  className="p-2.5 rounded-xl bg-[#1b1c20] hover:bg-[#24262b] border border-[#2b2c31] text-xs text-[#c4c7c5] hover:text-white transition-all text-left flex items-center justify-between group"
+                  className="p-2.5 rounded-xl bg-[#1b1c20] hover:bg-[#24262b] border border-[#2b2c31] text-xs text-[#c4c7c5] hover:text-white transition-colors text-left flex items-center justify-between group"
                 >
                   <span className="truncate">{chip}</span>
                   <span className="text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
@@ -565,7 +567,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
       {/* Input Dock (Android Mobile Floating Keyboard Clearance) */}
       <div className="p-2.5 bg-[#16171a] border-t border-[#26282e]">
-        <div className="flex items-end gap-1.5 bg-[#1f2025] rounded-2xl border border-[#30333b] p-1.5 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all">
+        <div className="flex items-end gap-1.5 bg-[#1f2025] rounded-2xl border border-[#30333b] p-1.5 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/50 transition-colors">
           {/* Media Attach button */}
           <button
             type="button"
@@ -641,7 +643,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               type="button"
               id="chat-stop-btn"
               onClick={onStopGeneration}
-              className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white transition-all shrink-0 shadow-sm"
+              className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white transition-colors shrink-0 shadow-sm"
               title="Stop generation"
             >
               <Square className="w-4 h-4 fill-white" />
@@ -652,7 +654,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               id="chat-send-btn"
               onClick={handleSend}
               disabled={!inputText.trim() && attachments.length === 0}
-              className={`p-2.5 rounded-xl transition-all shrink-0 flex items-center gap-1 font-semibold ${
+              className={`p-2.5 rounded-xl transition-colors shrink-0 flex items-center gap-1 font-semibold ${
                 inputText.trim() || attachments.length > 0
                   ? "bg-blue-600 hover:bg-blue-500 text-white shadow-md active:scale-95"
                   : "bg-[#292b31] text-[#71767b] cursor-not-allowed"
@@ -671,7 +673,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           type="button"
           id="sticky-footer-mic-btn"
           onClick={handleActivatePromptSpeech}
-          className={`w-full py-2.5 px-4 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all shadow-md active:scale-[0.99] ${
+          className={`w-full py-2.5 px-4 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors shadow-md active:scale-[0.99] ${
             isListening
               ? "bg-rose-600 hover:bg-rose-500 text-white ring-2 ring-rose-400/50 shadow-rose-600/30"
               : "bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-600 hover:to-indigo-600 text-white border border-blue-500/40 shadow-blue-500/20"
@@ -708,15 +710,15 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       {/* Floating Action Button (FAB) to Read Aloud the Recent Response */}
       {lastModelMessage && !isGenerating && (
         <div
-          className={`absolute right-3.5 z-30 pointer-events-auto transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 ${
-            attachments.length > 0 ? "bottom-[180px]" : "bottom-[122px]"
+          className={`absolute right-3.5 z-30 pointer-events-auto transition-[bottom] duration-200 animate-in fade-in slide-in-from-bottom-2 ${
+            attachments.length > 0 ? "bottom-44" : "bottom-32"
           }`}
         >
           <button
             type="button"
             id="chat-read-aloud-fab"
             onClick={handleToggleSpeech}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-full shadow-2xl backdrop-blur-md border transition-all duration-200 active:scale-95 text-xs font-semibold ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-full shadow-2xl backdrop-blur-md border transition-colors duration-200 active:scale-95 text-xs font-semibold ${
               isSpeaking
                 ? "bg-blue-600 text-white border-blue-400/80 shadow-blue-500/30 ring-2 ring-blue-500/30"
                 : isBufferingAudio

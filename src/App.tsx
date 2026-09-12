@@ -712,7 +712,7 @@ export default function App() {
                 setShowImportModal(true);
                 setClipboardToastKey(null);
               }}
-              className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1 transition-all shadow-sm active:scale-95"
+              className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1 transition-colors shadow-sm active:scale-95"
             >
               <span>Import</span>
               <ArrowRight className="w-3 h-3" />
@@ -743,12 +743,12 @@ export default function App() {
 
       {/* Offline Status Banner */}
       {!isOnline && (
-        <div className="bg-amber-950/90 border-b border-amber-800/80 px-3 py-2 text-xs text-amber-200 flex items-center justify-between gap-2 shrink-0 animate-pulse">
+        <div className="bg-[#1e1714] border-b border-[#3d2718] px-3 py-2 text-xs text-zinc-300 flex items-center justify-between gap-2 shrink-0 animate-pulse">
           <div className="flex items-center gap-2">
-            <WifiOff className="w-4 h-4 text-amber-400 shrink-0" />
+            <WifiOff className="w-4 h-4 text-zinc-400 shrink-0" />
             <span>You are currently offline. Prompts will resume when network is restored.</span>
           </div>
-          <span className="px-2 py-0.5 rounded bg-amber-900/60 text-amber-300 font-mono text-[10px]">
+          <span className="px-2 py-0.5 rounded bg-[#2c1f17] text-zinc-300 border border-[#4a2e1c] font-mono text-[10px]">
             OFFLINE
           </span>
         </div>
@@ -759,13 +759,13 @@ export default function App() {
         <div
           className={`border-b px-3 py-2 text-xs flex items-center justify-between gap-2 shrink-0 ${
             errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key"
-              ? "bg-amber-950/90 border-amber-800/80 text-amber-200"
+              ? "bg-[#1f1914] border-[#3d2919] text-zinc-200"
               : "bg-rose-950/80 border-rose-800/60 text-rose-200"
           }`}
         >
           <div className="flex items-center gap-2 overflow-hidden">
             {errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key" ? (
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+              <AlertTriangle className="w-4 h-4 text-zinc-400 shrink-0 animate-pulse" />
             ) : (
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             )}

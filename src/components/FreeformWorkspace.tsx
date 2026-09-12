@@ -110,7 +110,7 @@ export const FreeformWorkspace: React.FC<FreeformWorkspaceProps> = ({
       </div>
 
       {/* Editor Box */}
-      <div className="flex flex-col bg-[#1a1b20] border border-[#2c2e35] rounded-xl p-2.5 focus-within:border-blue-500 transition-all">
+      <div className="flex flex-col bg-[#1a1b20] border border-[#2c2e35] rounded-xl p-2.5 focus-within:border-blue-500 transition-colors">
         <label className="text-[11px] font-medium text-[#9aa0a6] mb-1.5 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span>Prompt Content</span>
@@ -177,7 +177,7 @@ export const FreeformWorkspace: React.FC<FreeformWorkspaceProps> = ({
         {isGenerating ? (
           <button
             onClick={onStop}
-            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-colors"
           >
             <Square className="w-3.5 h-3.5 fill-white" />
             <span>Stop</span>
@@ -187,7 +187,7 @@ export const FreeformWorkspace: React.FC<FreeformWorkspaceProps> = ({
             id="freeform-run-btn"
             onClick={handleRun}
             disabled={!freeformText.trim()}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-colors ${
               freeformText.trim()
                 ? "bg-blue-600 hover:bg-blue-500 text-white"
                 : "bg-[#25272e] text-zinc-500 cursor-not-allowed"
@@ -246,7 +246,7 @@ export const FreeformWorkspace: React.FC<FreeformWorkspaceProps> = ({
           type="button"
           id="freeform-sticky-mic-btn"
           onClick={handleActivateSpeech}
-          className={`w-full py-2.5 px-4 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all shadow-md active:scale-[0.99] ${
+          className={`w-full py-2.5 px-4 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors shadow-md active:scale-[0.99] ${
             isListening
               ? "bg-rose-600 hover:bg-rose-500 text-white ring-2 ring-rose-400/50 shadow-rose-600/30"
               : "bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-600 hover:to-indigo-600 text-white border border-blue-500/40 shadow-blue-500/20"

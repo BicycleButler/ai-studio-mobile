@@ -478,7 +478,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("tune");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
               activeTab === "tune" || activeTab === "model"
                 ? "border-blue-500 text-blue-400 bg-blue-500/5"
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
@@ -495,7 +495,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("library");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
               activeTab === "library"
                 ? "border-blue-500 text-blue-400 bg-blue-500/5"
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
@@ -512,7 +512,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("export");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
               activeTab === "export"
                 ? "border-blue-500 text-blue-400 bg-blue-500/5"
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
@@ -529,7 +529,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("companion");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
               activeTab === "companion"
                 ? "border-blue-500 text-blue-400 bg-blue-500/5"
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
@@ -546,7 +546,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("audio");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
               activeTab === "audio"
                 ? "border-blue-500 text-blue-400 bg-blue-500/5"
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
@@ -563,7 +563,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("auth");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
               activeTab === "auth"
                 ? "border-blue-500 text-blue-400 bg-blue-500/5"
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
@@ -572,7 +572,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             <Key className="w-3.5 h-3.5" />
             <span>Auth</span>
             {!hasAnyAuth && (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+              <span className="text-[10px] font-mono text-zinc-400 shrink-0">!</span>
             )}
           </button>
 
@@ -583,7 +583,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("display");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
               activeTab === "display"
                 ? "border-blue-500 text-blue-400 bg-blue-500/5"
                 : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
@@ -619,7 +619,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <div
                     className={`mt-0.5 p-1.5 rounded-lg ${
                       hasServerKey
-                        ? "bg-emerald-500/20 text-emerald-400"
+                        ? "bg-blue-500/20 text-blue-400"
                         : "bg-zinc-800 text-zinc-400"
                     }`}
                   >
@@ -706,7 +706,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                         <div
                           key={proj.id}
                           id={`settings-project-card-${proj.id}`}
-                          className={`p-3 rounded-xl border transition-all ${
+                          className={`p-3 rounded-xl border transition-colors ${
                             isActive
                               ? "bg-[#1c2233] border-blue-500/40 shadow-sm"
                               : "bg-[#181a24] border-[#2c303f] hover:border-[#3a4054]"
@@ -761,8 +761,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                     {proj.name}
                                   </h5>
                                   {(!proj.isValid || proj.status === "invalid_key" || proj.status === "attention_required") ? (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-medium flex items-center gap-1">
-                                      <AlertTriangle className="w-2.5 h-2.5" />
+                                    <span className="px-1.5 py-0.5 rounded-full bg-muted/60 text-zinc-300 border border-border/40 text-[10px] font-medium flex items-center gap-1">
+                                      <AlertTriangle className="w-2.5 h-2.5 text-zinc-400" />
                                       <span>Key Expired</span>
                                     </span>
                                   ) : isActive ? (
@@ -913,7 +913,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     value={inputApiKey}
                     onChange={(e) => setInputApiKey(e.target.value)}
                     placeholder="AIzaSy..."
-                    className="w-full text-xs font-mono bg-[#16171f] border border-[#343846] rounded-xl px-3.5 py-2.5 pr-20 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full text-xs font-mono bg-[#16171f] border border-[#343846] rounded-xl px-3.5 py-2.5 pr-20 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button
@@ -960,7 +960,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       type="button"
                       id="settings-save-key-btn"
                       onClick={handleSaveApiKey}
-                      className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+                      className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md transition-colors active:scale-95"
                     >
                       Save Key
                     </button>
@@ -1046,7 +1046,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     type="button"
                     id="settings-engine-gemini"
                     onClick={() => handleSelectAudioEngine("gemini")}
-                    className={`p-3.5 rounded-xl border text-left transition-all ${
+                    className={`p-3.5 rounded-xl border text-left transition-colors ${
                       currentSpeechSettings.engine === "gemini"
                         ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
                         : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -1072,7 +1072,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     type="button"
                     id="settings-engine-device"
                     onClick={() => handleSelectAudioEngine("device")}
-                    className={`p-3.5 rounded-xl border text-left transition-all ${
+                    className={`p-3.5 rounded-xl border text-left transition-colors ${
                       currentSpeechSettings.engine === "device"
                         ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
                         : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -1111,7 +1111,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                         <div
                           key={v.id}
                           onClick={() => handleSelectGeminiVoice(v.id)}
-                          className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                          className={`flex items-center justify-between p-3 rounded-xl border transition-colors cursor-pointer ${
                             isSelected
                               ? "bg-blue-950/30 border-blue-500/80 ring-1 ring-blue-500/40"
                               : "bg-[#21242f]/60 border-[#313543] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -1150,7 +1150,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                               e.stopPropagation();
                               handlePreviewVoice(v.id, "gemini");
                             }}
-                            className={`p-2 rounded-lg border text-xs font-medium shrink-0 flex items-center gap-1.5 transition-all ${
+                            className={`p-2 rounded-lg border text-xs font-medium shrink-0 flex items-center gap-1.5 transition-colors ${
                               isPlaying
                                 ? "bg-blue-600 border-blue-400 text-white"
                                 : "bg-[#282c39] border-[#3e4456] text-zinc-300 hover:text-white hover:border-blue-400"
@@ -1194,7 +1194,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                         <div
                           key={v.voiceURI}
                           onClick={() => handleSelectDeviceVoice(v.voiceURI)}
-                          className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          className={`flex items-center justify-between p-2.5 rounded-xl border transition-colors cursor-pointer ${
                             isSelected
                               ? "bg-blue-950/30 border-blue-500/80 ring-1 ring-blue-500/40"
                               : "bg-[#21242f]/60 border-[#313543] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -1250,7 +1250,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       key={rate}
                       type="button"
                       onClick={() => handleSelectRate(rate)}
-                      className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
+                      className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-colors ${
                         currentSpeechSettings.playbackRate === rate
                           ? "bg-blue-600 border-blue-400 text-white shadow-sm"
                           : "bg-[#21242f] border-[#343846] text-zinc-300 hover:text-white hover:bg-[#292e3c]"
@@ -1285,7 +1285,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       <div
                         key={m.id}
                         onClick={() => updateConfigField("model", m.id)}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
                           isSelected
                             ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
                             : "bg-[#21242f]/70 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -1454,7 +1454,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectDeviceMode("responsive")}
-                    className={`p-4 rounded-xl border text-left transition-all ${
+                    className={`p-4 rounded-xl border text-left transition-colors ${
                       deviceMode === "responsive"
                         ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
                         : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -1479,7 +1479,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectDeviceMode("pixel")}
-                    className={`p-4 rounded-xl border text-left transition-all ${
+                    className={`p-4 rounded-xl border text-left transition-colors ${
                       deviceMode === "pixel"
                         ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
                         : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
@@ -1517,10 +1517,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         <div className="px-5 py-3 border-t border-[#2d313e] bg-[#16171f] flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-zinc-400">
             <span
-              className={`w-2 h-2 rounded-full ${
-                hasAnyAuth ? "bg-emerald-400" : "bg-amber-400"
+              className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border ${
+                hasAnyAuth
+                  ? "bg-muted/60 text-zinc-300 border-border/40"
+                  : "bg-muted/40 text-zinc-400 border-border/30"
               }`}
-            />
+            >
+              {hasAnyAuth ? "Live" : "Offline"}
+            </span>
             <span>
               {hasAnyAuth
                 ? "AI Studio Connected"
@@ -1535,7 +1539,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               onClose();
             }}
-            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
+            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-colors"
           >
             Done
           </button>

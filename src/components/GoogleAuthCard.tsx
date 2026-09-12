@@ -74,7 +74,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
   return (
     <div
       id="google-auth-card"
-      className={`rounded-2xl border transition-all ${
+      className={`rounded-2xl border transition-colors ${
         user
           ? "bg-gradient-to-br from-[#1b2234] via-[#161a26] to-[#12131a] border-blue-500/40 shadow-xl"
           : "bg-[#161821] border-[#2b2f3d] hover:border-[#3c4154]"
@@ -127,8 +127,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
                   <h4 className="text-sm font-semibold text-white leading-tight">
                     {user.name}
                   </h4>
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 bg-muted/60 px-1.5 py-0.5 rounded border border-border/40">
                     Synced
                   </span>
                 </div>
@@ -143,7 +142,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               id="google-sign-out-btn"
               onClick={handleSignOut}
               disabled={isLoading}
-              className="p-1.5 rounded-lg text-[#9aa0a6] hover:text-rose-400 hover:bg-rose-950/30 border border-transparent hover:border-rose-800/40 transition-all"
+              className="p-1.5 rounded-lg text-[#9aa0a6] hover:text-rose-400 hover:bg-rose-950/30 border border-transparent hover:border-rose-800/40 transition-colors"
               title="Sign out of Google Account"
             >
               {isLoading ? (
@@ -246,7 +245,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
             id="primary-google-sign-in-btn"
             onClick={() => handleSignIn(defaultUserEmail)}
             disabled={isLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-100 text-[#1f1f23] font-semibold text-xs shadow-lg transition-all flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-zinc-300"
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-100 text-[#1f1f23] font-semibold text-xs shadow-lg transition-colors flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-zinc-300"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin text-zinc-700" />

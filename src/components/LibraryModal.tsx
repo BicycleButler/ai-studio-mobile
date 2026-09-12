@@ -57,7 +57,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
         </div>
         <button
           onClick={() => setShowSaveForm(!showSaveForm)}
-          className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium flex items-center gap-1 shadow-sm transition-all"
+          className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium flex items-center gap-1 shadow-sm transition-colors"
         >
           <BookmarkPlus className="w-3.5 h-3.5" />
           <span>Save Current</span>
@@ -101,7 +101,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             <div
               key={tmpl.id}
               onClick={() => onLoadPrompt(tmpl)}
-              className="group p-3 rounded-xl bg-[#1a1b20] hover:bg-[#22242b] border border-[#2b2c31] hover:border-blue-500/50 cursor-pointer transition-all flex flex-col justify-between"
+              className="group p-3 rounded-xl bg-[#1a1b20] hover:bg-[#22242b] border border-[#2b2c31] hover:border-blue-500/50 cursor-pointer transition-colors flex flex-col justify-between"
             >
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
@@ -150,7 +150,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             {savedPrompts.map((item) => (
               <div
                 key={item.id}
-                className="p-3 rounded-xl bg-[#1a1b20] border border-[#2b2c31] hover:border-[#3a3d46] transition-all flex items-center justify-between"
+                className="p-3 rounded-xl bg-[#1a1b20] border border-[#2b2c31] hover:border-[#3a3d46] transition-colors flex items-center justify-between"
               >
                 <div
                   onClick={() => onLoadPrompt(item)}

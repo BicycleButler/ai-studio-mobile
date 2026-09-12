@@ -76,7 +76,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
             <button
               key={l.id}
               onClick={() => setSelectedLang(l.id)}
-              className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
                 isSelected
                   ? "bg-[#2b2c31] text-white shadow-sm font-semibold"
                   : "text-[#9aa0a6] hover:text-[#e3e3e3]"
@@ -96,7 +96,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
           <button
             id="copy-code-btn"
             onClick={handleCopy}
-            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-all"
+            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-colors"
           >
             {copied ? (
               <>
@@ -123,7 +123,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
           id="export-modal-open-ide-btn"
           type="button"
           onClick={onOpenMobileIDE}
-          className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-all shadow-sm active:scale-[0.99]"
+          className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-colors shadow-sm active:scale-[0.99]"
         >
           <Code2 className="w-4 h-4 text-amber-400" />
           <span>Launch Full Mobile IDE (Code Editor & Runner Console)</span>

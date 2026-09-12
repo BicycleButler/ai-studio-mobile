@@ -360,12 +360,12 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             {validationState === "valid" && (
               <div
                 id="validation-state-valid"
-                className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2.5"
+                className="p-3 rounded-xl bg-muted/40 border border-border/40 text-zinc-200 text-xs flex items-start gap-2.5"
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-foreground shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <span className="font-semibold text-white block">Key Verified & Authorized</span>
-                  <span className="text-[11px] opacity-90 leading-tight block mt-0.5">
+                  <span className="text-[11px] text-muted-foreground leading-tight block mt-0.5">
                     Successfully reached Google Gemini models endpoint using {validationResult?.model || selectedModel}.
                   </span>
                 </div>
@@ -408,7 +408,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               type="submit"
               id="save-and-activate-btn"
               disabled={isSaving || validationState === "validating" || validationState === "invalid" || !apiKey.trim()}
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all disabled:opacity-40 flex items-center gap-1.5"
+              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-colors disabled:opacity-40 flex items-center gap-1.5"
             >
               {isSaving ? (
                 <>

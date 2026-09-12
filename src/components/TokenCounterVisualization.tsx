@@ -58,7 +58,7 @@ export const TokenCounterVisualization: React.FC<TokenCounterVisualizationProps>
       type="button"
       id="header-token-counter-viz"
       onClick={onClick}
-      className={`h-8 flex items-center gap-1.5 px-2 sm:px-2.5 rounded-lg bg-[#1a1b20] hover:bg-[#25272e] border border-[#2c2e35] hover:border-[#3d404a] text-left transition-all active:scale-[0.98] group cursor-pointer ${className}`}
+      className={`h-8 flex items-center gap-1.5 px-2 sm:px-2.5 rounded-lg bg-[#1a1b20] hover:bg-[#25272e] border border-[#2c2e35] hover:border-[#3d404a] text-left transition-colors active:scale-[0.98] group cursor-pointer ${className}`}
       title={tooltipText}
       aria-label={`Token count: ${tooltipText}`}
     >
@@ -91,7 +91,7 @@ export const TokenCounterVisualization: React.FC<TokenCounterVisualizationProps>
             strokeDasharray={circumference}
             strokeDashoffset={minStrokeOffset}
             strokeLinecap="round"
-            className="transition-all duration-300 ease-out"
+            className="transition-[stroke-dashoffset,stroke] duration-300 ease-out"
           />
         </svg>
 

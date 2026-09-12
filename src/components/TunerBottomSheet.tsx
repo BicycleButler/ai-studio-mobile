@@ -89,22 +89,20 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
       <div
         id="tuner-auth-card"
         onClick={onOpenAuth}
-        className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+        className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
           hasApiKey
-            ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-950/30"
-            : "bg-amber-950/25 border-amber-500/40 text-amber-300 hover:bg-amber-950/40"
+            ? "bg-[#181a24] border-blue-500/30 text-zinc-200 hover:bg-[#202330]"
+            : "bg-[#1d1f27] border-[#313543] text-zinc-300 hover:bg-[#252834]"
         }`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          {hasApiKey ? (
-            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-          ) : (
-            <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
-              <Key className="w-4 h-4" />
-            </div>
-          )}
+          <div className="p-1.5 rounded-lg bg-muted text-foreground shrink-0">
+            {hasApiKey ? (
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
+            ) : (
+              <Key className="w-4 h-4 text-zinc-400" />
+            )}
+          </div>
           <div className="min-w-0">
             <span className="font-semibold text-xs text-white block truncate">
               {hasApiKey ? "AI Studio Authenticated" : "Authentication Required"}
@@ -119,7 +117,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
         <span
           className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg border shrink-0 transition-colors ${
             hasApiKey
-              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+              ? "bg-muted/60 text-zinc-300 border-border/40 font-mono"
               : "bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-sm"
           }`}
         >
@@ -140,7 +138,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
               <button
                 key={m.id}
                 onClick={() => updateField("model", m.id)}
-                className={`text-left p-2.5 rounded-xl border transition-all relative ${
+                className={`text-left p-2.5 rounded-xl border transition-colors relative ${
                   isSelected
                     ? "bg-blue-950/30 border-blue-500 ring-1 ring-blue-500/50 text-white"
                     : "bg-[#1a1b20] border-[#2c2d33] text-[#9aa0a6] hover:bg-[#212328] hover:text-zinc-200"

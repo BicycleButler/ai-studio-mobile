@@ -149,7 +149,7 @@ export const StructuredWorkspace: React.FC<StructuredWorkspaceProps> = ({
           {isGenerating ? (
             <button
               onClick={onStop}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-colors"
             >
               <Square className="w-3.5 h-3.5 fill-white" />
               <span>Stop</span>
@@ -159,7 +159,7 @@ export const StructuredWorkspace: React.FC<StructuredWorkspaceProps> = ({
               id="structured-run-btn"
               onClick={handleRun}
               disabled={!testInput.trim()}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-colors ${
                 testInput.trim()
                   ? "bg-blue-600 hover:bg-blue-500 text-white"
                   : "bg-[#25272e] text-zinc-500 cursor-not-allowed"

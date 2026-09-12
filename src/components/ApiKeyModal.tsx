@@ -215,13 +215,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 <span className="font-semibold text-xs text-white">
                   {isAuthenticated ? "Authenticated & Ready" : "Authentication Required"}
                 </span>
-                <span
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                    isAuthenticated
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                      : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                  }`}
-                >
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider bg-muted/60 text-zinc-300 border border-border/40">
                   {isAuthenticated
                     ? hasServerKey
                       ? "AI Studio Secret"
@@ -233,8 +227,8 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 {isAuthenticated
                   ? hasServerKey
                     ? "Authenticated automatically via your AI Studio workspace environment. You can start generating prompts immediately."
-                    : "Connected using your saved Gemini API key in local storage."
-                  : "AI Studio can authenticate your workspace automatically, or you can connect a Gemini API key below."}
+                    : "Authenticated using your custom Gemini API key. Stored securely on your device."
+                  : "No valid credentials found. Please sign in with your Google account, verify your server configuration, or input an API key below."}
               </p>
             </div>
           </div>
@@ -247,7 +241,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 setActiveTab("google");
                 setTestResult(null);
               }}
-              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
                 activeTab === "google"
                   ? "bg-[#252830] text-white shadow-sm"
                   : "text-[#9aa0a6] hover:text-[#e3e3e3]"
@@ -282,7 +276,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 setActiveTab("auto");
                 setTestResult(null);
               }}
-              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
                 activeTab === "auto"
                   ? "bg-[#252830] text-white shadow-sm"
                   : "text-[#9aa0a6] hover:text-[#e3e3e3]"
@@ -298,7 +292,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 setActiveTab("manual");
                 setTestResult(null);
               }}
-              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
                 activeTab === "manual"
                   ? "bg-[#252830] text-white shadow-sm"
                   : "text-[#9aa0a6] hover:text-[#e3e3e3]"
@@ -483,7 +477,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 <button
                   type="submit"
                   disabled={!inputVal.trim() && !customApiKey}
-                  className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all disabled:opacity-40"
+                  className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-colors disabled:opacity-40"
                 >
                   Save Key
                 </button>
@@ -496,12 +490,12 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             <div
               className={`p-3 rounded-xl text-xs flex items-center gap-2.5 border animate-in fade-in ${
                 testResult.success
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                  ? "bg-muted/40 border-border/40 text-zinc-200"
                   : "bg-rose-500/10 border-rose-500/30 text-rose-300"
               }`}
             >
               {testResult.success ? (
-                <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+                <Check className="w-4 h-4 shrink-0 text-foreground" />
               ) : (
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
               )}

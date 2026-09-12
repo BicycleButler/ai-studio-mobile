@@ -19,7 +19,7 @@ export const AndroidFrame: React.FC<AndroidFrameProps> = ({ mode, children }) =>
   // Pixel 9 Android Frame Simulation
   return (
     <div className="w-full min-h-screen bg-[#090a0c] flex items-center justify-center p-2 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-[430px] h-[890px] max-h-[96vh] bg-[#131314] rounded-[48px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_0_12px_#22242a,0_0_0_14px_#343741] flex flex-col overflow-hidden border border-[#30333b]">
+      <div className="relative w-full max-w-[430px] h-[890px] max-h-[96vh] bg-[#131314] rounded-[48px] shadow-2xl ring-1 ring-[#343741] outline outline-12 outline-[#22242a] flex flex-col overflow-hidden border border-[#30333b]">
         {/* Android Status Bar */}
         <div className="h-7 w-full bg-[#131314] text-white flex items-center justify-between px-7 shrink-0 select-none z-40 text-[11px] font-medium tracking-tight">
           <span>9:41</span>

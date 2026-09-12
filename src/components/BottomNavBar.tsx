@@ -54,11 +54,11 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               key={tab.id}
               id={`nav-tab-${tab.id}`}
               onClick={() => onSelectTab(tab.id)}
-              className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all relative group"
+              className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors relative group"
             >
               {/* Material You pill highlight */}
               <div
-                className={`flex items-center justify-center w-12 h-7 rounded-full transition-all duration-200 ${
+                className={`flex items-center justify-center w-12 h-7 rounded-full transition-colors duration-200 ${
                   isActive
                     ? "bg-blue-600/25 text-blue-400"
                     : "text-[#9aa0a6] group-hover:text-[#c4c7c5] group-hover:bg-[#1f1f23]"
