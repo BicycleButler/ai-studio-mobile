@@ -6,3 +6,16 @@ coverage/
 *.log
 .env*
 !.env.example
+# stubs framework
+.stubs/*.sqlite*
+.stubs/*.db*
+
+# TypeScript & Linter caches
+*.tsbuildinfo
+.eslintcache
+
+# Editor & OS artifacts
+.idea/
+*.swp
+*.swo
+*~
