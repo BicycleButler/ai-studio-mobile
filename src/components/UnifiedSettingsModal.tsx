@@ -20,6 +20,13 @@ import {
   FolderHeart,
   Code2,
   Compass,
+  Trash2,
+  Edit2,
+  FolderPlus,
+  Folder,
+  CheckCircle2,
+  Lock,
+  AlertTriangle,
 } from "lucide-react";
 import {
   PromptConfig,
@@ -28,6 +35,7 @@ import {
   SavedPrompt,
   ChatMessage,
   GoogleUser,
+  ProjectInfo,
 } from "../types";
 import { GoogleAuthCard } from "./GoogleAuthCard";
 import {
@@ -40,6 +48,7 @@ import { getAuthHeaders } from "../services/auth";
 import { LibraryModal } from "./LibraryModal";
 import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
+import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
 
 export type SettingsTab =
   | "tune"
@@ -65,6 +74,14 @@ interface UnifiedSettingsModalProps {
   onGoogleLogin?: (email?: string, name?: string) => Promise<void>;
   onGoogleLogout?: () => Promise<void>;
   liveModelsCount?: number;
+  onOpenCustomTabBrowser?: () => void;
+  onOpenImportProject?: () => void;
+  activeProjectName?: string;
+  projects?: ProjectInfo[];
+  activeProject?: ProjectInfo | null;
+  onSelectProject?: (project: ProjectInfo) => void;
+  onRenameProject?: (id: string, newName: string) => void;
+  onDeleteProject?: (id: string) => void;
 
   // Audio props
   speechSettings: SpeechSettings;
@@ -101,6 +118,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onGoogleLogin,
   onGoogleLogout,
   liveModelsCount = 55,
+  onOpenCustomTabBrowser,
+  onOpenImportProject,
+  activeProjectName,
+  projects = [],
+  activeProject = null,
+  onSelectProject,
+  onRenameProject,
+  onDeleteProject,
   speechSettings,
   onSaveSpeechSettings,
   config,
@@ -123,7 +148,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     }
   }, [isOpen, initialTab]);
 
-  // Auth state
+  // Auth & Project state
   const [inputApiKey, setInputApiKey] = useState(customApiKey);
   const [showKeyText, setShowKeyText] = useState(false);
   const [isTestingKey, setIsTestingKey] = useState(false);
@@ -131,6 +156,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     success: boolean;
     message: string;
   } | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingProjectName, setEditingProjectName] = useState("");
+  const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
+  const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
 
   useEffect(() => {
     setInputApiKey(customApiKey);
@@ -623,21 +652,258 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 </button>
               </div>
 
+              {/* Workspace Projects Management Card */}
+              <div className="p-4 rounded-xl border border-[#333746] bg-[#21242f]/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400">
+                      <Folder className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-semibold text-zinc-200">
+                        Workspace Projects ({projects.length})
+                      </h4>
+                      <p className="text-[11px] text-zinc-400">
+                        Manage registered Google AI Studio projects and switch credentials.
+                      </p>
+                    </div>
+                  </div>
+                  {onOpenImportProject && (
+                    <button
+                      type="button"
+                      id="settings-add-project-btn"
+                      onClick={() => {
+                        onClose();
+                        onOpenImportProject();
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                    >
+                      <FolderPlus className="w-3.5 h-3.5" />
+                      <span>+ New Project</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Projects List */}
+                {projects.length === 0 ? (
+                  <div className="p-3.5 text-center rounded-xl bg-[#171922] border border-[#2b2f3d] text-xs text-zinc-400 space-y-1">
+                    <p className="font-medium text-zinc-300">No Projects Registered</p>
+                    <p className="text-[11px] text-zinc-500">
+                      Import an AI Studio key to isolate conversation drafts and switch effortlessly.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {projects.map((proj) => {
+                      const isActive = activeProject?.id === proj.id;
+                      const isEditing = editingProjectId === proj.id;
+                      const isConfirmingDelete = deleteConfirmProjectId === proj.id;
+                      const maskedKey = proj.apiKey
+                        ? `${proj.apiKey.slice(0, 6)}••••••••${proj.apiKey.slice(-4)}`
+                        : "No key stored";
+
+                      return (
+                        <div
+                          key={proj.id}
+                          id={`settings-project-card-${proj.id}`}
+                          className={`p-3 rounded-xl border transition-all ${
+                            isActive
+                              ? "bg-[#1c2233] border-blue-500/40 shadow-sm"
+                              : "bg-[#181a24] border-[#2c303f] hover:border-[#3a4054]"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              {isEditing ? (
+                                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                  <input
+                                    type="text"
+                                    id={`input-rename-project-${proj.id}`}
+                                    value={editingProjectName}
+                                    onChange={(e) => setEditingProjectName(e.target.value)}
+                                    className="px-2 py-1 text-xs bg-[#12131a] border border-blue-500/60 rounded-md text-white focus:outline-none w-full max-w-[200px]"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        if (editingProjectName.trim()) {
+                                          onRenameProject?.(proj.id, editingProjectName.trim());
+                                        }
+                                        setEditingProjectId(null);
+                                      } else if (e.key === "Escape") {
+                                        setEditingProjectId(null);
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    id={`btn-save-rename-${proj.id}`}
+                                    onClick={() => {
+                                      if (editingProjectName.trim()) {
+                                        onRenameProject?.(proj.id, editingProjectName.trim());
+                                      }
+                                      setEditingProjectId(null);
+                                    }}
+                                    className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-md font-medium"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingProjectId(null)}
+                                    className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-md"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h5 className="text-xs font-semibold text-zinc-100">
+                                    {proj.name}
+                                  </h5>
+                                  {(!proj.isValid || proj.status === "invalid_key" || proj.status === "attention_required") ? (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-medium flex items-center gap-1">
+                                      <AlertTriangle className="w-2.5 h-2.5" />
+                                      <span>Key Expired</span>
+                                    </span>
+                                  ) : isActive ? (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-medium flex items-center gap-1">
+                                      <CheckCircle2 className="w-2.5 h-2.5" />
+                                      <span>Active</span>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      id={`btn-set-active-${proj.id}`}
+                                      onClick={() => onSelectProject?.(proj)}
+                                      className="px-1.5 py-0.5 rounded-md bg-[#252a38] hover:bg-blue-600/20 text-zinc-400 hover:text-blue-300 border border-[#373d50] text-[10px] transition-colors font-medium"
+                                    >
+                                      Set Active
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    id={`btn-edit-rename-${proj.id}`}
+                                    onClick={() => {
+                                      setEditingProjectId(proj.id);
+                                      setEditingProjectName(proj.name);
+                                    }}
+                                    className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition-colors"
+                                    title="Rename project"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="text-[11px] font-mono text-zinc-400">
+                                  {maskedKey}
+                                </span>
+                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-zinc-400 border border-zinc-700/50">
+                                  {proj.defaultModel || "gemini-2.5-flash"}
+                                </span>
+                                {(!proj.isValid || proj.status === "invalid_key") && onOpenCustomTabBrowser && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onClose();
+                                      onOpenCustomTabBrowser();
+                                    }}
+                                    className="text-[10px] text-amber-400 hover:text-amber-300 underline font-medium"
+                                  >
+                                    Update in AI Studio →
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions on Project */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {isConfirmingDelete ? (
+                                <div className="flex items-center gap-1 bg-rose-950/40 border border-rose-500/40 p-1 rounded-lg">
+                                  <span className="text-[10px] text-rose-300 font-medium px-1">
+                                    Delete?
+                                  </span>
+                                  <button
+                                    type="button"
+                                    id={`btn-confirm-delete-${proj.id}`}
+                                    onClick={() => {
+                                      onDeleteProject?.(proj.id);
+                                      setDeleteConfirmProjectId(null);
+                                    }}
+                                    className="px-1.5 py-0.5 text-[10px] bg-rose-600 hover:bg-rose-500 text-white rounded font-medium transition-colors"
+                                  >
+                                    Yes
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteConfirmProjectId(null)}
+                                    className="px-1.5 py-0.5 text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors"
+                                  >
+                                    No
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  id={`btn-delete-project-${proj.id}`}
+                                  onClick={() => setDeleteConfirmProjectId(proj.id)}
+                                  className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/20 rounded-lg transition-colors"
+                                  title="Delete project"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Custom API Key Input */}
               <div className="p-4 rounded-xl border border-[#333746] bg-[#21242f]/50 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-zinc-200">
-                    Custom Gemini API Key
-                  </label>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
-                  >
-                    <span>Get API Key</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-200 block">
+                      Custom Gemini API Key
+                    </label>
+                    {activeProjectName && (
+                      <span className="text-[10px] text-zinc-400 block font-normal">
+                        Active Project: <strong className="text-blue-400">{activeProjectName}</strong>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {onOpenCustomTabBrowser && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenCustomTabBrowser();
+                        }}
+                        className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors font-medium"
+                        title="Launch AI Studio in Chrome Custom Tab"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>In-App Tab</span>
+                      </button>
+                    )}
+                    {onOpenImportProject && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenImportProject();
+                        }}
+                        className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors font-medium"
+                      >
+                        <span>+ Project</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="relative">
@@ -719,6 +985,51 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <span className="leading-relaxed">{testResult.message}</span>
                 </div>
               )}
+
+              {/* Window & Screen Security (FLAG_SECURE) */}
+              <div className="p-4 rounded-xl border border-[#333746] bg-[#21242f]/50 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-semibold text-zinc-100">
+                        Android Screen Protection (FLAG_SECURE)
+                      </h4>
+                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                        Obscures screen snapshots in Recent Apps / App Switcher to prevent sensitive API key and draft leaks.
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="settings-flag-secure-toggle"
+                    checked={flagSecure}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      setFlagSecure(enabled);
+                      setFlagSecureEnabled(enabled);
+                    }}
+                    className="w-4 h-4 rounded text-blue-600 bg-zinc-800 border-zinc-700 focus:ring-blue-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Permanent Data Sovereignty & Store Policy Disclosure */}
+              <div className="p-4 rounded-xl border border-[#2b2e3b] bg-[#171821] space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Data Sovereignty & Privacy Notice</span>
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed font-normal">
+                  Your API keys, prompts, and project configurations are encrypted locally and never transmitted to any third-party or intermediary server. All requests are routed directly to Google Generative AI endpoints.
+                </p>
+                <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400">
+                  <span>Client for Google AI Studio</span>
+                  <span className="text-blue-400 font-medium">Powered by Google Gemini API</span>
+                </div>
+              </div>
             </div>
           )}
 

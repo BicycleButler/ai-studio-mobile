@@ -31,7 +31,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const defaultUserEmail = "thebicyclebutler@gmail.com";
+  const defaultUserEmail = "wiltermoodj@gmail.com";
 
   const handleSignIn = async (emailToUse?: string) => {
     setIsLoading(true);

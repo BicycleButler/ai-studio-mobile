@@ -11,6 +11,11 @@ export function loadStoredGoogleUser(): GoogleUser | null {
 }
 
 /**
+ * Alias for loadStoredGoogleUser
+ */
+export const getStoredGoogleUser = loadStoredGoogleUser;
+
+/**
  * Persists or clears the active Google user in client storage
  */
 export function saveStoredGoogleUser(user: GoogleUser | null): void {
@@ -42,6 +47,22 @@ export async function syncGoogleUserWithBackend(
 }
 
 /**
+ * Initiates Google login by syncing with the backend and saving the active user.
+ */
+export async function initiateGoogleLogin(
+  email?: string,
+  name?: string
+): Promise<GoogleUser> {
+  const targetEmail = email?.trim() || "wiltermoodj@gmail.com";
+  const targetName = name?.trim() || targetEmail.split("@")[0];
+  return syncGoogleUserWithBackend({
+    email: targetEmail,
+    name: targetName,
+    authSource: "google_account",
+  });
+}
+
+/**
  * Fetches current authenticated Google user session from backend
  */
 export async function fetchCurrentGoogleUser(): Promise<GoogleUser | null> {
@@ -58,6 +79,11 @@ export async function fetchCurrentGoogleUser(): Promise<GoogleUser | null> {
     return loadStoredGoogleUser();
   }
 }
+
+/**
+ * Alias for fetchCurrentGoogleUser
+ */
+export const fetchServerCurrentUser = fetchCurrentGoogleUser;
 
 /**
  * Terminates the authenticated Google session both on backend and client

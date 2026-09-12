@@ -11,6 +11,7 @@ import {
   MessageAttachment,
   IncomingMessage,
   GoogleUser,
+  ProjectInfo,
 } from "./types";
 import {
   getStoredGoogleUser,
@@ -31,8 +32,14 @@ import { DesktopWrapperGuide } from "./components/DesktopWrapperGuide";
 import { ApiKeyModal } from "./components/ApiKeyModal";
 import { UnifiedSettingsModal, SettingsTab } from "./components/UnifiedSettingsModal";
 import { AndroidFrame } from "./components/AndroidFrame";
+import { CustomTabBrowserModal } from "./components/CustomTabBrowserModal";
+import { ImportProjectSheet } from "./components/ImportProjectSheet";
+import { SecurePrivacyShield } from "./components/SecurePrivacyShield";
 import { useGeminiStream } from "./hooks/useGeminiStream";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
+import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
+import { useWindowSecurity } from "./hooks/useWindowSecurity";
+import { maskApiKey, clearClipboardSafe } from "./services/keyVerification";
 import {
   loadStoredApiKey,
   saveStoredApiKey,
@@ -40,17 +47,26 @@ import {
   persistSavedPrompts,
   loadDraftState,
   saveDraftState,
+  getActiveProject,
+  loadStoredProjects,
+  setActiveProjectId,
+  updateStoredProject,
+  deleteStoredProject,
 } from "./utils/storage";
 import {
   SpeechSettings,
   loadSpeechSettings,
   saveSpeechSettings,
 } from "./services/speechVoices";
-import { AlertCircle, Key, RefreshCw, WifiOff, X, Shield } from "lucide-react";
+import { AlertCircle, AlertTriangle, Key, RefreshCw, WifiOff, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
 
 export default function App() {
-  // Load draft state for crash/reload recovery
-  const initialDraft = loadDraftState();
+  // Phase 3: Active Project & Projects vault
+  const [projects, setProjects] = useState<ProjectInfo[]>(() => loadStoredProjects());
+  const [activeProject, setActiveProject] = useState<ProjectInfo | null>(() => getActiveProject());
+
+  // Load project-scoped draft state for crash/reload recovery
+  const initialDraft = loadDraftState(activeProject?.id);
 
   // Navigation & Mode states
   const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
@@ -62,6 +78,12 @@ export default function App() {
   const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() =>
     loadSpeechSettings()
   );
+
+  // In-App Browser / Import states
+  const [showCustomTabBrowser, setShowCustomTabBrowser] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [candidateClipboardKey, setCandidateClipboardKey] = useState<string>("");
+  const [clipboardToastKey, setClipboardToastKey] = useState<string | null>(null);
 
   const handleOpenSettings = (tab: SettingsTab = "tune") => {
     setSettingsTab(tab);
@@ -129,6 +151,9 @@ export default function App() {
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (initialDraft.messages && initialDraft.messages.length > 0) {
+      return initialDraft.messages;
+    }
     return STARTER_TEMPLATES[0].messages;
   });
 
@@ -157,23 +182,54 @@ export default function App() {
     clearError,
   } = useGeminiStream({
     customApiKey,
+    onError: (err) => {
+      if (err.isKeyInvalid || err.isAuthError || err.isRevoked) {
+        if (activeProject) {
+          updateStoredProject(activeProject.id, {
+            isValid: false,
+            status: "invalid_key",
+            statusMessage: "Key expired or revoked",
+          });
+          setActiveProject((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  isValid: false,
+                  status: "invalid_key",
+                  statusMessage: "Key expired or revoked",
+                }
+              : null
+          );
+          setProjects(loadStoredProjects());
+        }
+      }
+    },
   });
 
   // Online / offline network detection
   const { isOnline } = useNetworkStatus();
 
+  // Screen and window security (FLAG_SECURE)
+  const { isShieldActive } = useWindowSecurity({
+    isSensitiveScreenActive: showSettingsModal || showImportModal || showApiKeyModal,
+  });
+
   // Debounced auto-save draft to protect against Android tab suspension (LMK)
   useEffect(() => {
     const timeout = setTimeout(() => {
-      saveDraftState({
-        promptType,
-        config,
-        freeformText,
-        structuredExamples,
-      });
+      saveDraftState(
+        {
+          promptType,
+          config,
+          freeformText,
+          structuredExamples,
+          messages,
+        },
+        activeProject?.id
+      );
     }, 500);
     return () => clearTimeout(timeout);
-  }, [promptType, config, freeformText, structuredExamples]);
+  }, [promptType, config, freeformText, structuredExamples, messages, activeProject?.id]);
 
   // Initialize & fetch server health / models
   useEffect(() => {
@@ -187,7 +243,7 @@ export default function App() {
       .catch(() => {});
 
     // Check server session for current Google user
-    fetchServerCurrentUser().then((user) => {
+    fetchServerCurrentUser().then((user: GoogleUser | null) => {
       if (user) {
         setGoogleUser(user);
       }
@@ -232,6 +288,90 @@ export default function App() {
     setCustomApiKey(key);
     saveStoredApiKey(key);
   };
+
+  // Phase 3: Project switching, scope isolation & lifecycle wiring
+  const handleProjectActivated = (project: ProjectInfo) => {
+    // 1. Cancel any active stream to prevent state pollution
+    if (isGenerating) {
+      stopStream();
+    }
+
+    // 2. Persist current draft under outgoing active project
+    saveDraftState(
+      {
+        promptType,
+        config,
+        freeformText,
+        structuredExamples,
+        messages,
+      },
+      activeProject?.id
+    );
+
+    // 3. Mark new project active in storage & local state
+    setActiveProjectId(project.id);
+    setActiveProject(project);
+    setCustomApiKey(project.apiKey);
+    saveStoredApiKey(project.apiKey);
+
+    // 4. Load incoming project's scoped draft state
+    const targetDraft = loadDraftState(project.id);
+    setPromptType(targetDraft.promptType);
+    setConfig({
+      ...targetDraft.config,
+      ...(project.defaultModel ? { model: project.defaultModel } : {}),
+    });
+    setFreeformText(targetDraft.freeformText);
+    setStructuredExamples(targetDraft.structuredExamples);
+    if (targetDraft.messages && targetDraft.messages.length > 0) {
+      setMessages(targetDraft.messages);
+    } else {
+      setMessages(STARTER_TEMPLATES[0].messages);
+    }
+
+    // 5. Synchronize project list & clear transient toasts
+    setProjects(loadStoredProjects());
+    setCandidateClipboardKey("");
+    setClipboardToastKey(null);
+  };
+
+  const handleRenameProject = (id: string, newName: string) => {
+    updateStoredProject(id, { name: newName });
+    const updated = loadStoredProjects();
+    setProjects(updated);
+    if (activeProject?.id === id) {
+      setActiveProject((prev) => (prev ? { ...prev, name: newName } : null));
+    }
+  };
+
+  const handleDeleteProject = (id: string) => {
+    deleteStoredProject(id);
+    const updated = loadStoredProjects();
+    setProjects(updated);
+    if (activeProject?.id === id) {
+      if (updated.length > 0) {
+        handleProjectActivated(updated[0]);
+      } else {
+        setActiveProject(null);
+        setCustomApiKey("");
+        saveStoredApiKey("");
+        // Clean wipe to starter state
+        setMessages(STARTER_TEMPLATES[0].messages);
+        setFreeformText("");
+        setFreeformOutput("");
+        setStructuredOutput("");
+      }
+    }
+  };
+
+  // Phase 2: Background resume clipboard inspection and sniffing
+  useClipboardKeySniffer({
+    activeApiKey: customApiKey,
+    onKeyDetected: (detectedKey) => {
+      setCandidateClipboardKey(detectedKey);
+      setClipboardToastKey(detectedKey);
+    },
+  });
 
   const refreshServerAuth = async (): Promise<boolean> => {
     try {
@@ -449,6 +589,7 @@ export default function App() {
       freeformText,
       structuredExamples: [...structuredExamples],
       updatedAt: Date.now(),
+      projectId: activeProject?.id,
     };
 
     const updated = [newSaved, ...savedPrompts];
@@ -495,6 +636,9 @@ export default function App() {
 
   return (
     <AndroidFrame mode={deviceMode}>
+      {/* FLAG_SECURE Privacy Shield to obscure sensitive snapshots in App Switcher */}
+      <SecurePrivacyShield isActive={isShieldActive} />
+
       {/* Top Application Bar */}
       <TopAppBar
         promptType={promptType}
@@ -506,13 +650,76 @@ export default function App() {
         onOpenParameters={() => handleOpenSettings("tune")}
         onOpenSettings={handleOpenSettings}
         hasApiKey={hasApiKey}
+        googleUser={googleUser}
         totalTokens={totalTokensEstimate}
         maxTokens={1_000_000}
         systemInstruction={config.systemInstruction}
         onUpdateSystemInstruction={(inst) =>
           setConfig((prev) => ({ ...prev, systemInstruction: inst }))
         }
+        onOpenCustomTabBrowser={() => setShowCustomTabBrowser(true)}
+        onOpenImportProject={() => {
+          setCandidateClipboardKey("");
+          setShowImportModal(true);
+        }}
+        activeProjectName={activeProject?.name}
+        activeProject={activeProject}
+        projects={projects}
+        onSelectProject={handleProjectActivated}
       />
+
+      {/* Floating Clipboard Key Sniffer Detection Alert */}
+      {clipboardToastKey && !showImportModal && !showCustomTabBrowser && (
+        <div
+          id="clipboard-key-detection-banner"
+          className="mx-3 my-2 p-3 rounded-xl bg-gradient-to-r from-blue-950/90 to-indigo-950/90 border border-blue-500/40 text-blue-200 flex items-center justify-between gap-2.5 shadow-lg animate-in slide-in-from-top-2 shrink-0"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+              <Key className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-white">Google API Key Copied</span>
+                <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-mono">
+                  {maskApiKey(clipboardToastKey)}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-300 truncate">
+                Tap to import and activate in this project
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              id="dismiss-clipboard-banner-btn"
+              onClick={async () => {
+                setClipboardToastKey(null);
+                setCandidateClipboardKey("");
+                await clearClipboardSafe();
+              }}
+              className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+              title="Dismiss and wipe clipboard"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              id="import-detected-key-btn"
+              onClick={() => {
+                setCandidateClipboardKey(clipboardToastKey);
+                setShowImportModal(true);
+                setClipboardToastKey(null);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1 transition-all shadow-sm active:scale-95"
+            >
+              <span>Import</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Unauthenticated Alert Banner */}
       {!hasApiKey && (
@@ -547,15 +754,42 @@ export default function App() {
         </div>
       )}
 
-      {/* Granular Error Banner (Quota, Auth, Network) */}
+      {/* Granular Error Banner (Quota, Auth, Revocation, Network) */}
       {streamError && (
-        <div className="bg-rose-950/80 border-b border-rose-800/60 px-3 py-2 text-xs text-rose-200 flex items-center justify-between gap-2 shrink-0">
+        <div
+          className={`border-b px-3 py-2 text-xs flex items-center justify-between gap-2 shrink-0 ${
+            errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key"
+              ? "bg-amber-950/90 border-amber-800/80 text-amber-200"
+              : "bg-rose-950/80 border-rose-800/60 text-rose-200"
+          }`}
+        >
           <div className="flex items-center gap-2 overflow-hidden">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span className="truncate">{streamError}</span>
+            {errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key" ? (
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            )}
+            <span className="truncate">
+              {errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key"
+                ? "API key expired or revoked — Update API Key in AI Studio to resume requests."
+                : streamError}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {errorDetails?.isAuthError && (
+            {errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key" ? (
+              <button
+                type="button"
+                id="banner-update-ai-studio-btn"
+                onClick={() => {
+                  clearError();
+                  setShowCustomTabBrowser(true);
+                }}
+                className="px-2.5 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold flex items-center gap-1 text-[11px] shadow-sm transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>Update in AI Studio</span>
+              </button>
+            ) : errorDetails?.isAuthError ? (
               <button
                 onClick={() => {
                   clearError();
@@ -565,7 +799,7 @@ export default function App() {
               >
                 <Key className="w-3 h-3" /> Fix Key
               </button>
-            )}
+            ) : null}
             {errorDetails?.isQuotaError && (
               <button
                 onClick={() => {
@@ -579,7 +813,7 @@ export default function App() {
             )}
             <button
               onClick={clearError}
-              className="p-1 text-rose-400 hover:text-rose-200"
+              className="p-1 text-zinc-400 hover:text-white rounded transition-colors"
               title="Dismiss error"
             >
               <X className="w-3.5 h-3.5" />
@@ -705,6 +939,9 @@ export default function App() {
         onSaveCustomApiKey={handleSaveApiKey}
         hasServerKey={hasServerKey}
         onRefreshServerAuth={refreshServerAuth}
+        googleUser={googleUser}
+        onGoogleLogin={handleGoogleLogin}
+        onGoogleLogout={handleGoogleLogout}
         speechSettings={speechSettings}
         onSaveSpeechSettings={(newSettings) => {
           setSpeechSettings(newSettings);
@@ -723,6 +960,17 @@ export default function App() {
         messages={messages}
         deviceMode={deviceMode}
         onSelectDeviceMode={setDeviceMode}
+        onOpenCustomTabBrowser={() => setShowCustomTabBrowser(true)}
+        onOpenImportProject={() => {
+          setCandidateClipboardKey("");
+          setShowImportModal(true);
+        }}
+        activeProjectName={activeProject?.name}
+        projects={projects}
+        activeProject={activeProject}
+        onSelectProject={handleProjectActivated}
+        onRenameProject={handleRenameProject}
+        onDeleteProject={handleDeleteProject}
       />
 
       {/* Legacy API Key Modal fallback if needed */}
@@ -732,9 +980,40 @@ export default function App() {
           onSaveCustomApiKey={handleSaveApiKey}
           hasServerKey={hasServerKey}
           onRefreshServerAuth={refreshServerAuth}
+          googleUser={googleUser}
+          onGoogleLogin={handleGoogleLogin}
+          onGoogleLogout={handleGoogleLogout}
+          onOpenCustomTabBrowser={() => setShowCustomTabBrowser(true)}
+          onOpenImportProject={() => {
+            setCandidateClipboardKey("");
+            setShowImportModal(true);
+          }}
           onClose={() => setShowApiKeyModal(false)}
         />
       )}
+
+      {/* Phase 2: In-App AI Studio Launcher (Chrome Custom Tab style) */}
+      <CustomTabBrowserModal
+        isOpen={showCustomTabBrowser}
+        onClose={() => setShowCustomTabBrowser(false)}
+        activeApiKey={customApiKey}
+        onImportKey={(key) => {
+          setCandidateClipboardKey(key);
+          setShowImportModal(true);
+        }}
+      />
+
+      {/* Phase 2: Import Project Modal / Bottom Sheet */}
+      <ImportProjectSheet
+        isOpen={showImportModal}
+        onClose={() => {
+          setShowImportModal(false);
+          setCandidateClipboardKey("");
+        }}
+        initialKey={candidateClipboardKey}
+        onSuccess={handleProjectActivated}
+        availableModels={models.map((m) => ({ id: m.id, name: m.name }))}
+      />
     </AndroidFrame>
   );
 }

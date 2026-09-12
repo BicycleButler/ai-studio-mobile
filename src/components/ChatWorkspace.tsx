@@ -10,7 +10,6 @@ import {
   Sparkles,
   Trash2,
   Loader2,
-  Key,
   ArrowRight,
   Volume2,
   Mic,

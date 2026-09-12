@@ -13,7 +13,6 @@ import {
   Eye,
   EyeOff,
   Trash2,
-  UserCheck,
 } from "lucide-react";
 import { GoogleUser } from "../types";
 import { GoogleAuthCard } from "./GoogleAuthCard";
@@ -28,6 +27,8 @@ interface ApiKeyModalProps {
   onGoogleLogin?: (email?: string, name?: string) => Promise<void>;
   onGoogleLogout?: () => Promise<void>;
   liveModelsCount?: number;
+  onOpenCustomTabBrowser?: () => void;
+  onOpenImportProject?: () => void;
 }
 
 export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
@@ -40,6 +41,8 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   onGoogleLogin,
   onGoogleLogout,
   liveModelsCount = 55,
+  onOpenCustomTabBrowser,
+  onOpenImportProject,
 }) => {
   const [activeTab, setActiveTab] = useState<"google" | "auto" | "manual">("google");
   const [inputVal, setInputVal] = useState(customApiKey);
@@ -388,15 +391,34 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                   <label className="text-xs font-semibold text-zinc-300">
                     Gemini API Key
                   </label>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[11px] text-blue-400 hover:underline flex items-center gap-1"
-                  >
-                    <span>Get free key</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  <div className="flex items-center gap-2">
+                    {onOpenCustomTabBrowser && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenCustomTabBrowser();
+                        }}
+                        className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium"
+                        title="Launch AI Studio in Chrome Custom Tab"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Launch In-App Tab</span>
+                      </button>
+                    )}
+                    {onOpenImportProject && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenImportProject();
+                        }}
+                        className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium"
+                      >
+                        <span>+ Import Project</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="relative flex items-center">

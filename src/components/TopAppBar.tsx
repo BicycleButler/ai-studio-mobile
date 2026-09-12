@@ -13,8 +13,12 @@ import {
   Layers,
   Code2,
   Check,
+  ExternalLink,
+  FolderPlus,
+  Key,
+  AlertTriangle,
 } from "lucide-react";
-import { PromptType, GoogleUser } from "../types";
+import { PromptType, GoogleUser, ProjectInfo } from "../types";
 import { SettingsTab } from "./UnifiedSettingsModal";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { TokenCounterVisualization } from "./TokenCounterVisualization";
@@ -73,6 +77,12 @@ interface TopAppBarProps {
   maxTokens?: number;
   systemInstruction?: string;
   onUpdateSystemInstruction?: (instruction: string) => void;
+  onOpenCustomTabBrowser?: () => void;
+  onOpenImportProject?: () => void;
+  activeProjectName?: string;
+  activeProject?: ProjectInfo | null;
+  projects?: ProjectInfo[];
+  onSelectProject?: (project: ProjectInfo) => void;
 }
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
@@ -87,10 +97,17 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   maxTokens = 1_000_000,
   systemInstruction = "",
   onUpdateSystemInstruction,
+  onOpenCustomTabBrowser,
+  onOpenImportProject,
+  activeProjectName,
+  activeProject = null,
+  projects = [],
+  onSelectProject,
 }) => {
   // Expandable drawer tucked away by default to clean up space
   const [isExpanded, setIsExpanded] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
+  const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [isSysInstructionsOpen, setIsSysInstructionsOpen] = useState(false);
   const sysTextareaRef = useRef<HTMLTextAreaElement>(null);
   const sysSpeechBaseTextRef = useRef<string>("");
@@ -257,6 +274,220 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               </>
             )}
           </div>
+
+          {/* Interactive Project Switcher Pill in Collapsed Header */}
+          <div className="relative">
+            {(() => {
+              const isAttentionRequired = Boolean(
+                activeProject && (!activeProject.isValid || activeProject.status === "invalid_key" || activeProject.status === "attention_required")
+              );
+              return (
+                <button
+                  type="button"
+                  id="header-project-switcher-btn"
+                  onClick={() => setIsProjectMenuOpen((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-semibold shadow-sm transition-all active:scale-[0.98] group cursor-pointer ${
+                    isAttentionRequired
+                      ? "bg-amber-950/40 hover:bg-amber-950/60 text-amber-200 border-amber-500/50"
+                      : "bg-[#1a1b20] hover:bg-[#25272e] text-[#e3e3e3] hover:text-white border-[#2b2d35] hover:border-[#383b45]"
+                  }`}
+                  title={
+                    isAttentionRequired
+                      ? "Attention Required: API key expired, revoked, or unauthorized. Tap to update."
+                      : activeProject
+                      ? `Active Project: ${activeProject.name}`
+                      : "Select or configure project"
+                  }
+                  aria-haspopup="true"
+                  aria-expanded={isProjectMenuOpen}
+                >
+                  {isAttentionRequired ? (
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                  ) : (
+                    <Key className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  )}
+                  <span className="truncate max-w-[70px] xs:max-w-[100px] sm:max-w-[130px]">
+                    {activeProject ? activeProject.name : (hasApiKey ? "Custom Key" : "No Project")}
+                  </span>
+                  {activeProject?.apiKey && (
+                    <span className="text-[10px] text-zinc-400 font-mono hidden md:inline">
+                      ...{activeProject.apiKey.slice(-5)}
+                    </span>
+                  )}
+                  {isAttentionRequired && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  )}
+                  <ChevronDown
+                    className={`w-3 h-3 text-[#9aa0a6] transition-transform duration-150 group-hover:text-white ${
+                      isProjectMenuOpen ? "rotate-180 text-blue-400" : ""
+                    }`}
+                  />
+                </button>
+              );
+            })()}
+
+            {/* Interactive Project Dropdown Menu */}
+            {isProjectMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+                  onClick={() => setIsProjectMenuOpen(false)}
+                />
+                <div
+                  id="header-project-dropdown-menu"
+                  className="absolute left-0 mt-1.5 w-72 z-50 rounded-xl bg-[#191a20] border border-[#2e313b] shadow-2xl p-2 space-y-1 animate-in fade-in zoom-in-95 duration-100"
+                >
+                  <div className="flex items-center justify-between px-2 py-1">
+                    <span className="text-[10px] uppercase font-semibold tracking-wider text-[#71767b]">
+                      Switch Project ({projects.length})
+                    </span>
+                    <button
+                      type="button"
+                      id="header-manage-projects-btn"
+                      onClick={() => {
+                        setIsProjectMenuOpen(false);
+                        onOpenSettings("auth");
+                      }}
+                      className="text-[10px] text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  {/* Attention Required Banner in Dropdown */}
+                  {activeProject && (!activeProject.isValid || activeProject.status === "invalid_key" || activeProject.status === "attention_required") && (
+                    <div className="p-2 rounded-lg bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs mb-1.5">
+                      <div className="flex items-start gap-1.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold text-white block">Key Expired or Revoked</span>
+                          <span className="text-[11px] text-amber-300/90 leading-tight block mt-0.5">
+                            Update API Key in AI Studio to resume requests
+                          </span>
+                        </div>
+                      </div>
+                      {onOpenCustomTabBrowser && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProjectMenuOpen(false);
+                            onOpenCustomTabBrowser();
+                          }}
+                          className="mt-2 w-full py-1 px-2 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Update in AI Studio</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {projects.length === 0 ? (
+                    <div className="p-3 text-center rounded-lg bg-[#14151a] border border-[#262833]">
+                      <p className="text-xs text-zinc-300">No projects saved yet</p>
+                      <p className="text-[10px] text-zinc-500 mt-0.5">
+                        Import an AI Studio key to configure a workspace project.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="max-h-56 overflow-y-auto space-y-1 scrollbar-none">
+                      {projects.map((proj) => {
+                        const isSelected = activeProject?.id === proj.id;
+                        const keyHint = proj.apiKey ? `...${proj.apiKey.slice(-5)}` : "";
+                        const hasProblem = !proj.isValid || proj.status === "invalid_key" || proj.status === "attention_required";
+                        return (
+                          <button
+                            key={proj.id}
+                            type="button"
+                            id={`header-project-item-${proj.id}`}
+                            onClick={() => {
+                              onSelectProject?.(proj);
+                              setIsProjectMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-all ${
+                              isSelected
+                                ? hasProblem
+                                  ? "bg-amber-950/30 text-white border border-amber-500/50"
+                                  : "bg-[#252833] text-white border border-blue-500/40"
+                                : "hover:bg-[#20222a] text-[#c4c7c5] hover:text-white border border-transparent"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                                  hasProblem
+                                    ? "bg-amber-500/20 text-amber-400"
+                                    : isSelected
+                                    ? "bg-blue-500/20 text-blue-400"
+                                    : "bg-zinc-800 text-zinc-400"
+                                }`}
+                              >
+                                {hasProblem ? (
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Key className="w-3.5 h-3.5" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium truncate">{proj.name}</span>
+                                  {hasProblem && (
+                                    <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold">
+                                      Expired
+                                    </span>
+                                  )}
+                                  {keyHint && (
+                                    <span className="text-[10px] font-mono text-zinc-400 bg-black/40 px-1 py-0.2 rounded">
+                                      {keyHint}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-zinc-500 block truncate">
+                                  {proj.defaultModel || "gemini-2.5-flash"}
+                                </span>
+                              </div>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 ml-2" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="pt-1.5 border-t border-[#262833] flex items-center gap-1.5">
+                    {onOpenImportProject && (
+                      <button
+                        type="button"
+                        id="header-project-add-btn"
+                        onClick={() => {
+                          setIsProjectMenuOpen(false);
+                          onOpenImportProject();
+                        }}
+                        className="flex-1 py-1.5 px-2 rounded-lg bg-[#22252f] hover:bg-[#2c303d] text-zinc-200 hover:text-white text-xs font-medium border border-[#353947] flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <FolderPlus className="w-3.5 h-3.5 text-amber-400" />
+                        <span>+ Project</span>
+                      </button>
+                    )}
+                    {onOpenCustomTabBrowser && (
+                      <button
+                        type="button"
+                        id="header-project-getkey-btn"
+                        onClick={() => {
+                          setIsProjectMenuOpen(false);
+                          onOpenCustomTabBrowser();
+                        }}
+                        className="flex-1 py-1.5 px-2 rounded-lg bg-blue-600/15 hover:bg-blue-600/25 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/30 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Get Key</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Right: Google Account, Token Counter Visualization & Hamburger Menu Icon */}
@@ -349,11 +580,11 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           {/* 1. Text for AI Studio & Close/Compress action */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold tracking-tight text-white leading-tight">
-                Google AI Studio
+              <span className="text-xs sm:text-sm font-semibold tracking-tight text-white leading-tight">
+                Client for Google AI Studio
               </span>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
-                Playground
+                Gemini Client
               </span>
             </div>
             <button
@@ -513,6 +744,102 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             >
               {googleUser ? "Manage" : "Sign In"}
             </button>
+          </div>
+
+          {/* Interactive AI Studio Key Launcher & Multi-Project Switcher Row */}
+          <div className="p-2.5 rounded-xl bg-[#17181c] border border-[#26282f] space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                  <Key className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider text-[#9aa0a6] font-semibold">
+                    Active Project & Key
+                  </span>
+                  <span className="text-xs font-medium text-zinc-200 truncate">
+                    {activeProject?.name || activeProjectName || (hasApiKey ? "Custom / AI Studio Key" : "No Project Active")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {onOpenCustomTabBrowser && (
+                  <button
+                    type="button"
+                    id="drawer-launch-aistudio-btn"
+                    onClick={onOpenCustomTabBrowser}
+                    className="px-2.5 py-1 rounded-lg bg-[#1f2330] hover:bg-[#282f42] text-blue-300 hover:text-white text-xs font-medium border border-blue-500/30 flex items-center gap-1 transition-colors"
+                    title="Launch Google AI Studio in-app browser tab"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span className="hidden xs:inline">Get Key</span>
+                  </button>
+                )}
+                {onOpenImportProject && (
+                  <button
+                    type="button"
+                    id="drawer-import-project-btn"
+                    onClick={onOpenImportProject}
+                    className="px-2.5 py-1 rounded-lg bg-[#22242c] hover:bg-[#2b2e38] text-zinc-200 hover:text-white text-xs font-medium border border-[#353844] flex items-center gap-1 transition-colors"
+                    title="Import or configure project key"
+                  >
+                    <FolderPlus className="w-3 h-3 text-amber-400" />
+                    <span>+ Project</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Project Switcher Selector / Pills in Drawer */}
+            {projects.length > 0 && (
+              <div className="pt-2 border-t border-[#23252c] space-y-1.5">
+                <div className="flex items-center justify-between text-[10px] text-zinc-400">
+                  <span>Saved Projects ({projects.length})</span>
+                  <button
+                    type="button"
+                    id="drawer-manage-projects-link"
+                    onClick={() => {
+                      setIsExpanded(false);
+                      onOpenSettings("auth");
+                    }}
+                    className="text-blue-400 hover:underline"
+                  >
+                    Manage Workspace
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {projects.map((proj) => {
+                    const isSelected = activeProject?.id === proj.id;
+                    return (
+                      <button
+                        key={proj.id}
+                        type="button"
+                        id={`drawer-project-pill-${proj.id}`}
+                        onClick={() => onSelectProject?.(proj)}
+                        className={`px-2 py-1 rounded-lg text-xs font-medium shrink-0 transition-all flex items-center gap-1.5 border ${
+                          isSelected
+                            ? "bg-blue-600/25 border-blue-500/60 text-white shadow-sm"
+                            : "bg-[#1f2128] hover:bg-[#262933] border-[#30333d] text-zinc-300 hover:text-white"
+                        }`}
+                      >
+                        {isSelected ? (
+                          <Check className="w-3 h-3 text-blue-400 shrink-0" />
+                        ) : (
+                          <Key className="w-3 h-3 text-zinc-500 shrink-0" />
+                        )}
+                        <span className="truncate max-w-[100px]">{proj.name}</span>
+                        {proj.apiKey && (
+                          <span className="font-mono text-[10px] text-zinc-400">
+                            ...{proj.apiKey.slice(-4)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Compress Drawer quick action */}

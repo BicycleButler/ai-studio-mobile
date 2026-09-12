@@ -300,6 +300,46 @@ app.post("/api/auth/verify", async (req: Request, res: Response): Promise<void> 
   }
 });
 
+// Phase 2: Lightweight test call against Google's models endpoint to verify key activity & authorization
+app.post("/api/verify-key", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const bodyKey = typeof req.body === "object" && req.body !== null ? req.body.apiKey : undefined;
+    const headerKey = req.headers["x-gemini-api-key"] as string | undefined;
+    const candidateKey = (bodyKey || headerKey || "").trim();
+
+    if (!candidateKey) {
+      res.status(400).json({
+        valid: false,
+        error: "API key is required for verification.",
+      });
+      return;
+    }
+
+    const testModel = (typeof req.body === "object" && req.body?.model) ? String(req.body.model) : "gemini-2.5-flash";
+    const ai = new GoogleGenAI({ apiKey: candidateKey });
+
+    // Lightweight verification call
+    const result = await ai.models.countTokens({
+      model: testModel,
+      contents: "ping",
+    });
+
+    res.json({
+      valid: true,
+      model: testModel,
+      totalTokens: result.totalTokens,
+      verifiedAt: Date.now(),
+    });
+  } catch (err: unknown) {
+    const msg = getErrorMessage(err);
+    const status = getErrorStatus(err);
+    res.status(status >= 400 && status < 600 ? status : 401).json({
+      valid: false,
+      error: msg,
+    });
+  }
+});
+
 // Return live models list synced directly from Google AI Studio
 app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
   const forceRefresh = req.query.refresh === "true";

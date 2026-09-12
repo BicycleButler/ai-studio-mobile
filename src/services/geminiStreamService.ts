@@ -11,26 +11,82 @@ export interface StreamOptions {
   signal?: AbortSignal;
 }
 
+/**
+ * Strips raw Google API keys and project tokens from strings before logging or UI exposure.
+ */
+export function sanitizeLogMessage(message: string): string {
+  if (!message) return "";
+  return message
+    .replace(/AIza[0-9A-Za-z\-_]{35}/g, (match) => `${match.slice(0, 4)}...${match.slice(-4)}`)
+    .replace(/AQ\.[0-9A-Za-z\-_]{10,}/g, (match) => `${match.slice(0, 4)}...[REDACTED]`);
+}
+
+/**
+ * Scrubs sensitive authentication and authorization headers from client error-logging payloads.
+ */
+export function sanitizeHeadersForLogging(headers: Record<string, string>): Record<string, string> {
+  const sanitized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const lower = key.toLowerCase();
+    if (
+      lower.includes("key") ||
+      lower.includes("auth") ||
+      lower.includes("bearer") ||
+      lower.includes("secret") ||
+      lower.includes("token")
+    ) {
+      sanitized[key] = value.length > 8 ? `${value.slice(0, 4)}...[SCRUBBED]` : "[REDACTED]";
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+
 export class GeminiApiError extends Error {
   public statusCode?: number;
   public isQuotaError: boolean;
   public isAuthError: boolean;
+  public isKeyInvalid: boolean;
+  public isRevoked: boolean;
 
-  constructor(message: string, statusCode?: number) {
-    super(message);
+  constructor(rawMessage: string, statusCode?: number) {
+    const cleanMessage = sanitizeLogMessage(rawMessage);
+    super(cleanMessage);
     this.name = "GeminiApiError";
     this.statusCode = statusCode;
+    const msg = cleanMessage.toLowerCase();
+
     this.isQuotaError =
       statusCode === 429 ||
-      message.toLowerCase().includes("quota") ||
-      message.toLowerCase().includes("resource_exhausted") ||
-      message.toLowerCase().includes("rate limit");
-    this.isAuthError =
+      msg.includes("quota") ||
+      msg.includes("resource_exhausted") ||
+      msg.includes("rate limit") ||
+      msg.includes("quota exceeded");
+
+    this.isKeyInvalid =
+      (statusCode === 400 &&
+        (msg.includes("api_key_invalid") ||
+          msg.includes("api key not valid") ||
+          msg.includes("invalid api key") ||
+          msg.includes("key expired") ||
+          msg.includes("api key expired") ||
+          msg.includes("bad request: api_key"))) ||
       statusCode === 401 ||
       statusCode === 403 ||
-      message.toLowerCase().includes("api key") ||
-      message.toLowerCase().includes("permission_denied") ||
-      message.toLowerCase().includes("unauthenticated");
+      msg.includes("api_key_invalid") ||
+      msg.includes("key expired") ||
+      msg.includes("revoked") ||
+      msg.includes("permission_denied") ||
+      msg.includes("unauthenticated");
+
+    this.isRevoked =
+      msg.includes("revoked") ||
+      msg.includes("key expired") ||
+      msg.includes("expired") ||
+      msg.includes("deleted");
+
+    this.isAuthError = this.isKeyInvalid;
   }
 }
 

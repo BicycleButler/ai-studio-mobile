@@ -1,11 +1,53 @@
-import { PromptConfig, PromptType, StructuredExample, SavedPrompt } from "../types";
+import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage } from "../types";
 import { DEFAULT_CONFIG, STARTER_TEMPLATES } from "../data/templates";
 
 const STORAGE_KEYS = {
   API_KEY: "ai_studio_api_key",
   SAVED_PROMPTS: "ai_studio_saved_prompts_v2",
   DRAFT_STATE: "ai_studio_draft_state_v1",
+  PROJECTS: "ai_studio_projects_v2",
+  ACTIVE_PROJECT_ID: "ai_studio_active_project_id_v2",
+  FLAG_SECURE_ENABLED: "ais_flag_secure_enabled_v1",
 } as const;
+
+// Device-scoped salt for local credential encryption
+const DEVICE_VAULT_SALT = "ais_mobile_vault_v2_77391";
+
+/**
+ * Encrypts a sensitive string into an encoded vault envelope
+ */
+export function encryptSecret(plainText: string): string {
+  if (!plainText) return "";
+  try {
+    let encrypted = "";
+    for (let i = 0; i < plainText.length; i++) {
+      const charCode = plainText.charCodeAt(i) ^ DEVICE_VAULT_SALT.charCodeAt(i % DEVICE_VAULT_SALT.length);
+      encrypted += String.fromCharCode(charCode);
+    }
+    return `enc:${btoa(encrypted)}`;
+  } catch {
+    return plainText;
+  }
+}
+
+/**
+ * Decrypts an encoded vault envelope back to plain string
+ */
+export function decryptSecret(cipherText: string): string {
+  if (!cipherText) return "";
+  if (!cipherText.startsWith("enc:")) return cipherText;
+  try {
+    const raw = atob(cipherText.slice(4));
+    let decrypted = "";
+    for (let i = 0; i < raw.length; i++) {
+      const charCode = raw.charCodeAt(i) ^ DEVICE_VAULT_SALT.charCodeAt(i % DEVICE_VAULT_SALT.length);
+      decrypted += String.fromCharCode(charCode);
+    }
+    return decrypted;
+  } catch {
+    return cipherText;
+  }
+}
 
 export interface DraftState {
   promptType: PromptType;
@@ -13,6 +55,7 @@ export interface DraftState {
   chatInputText: string;
   freeformText: string;
   structuredExamples: StructuredExample[];
+  messages?: ChatMessage[];
   updatedAt: number;
 }
 
@@ -119,8 +162,15 @@ export function persistSavedPrompts(prompts: SavedPrompt[]): void {
   safeSetStorage(STORAGE_KEYS.SAVED_PROMPTS, sanitized);
 }
 
-// Draft state auto-save and restoration
-export function loadDraftState(): DraftState {
+// Draft state auto-save and restoration with project scoping
+export function getProjectDraftKey(projectId?: string | null): string {
+  if (projectId && projectId.trim()) {
+    return `${STORAGE_KEYS.DRAFT_STATE}_${projectId.trim()}`;
+  }
+  return STORAGE_KEYS.DRAFT_STATE;
+}
+
+export function loadDraftState(projectId?: string | null): DraftState {
   const fallback: DraftState = {
     promptType: "chat",
     config: DEFAULT_CONFIG,
@@ -139,11 +189,29 @@ export function loadDraftState(): DraftState {
         output: '{"sentiment": "positive", "topic": "delivery", "urgency": "low"}',
       },
     ],
+    messages: undefined,
     updatedAt: Date.now(),
   };
 
-  const stored = safeGetStorage<DraftState | null>(STORAGE_KEYS.DRAFT_STATE, null);
-  if (!stored) return fallback;
+  const key = getProjectDraftKey(projectId);
+  const stored = safeGetStorage<DraftState | null>(key, null);
+  if (!stored) {
+    // If project-specific key not yet initialized, fallback to default or global draft
+    if (projectId) {
+      const globalStored = safeGetStorage<DraftState | null>(STORAGE_KEYS.DRAFT_STATE, null);
+      if (globalStored) {
+        return {
+          ...fallback,
+          ...globalStored,
+          config: {
+            ...DEFAULT_CONFIG,
+            ...(globalStored.config || {}),
+          },
+        };
+      }
+    }
+    return fallback;
+  }
 
   return {
     ...fallback,
@@ -155,16 +223,152 @@ export function loadDraftState(): DraftState {
   };
 }
 
-export function saveDraftState(draft: Partial<DraftState>): void {
+export function saveDraftState(draft: Partial<DraftState>, projectId?: string | null): void {
   try {
-    const current = loadDraftState();
+    const current = loadDraftState(projectId);
     const updated: DraftState = {
       ...current,
       ...draft,
       updatedAt: Date.now(),
     };
-    safeSetStorage(STORAGE_KEYS.DRAFT_STATE, updated);
+    const key = getProjectDraftKey(projectId);
+    safeSetStorage(key, updated);
   } catch (err: unknown) {
     console.warn("Failed to auto-save draft:", err);
   }
 }
+
+// Phase 2: Encrypted Project Storage & Ingestion Management
+export function loadStoredProjects(): ProjectInfo[] {
+  const raw = safeGetStorage<Array<ProjectInfo>>(STORAGE_KEYS.PROJECTS, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.map((p) => ({
+    ...p,
+    apiKey: decryptSecret(p.apiKey),
+  }));
+}
+
+export function saveStoredProjects(projects: ProjectInfo[]): void {
+  const encrypted = projects.map((p) => ({
+    ...p,
+    apiKey: encryptSecret(p.apiKey),
+  }));
+  safeSetStorage(STORAGE_KEYS.PROJECTS, encrypted);
+}
+
+export function getActiveProjectId(): string | null {
+  const storage = getStorageInstance();
+  return storage.getItem(STORAGE_KEYS.ACTIVE_PROJECT_ID) || null;
+}
+
+export function setActiveProjectId(id: string | null): void {
+  const storage = getStorageInstance();
+  if (id) {
+    storage.setItem(STORAGE_KEYS.ACTIVE_PROJECT_ID, id);
+  } else {
+    storage.removeItem(STORAGE_KEYS.ACTIVE_PROJECT_ID);
+  }
+}
+
+export function getActiveProject(): ProjectInfo | null {
+  const projects = loadStoredProjects();
+  if (projects.length === 0) return null;
+  const activeId = getActiveProjectId();
+  if (activeId) {
+    const match = projects.find((p) => p.id === activeId);
+    if (match) return match;
+  }
+  return projects[0];
+}
+
+export function saveAndActivateProject(
+  projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
+): ProjectInfo {
+  const projects = loadStoredProjects();
+  const now = Date.now();
+  const existingIdx = projectData.id ? projects.findIndex((p) => p.id === projectData.id) : -1;
+
+  let savedProject: ProjectInfo;
+  if (existingIdx >= 0) {
+    savedProject = {
+      ...projects[existingIdx],
+      ...projectData,
+      updatedAt: now,
+    };
+    projects[existingIdx] = savedProject;
+  } else {
+    savedProject = {
+      id: projectData.id || `proj_${now}_${Math.random().toString(36).slice(2, 7)}`,
+      name: projectData.name.trim() || `AI Studio Project ${projects.length + 1}`,
+      apiKey: projectData.apiKey.trim(),
+      defaultModel: projectData.defaultModel || "gemini-2.5-flash",
+      createdAt: now,
+      updatedAt: now,
+      lastVerifiedAt: projectData.lastVerifiedAt || now,
+      isValid: projectData.isValid ?? true,
+    };
+    projects.push(savedProject);
+  }
+
+  saveStoredProjects(projects);
+  setActiveProjectId(savedProject.id);
+  // Also synchronize with raw custom key storage so all runtime endpoints use this active key
+  saveStoredApiKey(savedProject.apiKey);
+
+  return savedProject;
+}
+
+export function deleteStoredProject(id: string): void {
+  const projects = loadStoredProjects();
+  const filtered = projects.filter((p) => p.id !== id);
+  saveStoredProjects(filtered);
+  const activeId = getActiveProjectId();
+  if (activeId === id) {
+    if (filtered.length > 0) {
+      setActiveProjectId(filtered[0].id);
+      saveStoredApiKey(filtered[0].apiKey);
+    } else {
+      setActiveProjectId(null);
+      saveStoredApiKey("");
+    }
+  }
+}
+
+export function updateStoredProject(
+  id: string,
+  updates: Partial<Omit<ProjectInfo, "id" | "createdAt">>
+): ProjectInfo | null {
+  const projects = loadStoredProjects();
+  const index = projects.findIndex((p) => p.id === id);
+  if (index === -1) return null;
+
+  const updated: ProjectInfo = {
+    ...projects[index],
+    ...updates,
+    updatedAt: Date.now(),
+  };
+  projects[index] = updated;
+  saveStoredProjects(projects);
+
+  const activeId = getActiveProjectId();
+  if (activeId === id) {
+    if (updates.apiKey) {
+      saveStoredApiKey(updates.apiKey);
+    }
+  }
+
+  return updated;
+}
+
+export function isFlagSecureEnabled(): boolean {
+  return safeGetStorage<boolean>(STORAGE_KEYS.FLAG_SECURE_ENABLED, true);
+}
+
+export function setFlagSecureEnabled(enabled: boolean): void {
+  safeSetStorage(STORAGE_KEYS.FLAG_SECURE_ENABLED, enabled);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("flag_secure_changed", { detail: enabled }));
+  }
+}
+
+

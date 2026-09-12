@@ -71,6 +71,7 @@ export interface SavedPrompt {
   structuredExamples?: StructuredExample[];
   updatedAt: number;
   tags?: string[];
+  projectId?: string;
 }
 
 export interface IncomingMessageImage {
@@ -100,3 +101,24 @@ export interface GenerateRequestBody {
 export type ActiveTab = "chat" | "parameters" | "library" | "export" | "companion";
 
 export type DeviceFrameMode = "responsive" | "pixel" | "tablet";
+
+export interface ProjectInfo {
+  id: string;
+  name: string;
+  apiKey: string;
+  defaultModel: string;
+  createdAt: number;
+  updatedAt: number;
+  lastVerifiedAt?: number;
+  isValid?: boolean;
+  status?: "active" | "invalid_key" | "attention_required" | "revoked";
+  statusMessage?: string;
+}
+
+export interface KeyVerificationResult {
+  valid: boolean;
+  error?: string;
+  model?: string;
+  totalTokens?: number;
+  verifiedAt?: number;
+}

@@ -1,7 +1,10 @@
 {
-  "name": "Google AI Studio Mobile",
-  "description": "Mobile-optimized Android client and interface for Google AI Studio with responsive Gemini prompt engineering, interactive header state switcher, and integrated Mobile IDE.",
-  "requestFramePermissions": ["camera"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "name": "Client for Google AI Studio",
+  "description": "Mobile-optimized Android client for Google AI Studio with API key sniffing, instant verification, Chrome Custom Tab launcher, and project onboarding.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
-
