@@ -1,6 +1,6 @@
 {
   "name": "Google AI Studio Mobile",
-  "description": "Mobile-optimized Android client and interface for Google AI Studio with responsive Gemini prompt engineering.",
+  "description": "Mobile-optimized Android client and interface for Google AI Studio with responsive Gemini prompt engineering, interactive header state switcher, and integrated Mobile IDE.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

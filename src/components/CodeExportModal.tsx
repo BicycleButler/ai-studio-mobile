@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Copy, Check, Terminal, FileCode2, Smartphone, Globe, LucideIcon } from "lucide-react";
+import { Copy, Check, Terminal, FileCode2, Smartphone, Globe, LucideIcon, Code2 } from "lucide-react";
 import { PromptConfig, ChatMessage } from "../types";
 import {
   generatePythonCode,
@@ -12,6 +12,7 @@ interface CodeExportModalProps {
   config: PromptConfig;
   messages: ChatMessage[];
   isEmbedded?: boolean;
+  onOpenMobileIDE?: () => void;
 }
 
 type CodeLang = "kotlin" | "python" | "typescript" | "curl";
@@ -20,6 +21,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
   config,
   messages,
   isEmbedded = false,
+  onOpenMobileIDE,
 }) => {
   const [selectedLang, setSelectedLang] = useState<CodeLang>("kotlin");
   const [copied, setCopied] = useState(false);
@@ -114,6 +116,19 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
           <code>{code}</code>
         </pre>
       </div>
+
+      {/* Launch in Mobile IDE Action */}
+      {onOpenMobileIDE && (
+        <button
+          id="export-modal-open-ide-btn"
+          type="button"
+          onClick={onOpenMobileIDE}
+          className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-all shadow-sm active:scale-[0.99]"
+        >
+          <Code2 className="w-4 h-4 text-amber-400" />
+          <span>Launch Full Mobile IDE (Code Editor & Runner Console)</span>
+        </button>
+      )}
 
       {/* Android SDK Note */}
       {selectedLang === "kotlin" && (

@@ -7,6 +7,7 @@ import { testAuthHelpers } from "./services/auth.test";
 import { testSpeechExtractor } from "./utils/speechExtractor.test";
 import { testSpeechToText } from "./hooks/useSpeechToText.test";
 import { testTokenCounterVisualization } from "./components/TokenCounterVisualization.test";
+import { testMobileIDEAndPromptModes } from "./components/MobileIDE.test";
 
 interface TestSuite {
   name: string;
@@ -22,6 +23,7 @@ const suites: TestSuite[] = [
   { name: "Speech Text Extraction (Code Omission)", run: testSpeechExtractor },
   { name: "Speech-to-Text Environment Safety", run: testSpeechToText },
   { name: "Token Counter Visualization & Formatter", run: testTokenCounterVisualization },
+  { name: "Mobile IDE & Header State Selector", run: testMobileIDEAndPromptModes },
 ];
 
 async function runAllTests(): Promise<void> {

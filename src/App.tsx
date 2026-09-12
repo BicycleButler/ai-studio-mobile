@@ -10,12 +10,20 @@ import {
   ModelInfo,
   MessageAttachment,
   IncomingMessage,
+  GoogleUser,
 } from "./types";
+import {
+  getStoredGoogleUser,
+  fetchServerCurrentUser,
+  initiateGoogleLogin,
+  logoutGoogleUser,
+} from "./services/googleAuth";
 import { STARTER_TEMPLATES } from "./data/templates";
 import { TopAppBar } from "./components/TopAppBar";
 import { ChatWorkspace } from "./components/ChatWorkspace";
 import { FreeformWorkspace } from "./components/FreeformWorkspace";
 import { StructuredWorkspace } from "./components/StructuredWorkspace";
+import { MobileIDEWorkspace } from "./components/MobileIDEWorkspace";
 import { TunerBottomSheet } from "./components/TunerBottomSheet";
 import { CodeExportModal } from "./components/CodeExportModal";
 import { LibraryModal } from "./components/LibraryModal";
@@ -111,9 +119,10 @@ export default function App() {
       supportsJson: true,
     },
   ]);
+  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => getStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState(false);
   const [customApiKey, setCustomApiKey] = useState<string>(() => loadStoredApiKey());
-  const hasApiKey = Boolean(customApiKey.trim() || hasServerKey);
+  const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
   // Prompt Configuration state
   const [config, setConfig] = useState<PromptConfig>(initialDraft.config);
@@ -177,6 +186,13 @@ export default function App() {
       })
       .catch(() => {});
 
+    // Check server session for current Google user
+    fetchServerCurrentUser().then((user) => {
+      if (user) {
+        setGoogleUser(user);
+      }
+    });
+
     fetch("/api/models")
       .then((res) => res.json())
       .then((data: { models?: ModelInfo[] }) => {
@@ -190,6 +206,27 @@ export default function App() {
       setDeviceMode("pixel");
     }
   }, []);
+
+  const handleGoogleLogin = async (email?: string, name?: string) => {
+    const user = await initiateGoogleLogin(email, name);
+    if (user) {
+      setGoogleUser(user);
+      // Re-fetch live models with the authenticated Google credentials
+      fetch("/api/models")
+        .then((res) => res.json())
+        .then((data: { models?: ModelInfo[] }) => {
+          if (data.models && Array.isArray(data.models) && data.models.length > 0) {
+            setModels(data.models);
+          }
+        })
+        .catch(() => {});
+    }
+  };
+
+  const handleGoogleLogout = async () => {
+    await logoutGoogleUser();
+    setGoogleUser(null);
+  };
 
   const handleSaveApiKey = (key: string) => {
     setCustomApiKey(key);
@@ -602,6 +639,21 @@ export default function App() {
                 output={structuredOutput}
               />
             )}
+            {promptType === "code" && (
+              <MobileIDEWorkspace
+                config={config}
+                messages={messages}
+                freeformText={freeformText}
+                structuredExamples={structuredExamples}
+                hasApiKey={hasApiKey}
+                onOpenAuth={() => handleOpenSettings("auth")}
+                onSwitchToPrompt={() => {
+                  setPromptType("chat");
+                  setActiveTab("chat");
+                }}
+                onOpenParameters={() => handleOpenSettings("tune")}
+              />
+            )}
           </>
         )}
 
@@ -627,7 +679,14 @@ export default function App() {
         )}
 
         {activeTab === "export" && (
-          <CodeExportModal config={config} messages={messages} />
+          <CodeExportModal
+            config={config}
+            messages={messages}
+            onOpenMobileIDE={() => {
+              setPromptType("code");
+              setActiveTab("chat");
+            }}
+          />
         )}
 
         {activeTab === "companion" && (

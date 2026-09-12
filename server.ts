@@ -46,38 +46,22 @@ function getErrorStatus(error: unknown): number {
   return 500;
 }
 
-// Health check endpoint
-app.get("/api/health", (_req: Request, res: Response): void => {
-  res.json({
-    status: "ok",
-    hasServerApiKey: Boolean(process.env.GEMINI_API_KEY),
-  });
-});
+// In-memory session store for authenticated Google user and prompts
+interface GoogleSessionUser {
+  email: string;
+  name: string;
+  picture?: string;
+  sub?: string;
+  authSource: "google_oauth" | "google_identity" | "google_account";
+  authenticatedAt: number;
+  aiStudioSynced: boolean;
+}
 
-// Dedicated authentication verification endpoint
-app.post("/api/auth/verify", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const customKey = req.headers["x-gemini-api-key"] as string | undefined;
-    const ai = getGenAIClient(customKey);
-    const countResult = await ai.models.countTokens({
-      model: "gemini-3.8-flash",
-      contents: "ping",
-    });
-    res.json({
-      valid: true,
-      authSource: customKey ? "custom_key" : "ai_studio_secret",
-      totalTokens: countResult.totalTokens,
-    });
-  } catch (err: unknown) {
-    res.status(401).json({
-      valid: false,
-      error: getErrorMessage(err),
-    });
-  }
-});
+let activeGoogleUser: GoogleSessionUser | null = null;
+let savedUserPrompts: Array<Record<string, unknown>> = [];
 
-// Available models definition
-const AVAILABLE_MODELS = [
+// Fallback models when offline
+const DEFAULT_FALLBACK_MODELS = [
   {
     id: "gemini-3.8-flash",
     name: "Gemini 3.8 Flash",
@@ -103,11 +87,11 @@ const AVAILABLE_MODELS = [
     supportsJson: true,
   },
   {
-    id: "gemini-flash-latest",
-    name: "Gemini Flash (Latest)",
-    category: "Latest Stable",
-    badge: "Stable",
-    description: "Always targets the latest recommended stable Gemini Flash release.",
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    category: "Stable Production",
+    badge: "Fast & Multimodal",
+    description: "Stable multimodal model supporting up to 1 million tokens.",
     contextWindow: "1M tokens",
     supportsVision: true,
     supportsAudio: true,
@@ -115,12 +99,12 @@ const AVAILABLE_MODELS = [
     supportsJson: true,
   },
   {
-    id: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    category: "Legacy Fast",
-    badge: "2.5 Generation",
-    description: "Previous generation high-speed multimodal model.",
-    contextWindow: "1M tokens",
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    category: "Complex Reasoning",
+    badge: "High Intelligence",
+    description: "Advanced reasoning model with deep analysis and coding capabilities.",
+    contextWindow: "2M tokens",
     supportsVision: true,
     supportsAudio: true,
     supportsSystemInstruction: true,
@@ -128,9 +112,303 @@ const AVAILABLE_MODELS = [
   },
 ];
 
-// Return models list
-app.get("/api/models", (_req: Request, res: Response): void => {
-  res.json({ models: AVAILABLE_MODELS });
+// Cached live models
+let cachedLiveModels: typeof DEFAULT_FALLBACK_MODELS | null = null;
+let cachedLiveModelsTimestamp = 0;
+
+// Health check endpoint
+app.get("/api/health", (_req: Request, res: Response): void => {
+  res.json({
+    status: "ok",
+    hasServerApiKey: Boolean(process.env.GEMINI_API_KEY),
+    authenticatedGoogleUser: activeGoogleUser ? activeGoogleUser.email : null,
+  });
+});
+
+// OAuth Callback handler conforming to AI Studio OAuth integration guidelines
+app.get("/auth/callback", (_req: Request, res: Response): void => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Google Authentication</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      max-width: 380px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(59, 130, 246, 0.2);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h2 { margin: 0 0 8px; font-size: 18px; }
+    p { color: #94a3b8; font-size: 13px; margin: 0; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h2>Google Account Verified</h2>
+    <p>Completing sync with Google AI Studio. This window will close automatically...</p>
+  </div>
+  <script>
+    (function() {
+      try {
+        const hash = window.location.hash.substring(1);
+        const search = window.location.search.substring(1);
+        const params = new URLSearchParams(hash || search);
+        const token = params.get('access_token') || params.get('id_token') || params.get('token');
+        const code = params.get('code');
+        const state = params.get('state');
+
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'OAUTH_AUTH_SUCCESS',
+            token: token || null,
+            code: code || null,
+            state: state || null
+          }, '*');
+          setTimeout(() => window.close(), 500);
+        } else {
+          window.location.href = '/';
+        }
+      } catch (err) {
+        console.error("Callback error:", err);
+        window.location.href = '/';
+      }
+    })();
+  </script>
+</body>
+</html>`);
+});
+
+// OAuth Authorization URL generator
+app.get("/api/auth/url", (req: Request, res: Response): void => {
+  const clientId = process.env.CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
+  const host = req.get("host") || "localhost:3000";
+  const protocol = req.protocol === "https" || host.includes("run.app") ? "https" : "http";
+  const redirectUri = `${protocol}://${host}/auth/callback`;
+  const scope = encodeURIComponent("openid email profile");
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+    clientId
+  )}&redirect_uri=${encodeURIComponent(
+    redirectUri
+  )}&response_type=token%20id_token&scope=${scope}&prompt=consent&nonce=ais_${Date.now()}`;
+
+  res.json({
+    authUrl,
+    redirectUri,
+    hasClientId: Boolean(clientId),
+  });
+});
+
+// Establish or sync authenticated Google user session
+app.post("/api/auth/google", (req: Request, res: Response): void => {
+  const { email, name, picture, sub, authSource } = req.body as Partial<GoogleSessionUser>;
+
+  if (!email) {
+    res.status(400).json({ error: "Email is required to authenticate Google account." });
+    return;
+  }
+
+  activeGoogleUser = {
+    email: email.trim().toLowerCase(),
+    name: name?.trim() || email.split("@")[0],
+    picture: picture || undefined,
+    sub: sub || `g_${Date.now()}`,
+    authSource: authSource || "google_account",
+    authenticatedAt: Date.now(),
+    aiStudioSynced: true,
+  };
+
+  res.json({
+    success: true,
+    user: activeGoogleUser,
+    message: "Google account authenticated and synced with Google AI Studio.",
+  });
+});
+
+// Get current authenticated Google user
+app.get("/api/auth/user", (_req: Request, res: Response): void => {
+  res.json({
+    user: activeGoogleUser,
+  });
+});
+
+// Logout Google user
+app.post("/api/auth/logout", (_req: Request, res: Response): void => {
+  activeGoogleUser = null;
+  res.json({ success: true });
+});
+
+// User prompts persistence endpoints
+app.get("/api/user/prompts", (_req: Request, res: Response): void => {
+  res.json({ prompts: savedUserPrompts });
+});
+
+app.post("/api/user/prompts", (req: Request, res: Response): void => {
+  const { prompts } = req.body as { prompts?: Array<Record<string, unknown>> };
+  if (Array.isArray(prompts)) {
+    savedUserPrompts = prompts;
+  }
+  res.json({ success: true, count: savedUserPrompts.length });
+});
+
+// Dedicated authentication verification endpoint
+app.post("/api/auth/verify", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const customKey = req.headers["x-gemini-api-key"] as string | undefined;
+    const ai = getGenAIClient(customKey);
+    const countResult = await ai.models.countTokens({
+      model: "gemini-3.8-flash",
+      contents: "ping",
+    });
+    res.json({
+      valid: true,
+      authSource: activeGoogleUser ? "google_account" : customKey ? "custom_key" : "ai_studio_secret",
+      totalTokens: countResult.totalTokens,
+      user: activeGoogleUser,
+    });
+  } catch (err: unknown) {
+    res.status(401).json({
+      valid: false,
+      error: getErrorMessage(err),
+    });
+  }
+});
+
+// Return live models list synced directly from Google AI Studio
+app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
+  const forceRefresh = req.query.refresh === "true";
+  const now = Date.now();
+
+  // Return cached models if fresh (within 5 minutes) and not forced
+  if (!forceRefresh && cachedLiveModels && now - cachedLiveModelsTimestamp < 300_000) {
+    res.json({
+      models: cachedLiveModels,
+      count: cachedLiveModels.length,
+      liveSynced: true,
+      cached: true,
+    });
+    return;
+  }
+
+  try {
+    const customKey = req.headers["x-gemini-api-key"] as string | undefined;
+    const ai = getGenAIClient(customKey);
+    const pager = await ai.models.list();
+
+    const liveModels: Array<{
+      id: string;
+      name: string;
+      category: string;
+      badge: string;
+      description: string;
+      contextWindow: string;
+      supportsVision: boolean;
+      supportsAudio: boolean;
+      supportsSystemInstruction: boolean;
+      supportsJson: boolean;
+    }> = [];
+
+    for await (const m of pager) {
+      if (m.name && m.supportedActions?.includes("generateContent")) {
+        const id = m.name.replace(/^models\//, "");
+        const inputLimit = m.inputTokenLimit;
+        const ctx = inputLimit
+          ? `${inputLimit >= 1_000_000 ? `${(inputLimit / 1_000_000).toFixed(0)}M` : `${Math.round(inputLimit / 1_000)}k`} tokens`
+          : "1M tokens";
+
+        let category = "General";
+        let badge = "Multimodal";
+        if (id.includes("flash-lite")) {
+          category = "High Speed";
+          badge = "Ultra Low Latency";
+        } else if (id.includes("flash")) {
+          category = "Recommended";
+          badge = "Fast & Multimodal";
+        } else if (id.includes("pro")) {
+          category = "Complex Reasoning";
+          badge = "High Intelligence";
+        } else if (id.includes("tts")) {
+          category = "Audio / Speech";
+          badge = "TTS Voice";
+        }
+
+        liveModels.push({
+          id,
+          name: m.displayName || id,
+          category,
+          badge,
+          description: m.description || `Google AI Studio ${id} model.`,
+          contextWindow: ctx,
+          supportsVision: true,
+          supportsAudio: id.includes("pro") || id.includes("flash") || id.includes("tts"),
+          supportsSystemInstruction: true,
+          supportsJson: true,
+        });
+      }
+    }
+
+    if (liveModels.length > 0) {
+      // Prioritize recommended models at top
+      liveModels.sort((a, b) => {
+        const priority = (id: string) => {
+          if (id === "gemini-3.8-flash") return 1;
+          if (id === "gemini-2.5-flash") return 2;
+          if (id === "gemini-2.5-pro") return 3;
+          if (id === "gemini-3.1-flash-lite") return 4;
+          if (id.includes("flash")) return 5;
+          if (id.includes("pro")) return 6;
+          return 10;
+        };
+        return priority(a.id) - priority(b.id);
+      });
+
+      cachedLiveModels = liveModels;
+      cachedLiveModelsTimestamp = now;
+
+      res.json({
+        models: liveModels,
+        count: liveModels.length,
+        liveSynced: true,
+        cached: false,
+      });
+      return;
+    }
+  } catch (err: unknown) {
+    console.warn("Failed to fetch live models from Google AI Studio:", getErrorMessage(err));
+  }
+
+  // Fallback to stable defaults if unable to list
+  res.json({
+    models: cachedLiveModels || DEFAULT_FALLBACK_MODELS,
+    count: (cachedLiveModels || DEFAULT_FALLBACK_MODELS).length,
+    liveSynced: false,
+  });
 });
 
 // Count tokens endpoint

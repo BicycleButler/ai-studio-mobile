@@ -13,7 +13,10 @@ import {
   Eye,
   EyeOff,
   Trash2,
+  UserCheck,
 } from "lucide-react";
+import { GoogleUser } from "../types";
+import { GoogleAuthCard } from "./GoogleAuthCard";
 
 interface ApiKeyModalProps {
   customApiKey: string;
@@ -21,6 +24,10 @@ interface ApiKeyModalProps {
   hasServerKey: boolean;
   onRefreshServerAuth?: () => Promise<boolean>;
   onClose: () => void;
+  googleUser?: GoogleUser | null;
+  onGoogleLogin?: (email?: string, name?: string) => Promise<void>;
+  onGoogleLogout?: () => Promise<void>;
+  liveModelsCount?: number;
 }
 
 export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
@@ -29,10 +36,12 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   hasServerKey,
   onRefreshServerAuth,
   onClose,
+  googleUser = null,
+  onGoogleLogin,
+  onGoogleLogout,
+  liveModelsCount = 55,
 }) => {
-  const [activeTab, setActiveTab] = useState<"auto" | "manual">(
-    hasServerKey ? "auto" : customApiKey ? "manual" : "auto"
-  );
+  const [activeTab, setActiveTab] = useState<"google" | "auto" | "manual">("google");
   const [inputVal, setInputVal] = useState(customApiKey);
   const [showPassword, setShowPassword] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -42,7 +51,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     message?: string;
   } | null>(null);
 
-  const isAuthenticated = Boolean(hasServerKey || customApiKey.trim());
+  const isAuthenticated = Boolean(googleUser || hasServerKey || customApiKey.trim());
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,38 +237,84 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
           </div>
 
           {/* Tab Selector */}
-          <div className="flex rounded-xl bg-[#121214] p-1 border border-[#2b2c31]">
+          <div className="flex rounded-xl bg-[#121214] p-1 border border-[#2b2c31] gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("google");
+                setTestResult(null);
+              }}
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === "google"
+                  ? "bg-[#252830] text-white shadow-sm"
+                  : "text-[#9aa0a6] hover:text-[#e3e3e3]"
+              }`}
+            >
+              <div className="w-3.5 h-3.5 rounded-full bg-white flex items-center justify-center p-0.5 shrink-0">
+                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+              </div>
+              <span className="truncate">Google Account</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
                 setActiveTab("auto");
                 setTestResult(null);
               }}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === "auto"
                   ? "bg-[#252830] text-white shadow-sm"
                   : "text-[#9aa0a6] hover:text-[#e3e3e3]"
               }`}
             >
-              <Shield className="w-3.5 h-3.5 text-blue-400" />
-              <span>AI Studio Environment (Auto)</span>
+              <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span className="truncate">Cloud Env</span>
             </button>
+
             <button
               type="button"
               onClick={() => {
                 setActiveTab("manual");
                 setTestResult(null);
               }}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === "manual"
                   ? "bg-[#252830] text-white shadow-sm"
                   : "text-[#9aa0a6] hover:text-[#e3e3e3]"
               }`}
             >
-              <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span>Custom API Key</span>
+              <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="truncate">Custom Key</span>
             </button>
           </div>
+
+          {/* TAB 0: GOOGLE ACCOUNT */}
+          {activeTab === "google" && (
+            <GoogleAuthCard
+              user={googleUser}
+              onLogin={onGoogleLogin || (async () => {})}
+              onLogout={onGoogleLogout || (async () => {})}
+              liveModelsCount={liveModelsCount}
+            />
+          )}
 
           {/* TAB 1: AI STUDIO AUTOMATIC */}
           {activeTab === "auto" && (

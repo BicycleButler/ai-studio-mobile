@@ -27,7 +27,9 @@ import {
   DeviceFrameMode,
   SavedPrompt,
   ChatMessage,
+  GoogleUser,
 } from "../types";
+import { GoogleAuthCard } from "./GoogleAuthCard";
 import {
   GEMINI_VOICES,
   SpeechSettings,
@@ -59,6 +61,10 @@ interface UnifiedSettingsModalProps {
   onSaveCustomApiKey: (key: string) => void;
   hasServerKey: boolean;
   onRefreshServerAuth?: () => void;
+  googleUser?: GoogleUser | null;
+  onGoogleLogin?: (email?: string, name?: string) => Promise<void>;
+  onGoogleLogout?: () => Promise<void>;
+  liveModelsCount?: number;
 
   // Audio props
   speechSettings: SpeechSettings;
@@ -91,6 +97,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onSaveCustomApiKey,
   hasServerKey,
   onRefreshServerAuth,
+  googleUser = null,
+  onGoogleLogin,
+  onGoogleLogout,
+  liveModelsCount = 55,
   speechSettings,
   onSaveSpeechSettings,
   config,
@@ -386,7 +396,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const hasAnyAuth = Boolean(customApiKey.trim() || hasServerKey);
+  const hasAnyAuth = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
   return (
     <div
@@ -560,6 +570,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           {/* TAB 1: AUTHENTICATION */}
           {activeTab === "auth" && (
             <div className="space-y-4">
+              {/* Google Account Authentication */}
+              <GoogleAuthCard
+                user={googleUser}
+                onLogin={onGoogleLogin || (async () => {})}
+                onLogout={onGoogleLogout || (async () => {})}
+                liveModelsCount={liveModelsCount}
+              />
+
               {/* Server Environment Connection Status */}
               <div
                 className={`p-4 rounded-xl border flex items-start justify-between gap-3 ${

@@ -1,4 +1,4 @@
-export type PromptType = "chat" | "freeform" | "structured";
+export type PromptType = "chat" | "freeform" | "structured" | "code";
 
 export interface ModelInfo {
   id: string;
@@ -38,6 +38,16 @@ export interface StructuredExample {
   id: string;
   input: string;
   output: string;
+}
+
+export interface GoogleUser {
+  email: string;
+  name: string;
+  picture?: string;
+  sub?: string;
+  authSource: "google_oauth" | "google_identity" | "google_account";
+  authenticatedAt: number;
+  aiStudioSynced: boolean;
 }
 
 export interface PromptConfig {
