@@ -21,47 +21,9 @@ import { useTheme } from "../hooks/useTheme";
 import { TokenCounterVisualization } from "./TokenCounterVisualization";
 import { GoogleIcon } from "./GoogleIcon";
 
-const PROMPT_MODES: {
-  id: PromptType;
-  label: string;
-  shortLabel: string;
-  subtitle: string;
-}[] = [
-  {
-    id: "chat",
-    label: "Chat Prompt",
-    shortLabel: "Chat",
-    subtitle: "Conversational & multi-turn dialog",
-  },
-  {
-    id: "freeform",
-    label: "Freeform",
-    shortLabel: "Freeform",
-    subtitle: "Prompt engineering with {{variables}}",
-  },
-  {
-    id: "structured",
-    label: "Structured",
-    shortLabel: "Structured",
-    subtitle: "Input & output example training pairs",
-  },
-  {
-    id: "code",
-    label: "Code View",
-    shortLabel: "Code IDE",
-    subtitle: "Mobile IDE with files & runner console",
-  },
-  {
-    id: "jules",
-    label: "Google Jules",
-    shortLabel: "Jules",
-    subtitle: "Autonomous GitHub coding agent & PR creator",
-  },
-];
-
 interface TopAppBarProps {
   promptType: PromptType;
-  onSelectPromptType: (type: PromptType) => void;
+  onSelectPromptType?: (type: PromptType) => void;
   currentModelName: string;
   onOpenParameters: () => void;
   onOpenSettings: (tab?: SettingsTab) => void;
@@ -106,12 +68,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
   // Expandable drawer tucked away by default to clean up space
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
   const [isSysInstructionsOpen, setIsSysInstructionsOpen] = useState(false);
   const sysTextareaRef = useRef<HTMLTextAreaElement>(null);
   const sysSpeechBaseTextRef = useRef<string>("");
-
-  const currentMode = PROMPT_MODES.find((m) => m.id === promptType) || PROMPT_MODES[0];
 
   const {
     isListening,
@@ -181,93 +140,22 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             />
           </button>
 
-          {/* Interactive State Selector & Jules Repository in Header */}
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                id="header-prompt-state-btn"
-                onClick={() => setIsModeMenuOpen((prev) => !prev)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-card hover:bg-muted text-foreground hover:text-foreground border border-border text-xs font-semibold shadow-sm transition-colors active:scale-[0.98] group cursor-pointer"
-                title="Select prompt state or open Mobile IDE"
-                aria-haspopup="true"
-                aria-expanded={isModeMenuOpen}
-              >
-                <span className="truncate max-w-[90px] xs:max-w-none">
-                  {currentMode.label}
-                </span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-150 group-hover:text-foreground ${
-                    isModeMenuOpen ? "rotate-180 text-primary" : ""
-                  }`}
-                />
-              </button>
-
-              {/* Interactive Mode Dropdown Menu */}
-              {isModeMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
-                    onClick={() => setIsModeMenuOpen(false)}
-                  />
-                  <div
-                    id="header-mode-dropdown-menu"
-                    className="absolute left-0 mt-1.5 w-64 z-50 rounded-xl bg-popover border border-border shadow-2xl p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100"
-                  >
-                    <div className="px-2.5 py-1 text-[10px] uppercase font-semibold tracking-wider text-subtle-foreground">
-                      Select State / Workspace
-                    </div>
-                    {PROMPT_MODES.map((mode) => {
-                      const isSelected = promptType === mode.id;
-                      return (
-                        <button
-                          key={mode.id}
-                          id={`mode-menu-option-${mode.id}`}
-                          type="button"
-                          onClick={() => {
-                            onSelectPromptType(mode.id);
-                            setIsModeMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors cursor-pointer ${
-                            isSelected
-                              ? "bg-muted text-foreground border border-border"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <span className="text-xs font-medium leading-tight block">
-                              {mode.label}
-                            </span>
-                            <span className="text-[10px] text-subtle-foreground block truncate leading-tight mt-0.5">
-                              {mode.subtitle}
-                            </span>
-                          </div>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-2" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Contextual Jules Repository & Session Button */}
-            {promptType === "jules" && (
-              <button
-                type="button"
-                id="header-jules-session-btn"
-                onClick={onOpenJulesSessions}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-950/40 hover:bg-purple-900/50 text-purple-200 hover:text-white border border-purple-500/40 hover:border-purple-500/60 text-xs font-semibold shadow-sm transition-colors active:scale-[0.98] min-w-0 shrink"
-                title="Manage Jules Sessions & Authorized Repositories"
-              >
-                <FolderGit2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                <span className="truncate max-w-[85px] xs:max-w-[130px] sm:max-w-[170px]">
-                  {activeJulesSession ? activeJulesSession.repository : "Select Repo"}
-                </span>
-                <ChevronDown className="w-3 h-3 text-purple-400 shrink-0" />
-              </button>
-            )}
-          </div>
+          {/* Contextual Jules Repository & Session Button */}
+          {promptType === "jules" && (
+            <button
+              type="button"
+              id="header-jules-session-btn"
+              onClick={onOpenJulesSessions}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-950/40 hover:bg-purple-900/50 text-purple-200 hover:text-white border border-purple-500/40 hover:border-purple-500/60 text-xs font-semibold shadow-sm transition-colors active:scale-[0.98] min-w-0 shrink"
+              title="Manage Jules Sessions & Authorized Repositories"
+            >
+              <FolderGit2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="truncate max-w-[85px] xs:max-w-[130px] sm:max-w-[170px]">
+                {activeJulesSession ? activeJulesSession.repository : "Select Repo"}
+              </span>
+              <ChevronDown className="w-3 h-3 text-purple-400 shrink-0" />
+            </button>
+          )}
         </div>
 
         {/* Top Right Corner Actions: Token Counter & Menu Drawer Trigger */}

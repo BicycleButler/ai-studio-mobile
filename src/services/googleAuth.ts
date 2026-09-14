@@ -47,18 +47,49 @@ export async function syncGoogleUserWithBackend(
 }
 
 /**
+ * Decodes a Google ID token JWT payload safely without requiring heavy external dependencies.
+ */
+export function parseGoogleJwtPayload(
+  token: string
+): { email?: string; name?: string; picture?: string; sub?: string } | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Initiates Google login by syncing with the backend and saving the active user.
  */
 export async function initiateGoogleLogin(
   email?: string,
-  name?: string
+  name?: string,
+  picture?: string,
+  sub?: string,
+  authSource: "google_oauth" | "google_identity" | "google_account" = "google_account"
 ): Promise<GoogleUser> {
-  const targetEmail = email?.trim() || "wiltermoodj@gmail.com";
+  const targetEmail = email?.trim();
+  if (!targetEmail) {
+    throw new Error("A valid email address is required to connect your Google account.");
+  }
   const targetName = name?.trim() || targetEmail.split("@")[0];
   return syncGoogleUserWithBackend({
     email: targetEmail,
     name: targetName,
-    authSource: "google_account",
+    picture,
+    sub,
+    authSource,
   });
 }
 

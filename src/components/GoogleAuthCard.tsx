@@ -8,10 +8,11 @@ import {
   ShieldCheck,
   AlertCircle,
   Loader2,
-  UserCheck,
+  Mail,
+  ArrowRight,
 } from "lucide-react";
 import { GoogleUser } from "../types";
-import { openGoogleOAuthPopup } from "../services/googleAuth";
+import { openGoogleOAuthPopup, parseGoogleJwtPayload } from "../services/googleAuth";
 import { GoogleIcon } from "./GoogleIcon";
 
 interface GoogleAuthCardProps {
@@ -31,33 +32,57 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualEmail, setManualEmail] = useState("");
+  const [manualName, setManualName] = useState("");
 
-  const defaultUserEmail = "wiltermoodj@gmail.com";
-
-  const handleSignIn = async (emailToUse?: string) => {
+  const handleSignIn = async (emailToUse?: string, nameToUse?: string) => {
     setIsLoading(true);
     setError(null);
-    const targetEmail = emailToUse || defaultUserEmail;
+
     try {
+      if (emailToUse) {
+        await onLogin(emailToUse, nameToUse || emailToUse.split("@")[0]);
+        return;
+      }
+
       // First check if OAuth URL with client_id is available
       const urlRes = await fetch("/api/auth/url").catch(() => null);
       if (urlRes && urlRes.ok) {
         const urlData = (await urlRes.json()) as { authUrl?: string; hasClientId?: boolean };
         if (urlData.hasClientId && urlData.authUrl) {
           try {
-            await openGoogleOAuthPopup(urlData.authUrl);
+            const oauthResult = await openGoogleOAuthPopup(urlData.authUrl);
+            if (oauthResult?.token) {
+              const decoded = parseGoogleJwtPayload(oauthResult.token);
+              if (decoded?.email) {
+                await onLogin(decoded.email, decoded.name || decoded.email.split("@")[0]);
+                return;
+              }
+            }
           } catch (popupErr) {
             console.warn("OAuth popup warning:", popupErr);
           }
         }
       }
 
-      await onLogin(targetEmail, targetEmail.split("@")[0]);
+      // If OAuth not configured or returned without email, prompt manual input
+      setShowManualInput(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to authenticate Google account.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = manualEmail.trim();
+    if (!email || !email.includes("@")) {
+      setError("Please enter a valid Google Account email address.");
+      return;
+    }
+    await handleSignIn(email, manualName.trim() || undefined);
   };
 
   const handleSignOut = async () => {
@@ -126,7 +151,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               id="google-sign-out-btn"
               onClick={handleSignOut}
               disabled={isLoading}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-colors cursor-pointer"
               title="Sign out of Google Account"
             >
               {isLoading ? (
@@ -179,9 +204,9 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
 
             <button
               type="button"
-              onClick={() => handleSignIn(user.email)}
+              onClick={() => handleSignIn(user.email, user.name)}
               disabled={isLoading}
-              className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
               <span>Refresh Sync</span>
@@ -201,7 +226,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
                 Sign In with Google Account
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                Connect your personal Google account to synchronize prompts, models, and real AI Studio credentials.
+                Connect your Google account to synchronize prompts, models, and real AI Studio credentials.
               </p>
             </div>
           </div>
@@ -210,7 +235,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
           <button
             type="button"
             id="primary-google-sign-in-btn"
-            onClick={() => handleSignIn(defaultUserEmail)}
+            onClick={() => handleSignIn()}
             disabled={isLoading}
             className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-lg transition-colors flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-primary/20"
           >
@@ -222,23 +247,58 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
             <span>Sign in with Google</span>
           </button>
 
-          {/* Quick Account Switcher Card */}
-          <div className="p-3 rounded-xl bg-card border border-border flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <UserCheck className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span className="text-xs text-foreground truncate">
-                {defaultUserEmail}
-              </span>
-            </div>
+          {/* Manual Account Entry Option */}
+          {showManualInput ? (
+            <form onSubmit={handleManualSubmit} className="p-3 rounded-xl bg-muted/40 border border-border space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Mail className="w-3.5 h-3.5 text-primary" />
+                <span>Connect Google Account</span>
+              </div>
+              <div className="space-y-2">
+                <input
+                  type="email"
+                  placeholder="your-email@gmail.com"
+                  value={manualEmail}
+                  onChange={(e) => setManualEmail(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  required
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  placeholder="Display Name (optional)"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowManualInput(false)}
+                  className="px-2.5 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 hover:bg-primary/90 transition-colors cursor-pointer"
+                >
+                  <span>Connect</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </form>
+          ) : (
             <button
               type="button"
-              onClick={() => handleSignIn(defaultUserEmail)}
-              disabled={isLoading}
-              className="text-[11px] font-semibold text-primary hover:text-primary/80 px-2.5 py-1 rounded-lg hover:bg-muted transition-colors shrink-0"
+              onClick={() => setShowManualInput(true)}
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
             >
-              Connect
+              Sign in with custom Google Account email
             </button>
-          </div>
+          )}
         </div>
       )}
 
