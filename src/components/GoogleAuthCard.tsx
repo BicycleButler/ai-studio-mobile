@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { GoogleUser } from "../types";
 import { openGoogleOAuthPopup } from "../services/googleAuth";
+import { GoogleIcon } from "./GoogleIcon";
 
 interface GoogleAuthCardProps {
   user: GoogleUser | null;
@@ -76,8 +77,8 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
       id="google-auth-card"
       className={`rounded-2xl border transition-colors ${
         user
-          ? "bg-gradient-to-br from-[#1b2234] via-[#161a26] to-[#12131a] border-blue-500/40 shadow-xl"
-          : "bg-[#161821] border-[#2b2f3d] hover:border-[#3c4154]"
+          ? "bg-card border-primary/40 shadow-xl"
+          : "bg-card border-border hover:border-primary/50"
       } ${compact ? "p-3.5" : "p-5"}`}
     >
       {user ? (
@@ -87,7 +88,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
             <div className="flex items-center gap-3">
               {/* Profile Avatar with Google Badge */}
               <div className="relative">
-                <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-base shadow-md border-2 border-[#2b3248]">
+                <div className="w-11 h-11 rounded-full bg-primary/20 flex items-center justify-center text-foreground font-bold text-base shadow-md border-2 border-border">
                   {user.picture ? (
                     <img
                       src={user.picture}
@@ -100,38 +101,21 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
                   )}
                 </div>
                 {/* Google G mini-badge */}
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm p-0.5 border border-zinc-200">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-card flex items-center justify-center shadow-sm p-0.5 border border-border">
+                  <GoogleIcon className="w-3.5 h-3.5" />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-sm font-semibold text-white leading-tight">
+                  <h4 className="text-sm font-semibold text-foreground leading-tight">
                     {user.name}
                   </h4>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 bg-muted/60 px-1.5 py-0.5 rounded border border-border/40">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/40">
                     Synced
                   </span>
                 </div>
-                <p className="text-xs text-[#9aa0a6] font-mono mt-0.5">
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">
                   {user.email}
                 </p>
               </div>
@@ -142,11 +126,11 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               id="google-sign-out-btn"
               onClick={handleSignOut}
               disabled={isLoading}
-              className="p-1.5 rounded-lg text-[#9aa0a6] hover:text-rose-400 hover:bg-rose-950/30 border border-transparent hover:border-rose-800/40 transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-colors"
               title="Sign out of Google Account"
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : (
                 <LogOut className="w-4 h-4" />
               )}
@@ -154,31 +138,31 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
           </div>
 
           {/* Sync status details */}
-          <div className="p-3 rounded-xl bg-[#0f1118]/80 border border-[#232736] space-y-2">
+          <div className="p-3 rounded-xl bg-muted/50 border border-border space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-[#9aa0a6] flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-muted-foreground flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                 Live Account Sync
               </span>
-              <span className="text-emerald-300 font-medium">Google AI Studio</span>
+              <span className="text-primary font-medium">Google AI Studio</span>
             </div>
 
             <div className="flex items-center justify-between text-xs">
-              <span className="text-[#9aa0a6] flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-muted-foreground flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
                 Available Models
               </span>
-              <span className="text-zinc-200 font-mono text-[11px]">
+              <span className="text-foreground font-mono text-[11px]">
                 {liveModelsCount} Live Models Active
               </span>
             </div>
 
             <div className="flex items-center justify-between text-xs">
-              <span className="text-[#9aa0a6] flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-muted-foreground flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 Authentication
               </span>
-              <span className="text-zinc-300">Verified Google Account</span>
+              <span className="text-foreground">Verified Google Account</span>
             </div>
           </div>
 
@@ -187,7 +171,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               href="https://aistudio.google.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+              className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors"
             >
               <span>Manage in Google AI Studio</span>
               <ExternalLink className="w-3 h-3" />
@@ -197,7 +181,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               type="button"
               onClick={() => handleSignIn(user.email)}
               disabled={isLoading}
-              className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1 transition-colors"
+              className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
             >
               <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
               <span>Refresh Sync</span>
@@ -208,32 +192,15 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
         <div className="space-y-4">
           {/* Unauthenticated Header */}
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md shrink-0">
-              <svg className="w-6 h-6" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center shadow-md shrink-0">
+              <GoogleIcon className="w-6 h-6" />
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-foreground">
                 Sign In with Google Account
               </h3>
-              <p className="text-xs text-[#9aa0a6] mt-0.5 leading-relaxed">
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                 Connect your personal Google account to synchronize prompts, models, and real AI Studio credentials.
               </p>
             </div>
@@ -245,38 +212,21 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
             id="primary-google-sign-in-btn"
             onClick={() => handleSignIn(defaultUserEmail)}
             disabled={isLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-100 text-[#1f1f23] font-semibold text-xs shadow-lg transition-colors flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-zinc-300"
+            className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-lg transition-colors flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-primary/20"
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-zinc-700" />
+              <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
             ) : (
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
+              <GoogleIcon className="w-4 h-4 shrink-0" />
             )}
             <span>Sign in with Google</span>
           </button>
 
           {/* Quick Account Switcher Card */}
-          <div className="p-3 rounded-xl bg-[#12131a] border border-[#262936] flex items-center justify-between">
+          <div className="p-3 rounded-xl bg-card border border-border flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="text-xs text-zinc-300 truncate">
+              <UserCheck className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="text-xs text-foreground truncate">
                 {defaultUserEmail}
               </span>
             </div>
@@ -284,7 +234,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               type="button"
               onClick={() => handleSignIn(defaultUserEmail)}
               disabled={isLoading}
-              className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg hover:bg-blue-950/40 transition-colors shrink-0"
+              className="text-[11px] font-semibold text-primary hover:text-primary/80 px-2.5 py-1 rounded-lg hover:bg-muted transition-colors shrink-0"
             >
               Connect
             </button>

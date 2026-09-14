@@ -1,4 +1,4 @@
-import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage } from "../types";
+import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG, STARTER_TEMPLATES } from "../data/templates";
 
 const STORAGE_KEYS = {
@@ -8,6 +8,10 @@ const STORAGE_KEYS = {
   PROJECTS: "ai_studio_projects_v2",
   ACTIVE_PROJECT_ID: "ai_studio_active_project_id_v2",
   FLAG_SECURE_ENABLED: "ais_flag_secure_enabled_v1",
+  JULES_API_KEY: "jules_api_key_vault_v1",
+  JULES_SESSIONS: "jules_sessions_v1",
+  JULES_SETTINGS: "jules_settings_v1",
+  ACTIVE_JULES_SESSION_ID: "jules_active_session_id_v1",
 } as const;
 
 // Device-scoped salt for local credential encryption
@@ -369,6 +373,79 @@ export function setFlagSecureEnabled(enabled: boolean): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("flag_secure_changed", { detail: enabled }));
   }
+}
+
+// ---------------------------------------------------------------------------
+// Google Jules Agent Storage Helpers (Account-level Key & Dedicated Sessions)
+// ---------------------------------------------------------------------------
+
+export function loadStoredJulesApiKey(): string {
+  const encrypted = safeGetStorage<string>(STORAGE_KEYS.JULES_API_KEY, "");
+  return decryptSecret(encrypted);
+}
+
+export function saveStoredJulesApiKey(key: string): void {
+  const trimmed = (key || "").trim();
+  const encrypted = trimmed ? encryptSecret(trimmed) : "";
+  safeSetStorage(STORAGE_KEYS.JULES_API_KEY, encrypted);
+}
+
+export function loadStoredJulesSessions(): JulesSession[] {
+  return safeGetStorage<JulesSession[]>(STORAGE_KEYS.JULES_SESSIONS, []);
+}
+
+export function saveStoredJulesSessions(sessions: JulesSession[]): void {
+  safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, sessions);
+}
+
+const DEFAULT_JULES_SETTINGS: JulesSettings = {
+  autoApprovePlans: false,
+  defaultBranch: "main",
+};
+
+export function loadStoredJulesSettings(): JulesSettings {
+  return safeGetStorage<JulesSettings>(STORAGE_KEYS.JULES_SETTINGS, DEFAULT_JULES_SETTINGS);
+}
+
+export function saveStoredJulesSettings(settings: JulesSettings): void {
+  safeSetStorage(STORAGE_KEYS.JULES_SETTINGS, settings);
+}
+
+export function getActiveJulesSessionId(): string | null {
+  return safeGetStorage<string | null>(STORAGE_KEYS.ACTIVE_JULES_SESSION_ID, null);
+}
+
+export function setActiveJulesSessionId(id: string | null): void {
+  safeSetStorage(STORAGE_KEYS.ACTIVE_JULES_SESSION_ID, id);
+}
+
+export function getActiveJulesSession(): JulesSession | null {
+  const sessions = loadStoredJulesSessions();
+  if (sessions.length === 0) return null;
+  const activeId = getActiveJulesSessionId();
+  if (activeId) {
+    const found = sessions.find((s) => s.id === activeId);
+    if (found) return found;
+  }
+  return sessions[0];
+}
+
+export function updateStoredJulesSession(session: JulesSession): JulesSession {
+  const sessions = loadStoredJulesSessions();
+  const index = sessions.findIndex((s) => s.id === session.id);
+  const updated: JulesSession = {
+    ...session,
+    updatedAt: Date.now(),
+  };
+
+  if (index >= 0) {
+    sessions[index] = updated;
+  } else {
+    sessions.unshift(updated);
+  }
+
+  saveStoredJulesSessions(sessions);
+  return updated;
 }
 
 

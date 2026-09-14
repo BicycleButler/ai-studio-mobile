@@ -192,25 +192,25 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
       }}
     >
       <div
-        className="w-full max-w-lg bg-[#17181c] border-t sm:border border-[#2b2c31] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in slide-in-from-bottom-4 duration-200"
+        className="w-full max-w-lg bg-card border-t sm:border border-border rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in slide-in-from-bottom-4 duration-200 text-foreground"
         role="dialog"
         aria-modal="true"
         aria-labelledby="import-project-title"
       >
         {/* Sheet Top Grabber (Mobile) */}
-        <div className="sm:hidden w-12 h-1.5 bg-[#2d2e35] rounded-full mx-auto mt-2.5" />
+        <div className="sm:hidden w-12 h-1.5 bg-muted rounded-full mx-auto mt-2.5" />
 
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#2b2c31] bg-[#1a1b20]">
+        <div className="flex items-center justify-between p-4 border-b border-border bg-muted/40">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400">
+            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <FolderPlus className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="import-project-title" className="text-sm font-semibold text-white">
+              <h2 id="import-project-title" className="text-sm font-semibold text-foreground">
                 Import AI Studio Project
               </h2>
-              <p className="text-[11px] text-[#9aa0a6]">
+              <p className="text-[11px] text-muted-foreground">
                 Configure and activate your Google AI Studio project credentials
               </p>
             </div>
@@ -218,7 +218,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
           <button
             type="button"
             onClick={() => void handleDismiss()}
-            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-[#25272e] transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -229,7 +229,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
         <form onSubmit={handleSaveAndActivate} className="p-4 space-y-4 overflow-y-auto">
           {/* 1. Project Name input field */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-zinc-300 block">
+            <label className="text-xs font-semibold text-foreground block">
               Project Name
             </label>
             <input
@@ -239,14 +239,14 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="e.g. Production Gemini Assistant"
               required
-              className="w-full bg-[#1a1b20] border border-[#2b2c31] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </div>
 
           {/* 2. Masked API key preview */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-300 block">
+              <label className="text-xs font-semibold text-foreground block">
                 Google API Key
               </label>
               <div className="flex items-center gap-2">
@@ -255,13 +255,13 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                   onClick={async () => {
                     await clearClipboardSafe();
                   }}
-                  className="text-[10px] text-zinc-400 hover:text-rose-300 flex items-center gap-1 transition-colors"
+                  className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors cursor-pointer"
                   title="Erase sensitive key from device clipboard"
                 >
                   <Trash2 className="w-2.5 h-2.5" />
                   <span>Wipe Clipboard</span>
                 </button>
-                <span className="text-[10px] text-zinc-500 font-mono">
+                <span className="text-[10px] text-muted-foreground font-mono">
                   {apiKey ? `${apiKey.length} chars` : "Empty"}
                 </span>
               </div>
@@ -275,13 +275,13 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                 onChange={handleKeyChange}
                 placeholder="AIzaSy... or AQ...."
                 required
-                className="w-full bg-[#1a1b20] border border-[#2b2c31] rounded-xl pl-3 pr-20 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 font-mono"
+                className="w-full bg-background border border-border rounded-xl pl-3 pr-20 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-mono"
               />
               <div className="absolute right-1.5 flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setShowRawKey(!showRawKey)}
-                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-[#252830] transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
                   title={showRawKey ? "Hide raw key" : "Show raw key"}
                 >
                   {showRawKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -290,7 +290,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                   type="button"
                   onClick={() => performVerification(apiKey, selectedModel)}
                   disabled={validationState === "validating" || !apiKey.trim()}
-                  className="p-1.5 text-blue-400 hover:text-blue-300 rounded-lg hover:bg-[#252830] transition-colors disabled:opacity-40"
+                  className="p-1.5 text-primary hover:text-primary/80 rounded-lg hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer"
                   title="Re-verify key with Google"
                 >
                   <RefreshCw
@@ -302,12 +302,12 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
 
             {/* Masked Preview Chip */}
             {apiKey && (
-              <div className="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[#141518] border border-[#26282f] text-zinc-400">
+              <div className="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-muted border border-border text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Key className="w-3 h-3 text-amber-400" />
+                  <Key className="w-3 h-3 text-primary" />
                   <span>Masked preview:</span>
                 </span>
-                <span className="font-mono text-white font-medium bg-[#1d1f25] px-1.5 py-0.5 rounded border border-[#2c2e38]">
+                <span className="font-mono text-foreground font-medium bg-card px-1.5 py-0.5 rounded border border-border">
                   {maskedPreview}
                 </span>
               </div>
@@ -317,10 +317,10 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
           {/* 3. Default model selection (defaulting to gemini-2.5-flash) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-300 block">
+              <label className="text-xs font-semibold text-foreground block">
                 Default Model
               </label>
-              <span className="text-[10px] text-blue-400 font-medium">
+              <span className="text-[10px] text-primary font-medium">
                 gemini-2.5-flash default
               </span>
             </div>
@@ -329,30 +329,30 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                 id="project-default-model-select"
                 value={selectedModel}
                 onChange={handleModelChange}
-                className="w-full bg-[#1a1b20] border border-[#2b2c31] rounded-xl px-3 py-2.5 text-xs text-white appearance-none focus:outline-none focus:border-blue-500 transition-colors pr-8 cursor-pointer"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-xs text-foreground appearance-none focus:outline-none focus:border-primary transition-colors pr-8 cursor-pointer"
               >
                 {availableModels.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-[#1a1b20] text-white">
+                  <option key={m.id} value={m.id} className="bg-card text-foreground">
                     {m.name} ({m.id})
                   </option>
                 ))}
               </select>
-              <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground absolute right-3 top-3 pointer-events-none" />
             </div>
           </div>
 
           {/* 4. Real-time validation status feedback */}
           <div className="pt-1">
-            <span className="text-[11px] font-semibold text-zinc-400 block mb-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground block mb-1.5">
               Authorization Verification
             </span>
 
             {validationState === "validating" && (
               <div
                 id="validation-state-validating"
-                className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs flex items-center gap-2.5 animate-pulse"
+                className="p-3 rounded-xl bg-primary/10 border border-primary/30 text-primary text-xs flex items-center gap-2.5 animate-pulse"
               >
-                <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
                 <span>Checking key authorization against Google models endpoint...</span>
               </div>
             )}
@@ -360,11 +360,11 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             {validationState === "valid" && (
               <div
                 id="validation-state-valid"
-                className="p-3 rounded-xl bg-muted/40 border border-border/40 text-zinc-200 text-xs flex items-start gap-2.5"
+                className="p-3 rounded-xl bg-muted border border-border text-foreground text-xs flex items-start gap-2.5"
               >
-                <CheckCircle2 className="w-4 h-4 text-foreground shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <span className="font-semibold text-white block">Key Verified & Authorized</span>
+                  <span className="font-semibold text-foreground block">Key Verified & Authorized</span>
                   <span className="text-[11px] text-muted-foreground leading-tight block mt-0.5">
                     Successfully reached Google Gemini models endpoint using {validationResult?.model || selectedModel}.
                   </span>
@@ -375,11 +375,11 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             {validationState === "invalid" && (
               <div
                 id="validation-state-invalid"
-                className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5"
+                className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-start gap-2.5 validation-error-banner"
               >
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5 validation-error-icon" />
                 <div className="flex-1">
-                  <span className="font-semibold text-white block">Verification Failed</span>
+                  <span className="font-semibold text-foreground block">Verification Failed</span>
                   <span className="text-[11px] opacity-90 leading-tight block mt-0.5">
                     {validationResult?.error || "Key is invalid or unauthorized by Google AI Studio."}
                   </span>
@@ -388,19 +388,19 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             )}
 
             {validationState === "idle" && (
-              <div className="p-3 rounded-xl bg-[#131417] border border-[#25262c] text-zinc-400 text-xs flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
+              <div className="p-3 rounded-xl bg-muted border border-border text-muted-foreground text-xs flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>Enter or paste an API key to initiate verification</span>
               </div>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#2b2c31]">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-border">
             <button
               type="button"
               onClick={() => void handleDismiss()}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-[#25272e] transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -408,7 +408,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               type="submit"
               id="save-and-activate-btn"
               disabled={isSaving || validationState === "validating" || validationState === "invalid" || !apiKey.trim()}
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-colors disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
             >
               {isSaving ? (
                 <>

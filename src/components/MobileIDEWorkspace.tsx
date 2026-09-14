@@ -4,12 +4,6 @@ import {
   Square,
   Copy,
   Check,
-  Terminal as TerminalIcon,
-  FileCode2,
-  Smartphone,
-  Globe,
-  FileJson,
-  BookOpen,
   Plus,
   Trash2,
   RotateCcw,
@@ -19,7 +13,6 @@ import {
   Sliders,
   CheckCircle2,
   AlertCircle,
-  Code2,
 } from "lucide-react";
 import { PromptConfig, ChatMessage, StructuredExample } from "../types";
 import { getAuthHeaders } from "../services/auth";
@@ -45,7 +38,6 @@ interface IDEFile {
   id: string;
   name: string;
   language: string;
-  icon: typeof FileCode2;
   content: string;
   isCustom?: boolean;
 }
@@ -73,35 +65,30 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       id: "kotlin",
       name: "gemini_client.kt",
       language: "kotlin",
-      icon: Smartphone,
       content: generateAndroidKotlinCode(config, messages),
     },
     {
       id: "typescript",
       name: "gemini_service.ts",
       language: "typescript",
-      icon: FileCode2,
       content: generateTypeScriptCode(config, messages),
     },
     {
       id: "python",
       name: "gemini_app.py",
       language: "python",
-      icon: TerminalIcon,
       content: generatePythonCode(config, messages),
     },
     {
       id: "curl",
       name: "curl_request.sh",
       language: "bash",
-      icon: Globe,
       content: generateCurlCode(config, messages),
     },
     {
       id: "system",
       name: "system_prompt.md",
       language: "markdown",
-      icon: BookOpen,
       content: config.systemInstruction
         ? `# System Instruction\n\n${config.systemInstruction}`
         : `# System Instruction\n\n// No system instruction currently specified. Add behavioral guidelines or persona here.`,
@@ -110,7 +97,6 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       id: "config",
       name: "model_config.json",
       language: "json",
-      icon: FileJson,
       content: JSON.stringify(
         {
           model: config.model,
@@ -364,7 +350,6 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       id: newId,
       name: `scratch_${files.length + 1}.ts`,
       language: "typescript",
-      icon: FileCode2,
       content: `// Scratchpad script for Google AI Studio\n// Write quick experimentation code here\n\nimport { GoogleGenAI } from "@google/genai";\n\nconsole.log("Ready to test!");\n`,
       isCustom: true,
     };
@@ -404,14 +389,14 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full flex-1 overflow-hidden bg-[#0e0f12] text-[#e3e3e3] font-sans select-none">
+    <div className="flex flex-col h-full flex-1 overflow-hidden bg-background text-foreground font-sans select-none">
       {/* IDE Top Navigation Bar */}
-      <div className="flex items-center justify-between px-2.5 py-1.5 bg-[#14151a] border-b border-[#23252d] shrink-0 gap-2">
+      <div className="flex items-center justify-between px-2.5 py-1.5 bg-card border-b border-border shrink-0 gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
             onClick={onSwitchToPrompt}
-            className="flex items-center gap-1 text-xs text-[#9aa0a6] hover:text-white px-2 py-1 rounded-md hover:bg-[#20222b] transition-colors"
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
             title="Return to Prompt Editor"
             aria-label="Return to Prompt Editor"
           >
@@ -419,15 +404,11 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <span className="hidden xs:inline">Prompt</span>
           </button>
 
-          <div className="h-3.5 w-px bg-[#2d3039]" />
+          <div className="h-3.5 w-px bg-border" />
 
           <div className="flex items-center gap-1.5">
-            <Code2 className="w-4 h-4 text-blue-400 shrink-0" />
-            <span className="text-xs font-semibold text-white tracking-tight">
+            <span className="text-xs font-semibold text-foreground tracking-tight">
               Mobile IDE
-            </span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted/60 text-zinc-300 border border-border/40 font-mono">
-              Live
             </span>
           </div>
         </div>
@@ -435,12 +416,12 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
         {/* IDE Top Actions: Run, View switcher */}
         <div className="flex items-center gap-1.5 shrink-0">
           {/* View Switcher: Editor, Split, Console */}
-          <div className="flex bg-[#1d1f27] p-0.5 rounded-lg border border-[#2b2e38] text-[11px]">
+          <div className="flex bg-muted p-0.5 rounded-lg border border-border text-[11px]">
             <button
               type="button"
               onClick={() => setActiveView("editor")}
-              className={`px-2 py-0.5 rounded-md transition-colors ${
-                activeView === "editor" ? "bg-[#2d303d] text-white font-medium" : "text-[#9aa0a6] hover:text-white"
+              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                activeView === "editor" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Editor only view"
             >
@@ -449,8 +430,8 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setActiveView("split")}
-              className={`px-2 py-0.5 rounded-md transition-colors ${
-                activeView === "split" ? "bg-[#2d303d] text-white font-medium" : "text-[#9aa0a6] hover:text-white"
+              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                activeView === "split" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Split editor & console view"
             >
@@ -459,8 +440,8 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setActiveView("console")}
-              className={`px-2 py-0.5 rounded-md transition-colors ${
-                activeView === "console" ? "bg-[#2d303d] text-white font-medium" : "text-[#9aa0a6] hover:text-white"
+              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                activeView === "console" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Console terminal view"
             >
@@ -474,10 +455,10 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             id="mobile-ide-run-btn"
             onClick={handleRunScript}
             disabled={isRunning}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm transition-colors active:scale-95 ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm transition-colors active:scale-95 cursor-pointer ${
               isRunning
                 ? "bg-muted text-foreground cursor-wait"
-                : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-950/40"
+                : "bg-primary hover:bg-primary/90 text-primary-foreground"
             }`}
             title="Run active script in mobile console"
             aria-label="Run script"
@@ -498,22 +479,20 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       </div>
 
       {/* File Explorer Tab Bar */}
-      <div className="flex items-center bg-[#111216] border-b border-[#23252d] px-1 overflow-x-auto scrollbar-none shrink-0">
+      <div className="flex items-center bg-muted/40 border-b border-border px-1 overflow-x-auto scrollbar-none shrink-0">
         <div className="flex items-center gap-1 py-1">
           {files.map((file) => {
-            const Icon = file.icon;
             const isActive = file.id === activeFileId;
             return (
               <div
                 key={file.id}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono transition-colors cursor-pointer whitespace-nowrap group ${
                   isActive
-                    ? "bg-[#1f212a] text-white border-b-2 border-blue-400 font-medium"
-                    : "text-[#9aa0a6] hover:text-[#e3e3e3] hover:bg-[#181920]"
+                    ? "bg-card text-foreground border-b-2 border-primary font-medium"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
                 onClick={() => setActiveFileId(file.id)}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-amber-400" : "text-[#71767b]"}`} />
                 <span>{file.name}</span>
                 {file.isCustom && (
                   <button
@@ -522,7 +501,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                       e.stopPropagation();
                       handleDeleteFile(file.id, file.name);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-rose-400 transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-destructive transition-opacity cursor-pointer"
                     title="Delete scratchpad"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -535,7 +514,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
           <button
             type="button"
             onClick={handleCreateScratchpad}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-[#71767b] hover:text-white hover:bg-[#1c1e26] rounded-md transition-colors whitespace-nowrap ml-1"
+            className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap ml-1 cursor-pointer"
             title="Create new scratchpad file"
             aria-label="Create scratchpad"
           >
@@ -550,13 +529,13 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
         {/* Top Editor Area */}
         {(activeView === "editor" || activeView === "split") && (
           <div
-            className={`flex flex-col bg-[#14151a] relative ${
-              activeView === "split" ? "h-[58%] border-b border-[#242630]" : "h-full"
+            className={`flex flex-col bg-card relative ${
+              activeView === "split" ? "h-[58%] border-b border-border" : "h-full"
             }`}
           >
             {/* Editor Subheader: File path, formatting actions */}
-            <div className="flex items-center justify-between px-3 py-1 bg-[#181920] border-b border-[#23252d] text-[11px] text-[#9aa0a6] shrink-0">
-              <span className="font-mono text-zinc-400 truncate">
+            <div className="flex items-center justify-between px-3 py-1 bg-muted/30 border-b border-border text-[11px] text-muted-foreground shrink-0">
+              <span className="font-mono text-foreground truncate">
                 src/{activeFile.name}
               </span>
 
@@ -564,8 +543,8 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setWordWrap((prev) => !prev)}
-                  className={`p-1 rounded transition-colors ${
-                    wordWrap ? "bg-[#2b2e38] text-amber-300" : "text-[#71767b] hover:text-white"
+                  className={`p-1 rounded transition-colors cursor-pointer ${
+                    wordWrap ? "bg-muted text-primary" : "text-muted-foreground hover:text-foreground"
                   }`}
                   title="Toggle Word Wrap"
                 >
@@ -575,7 +554,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={handleResetActiveFile}
-                  className="p-1 rounded text-[#71767b] hover:text-white transition-colors"
+                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="Reset file to latest generated prompt code"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -584,13 +563,13 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyFile}
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#20222b] hover:bg-[#2a2c36] text-zinc-300 hover:text-white transition-colors"
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
                   title="Copy code to clipboard"
                 >
                   {copied ? (
                     <>
-                      <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-[10px] text-emerald-400 font-medium">Copied</span>
+                      <Check className="w-3 h-3 text-primary" />
+                      <span className="text-[10px] text-primary font-medium">Copied</span>
                     </>
                   ) : (
                     <>
@@ -603,7 +582,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={handleDownloadFile}
-                  className="p-1 rounded text-[#71767b] hover:text-white transition-colors"
+                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="Download file"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -615,7 +594,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <div className="flex-1 flex min-h-0 overflow-hidden relative">
               {/* Line Numbers Gutter */}
               <div
-                className="w-10 py-2.5 select-none text-right pr-2.5 font-mono text-[11px] text-[#4d515a] bg-[#111216] border-r border-[#1e2028] overflow-hidden leading-5 shrink-0"
+                className="w-10 py-2.5 select-none text-right pr-2.5 font-mono text-[11px] text-muted-foreground bg-muted/50 border-r border-border overflow-hidden leading-5 shrink-0"
                 aria-hidden="true"
               >
                 {lines.map((_, idx) => (
@@ -635,7 +614,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 autoCapitalize="none"
                 autoComplete="off"
                 autoCorrect="off"
-                className={`flex-1 p-2.5 font-mono text-xs text-[#e3e3e3] bg-transparent resize-none focus:outline-none leading-5 caret-amber-400 overflow-auto ${
+                className={`flex-1 p-2.5 font-mono text-xs text-foreground bg-transparent resize-none focus:outline-none leading-5 caret-primary overflow-auto ${
                   wordWrap ? "whitespace-pre-wrap" : "whitespace-pre"
                 }`}
                 style={{ tabSize: 2 }}
@@ -644,8 +623,8 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             </div>
 
             {/* Mobile Keyboard Coding Accessory Bar */}
-            <div className="flex items-center gap-1 px-1.5 py-1 bg-[#101115] border-t border-[#1e2028] overflow-x-auto scrollbar-none shrink-0">
-              <span className="text-[10px] text-[#555a64] uppercase font-mono px-1 select-none">
+            <div className="flex items-center gap-1 px-1.5 py-1 bg-muted/30 border-t border-border overflow-x-auto scrollbar-none shrink-0">
+              <span className="text-[10px] text-muted-foreground uppercase font-mono px-1 select-none">
                 Tokens:
               </span>
               {quickSymbols.map((item) => (
@@ -653,7 +632,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                   key={item.label}
                   type="button"
                   onClick={() => handleInsertSymbol(item.insert)}
-                  className="px-2 py-0.5 rounded bg-[#1c1d24] hover:bg-[#282a34] active:bg-blue-600/30 text-xs font-mono text-zinc-300 hover:text-white border border-[#262833] transition-colors whitespace-nowrap active:scale-95 shadow-sm"
+                  className="px-2 py-0.5 rounded bg-card hover:bg-muted active:bg-primary/20 text-xs font-mono text-foreground border border-border transition-colors whitespace-nowrap active:scale-95 shadow-xs cursor-pointer"
                 >
                   {item.label}
                 </button>
@@ -665,17 +644,16 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
         {/* Bottom Console Terminal Area */}
         {(activeView === "console" || activeView === "split") && (
           <div
-            className={`flex flex-col bg-[#0b0c0e] font-mono select-text relative ${
+            className={`flex flex-col bg-muted/20 font-mono select-text relative ${
               activeView === "split" ? "flex-1 min-h-[140px]" : "h-full"
             }`}
           >
             {/* Terminal Header */}
-            <div className="flex items-center justify-between px-3 py-1 bg-[#121317] border-b border-[#21232a] text-[11px] text-[#9aa0a6] shrink-0">
+            <div className="flex items-center justify-between px-3 py-1 bg-muted/40 border-b border-border text-[11px] text-muted-foreground shrink-0">
               <div className="flex items-center gap-2">
-                <TerminalIcon className="w-3.5 h-3.5 text-blue-400" />
-                <span className="font-semibold text-zinc-300">Terminal Output</span>
+                <span className="font-semibold text-foreground">Terminal Output</span>
                 {isRunning && (
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-blue-400 animate-pulse">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-primary animate-pulse">
                     Executing
                   </span>
                 )}
@@ -685,7 +663,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setConsoleLogs([])}
-                  className="text-[10px] text-[#71767b] hover:text-zinc-300 transition-colors"
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="Clear Console"
                 >
                   Clear
@@ -697,7 +675,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                     const text = consoleLogs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
                     navigator.clipboard.writeText(text);
                   }}
-                  className="text-[10px] text-[#71767b] hover:text-zinc-300 transition-colors"
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="Copy Console Logs"
                 >
                   Copy Logs
@@ -708,21 +686,21 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             {/* Terminal Logs View */}
             <div className="flex-1 p-2.5 overflow-y-auto space-y-1 text-xs leading-relaxed">
               {consoleLogs.length === 0 ? (
-                <div className="text-[#555a64] italic text-[11px]">
+                <div className="text-muted-foreground italic text-[11px]">
                   Console cleared. Tap &apos;Run&apos; to execute your script.
                 </div>
               ) : (
                 consoleLogs.map((log) => {
-                  let color = "text-zinc-300";
-                  if (log.type === "stderr") color = "text-rose-400 font-medium";
-                  else if (log.type === "stdout") color = "text-sky-300";
-                  else if (log.type === "success") color = "text-emerald-400 font-medium";
-                  else if (log.type === "system") color = "text-zinc-500 text-[10px]";
-                  else if (log.type === "info") color = "text-amber-300/90";
+                  let color = "text-foreground";
+                  if (log.type === "stderr") color = "text-destructive font-medium"; // execution error
+                  else if (log.type === "stdout") color = "text-primary";
+                  else if (log.type === "success") color = "text-primary font-medium";
+                  else if (log.type === "system") color = "text-muted-foreground text-[10px]";
+                  else if (log.type === "info") color = "text-foreground font-mono";
 
                   return (
                     <div key={log.id} className={`flex items-start gap-1.5 font-mono ${color}`}>
-                      <span className="text-[10px] text-[#555a64] shrink-0 select-none">
+                      <span className="text-[10px] text-muted-foreground shrink-0 select-none">
                         [{log.timestamp}]
                       </span>
                       <span className="break-all whitespace-pre-wrap flex-1">{log.message}</span>
@@ -737,9 +715,9 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       </div>
 
       {/* Mobile IDE Status Bar (Footer) */}
-      <div className="flex items-center justify-between px-3 py-1 bg-[#101115] border-t border-[#1f2129] text-[10px] text-[#71767b] font-mono shrink-0 select-none">
+      <div className="flex items-center justify-between px-3 py-1 bg-card border-t border-border text-[10px] text-muted-foreground font-mono shrink-0 select-none">
         <div className="flex items-center gap-3">
-          <span className="text-zinc-400">
+          <span className="text-foreground">
             Ln {cursorPos.line}, Col {cursorPos.col}
           </span>
           <span>{lines.length} lines</span>
@@ -748,7 +726,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
         <div className="flex items-center gap-2">
           {hasApiKey ? (
-            <span className="flex items-center gap-1 text-emerald-400">
+            <span className="flex items-center gap-1 text-primary">
               <CheckCircle2 className="w-3 h-3" />
               <span className="hidden xs:inline">API Key Connected</span>
             </span>
@@ -756,7 +734,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={onOpenAuth}
-              className="flex items-center gap-1 text-amber-400 hover:underline"
+              className="flex items-center gap-1 text-destructive hover:underline cursor-pointer"
             >
               <AlertCircle className="w-3 h-3" />
               <span>Connect Key</span>
@@ -767,10 +745,10 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={onOpenParameters}
-              className="flex items-center gap-1 hover:text-white transition-colors"
+              className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
               title="Tune parameters"
             >
-              <Sliders className="w-3 h-3 text-blue-400" />
+              <Sliders className="w-3 h-3 text-primary" />
               <span className="hidden xs:inline">{config.model}</span>
             </button>
           )}

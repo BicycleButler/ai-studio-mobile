@@ -1,81 +1,90 @@
 import React from "react";
-import { MessageSquare, Sliders, FolderHeart, Code2, Compass } from "lucide-react";
-import { ActiveTab } from "../types";
+import { MessageSquare, FileText, Columns2, Code2, Bot } from "lucide-react";
+import { PromptType } from "../types";
 
 interface BottomNavBarProps {
-  activeTab: ActiveTab;
-  onSelectTab: (tab: ActiveTab) => void;
+  activeWorkspace: PromptType;
+  onSelectWorkspace: (workspace: PromptType) => void;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
-  activeTab,
-  onSelectTab,
+  activeWorkspace,
+  onSelectWorkspace,
 }) => {
-  const tabs = [
+  const workspaces = [
     {
-      id: "chat" as ActiveTab,
-      label: "Prompt",
+      id: "chat" as PromptType,
+      label: "Chat",
       icon: MessageSquare,
+      tooltip: "Conversational multimodal chat",
     },
     {
-      id: "parameters" as ActiveTab,
-      label: "Tune",
-      icon: Sliders,
+      id: "freeform" as PromptType,
+      label: "Freeform",
+      icon: FileText,
+      tooltip: "Direct prompt engineering workspace",
     },
     {
-      id: "library" as ActiveTab,
-      label: "Library",
-      icon: FolderHeart,
+      id: "structured" as PromptType,
+      label: "Structured",
+      icon: Columns2,
+      tooltip: "Few-shot input & output tables",
     },
     {
-      id: "export" as ActiveTab,
-      label: "Get Code",
+      id: "code" as PromptType,
+      label: "Mobile IDE",
       icon: Code2,
+      tooltip: "Execute code snippets & prompt payloads",
     },
     {
-      id: "companion" as ActiveTab,
-      label: "Companion",
-      icon: Compass,
+      id: "jules" as PromptType,
+      label: "Jules",
+      icon: Bot,
+      tooltip: "Autonomous GitHub coding agent",
     },
   ];
 
   return (
     <nav
       id="android-bottom-nav"
-      className="sticky bottom-0 z-30 bg-[#131314]/95 backdrop-blur-lg border-t border-[#2b2c31] px-2 py-1.5"
+      className="sticky bottom-0 z-30 bg-background/95 backdrop-blur-lg border-t border-border px-1.5 py-1 shrink-0 select-none"
     >
       <div className="flex items-center justify-around max-w-lg mx-auto">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+        {workspaces.map((ws) => {
+          const Icon = ws.icon;
+          const isActive = activeWorkspace === ws.id;
 
           return (
             <button
-              key={tab.id}
-              id={`nav-tab-${tab.id}`}
-              onClick={() => onSelectTab(tab.id)}
-              className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors relative group"
+              key={ws.id}
+              id={`nav-workspace-${ws.id}`}
+              onClick={() => onSelectWorkspace(ws.id)}
+              className="flex flex-col items-center justify-center py-0.5 px-2 rounded-xl transition-colors relative group cursor-pointer"
+              title={ws.tooltip}
+              aria-label={ws.label}
             >
-              {/* Material You pill highlight */}
+              {/* Material You rounded pill highlight */}
               <div
                 className={`flex items-center justify-center w-12 h-7 rounded-full transition-colors duration-200 ${
                   isActive
-                    ? "bg-blue-600/25 text-blue-400"
-                    : "text-[#9aa0a6] group-hover:text-[#c4c7c5] group-hover:bg-[#1f1f23]"
+                    ? "bg-primary/20 text-primary"
+                    : "text-muted-foreground group-hover:text-foreground group-hover:bg-muted/70"
                 }`}
               >
                 <Icon
-                  className={`w-4 h-4 transition-transform ${
+                  className={`w-4 h-4 transition-transform duration-150 ${
                     isActive ? "scale-110 stroke-[2.2]" : "stroke-[1.8]"
                   }`}
                 />
               </div>
               <span
-                className={`text-[10px] mt-0.5 font-medium transition-colors ${
-                  isActive ? "text-blue-400 font-semibold" : "text-[#9aa0a6]"
+                className={`text-[10px] mt-0.5 tracking-tight transition-colors ${
+                  isActive
+                    ? "text-primary font-semibold"
+                    : "text-muted-foreground group-hover:text-foreground"
                 }`}
               >
-                {tab.label}
+                {ws.label}
               </span>
             </button>
           );

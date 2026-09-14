@@ -16,7 +16,6 @@ import {
   EyeOff,
   Sparkles,
   Radio,
-  RotateCcw,
   FolderHeart,
   Code2,
   Compass,
@@ -27,6 +26,11 @@ import {
   CheckCircle2,
   Lock,
   AlertTriangle,
+  Sun,
+  Moon,
+  Monitor,
+  Bot,
+  ClipboardPaste,
 } from "lucide-react";
 import {
   PromptConfig,
@@ -49,15 +53,20 @@ import { LibraryModal } from "./LibraryModal";
 import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
 import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
+import { useTheme } from "../hooks/useTheme";
 
 export type SettingsTab =
-  | "tune"
+  | "account"
+  | "auth"
+  | "key"
+  | "audio"
+  | "display"
+  | "security"
+  | "settings"
   | "library"
   | "export"
   | "companion"
-  | "audio"
-  | "auth"
-  | "display"
+  | "tune"
   | "model";
 
 interface UnifiedSettingsModalProps {
@@ -65,16 +74,18 @@ interface UnifiedSettingsModalProps {
   onClose: () => void;
   initialTab?: SettingsTab;
 
-  // Auth props
+  // Account, Keys & Projects
   customApiKey: string;
   onSaveCustomApiKey: (key: string) => void;
+  julesApiKey?: string;
+  onSaveJulesApiKey?: (key: string) => void;
   hasServerKey: boolean;
   onRefreshServerAuth?: () => void;
   googleUser?: GoogleUser | null;
   onGoogleLogin?: (email?: string, name?: string) => Promise<void>;
   onGoogleLogout?: () => Promise<void>;
   liveModelsCount?: number;
-  onOpenCustomTabBrowser?: () => void;
+  onOpenCustomTabBrowser?: (service?: "aistudio" | "jules") => void;
   onOpenImportProject?: () => void;
   activeProjectName?: string;
   projects?: ProjectInfo[];
@@ -83,25 +94,26 @@ interface UnifiedSettingsModalProps {
   onRenameProject?: (id: string, newName: string) => void;
   onDeleteProject?: (id: string) => void;
 
-  // Audio props
+  // Audio / Speech
   speechSettings: SpeechSettings;
   onSaveSpeechSettings: (newSettings: SpeechSettings) => void;
 
-  // Model & Tuner props
-  config: PromptConfig;
-  onChangeConfig: (newConfig: PromptConfig) => void;
-  models: ModelInfo[];
+  // Parameter trigger (canonical home is TunerBottomSheet)
+  onOpenParameters?: () => void;
+  config?: PromptConfig;
+  onChangeConfig?: (newConfig: PromptConfig) => void;
+  models?: ModelInfo[];
 
-  // Library props
+  // Library
   savedPrompts?: SavedPrompt[];
   onLoadPrompt?: (prompt: SavedPrompt) => void;
   onSaveCurrentPrompt?: (title: string) => void;
   onDeletePrompt?: (id: string) => void;
 
-  // Export props
+  // Export
   messages?: ChatMessage[];
 
-  // Display props
+  // Display & Appearance
   deviceMode: DeviceFrameMode;
   onSelectDeviceMode: (mode: DeviceFrameMode) => void;
 }
@@ -109,9 +121,11 @@ interface UnifiedSettingsModalProps {
 export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   isOpen,
   onClose,
-  initialTab = "tune",
+  initialTab = "account",
   customApiKey,
   onSaveCustomApiKey,
+  julesApiKey = "",
+  onSaveJulesApiKey,
   hasServerKey,
   onRefreshServerAuth,
   googleUser = null,
@@ -128,9 +142,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onDeleteProject,
   speechSettings,
   onSaveSpeechSettings,
+  onOpenParameters,
   config,
-  onChangeConfig,
-  models,
   savedPrompts = [],
   onLoadPrompt,
   onSaveCurrentPrompt,
@@ -139,16 +152,37 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   deviceMode,
   onSelectDeviceMode,
 }) => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+  const { mode: themeMode, setThemeMode } = useTheme();
+
+  // Normalize initialTab to canonical tabs
+  const resolveTab = (tab?: SettingsTab): "account" | "audio" | "display" | "security" | "library" | "export" | "companion" => {
+    if (!tab) return "account";
+    if (tab === "auth" || tab === "key") return "account";
+    if (tab === "settings") return "security";
+    if (tab === "tune" || tab === "model") {
+      if (onOpenParameters) {
+        setTimeout(() => {
+          onOpenParameters();
+          onClose();
+        }, 10);
+      }
+      return "account";
+    }
+    return tab as "account" | "audio" | "display" | "security" | "library" | "export" | "companion";
+  };
+
+  const [activeTab, setActiveTab] = useState<"account" | "audio" | "display" | "security" | "library" | "export" | "companion">(
+    resolveTab(initialTab)
+  );
 
   // Sync initial tab when modal opens
   useEffect(() => {
     if (isOpen) {
-      setActiveTab(initialTab);
+      setActiveTab(resolveTab(initialTab));
     }
   }, [isOpen, initialTab]);
 
-  // Auth & Project state
+  // Account, Keys & Project state
   const [inputApiKey, setInputApiKey] = useState(customApiKey);
   const [showKeyText, setShowKeyText] = useState(false);
   const [isTestingKey, setIsTestingKey] = useState(false);
@@ -156,6 +190,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     success: boolean;
     message: string;
   } | null>(null);
+
+  // Jules API key state
+  const [julesInputKey, setJulesInputKey] = useState(julesApiKey);
+  const [showJulesKeyText, setShowJulesKeyText] = useState(false);
+  const [isTestingJulesKey, setIsTestingJulesKey] = useState(false);
+  const [julesTestResult, setJulesTestResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
+  // Project editing
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingProjectName, setEditingProjectName] = useState("");
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
@@ -165,9 +210,12 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     setInputApiKey(customApiKey);
   }, [customApiKey]);
 
+  useEffect(() => {
+    setJulesInputKey(julesApiKey);
+  }, [julesApiKey]);
+
   // Audio state
-  const [currentSpeechSettings, setCurrentSpeechSettings] =
-    useState<SpeechSettings>(speechSettings);
+  const [currentSpeechSettings, setCurrentSpeechSettings] = useState<SpeechSettings>(speechSettings);
   const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -215,12 +263,12 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     setIsPreviewLoading(false);
   };
 
-  // Auth Actions
+  // Gemini API Key Actions
   const handleSaveApiKey = () => {
     onSaveCustomApiKey(inputApiKey.trim());
     setTestResult({
       success: true,
-      message: "API Key updated successfully.",
+      message: "API Key updated successfully in local storage.",
     });
     setTimeout(() => setTestResult(null), 3500);
   };
@@ -230,9 +278,20 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     onSaveCustomApiKey("");
     setTestResult({
       success: true,
-      message: "Custom API key removed.",
+      message: "Custom Gemini API key removed.",
     });
     setTimeout(() => setTestResult(null), 3500);
+  };
+
+  const handlePasteApiKey = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setInputApiKey(text.trim());
+      }
+    } catch {
+      // Clipboard access denied
+    }
   };
 
   const handleTestKey = async (keyToTest?: string) => {
@@ -265,7 +324,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           message:
             data.authSource === "ai_studio_secret"
               ? "Verified! Google AI Studio environment authentication is connected and active."
-              : "Verified! Your Gemini API key is valid and connected.",
+              : "Verified! Your Gemini API key is valid and connected to live models.",
         });
         if (onRefreshServerAuth) onRefreshServerAuth();
       } else {
@@ -281,6 +340,75 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
       });
     } finally {
       setIsTestingKey(false);
+    }
+  };
+
+  // Jules API Key Actions
+  const handleSaveJulesApiKey = () => {
+    if (onSaveJulesApiKey) {
+      onSaveJulesApiKey(julesInputKey.trim());
+      setJulesTestResult({
+        success: true,
+        message: "Google Jules API Key saved successfully.",
+      });
+      setTimeout(() => setJulesTestResult(null), 3500);
+    }
+  };
+
+  const handleClearJulesKey = () => {
+    setJulesInputKey("");
+    if (onSaveJulesApiKey) {
+      onSaveJulesApiKey("");
+      setJulesTestResult({
+        success: true,
+        message: "Google Jules API key removed.",
+      });
+      setTimeout(() => setJulesTestResult(null), 3500);
+    }
+  };
+
+  const handlePasteJulesKey = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setJulesInputKey(text.trim());
+      }
+    } catch {
+      // Clipboard access denied
+    }
+  };
+
+  const handleTestJulesKey = async () => {
+    setIsTestingJulesKey(true);
+    setJulesTestResult(null);
+    const key = julesInputKey.trim();
+
+    try {
+      const res = await fetch("/api/jules/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: key }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setJulesTestResult({
+          success: true,
+          message: "Verified! Your Google Jules API key is active and connected to GitHub tasks.",
+        });
+      } else {
+        setJulesTestResult({
+          success: false,
+          message: data.error || "Google Jules key verification failed.",
+        });
+      }
+    } catch (err: unknown) {
+      setJulesTestResult({
+        success: false,
+        message: err instanceof Error ? err.message : "Failed to verify Jules key.",
+      });
+    } finally {
+      setIsTestingJulesKey(false);
     }
   };
 
@@ -405,27 +533,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     }
   };
 
-  // Model & Tuner Helpers
-  const updateConfigField = <K extends keyof PromptConfig>(
-    field: K,
-    value: PromptConfig[K]
-  ) => {
-    onChangeConfig({ ...config, [field]: value });
-  };
-
-  const handleResetTuners = () => {
-    onChangeConfig({
-      ...config,
-      temperature: 1.0,
-      topP: 0.95,
-      topK: 40,
-      maxOutputTokens: 2048,
-    });
-  };
-
   if (!isOpen) return null;
 
   const hasAnyAuth = Boolean(googleUser || customApiKey.trim() || hasServerKey);
+  const isJulesConfigured = Boolean(julesApiKey.trim());
 
   return (
     <div
@@ -440,20 +551,13 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     >
       <div
         id="unified-settings-dialog"
-        className="relative w-full max-w-2xl bg-[#1a1c24] border border-[#343846] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-zinc-200"
+        className="relative w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-foreground"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#2d313e] bg-[#16171f]">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-              <Sliders className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-zinc-100">Menu & Settings</h3>
-              <p className="text-xs text-zinc-400">
-                Tune parameters, saved prompts library, export code, and app configurations
-              </p>
-            </div>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-popover shrink-0">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-primary shrink-0" />
+            <h3 className="text-sm font-semibold text-foreground">Settings & Hub</h3>
           </div>
           <button
             type="button"
@@ -462,142 +566,177 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               onClose();
             }}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
             title="Close Settings"
+            aria-label="Close Settings"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-[#2d313e] bg-[#171922] px-3 overflow-x-auto scrollbar-none">
+        {/* Tab Navigation: Account, Audio, Display, Security, Library, Get Code, Companion */}
+        <div
+          role="tablist"
+          aria-label="Settings and Hub sections"
+          className="flex border-b border-border bg-muted/40 px-2 overflow-x-auto scrollbar-none shrink-0"
+        >
           <button
             type="button"
-            id="tab-btn-tune"
+            role="tab"
+            id="tab-btn-account"
+            aria-selected={activeTab === "account"}
+            aria-controls="tabpanel-account"
             onClick={() => {
               stopPreview();
-              setActiveTab("tune");
+              setActiveTab("account");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
-              activeTab === "tune" || activeTab === "model"
-                ? "border-blue-500 text-blue-400 bg-blue-500/5"
-                : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "account"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Tune</span>
+            <div className="relative flex items-center justify-center">
+              <Key className="w-5 h-5" />
+              {!hasAnyAuth && (
+                <span className="absolute -top-1 -right-2 text-[10px] font-mono text-destructive font-bold" title="Authentication needed">
+                  !
+                </span>
+              )}
+            </div>
+            <span className="whitespace-nowrap">Account & Keys</span>
           </button>
 
           <button
             type="button"
-            id="tab-btn-library"
-            onClick={() => {
-              stopPreview();
-              setActiveTab("library");
-            }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
-              activeTab === "library"
-                ? "border-blue-500 text-blue-400 bg-blue-500/5"
-                : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
-            }`}
-          >
-            <FolderHeart className="w-3.5 h-3.5" />
-            <span>Library</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-btn-export"
-            onClick={() => {
-              stopPreview();
-              setActiveTab("export");
-            }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
-              activeTab === "export"
-                ? "border-blue-500 text-blue-400 bg-blue-500/5"
-                : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
-            }`}
-          >
-            <Code2 className="w-3.5 h-3.5" />
-            <span>Get Code</span>
-          </button>
-
-          <button
-            type="button"
-            id="tab-btn-companion"
-            onClick={() => {
-              stopPreview();
-              setActiveTab("companion");
-            }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
-              activeTab === "companion"
-                ? "border-blue-500 text-blue-400 bg-blue-500/5"
-                : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Companion</span>
-          </button>
-
-          <button
-            type="button"
+            role="tab"
             id="tab-btn-audio"
+            aria-selected={activeTab === "audio"}
+            aria-controls="tabpanel-audio"
             onClick={() => {
               stopPreview();
               setActiveTab("audio");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
+            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeTab === "audio"
-                ? "border-blue-500 text-blue-400 bg-blue-500/5"
-                : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <Volume2 className="w-3.5 h-3.5" />
-            <span>Audio</span>
+            <Volume2 className="w-5 h-5" />
+            <span className="whitespace-nowrap">Voice & Audio</span>
           </button>
 
           <button
             type="button"
-            id="tab-btn-auth"
-            onClick={() => {
-              stopPreview();
-              setActiveTab("auth");
-            }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
-              activeTab === "auth"
-                ? "border-blue-500 text-blue-400 bg-blue-500/5"
-                : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
-            }`}
-          >
-            <Key className="w-3.5 h-3.5" />
-            <span>Auth</span>
-            {!hasAnyAuth && (
-              <span className="text-[10px] font-mono text-zinc-400 shrink-0">!</span>
-            )}
-          </button>
-
-          <button
-            type="button"
+            role="tab"
             id="tab-btn-display"
+            aria-selected={activeTab === "display"}
+            aria-controls="tabpanel-display"
             onClick={() => {
               stopPreview();
               setActiveTab("display");
             }}
-            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-semibold border-b-2 transition-colors shrink-0 ${
+            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeTab === "display"
-                ? "border-blue-500 text-blue-400 bg-blue-500/5"
-                : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <Laptop className="w-3.5 h-3.5" />
-            <span>Display</span>
+            <Laptop className="w-5 h-5" />
+            <span className="whitespace-nowrap">Display & Frame</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-security"
+            aria-selected={activeTab === "security"}
+            aria-controls="tabpanel-security"
+            onClick={() => {
+              stopPreview();
+              setActiveTab("security");
+            }}
+            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "security"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
+            }`}
+          >
+            <ShieldCheck className="w-5 h-5" />
+            <span className="whitespace-nowrap">Security & App</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-library"
+            aria-selected={activeTab === "library"}
+            aria-controls="tabpanel-library"
+            onClick={() => {
+              stopPreview();
+              setActiveTab("library");
+            }}
+            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "library"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
+            }`}
+          >
+            <FolderHeart className="w-5 h-5" />
+            <span className="whitespace-nowrap">Library</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-export"
+            aria-selected={activeTab === "export"}
+            aria-controls="tabpanel-export"
+            onClick={() => {
+              stopPreview();
+              setActiveTab("export");
+            }}
+            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "export"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
+            }`}
+          >
+            <Code2 className="w-5 h-5" />
+            <span className="whitespace-nowrap">Get Code</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-companion"
+            aria-selected={activeTab === "companion"}
+            aria-controls="tabpanel-companion"
+            onClick={() => {
+              stopPreview();
+              setActiveTab("companion");
+            }}
+            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "companion"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
+            }`}
+          >
+            <Compass className="w-5 h-5" />
+            <span className="whitespace-nowrap">About & Guide</span>
           </button>
         </div>
 
         {/* Scrollable Tab Body */}
-        <div className="p-5 overflow-y-auto flex-1 space-y-5">
-          {/* TAB 1: AUTHENTICATION */}
-          {activeTab === "auth" && (
+        <div
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          aria-labelledby={`tab-btn-${activeTab}`}
+          className="p-5 overflow-y-auto flex-1 space-y-5"
+        >
+          {/* TAB 1: CONSOLIDATED ACCOUNT & KEYS HUB (Q1) */}
+          {activeTab === "account" && (
             <div className="space-y-4">
               {/* Google Account Authentication */}
               <GoogleAuthCard
@@ -612,26 +751,26 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 className={`p-4 rounded-xl border flex items-start justify-between gap-3 ${
                   hasServerKey
                     ? "bg-emerald-950/20 border-emerald-500/40 text-emerald-300"
-                    : "bg-[#21242f]/70 border-[#333746] text-zinc-300"
+                    : "bg-card border-border text-muted-foreground"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className={`mt-0.5 p-1.5 rounded-lg ${
                       hasServerKey
-                        ? "bg-blue-500/20 text-blue-400"
-                        : "bg-zinc-800 text-zinc-400"
+                        ? "bg-primary/20 text-primary"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-zinc-100">
+                    <h4 className="text-xs font-semibold text-foreground">
                       AI Studio Cloud Environment
                     </h4>
-                    <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                       {hasServerKey
-                        ? "Server environment authentication is active. Calls to Gemini API are securely proxied."
+                        ? "Server environment credentials are active. Requests are securely proxied."
                         : "No server environment key detected. You can supply a custom Gemini API key below."}
                     </p>
                   </div>
@@ -642,7 +781,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   id="test-env-auth-btn"
                   onClick={() => handleTestKey("")}
                   disabled={isTestingKey}
-                  className="px-3 py-1.5 rounded-lg bg-[#282c39] hover:bg-[#343a4b] border border-[#3e4456] text-xs font-medium text-zinc-200 shrink-0 transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-card hover:bg-muted border border-border text-xs font-medium text-foreground shrink-0 transition-colors cursor-pointer"
                 >
                   {isTestingKey ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -653,18 +792,18 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               </div>
 
               {/* Workspace Projects Management Card */}
-              <div className="p-4 rounded-xl border border-[#333746] bg-[#21242f]/50 space-y-3">
+              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400">
+                    <div className="p-1.5 rounded-lg bg-primary/15 border border-primary/30 text-primary">
                       <Folder className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-semibold text-zinc-200">
+                      <h4 className="text-xs font-semibold text-foreground">
                         Workspace Projects ({projects.length})
                       </h4>
-                      <p className="text-[11px] text-zinc-400">
-                        Manage registered Google AI Studio projects and switch credentials.
+                      <p className="text-[11px] text-muted-foreground">
+                        Manage registered AI Studio projects and switch credentials.
                       </p>
                     </div>
                   </div>
@@ -676,7 +815,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                         onClose();
                         onOpenImportProject();
                       }}
-                      className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      className="px-2.5 py-1.5 rounded-lg bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <FolderPlus className="w-3.5 h-3.5" />
                       <span>+ New Project</span>
@@ -686,10 +825,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
                 {/* Projects List */}
                 {projects.length === 0 ? (
-                  <div className="p-3.5 text-center rounded-xl bg-[#171922] border border-[#2b2f3d] text-xs text-zinc-400 space-y-1">
-                    <p className="font-medium text-zinc-300">No Projects Registered</p>
-                    <p className="text-[11px] text-zinc-500">
-                      Import an AI Studio key to isolate conversation drafts and switch effortlessly.
+                  <div className="p-3 text-center rounded-xl bg-muted border border-border text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium text-foreground">No Projects Registered</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Add a project or enter a custom key below to start prompting.
                     </p>
                   </div>
                 ) : (
@@ -708,8 +847,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                           id={`settings-project-card-${proj.id}`}
                           className={`p-3 rounded-xl border transition-colors ${
                             isActive
-                              ? "bg-[#1c2233] border-blue-500/40 shadow-sm"
-                              : "bg-[#181a24] border-[#2c303f] hover:border-[#3a4054]"
+                              ? "bg-primary/15 border-primary shadow-sm"
+                              : "bg-card border-border hover:border-primary/50"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -721,7 +860,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                     id={`input-rename-project-${proj.id}`}
                                     value={editingProjectName}
                                     onChange={(e) => setEditingProjectName(e.target.value)}
-                                    className="px-2 py-1 text-xs bg-[#12131a] border border-blue-500/60 rounded-md text-white focus:outline-none w-full max-w-[200px]"
+                                    className="px-2 py-1 text-xs bg-muted border border-primary rounded-md text-foreground focus:outline-none w-full max-w-[200px]"
                                     autoFocus
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter") {
@@ -743,30 +882,30 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                       }
                                       setEditingProjectId(null);
                                     }}
-                                    className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-md font-medium"
+                                    className="px-2 py-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded-md font-medium cursor-pointer"
                                   >
                                     Save
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => setEditingProjectId(null)}
-                                    className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-md"
+                                    className="px-2 py-1 text-xs bg-muted hover:bg-muted/80 text-foreground rounded-md cursor-pointer"
                                   >
                                     Cancel
                                   </button>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h5 className="text-xs font-semibold text-zinc-100">
+                                  <h5 className="text-xs font-semibold text-foreground">
                                     {proj.name}
                                   </h5>
                                   {(!proj.isValid || proj.status === "invalid_key" || proj.status === "attention_required") ? (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-muted/60 text-zinc-300 border border-border/40 text-[10px] font-medium flex items-center gap-1">
-                                      <AlertTriangle className="w-2.5 h-2.5 text-zinc-400" />
-                                      <span>Key Expired</span>
+                                    <span className="px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 text-[10px] font-medium flex items-center gap-1">
+                                      <AlertTriangle className="w-2.5 h-2.5 text-destructive" />
+                                      <span>Key Attention</span>
                                     </span>
                                   ) : isActive ? (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-medium flex items-center gap-1">
+                                    <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 text-[10px] font-medium flex items-center gap-1">
                                       <CheckCircle2 className="w-2.5 h-2.5" />
                                       <span>Active</span>
                                     </span>
@@ -775,7 +914,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                       type="button"
                                       id={`btn-set-active-${proj.id}`}
                                       onClick={() => onSelectProject?.(proj)}
-                                      className="px-1.5 py-0.5 rounded-md bg-[#252a38] hover:bg-blue-600/20 text-zinc-400 hover:text-blue-300 border border-[#373d50] text-[10px] transition-colors font-medium"
+                                      className="px-1.5 py-0.5 rounded-md bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border text-[10px] transition-colors font-medium cursor-pointer"
                                     >
                                       Set Active
                                     </button>
@@ -787,7 +926,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                       setEditingProjectId(proj.id);
                                       setEditingProjectName(proj.name);
                                     }}
-                                    className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition-colors"
+                                    className="text-muted-foreground hover:text-foreground p-0.5 rounded transition-colors cursor-pointer"
                                     title="Rename project"
                                   >
                                     <Edit2 className="w-3 h-3" />
@@ -796,20 +935,20 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                               )}
 
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <span className="text-[11px] font-mono text-zinc-400">
+                                <span className="text-[11px] font-mono text-muted-foreground">
                                   {maskedKey}
                                 </span>
-                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-zinc-400 border border-zinc-700/50">
-                                  {proj.defaultModel || "gemini-2.5-flash"}
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border font-mono">
+                                  {proj.defaultModel || "gemini-3.8-flash"}
                                 </span>
                                 {(!proj.isValid || proj.status === "invalid_key") && onOpenCustomTabBrowser && (
                                   <button
                                     type="button"
                                     onClick={() => {
                                       onClose();
-                                      onOpenCustomTabBrowser();
+                                      onOpenCustomTabBrowser("aistudio");
                                     }}
-                                    className="text-[10px] text-amber-400 hover:text-amber-300 underline font-medium"
+                                    className="text-[10px] text-primary hover:underline font-medium cursor-pointer"
                                   >
                                     Update in AI Studio →
                                   </button>
@@ -820,8 +959,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                             {/* Actions on Project */}
                             <div className="flex items-center gap-1 shrink-0">
                               {isConfirmingDelete ? (
-                                <div className="flex items-center gap-1 bg-rose-950/40 border border-rose-500/40 p-1 rounded-lg">
-                                  <span className="text-[10px] text-rose-300 font-medium px-1">
+                                <div className="flex items-center gap-1 bg-destructive/15 border border-destructive/30 p-1 rounded-lg">
+                                  <span className="text-[10px] text-destructive font-medium px-1">
                                     Delete?
                                   </span>
                                   <button
@@ -831,14 +970,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                       onDeleteProject?.(proj.id);
                                       setDeleteConfirmProjectId(null);
                                     }}
-                                    className="px-1.5 py-0.5 text-[10px] bg-rose-600 hover:bg-rose-500 text-white rounded font-medium transition-colors"
+                                    className="px-1.5 py-0.5 text-[10px] bg-destructive text-destructive-foreground rounded font-medium transition-colors cursor-pointer"
                                   >
                                     Yes
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => setDeleteConfirmProjectId(null)}
-                                    className="px-1.5 py-0.5 text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors"
+                                    className="px-1.5 py-0.5 text-[10px] bg-muted hover:bg-muted/80 text-foreground rounded transition-colors cursor-pointer"
                                   >
                                     No
                                   </button>
@@ -848,7 +987,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                   type="button"
                                   id={`btn-delete-project-${proj.id}`}
                                   onClick={() => setDeleteConfirmProjectId(proj.id)}
-                                  className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/20 rounded-lg transition-colors"
+                                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
                                   title="Delete project"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -863,16 +1002,16 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 )}
               </div>
 
-              {/* Custom API Key Input */}
-              <div className="p-4 rounded-xl border border-[#333746] bg-[#21242f]/50 space-y-3">
+              {/* Gemini Custom API Key Input Card */}
+              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-semibold text-zinc-200 block">
+                    <label className="text-xs font-semibold text-foreground block">
                       Custom Gemini API Key
                     </label>
                     {activeProjectName && (
-                      <span className="text-[10px] text-zinc-400 block font-normal">
-                        Active Project: <strong className="text-blue-400">{activeProjectName}</strong>
+                      <span className="text-[10px] text-muted-foreground block font-normal">
+                        Active Project: <strong className="text-primary">{activeProjectName}</strong>
                       </span>
                     )}
                   </div>
@@ -882,25 +1021,13 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                         type="button"
                         onClick={() => {
                           onClose();
-                          onOpenCustomTabBrowser();
+                          onOpenCustomTabBrowser("aistudio");
                         }}
-                        className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors font-medium"
+                        className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors font-medium cursor-pointer"
                         title="Launch AI Studio in Chrome Custom Tab"
                       >
                         <ExternalLink className="w-3 h-3" />
-                        <span>In-App Tab</span>
-                      </button>
-                    )}
-                    {onOpenImportProject && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                          onOpenImportProject();
-                        }}
-                        className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors font-medium"
-                      >
-                        <span>+ Project</span>
+                        <span>Get Key</span>
                       </button>
                     )}
                   </div>
@@ -913,13 +1040,21 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     value={inputApiKey}
                     onChange={(e) => setInputApiKey(e.target.value)}
                     placeholder="AIzaSy..."
-                    className="w-full text-xs font-mono bg-[#16171f] border border-[#343846] rounded-xl px-3.5 py-2.5 pr-20 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    className="w-full text-xs font-mono bg-muted/50 border border-input rounded-xl px-3.5 py-2.5 pr-24 text-foreground placeholder:text-subtle-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button
                       type="button"
+                      onClick={handlePasteApiKey}
+                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors cursor-pointer"
+                      title="Paste from clipboard"
+                    >
+                      <ClipboardPaste className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setShowKeyText(!showKeyText)}
-                      className="p-1.5 text-zinc-400 hover:text-zinc-200 rounded-md hover:bg-zinc-800 transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors cursor-pointer"
                       title={showKeyText ? "Hide key" : "Show key"}
                     >
                       {showKeyText ? (
@@ -936,12 +1071,12 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     type="button"
                     onClick={() => handleTestKey(inputApiKey)}
                     disabled={isTestingKey}
-                    className="px-3 py-1.5 rounded-lg bg-[#282c39] hover:bg-[#343a4b] border border-[#3e4456] text-xs font-medium text-zinc-200 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-lg bg-card hover:bg-muted border border-border text-xs font-medium text-foreground flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {isTestingKey ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                     ) : (
-                      <Check className="w-3.5 h-3.5 text-blue-400" />
+                      <Check className="w-3.5 h-3.5 text-primary" />
                     )}
                     <span>Test Key</span>
                   </button>
@@ -951,7 +1086,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={handleClearApiKey}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-rose-400 hover:bg-rose-950/20 transition-colors"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                       >
                         Remove
                       </button>
@@ -960,85 +1095,157 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       type="button"
                       id="settings-save-key-btn"
                       onClick={handleSaveApiKey}
-                      className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md transition-colors active:scale-95"
+                      className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md transition-colors active:scale-95 cursor-pointer"
                     >
                       Save Key
                     </button>
                   </div>
                 </div>
+
+                {testResult && (
+                  <div
+                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                      testResult.success
+                        ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
+                        : "bg-destructive/15 border-destructive/30 text-destructive"
+                    }`}
+                  >
+                    {testResult.success ? (
+                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
+                    )}
+                    <span className="leading-relaxed">{testResult.message}</span>
+                  </div>
+                )}
               </div>
 
-              {/* Feedback result */}
-              {testResult && (
-                <div
-                  className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${
-                    testResult.success
-                      ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
-                      : "bg-rose-950/30 border-rose-500/40 text-rose-300"
-                  }`}
-                >
-                  {testResult.success ? (
-                    <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
-                  )}
-                  <span className="leading-relaxed">{testResult.message}</span>
-                </div>
-              )}
-
-              {/* Window & Screen Security (FLAG_SECURE) */}
-              <div className="p-4 rounded-xl border border-[#333746] bg-[#21242f]/50 space-y-2.5">
+              {/* Google Jules Autonomous Agent Key Card */}
+              <div className="p-4 rounded-xl border border-purple-500/30 bg-card space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
-                      <Lock className="w-4 h-4" />
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-400">
+                      <Bot className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-semibold text-zinc-100">
-                        Android Screen Protection (FLAG_SECURE)
+                      <h4 className="text-xs font-semibold text-foreground">
+                        Google Jules Autonomous Agent Key
                       </h4>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
-                        Obscures screen snapshots in Recent Apps / App Switcher to prevent sensitive API key and draft leaks.
+                      <p className="text-[11px] text-muted-foreground">
+                        Required for autonomous GitHub coding tasks, PR creations, and code reviews.
                       </p>
                     </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    id="settings-flag-secure-toggle"
-                    checked={flagSecure}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      setFlagSecure(enabled);
-                      setFlagSecureEnabled(enabled);
-                    }}
-                    className="w-4 h-4 rounded text-blue-600 bg-zinc-800 border-zinc-700 focus:ring-blue-500 cursor-pointer"
-                  />
+                  {onOpenCustomTabBrowser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenCustomTabBrowser("jules");
+                      }}
+                      className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors font-medium cursor-pointer"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Jules Portal</span>
+                    </button>
+                  )}
                 </div>
-              </div>
 
-              {/* Permanent Data Sovereignty & Store Policy Disclosure */}
-              <div className="p-4 rounded-xl border border-[#2b2e3b] bg-[#171821] space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Data Sovereignty & Privacy Notice</span>
+                <div className="relative">
+                  <input
+                    type={showJulesKeyText ? "text" : "password"}
+                    id="settings-jules-key-input"
+                    value={julesInputKey}
+                    onChange={(e) => setJulesInputKey(e.target.value)}
+                    placeholder="Enter Google Jules API Key..."
+                    className="w-full text-xs font-mono bg-muted/50 border border-input rounded-xl px-3.5 py-2.5 pr-24 text-foreground placeholder:text-subtle-foreground focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handlePasteJulesKey}
+                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors cursor-pointer"
+                      title="Paste from clipboard"
+                    >
+                      <ClipboardPaste className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowJulesKeyText(!showJulesKeyText)}
+                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors cursor-pointer"
+                      title={showJulesKeyText ? "Hide key" : "Show key"}
+                    >
+                      {showJulesKeyText ? (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      ) : (
+                        <Eye className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-zinc-300 leading-relaxed font-normal">
-                  Your API keys, prompts, and project configurations are encrypted locally and never transmitted to any third-party or intermediary server. All requests are routed directly to Google Generative AI endpoints.
-                </p>
-                <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400">
-                  <span>Client for Google AI Studio</span>
-                  <span className="text-blue-400 font-medium">Powered by Google Gemini API</span>
+
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={handleTestJulesKey}
+                    disabled={isTestingJulesKey}
+                    className="px-3 py-1.5 rounded-lg bg-card hover:bg-muted border border-border text-xs font-medium text-foreground flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {isTestingJulesKey ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5 text-purple-400" />
+                    )}
+                    <span>Test Jules Key</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {julesApiKey && (
+                      <button
+                        type="button"
+                        onClick={handleClearJulesKey}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      id="settings-save-jules-key-btn"
+                      onClick={handleSaveJulesApiKey}
+                      className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md transition-colors active:scale-95 cursor-pointer"
+                    >
+                      Save Jules Key
+                    </button>
+                  </div>
                 </div>
+
+                {julesTestResult && (
+                  <div
+                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                      julesTestResult.success
+                        ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
+                        : "bg-destructive/15 border-destructive/30 text-destructive"
+                    }`}
+                  >
+                    {julesTestResult.success ? (
+                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
+                    )}
+                    <span className="leading-relaxed">{julesTestResult.message}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* TAB 2: AUDIO & VOICE */}
+          {/* TAB 2: VOICE & SPEECH */}
           {activeTab === "audio" && (
             <div className="space-y-4">
               {/* Engine Picker */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Voice Engine
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -1046,24 +1253,24 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     type="button"
                     id="settings-engine-gemini"
                     onClick={() => handleSelectAudioEngine("gemini")}
-                    className={`p-3.5 rounded-xl border text-left transition-colors ${
+                    className={`p-3.5 rounded-xl border text-left transition-colors cursor-pointer ${
                       currentSpeechSettings.engine === "gemini"
-                        ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
-                        : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-zinc-100">
-                        <Sparkles className="w-4 h-4 text-blue-400" />
+                      <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
+                        <Sparkles className="w-4 h-4 text-primary" />
                         <span>Gemini AI Studio</span>
                       </div>
                       {currentSpeechSettings.engine === "gemini" && (
-                        <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px]">
+                        <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
                           <Check className="w-3 h-3" />
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-xs text-muted-foreground">
                       Studio-grade neural voices with natural inflection and human cadence.
                     </p>
                   </button>
@@ -1072,24 +1279,24 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     type="button"
                     id="settings-engine-device"
                     onClick={() => handleSelectAudioEngine("device")}
-                    className={`p-3.5 rounded-xl border text-left transition-colors ${
+                    className={`p-3.5 rounded-xl border text-left transition-colors cursor-pointer ${
                       currentSpeechSettings.engine === "device"
-                        ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
-                        : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-zinc-100">
-                        <Smartphone className="w-4 h-4 text-emerald-400" />
+                      <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
+                        <Smartphone className="w-4 h-4 text-primary" />
                         <span>Device System</span>
                       </div>
                       {currentSpeechSettings.engine === "device" && (
-                        <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px]">
+                        <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
                           <Check className="w-3 h-3" />
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-xs text-muted-foreground">
                       On-device browser speech synthesis. Instant start and operates offline.
                     </p>
                   </button>
@@ -1099,8 +1306,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               {/* Gemini Voice Persona List */}
               {currentSpeechSettings.engine === "gemini" ? (
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                    Gemini AI Voice Persona (gemini-3.1-flash-tts-preview)
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    Gemini AI Voice Persona
                   </label>
                   <div className="space-y-2">
                     {GEMINI_VOICES.map((v) => {
@@ -1113,32 +1320,32 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                           onClick={() => handleSelectGeminiVoice(v.id)}
                           className={`flex items-center justify-between p-3 rounded-xl border transition-colors cursor-pointer ${
                             isSelected
-                              ? "bg-blue-950/30 border-blue-500/80 ring-1 ring-blue-500/40"
-                              : "bg-[#21242f]/60 border-[#313543] hover:border-zinc-500 hover:bg-[#262a37]"
+                              ? "bg-primary/15 border-primary ring-1 ring-primary/40"
+                              : "bg-card border-border hover:border-primary/50 hover:bg-muted"
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             <div
                               className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
                                 isSelected
-                                  ? "border-blue-500 bg-blue-500 text-white"
-                                  : "border-zinc-500 bg-transparent"
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-border bg-transparent"
                               }`}
                             >
                               {isSelected && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
                               )}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm text-zinc-100">
+                                <span className="font-semibold text-sm text-foreground">
                                   {v.name}
                                 </span>
-                                <span className="text-[10px] text-zinc-400">
+                                <span className="text-[10px] text-muted-foreground">
                                   {v.personality}
                                 </span>
                               </div>
-                              <p className="text-xs text-zinc-400 mt-0.5">
+                              <p className="text-xs text-muted-foreground mt-0.5">
                                 {v.description}
                               </p>
                             </div>
@@ -1150,26 +1357,26 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                               e.stopPropagation();
                               handlePreviewVoice(v.id, "gemini");
                             }}
-                            className={`p-2 rounded-lg border text-xs font-medium shrink-0 flex items-center gap-1.5 transition-colors ${
+                            className={`p-2 rounded-lg border text-xs font-medium shrink-0 flex items-center gap-1.5 transition-colors cursor-pointer ${
                               isPlaying
-                                ? "bg-blue-600 border-blue-400 text-white"
-                                : "bg-[#282c39] border-[#3e4456] text-zinc-300 hover:text-white hover:border-blue-400"
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary"
                             }`}
                             title={`Audition ${v.name}`}
                           >
                             {isPlaying ? (
                               <>
-                                <Square className="w-3 h-3 fill-white" />
+                                <Square className="w-3 h-3 fill-current" />
                                 <span>Stop</span>
                               </>
                             ) : isPreviewLoading && previewingVoiceId === v.id ? (
                               <>
-                                <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+                                <Loader2 className="w-3 h-3 animate-spin text-primary" />
                                 <span>Loading</span>
                               </>
                             ) : (
                               <>
-                                <Volume2 className="w-3.5 h-3.5 text-blue-400" />
+                                <Volume2 className="w-3.5 h-3.5 text-primary" />
                                 <span>Audition</span>
                               </>
                             )}
@@ -1181,7 +1388,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                     Device Voices ({deviceVoices.length} installed)
                   </label>
                   <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
@@ -1196,23 +1403,23 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                           onClick={() => handleSelectDeviceVoice(v.voiceURI)}
                           className={`flex items-center justify-between p-2.5 rounded-xl border transition-colors cursor-pointer ${
                             isSelected
-                              ? "bg-blue-950/30 border-blue-500/80 ring-1 ring-blue-500/40"
-                              : "bg-[#21242f]/60 border-[#313543] hover:border-zinc-500 hover:bg-[#262a37]"
+                              ? "bg-primary/15 border-primary ring-1 ring-primary/40"
+                              : "bg-card border-border hover:border-primary/50 hover:bg-muted"
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0 pr-2">
                             <Radio
                               className={`w-3.5 h-3.5 shrink-0 ${
                                 isSelected
-                                  ? "text-blue-400 fill-blue-400"
-                                  : "text-zinc-500"
+                                  ? "text-primary fill-primary"
+                                  : "text-muted-foreground"
                               }`}
                             />
                             <div className="min-w-0">
-                              <span className="font-medium text-xs text-zinc-200 truncate block">
+                              <span className="font-medium text-xs text-foreground truncate block">
                                 {v.name}
                               </span>
-                              <span className="text-[10px] text-zinc-400">
+                              <span className="text-[10px] text-muted-foreground">
                                 {v.lang}
                               </span>
                             </div>
@@ -1224,12 +1431,12 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                               e.stopPropagation();
                               handlePreviewVoice(v.voiceURI, "device");
                             }}
-                            className="p-1.5 rounded-lg border border-[#3e4456] bg-[#282c39] text-zinc-300 hover:text-white"
+                            className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground cursor-pointer"
                           >
                             {isPlaying ? (
-                              <Square className="w-3 h-3 fill-white" />
+                              <Square className="w-3 h-3 fill-current" />
                             ) : (
-                              <Volume2 className="w-3 h-3 text-blue-400" />
+                              <Volume2 className="w-3 h-3 text-primary" />
                             )}
                           </button>
                         </div>
@@ -1241,7 +1448,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
               {/* Speed rate */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Playback Speed
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -1250,10 +1457,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       key={rate}
                       type="button"
                       onClick={() => handleSelectRate(rate)}
-                      className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-colors ${
+                      className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
                         currentSpeechSettings.playbackRate === rate
-                          ? "bg-blue-600 border-blue-400 text-white shadow-sm"
-                          : "bg-[#21242f] border-[#343846] text-zinc-300 hover:text-white hover:bg-[#292e3c]"
+                          ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                          : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                     >
                       {rate === 1.0 ? "1.0x (Normal)" : `${rate}x`}
@@ -1263,150 +1470,209 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               </div>
 
               {previewError && (
-                <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-xs text-red-300">
+                <div className="p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-xs text-destructive">
                   {previewError}
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB: MODEL & TUNERS (TUNE) */}
-          {(activeTab === "model" || activeTab === "tune") && (
-            <div className="space-y-4">
-              {/* Model Picker */}
+          {/* TAB 3: DISPLAY & APPEARANCE */}
+          {activeTab === "display" && (
+            <div className="space-y-5">
+              {/* Theme Selection */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                  Active Gemini Model
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Theme Appearance
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {models.map((m) => {
-                    const isSelected = config.model === m.id;
-                    return (
-                      <div
-                        key={m.id}
-                        onClick={() => updateConfigField("model", m.id)}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
-                            : "bg-[#21242f]/70 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-xs text-zinc-100">
-                            {m.name}
-                          </span>
-                          {isSelected && (
-                            <span className="w-3.5 h-3.5 rounded-full bg-blue-500 flex items-center justify-center text-white text-[9px]">
-                              <Check className="w-2.5 h-2.5" />
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-zinc-400 leading-relaxed line-clamp-2">
-                          {m.description}
-                        </p>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setThemeMode("light")}
+                    className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
+                      themeMode === "light"
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <Sun className="w-3.5 h-3.5 text-foreground" />
+                        <span className="font-semibold text-xs text-foreground">Light</span>
                       </div>
-                    );
-                  })}
+                      {themeMode === "light" && (
+                        <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
+                          <Check className="w-2.5 h-2.5" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Minimal crisp high-contrast theme.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setThemeMode("dark")}
+                    className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
+                      themeMode === "dark"
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <Moon className="w-3.5 h-3.5 text-foreground" />
+                        <span className="font-semibold text-xs text-foreground">Dark</span>
+                      </div>
+                      {themeMode === "dark" && (
+                        <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
+                          <Check className="w-2.5 h-2.5" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      AI Studio deep 4-tier dark theme.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setThemeMode("system")}
+                    className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
+                      themeMode === "system"
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <Monitor className="w-3.5 h-3.5 text-foreground" />
+                        <span className="font-semibold text-xs text-foreground">System</span>
+                      </div>
+                      {themeMode === "system" && (
+                        <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
+                          <Check className="w-2.5 h-2.5" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Automatically matches your OS preference.
+                    </p>
+                  </button>
                 </div>
               </div>
 
-              {/* Temperature */}
-              <div className="p-3.5 rounded-xl border border-[#343846] bg-[#21242f]/50 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-zinc-200">Temperature</span>
-                  <span className="font-mono text-blue-400 font-semibold">
-                    {config.temperature}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="2"
-                  step="0.05"
-                  value={config.temperature}
-                  onChange={(e) =>
-                    updateConfigField("temperature", parseFloat(e.target.value))
-                  }
-                  className="w-full accent-blue-500 h-1.5 bg-[#16171f] rounded-lg cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-zinc-500">
-                  <span>Deterministic (0.0)</span>
-                  <span>Creative (2.0)</span>
-                </div>
-              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Display View Mode
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onSelectDeviceMode("responsive")}
+                    className={`p-4 rounded-xl border text-left transition-colors cursor-pointer ${
+                      deviceMode === "responsive"
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
+                        <Laptop className="w-4 h-4 text-primary" />
+                        <span>Responsive Full</span>
+                      </div>
+                      {deviceMode === "responsive" && (
+                        <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Adapts fluidly to your full screen or preview window width.
+                    </p>
+                  </button>
 
-              {/* Top P & Top K */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl border border-[#343846] bg-[#21242f]/50 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-zinc-200">Top P</span>
-                    <span className="font-mono text-blue-400">{config.topP}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={config.topP}
-                    onChange={(e) =>
-                      updateConfigField("topP", parseFloat(e.target.value))
-                    }
-                    className="w-full accent-blue-500 h-1.5 bg-[#16171f] rounded-lg cursor-pointer"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => onSelectDeviceMode("pixel")}
+                    className={`p-4 rounded-xl border text-left transition-colors cursor-pointer ${
+                      deviceMode === "pixel"
+                        ? "bg-primary/20 border-primary ring-1 ring-primary"
+                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
+                        <Smartphone className="w-4 h-4 text-primary" />
+                        <span>Google Pixel 9</span>
+                      </div>
+                      {deviceMode === "pixel" && (
+                        <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
+                          <Check className="w-3 h-3" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Realistic Android mobile frame simulation with status bar and bezel.
+                    </p>
+                  </button>
                 </div>
-
-                <div className="p-3 rounded-xl border border-[#343846] bg-[#21242f]/50 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-zinc-200">Top K</span>
-                    <span className="font-mono text-blue-400">{config.topK}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="100"
-                    step="1"
-                    value={config.topK}
-                    onChange={(e) =>
-                      updateConfigField("topK", parseInt(e.target.value, 10))
-                    }
-                    className="w-full accent-blue-500 h-1.5 bg-[#16171f] rounded-lg cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Max Output Tokens */}
-              <div className="p-3.5 rounded-xl border border-[#343846] bg-[#21242f]/50 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-zinc-200">Max Output Tokens</span>
-                  <span className="font-mono text-blue-400">{config.maxOutputTokens}</span>
-                </div>
-                <input
-                  type="range"
-                  min="64"
-                  max="8192"
-                  step="64"
-                  value={config.maxOutputTokens}
-                  onChange={(e) =>
-                    updateConfigField("maxOutputTokens", parseInt(e.target.value, 10))
-                  }
-                  className="w-full accent-blue-500 h-1.5 bg-[#16171f] rounded-lg cursor-pointer"
-                />
-              </div>
-
-              <div className="flex justify-end pt-1">
-                <button
-                  type="button"
-                  onClick={handleResetTuners}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#3e4456] bg-[#282c39] text-xs text-zinc-300 hover:text-white transition-colors"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Reset to Defaults</span>
-                </button>
               </div>
             </div>
           )}
 
-          {/* TAB: PROMPT LIBRARY & TEMPLATES */}
+          {/* TAB 4: SECURITY & PRIVACY */}
+          {activeTab === "security" && (
+            <div className="space-y-4">
+              {/* Window & Screen Security (FLAG_SECURE) */}
+              <div className="p-4 rounded-xl border border-border bg-card space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-semibold text-foreground">
+                        Android Screen Protection (FLAG_SECURE)
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                        Obscures screen snapshots in Recent Apps / App Switcher to prevent sensitive API key leaks.
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="settings-flag-secure-toggle"
+                    checked={flagSecure}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      setFlagSecure(enabled);
+                      setFlagSecureEnabled(enabled);
+                    }}
+                    className="w-4 h-4 rounded text-primary bg-muted border-border focus:ring-primary cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Data Sovereignty & Store Policy Disclosure */}
+              <div className="p-4 rounded-xl border border-border bg-card space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+                  <span>Data Sovereignty & Privacy</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed font-normal">
+                  Your API keys, prompts, and project configurations are stored locally on your device and never sent to external servers other than official Google AI Studio endpoints.
+                </p>
+                <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Client for Google AI Studio</span>
+                  <span className="text-primary font-medium">Official Gemini API</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: PROMPT LIBRARY & TEMPLATES */}
           {activeTab === "library" && (
             <div className="space-y-4">
               <LibraryModal
@@ -1422,8 +1688,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             </div>
           )}
 
-          {/* TAB: GET CODE */}
-          {activeTab === "export" && (
+          {/* TAB 6: GET CODE */}
+          {activeTab === "export" && config && (
             <div className="space-y-4">
               <CodeExportModal
                 config={config}
@@ -1433,102 +1699,35 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             </div>
           )}
 
-          {/* TAB: COMPANION */}
+          {/* TAB 7: COMPANION & ABOUT */}
           {activeTab === "companion" && (
             <div className="space-y-4">
               <DesktopWrapperGuide
-                onOpenApiKeyModal={() => setActiveTab("auth")}
+                onOpenApiKeyModal={() => setActiveTab("account")}
                 isEmbedded={true}
               />
-            </div>
-          )}
-
-          {/* TAB: DISPLAY & FRAME */}
-          {activeTab === "display" && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                  Display View Mode
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => onSelectDeviceMode("responsive")}
-                    className={`p-4 rounded-xl border text-left transition-colors ${
-                      deviceMode === "responsive"
-                        ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
-                        : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-zinc-100">
-                        <Laptop className="w-4 h-4 text-blue-400" />
-                        <span>Responsive Full</span>
-                      </div>
-                      {deviceMode === "responsive" && (
-                        <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px]">
-                          <Check className="w-3 h-3" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      Adapts fluidly to your full screen or preview window width.
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onSelectDeviceMode("pixel")}
-                    className={`p-4 rounded-xl border text-left transition-colors ${
-                      deviceMode === "pixel"
-                        ? "bg-blue-950/40 border-blue-500 ring-1 ring-blue-500"
-                        : "bg-[#21242f]/80 border-[#343846] hover:border-zinc-500 hover:bg-[#262a37]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-zinc-100">
-                        <Smartphone className="w-4 h-4 text-emerald-400" />
-                        <span>Google Pixel 9</span>
-                      </div>
-                      {deviceMode === "pixel" && (
-                        <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px]">
-                          <Check className="w-3 h-3" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      Realistic Android mobile frame simulation with status bar and bezel.
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl border border-[#343846] bg-[#21242f]/50 text-xs text-zinc-400 space-y-1">
-                <span className="font-semibold text-zinc-200 block">Workspace Cleanliness</span>
-                <p>
-                  Superfluous badges and pills have been streamlined to maintain a focused, high-contrast interface. All controls are accessible anytime from this Settings menu.
-                </p>
-              </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-[#2d313e] bg-[#16171f] flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-zinc-400">
+        <div className="px-5 py-3 border-t border-border bg-muted/40 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span
               className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border ${
                 hasAnyAuth
-                  ? "bg-muted/60 text-zinc-300 border-border/40"
-                  : "bg-muted/40 text-zinc-400 border-border/30"
+                  ? "bg-primary/20 text-primary border-primary/30"
+                  : "bg-muted text-muted-foreground border-border"
               }`}
             >
-              {hasAnyAuth ? "Live" : "Offline"}
+              {hasAnyAuth ? "Ready" : "Unauthenticated"}
             </span>
             <span>
               {hasAnyAuth
-                ? "AI Studio Connected"
-                : "Authentication Required"}
+                ? isJulesConfigured
+                  ? "Gemini & Jules Active"
+                  : "Gemini AI Studio Connected"
+                : "API Key Required"}
             </span>
           </div>
 
@@ -1539,7 +1738,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               onClose();
             }}
-            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-colors"
+            className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-colors cursor-pointer"
           >
             Done
           </button>

@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "bin": {
+    "stubs": "./.agents/skills/stubs/dist/cli.cjs"
+  },
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
@@ -10,7 +13,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit && eslint .",
-    "test": "tsx src/testRunner.ts"
+    "test": "tsx src/testRunner.ts",
+    "stubs": "node .agents/skills/stubs/dist/cli.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

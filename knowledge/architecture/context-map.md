@@ -25,37 +25,38 @@ tags:
 
 ## High-Level Subsystem Communication Graph
 
+<!-- BEGIN STUBS DIAGRAM -->
 ```mermaid
 flowchart TB
   subgraph UI_Layer ["Workspaces & UI Domain"]
-    TopNav[TopAppBar / BottomNavBar]
-    AppRoot[App.tsx Coordinator]
-    Chat[ChatWorkspace]
-    Freeform[FreeformWorkspace]
-    Structured[StructuredWorkspace]
-    MobileIDE[MobileIDEWorkspace]
-    Modals[Settings, Modals & Sheets]
+    TopNav["TopAppBar / BottomNavBar"]
+    AppRoot["App.tsx Coordinator"]
+    Chat["ChatWorkspace"]
+    Freeform["FreeformWorkspace"]
+    Structured["StructuredWorkspace"]
+    MobileIDE["MobileIDEWorkspace"]
+    Modals["Settings, Modals & Sheets"]
   end
 
   subgraph Auth_Domain ["Auth & Identity Domain"]
-    GoogleAuth[services/googleAuth.ts]
-    KeyVerify[services/keyVerification.ts]
-    ApiKeyModal[components/ApiKeyModal.tsx]
+    GoogleAuth["services/googleAuth.ts"]
+    KeyVerify["services/keyVerification.ts"]
+    ApiKeyModal["components/ApiKeyModal.tsx"]
   end
 
   subgraph Engine_Domain ["Gemini Engine & Streaming"]
-    StreamService[services/geminiStreamService.ts]
-    StreamHook[hooks/useGeminiStream.ts]
-    SpeechVoice[services/speechVoices.ts]
-    SpeechHook[hooks/useSpeechToText.ts]
+    StreamService["services/geminiStreamService.ts"]
+    StreamHook["hooks/useGeminiStream.ts"]
+    SpeechVoice["services/speechVoices.ts"]
+    SpeechHook["hooks/useSpeechToText.ts"]
     GenAISDK["@google/genai SDK"]
   end
 
   subgraph Storage_Domain ["Storage & Utilities Domain"]
-    StorageUtil[utils/storage.ts]
-    ValidationSchema[schemas/validation.ts]
-    CodeGenerators[utils/codeGenerators.ts]
-    TemplatesData[data/templates.ts]
+    StorageUtil["utils/storage.ts"]
+    ValidationSchema["schemas/validation.ts"]
+    CodeGenerators["utils/codeGenerators.ts"]
+    TemplatesData["data/templates.ts"]
   end
 
   %% Relationships
@@ -80,20 +81,22 @@ flowchart TB
   StorageUtil --> ValidationSchema
   Modals --> TemplatesData
 ```
+<!-- END STUBS DIAGRAM -->
 
 ---
 
 ## Architectural Hotspots & Hubs Analysis
 
-Based on the `stubs` SQLite dependency graph analysis (184 nodes, 442 edges), the following nodes act as core hubs:
+Based on the `stubs` SQLite dependency graph analysis (51 modules, 132 exported symbols, 165 graph edges), the following nodes act as core hubs:
 
-1. **`src/types.ts`** (Fan-In: 25, Fan-Out: 15, Degree: 40): Universal type registry defining `ChatMessage`, `PromptConfig`, `SavedPrompt`, and `ModelInfo`.
-2. **`src/utils/storage.ts`** (Fan-In: 8, Fan-Out: 25, Degree: 33): Central persistence hub for local state and prompt synchronization.
-3. **`src/App.tsx`** (Fan-In: 1, Fan-Out: 28, Degree: 29): Root presentation coordinator connecting all workspaces and modals.
-4. **`src/components/UnifiedSettingsModal.tsx`** (Fan-In: 3, Fan-Out: 20, Degree: 23): Global settings manager handling credentials, prompt parameters, and preferences.
-5. **`src/components/ChatWorkspace.tsx`** (Fan-In: 1, Fan-Out: 21, Degree: 22): Primary conversational interface driving multimodal streams and voice interactions.
+1. **`src/App.tsx`** (Fan-In: 1, Fan-Out: 27, Degree: 28): Root presentation coordinator connecting all workspaces, modal sheets, and reactive hooks.
+2. **`src/types.ts`** (Fan-In: 26, Fan-Out: 0, Degree: 26): Universal contract type registry defining `ChatMessage`, `PromptConfig`, `SavedPrompt`, and `ModelInfo`.
+3. **`src/components/UnifiedSettingsModal.tsx`** (Fan-In: 4, Fan-Out: 10, Degree: 14): Global settings manager handling credentials, prompt parameters, and preferences.
+4. **`src/components/ChatWorkspace.tsx`** (Fan-In: 1, Fan-Out: 11, Degree: 12): Primary conversational interface driving multimodal streams and voice interactions.
+5. **`src/utils/storage.ts`** (Fan-In: 8, Fan-Out: 2, Degree: 10): Central persistence hub for local state and prompt synchronization.
+6. **`src/components/TopAppBar.tsx`** (Fan-In: 1, Fan-Out: 7, Degree: 8): Primary action bar driving model selection and drawer toggles.
 
 > **Verification Status**:
-> - Circular dependency cycles: **0** (PASSED)
-> - Downward layer violations: **0** (PASSED)
-> - Domain boundary leaks: **0** (PASSED)
+> - Circular dependency cycles: **0** (PASSED - DAG verified)
+> - Downward layer violations: **0** (PASSED - strict hierarchy verified)
+> - Domain boundary leaks: **0** (PASSED - encapsulated public interfaces)

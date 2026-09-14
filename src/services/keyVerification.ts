@@ -16,6 +16,45 @@ export const AISTUDIO_PROJECT_KEY_REGEX = /^AQ\.[0-9A-Za-z\-_]{10,}$/;
 const EMBEDDED_KEY_REGEX = /(AIza[0-9A-Za-z\-_]{35}|AQ\.[0-9A-Za-z\-_]{10,})/;
 
 /**
+ * Jules API keys: either standard Google API keys (`AIza...`), Jules prefixed keys (`jules_...`),
+ * or project keys (`AQ....`).
+ */
+export const JULES_KEY_REGEX = /^(AIza[0-9A-Za-z\-_]{35}|AQ\.[0-9A-Za-z\-_]{10,}|jules_[0-9A-Za-z\-_]{20,})$/;
+
+/**
+ * Embedded Jules key search pattern.
+ */
+const EMBEDDED_JULES_KEY_REGEX = /(AIza[0-9A-Za-z\-_]{35}|AQ\.[0-9A-Za-z\-_]{10,}|jules_[0-9A-Za-z\-_]{20,})/;
+
+/**
+ * Validates whether a raw candidate string strictly matches Jules API key specifications.
+ */
+export function isValidJulesApiKeyFormat(key: string): boolean {
+  if (!key) return false;
+  const trimmed = key.trim();
+  return JULES_KEY_REGEX.test(trimmed) || (trimmed.length >= 24 && /^[0-9A-Za-z\-_.]+$/.test(trimmed));
+}
+
+/**
+ * Detects and extracts a valid Jules API key from clipboard text or raw input.
+ */
+export function detectJulesApiKey(text: string): string | null {
+  if (!text || typeof text !== "string") return null;
+  const trimmed = text.trim();
+
+  if (isValidJulesApiKeyFormat(trimmed)) {
+    return trimmed;
+  }
+
+  const match = trimmed.match(EMBEDDED_JULES_KEY_REGEX);
+  if (match && match[1]) {
+    return match[1];
+  }
+
+  return null;
+}
+
+/**
  * Validates whether a raw candidate string strictly matches Google API key specifications.
  */
 export function isValidGoogleApiKeyFormat(key: string): boolean {

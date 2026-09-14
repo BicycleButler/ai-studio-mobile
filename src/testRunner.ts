@@ -9,6 +9,9 @@ import { testSpeechToText } from "./hooks/useSpeechToText.test";
 import { testTokenCounterVisualization } from "./components/TokenCounterVisualization.test";
 import { testMobileIDEAndPromptModes } from "./components/MobileIDE.test";
 import { testKeyVerificationSubsystem } from "./services/keyVerification.test";
+import { testChatHistoryService } from "./services/chatHistoryService.test";
+import { testThemeService } from "./services/themeService.test";
+import { testPromptTemplateService } from "./services/promptTemplateService.test";
 
 interface TestSuite {
   name: string;
@@ -26,6 +29,9 @@ const suites: TestSuite[] = [
   { name: "Token Counter Visualization & Formatter", run: testTokenCounterVisualization },
   { name: "Mobile IDE & Header State Selector", run: testMobileIDEAndPromptModes },
   { name: "Key Ingestion, Sniffing & Verification Subsystem", run: testKeyVerificationSubsystem },
+  { name: "Chat History & Session Management", run: testChatHistoryService },
+  { name: "Theme Service & System Mode Resolution", run: testThemeService },
+  { name: "Prompt Template Service & Sequential Compose Protocol", run: testPromptTemplateService },
 ];
 
 async function runAllTests(): Promise<void> {

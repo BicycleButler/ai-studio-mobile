@@ -1,5 +1,151 @@
 @import "tailwindcss";
 
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface-frame: var(--surface-frame);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-google-blue: var(--google-blue);
+  --color-google-green: var(--google-green);
+  --color-google-yellow: var(--google-yellow);
+  --color-google-red: var(--google-red);
+}
+
+:root, [data-theme="light"] {
+  /* Google Brand Tokens (OKLCH) */
+  --google-blue: oklch(0.61 0.18 252);
+  --google-green: oklch(0.65 0.18 143);
+  --google-yellow: oklch(0.79 0.17 75);
+  --google-red: oklch(0.59 0.22 28);
+
+  /* Tier 1 Primitive Seeds (ADR 0020) */
+  --seed-primary: oklch(0.55 0.22 260);
+  --seed-accent: oklch(0.60 0.18 200);
+  --seed-neutral: oklch(0.55 0.015 260);
+
+  /* Tier 2 Semantic Tokens - Default Light Theme */
+  --background: oklch(0.985 0.002 247);
+  --surface-frame: oklch(0.965 0.004 247);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.20 0.015 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.20 0.015 260);
+  --foreground: oklch(0.18 0.015 260);
+  --muted: oklch(0.94 0.005 247);
+  --muted-foreground: oklch(0.46 0.015 260);
+  --subtle-foreground: oklch(0.60 0.010 260);
+  --primary: oklch(0.55 0.22 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.94 0.005 247);
+  --secondary-foreground: oklch(0.22 0.015 260);
+  --accent: oklch(0.93 0.015 250);
+  --accent-foreground: oklch(0.20 0.020 260);
+  --border: oklch(0.88 0.005 260);
+  --border-subtle: oklch(0.92 0.003 260);
+  --input: oklch(0.92 0.005 260);
+  --ring: oklch(0.55 0.22 260);
+
+  /* Ephemeral Semantic Dynamic Feedback (ADR 0020 & ADR 0036) */
+  --destructive: oklch(0.58 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.60 0.19 145);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.70 0.16 75);
+  --warning-foreground: oklch(0.20 0.03 75);
+  --info: oklch(0.55 0.22 260);
+  --info-foreground: oklch(0.99 0 0);
+
+  /* 5-Series OKLCH Chart Tokens */
+  --chart-1: oklch(0.65 0.18 220);
+  --chart-2: oklch(0.65 0.18 250);
+  --chart-3: oklch(0.65 0.18 280);
+  --chart-4: oklch(0.65 0.18 310);
+  --chart-5: oklch(0.65 0.18 340);
+}
+
+.dark, [data-theme="dark"] {
+  /* Google Brand Tokens (OKLCH) */
+  --google-blue: oklch(0.64 0.18 252);
+  --google-green: oklch(0.68 0.18 143);
+  --google-yellow: oklch(0.82 0.17 75);
+  --google-red: oklch(0.62 0.22 28);
+
+  /* Tier 1 Primitive Seeds (ADR 0020) */
+  --seed-primary: oklch(0.65 0.18 250);
+  --seed-accent: oklch(0.68 0.16 200);
+  --seed-neutral: oklch(0.50 0.010 260);
+
+  /* Tier 2 Semantic Tokens - Default Dark Theme (ADR 0028 4-Tier Lightness Progression) */
+  --background: oklch(0.18 0.006 260);       /* Layer 0: Canvas (deepest) */
+  --surface-frame: oklch(0.22 0.008 260);    /* Layer 1: Frame (+4% lightness) */
+  --card: oklch(0.26 0.010 260);             /* Layer 2: Card/Panel (+4% lightness) */
+  --card-foreground: oklch(0.92 0.005 260);
+  --popover: oklch(0.30 0.012 260);          /* Layer 3: Popover/Modal (+4% lightness) */
+  --popover-foreground: oklch(0.94 0.005 260);
+  --foreground: oklch(0.92 0.005 260);
+  --muted: oklch(0.23 0.008 260);
+  --muted-foreground: oklch(0.70 0.010 260);
+  --subtle-foreground: oklch(0.52 0.010 260);
+  --primary: oklch(0.65 0.18 250);
+  --primary-foreground: oklch(0.98 0.002 260);
+  --secondary: oklch(0.26 0.010 260);
+  --secondary-foreground: oklch(0.90 0.005 260);
+  --accent: oklch(0.28 0.015 250);
+  --accent-foreground: oklch(0.95 0.005 260);
+  --border: oklch(0.28 0.008 260);
+  --border-subtle: oklch(0.24 0.006 260);
+  --input: oklch(0.24 0.008 260);
+  --ring: oklch(0.65 0.18 250);
+
+  /* Ephemeral Semantic Dynamic Feedback (ADR 0020 & ADR 0036) */
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.65 0.19 145);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.75 0.16 75);
+  --warning-foreground: oklch(0.18 0.02 75);
+  --info: oklch(0.65 0.18 250);
+  --info-foreground: oklch(0.99 0 0);
+
+  /* 5-Series OKLCH Chart Tokens */
+  --chart-1: oklch(0.70 0.16 220);
+  --chart-2: oklch(0.70 0.16 250);
+  --chart-3: oklch(0.70 0.16 280);
+  --chart-4: oklch(0.70 0.16 310);
+  --chart-5: oklch(0.70 0.16 340);
+}
+
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
@@ -9,12 +155,12 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #131314;
-    color: #e3e3e3;
+    background-color: var(--background);
+    color: var(--foreground);
     touch-action: manipulation;
   }
 
-  /* Custom slim scrollbar matching Google AI Studio */
+  /* Accessible slim scrollbar adhering to semantic theme tokens */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -23,10 +169,10 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #2b2c31;
+    background: var(--border);
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #3c4043;
+    background: var(--muted-foreground);
   }
 }

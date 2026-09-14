@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   PromptType,
-  ActiveTab,
   DeviceFrameMode,
   PromptConfig,
   ChatMessage,
@@ -12,7 +11,13 @@ import {
   IncomingMessage,
   GoogleUser,
   ProjectInfo,
+  ChatSession,
+  JulesSession,
 } from "./types";
+import {
+  saveChatSession,
+  generateSessionTitle,
+} from "./services/chatHistoryService";
 import {
   getStoredGoogleUser,
   fetchServerCurrentUser,
@@ -26,15 +31,13 @@ import { FreeformWorkspace } from "./components/FreeformWorkspace";
 import { StructuredWorkspace } from "./components/StructuredWorkspace";
 import { MobileIDEWorkspace } from "./components/MobileIDEWorkspace";
 import { TunerBottomSheet } from "./components/TunerBottomSheet";
-import { CodeExportModal } from "./components/CodeExportModal";
-import { LibraryModal } from "./components/LibraryModal";
-import { DesktopWrapperGuide } from "./components/DesktopWrapperGuide";
-import { ApiKeyModal } from "./components/ApiKeyModal";
 import { UnifiedSettingsModal, SettingsTab } from "./components/UnifiedSettingsModal";
 import { AndroidFrame } from "./components/AndroidFrame";
+import { BottomNavBar } from "./components/BottomNavBar";
 import { CustomTabBrowserModal } from "./components/CustomTabBrowserModal";
 import { ImportProjectSheet } from "./components/ImportProjectSheet";
 import { SecurePrivacyShield } from "./components/SecurePrivacyShield";
+import { JulesSessionDrawer } from "./components/JulesSessionDrawer";
 import { useGeminiStream } from "./hooks/useGeminiStream";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
@@ -52,7 +55,18 @@ import {
   setActiveProjectId,
   updateStoredProject,
   deleteStoredProject,
+  loadStoredJulesApiKey,
+  saveStoredJulesApiKey,
+  loadStoredJulesSessions,
+  getActiveJulesSession,
+  setActiveJulesSessionId,
+  updateStoredJulesSession,
 } from "./utils/storage";
+import {
+  dispatchJulesTask,
+  pollJulesTask,
+  approveJulesPlan,
+} from "./services/julesService";
 import {
   SpeechSettings,
   loadSpeechSettings,
@@ -70,11 +84,10 @@ export default function App() {
 
   // Navigation & Mode states
   const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
-  const [activeTab, setActiveTab] = useState<ActiveTab>("chat");
   const [deviceMode, setDeviceMode] = useState<DeviceFrameMode>("responsive");
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showTunerSheet, setShowTunerSheet] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("tune");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("account");
   const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() =>
     loadSpeechSettings()
   );
@@ -85,7 +98,7 @@ export default function App() {
   const [candidateClipboardKey, setCandidateClipboardKey] = useState<string>("");
   const [clipboardToastKey, setClipboardToastKey] = useState<string | null>(null);
 
-  const handleOpenSettings = (tab: SettingsTab = "tune") => {
+  const handleOpenSettings = (tab: SettingsTab = "account") => {
     setSettingsTab(tab);
     setShowSettingsModal(true);
   };
@@ -149,7 +162,8 @@ export default function App() {
   // Prompt Configuration state
   const [config, setConfig] = useState<PromptConfig>(initialDraft.config);
 
-  // Chat state
+  // Chat state & active session tracking
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${Date.now()}`);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (initialDraft.messages && initialDraft.messages.length > 0) {
       return initialDraft.messages;
@@ -171,6 +185,254 @@ export default function App() {
 
   // Library / saved prompts
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(() => loadSavedPrompts());
+
+  // Google Jules Autonomous Coding Agent state
+  const [julesApiKey, setJulesApiKey] = useState<string>(() => loadStoredJulesApiKey());
+  const [julesSessions, setJulesSessions] = useState<JulesSession[]>(() => loadStoredJulesSessions());
+  const [activeJulesSession, setActiveJulesSession] = useState<JulesSession | null>(() => getActiveJulesSession());
+  const [showJulesDrawer, setShowJulesDrawer] = useState(false);
+  const [isJulesExecuting, setIsJulesExecuting] = useState(false);
+  const [isApprovingJulesPlan, setIsApprovingJulesPlan] = useState(false);
+  const [julesMessages, setJulesMessages] = useState<ChatMessage[]>(() => getActiveJulesSession()?.messages || []);
+  const [browserService, setBrowserService] = useState<"aistudio" | "jules">("aistudio");
+  const julesPollingRef = useRef<{ stop: () => void } | null>(null);
+
+  const handleSaveJulesApiKey = (key: string) => {
+    setJulesApiKey(key);
+    saveStoredJulesApiKey(key);
+  };
+
+  const handleStopJulesPolling = () => {
+    if (julesPollingRef.current) {
+      julesPollingRef.current.stop();
+      julesPollingRef.current = null;
+    }
+    setIsJulesExecuting(false);
+  };
+
+  const handleClearJulesMessages = () => {
+    handleStopJulesPolling();
+    setJulesMessages([]);
+    if (activeJulesSession) {
+      const updated = { ...activeJulesSession, messages: [], updatedAt: Date.now() };
+      updateStoredJulesSession(updated);
+      setActiveJulesSession(updated);
+    }
+  };
+
+  const handleSendJulesMessage = async (
+    promptText: string,
+    _attachments?: MessageAttachment[],
+    templateIds?: string[],
+    rawUserText?: string
+  ) => {
+    if (!promptText.trim()) return;
+
+    if (!julesApiKey.trim()) {
+      handleOpenSettings("account");
+      return;
+    }
+
+    let currentSession = activeJulesSession;
+    if (!currentSession) {
+      setShowJulesDrawer(true);
+      return;
+    }
+
+    const userMsg: ChatMessage = {
+      id: `usr_${Date.now()}`,
+      role: "user",
+      text: promptText,
+      timestamp: Date.now(),
+      templateIds,
+      rawUserText,
+    };
+
+    const taskModelMsgId = `jules_${Date.now()}`;
+    const initialModelMsg: ChatMessage = {
+      id: taskModelMsgId,
+      role: "model",
+      text: `Dispatching task to Jules for ${currentSession.repository}...`,
+      timestamp: Date.now(),
+      julesActivity: {
+        type: "plan",
+        taskId: "pending",
+        status: "planning",
+        title: promptText.length > 55 ? promptText.slice(0, 52) + "..." : promptText,
+        planDescription: `Jules is inspecting ${currentSession.repository} (branch: ${currentSession.branch}) and planning autonomous changes.`,
+        steps: [
+          { id: "s1", title: "Analyze workspace", description: "Cloning repository & analyzing workspace structure", status: "in_progress" },
+          { id: "s2", title: "Formulate plan", description: "Formulating code edit plan", status: "pending" },
+          { id: "s3", title: "Execute edits", description: "Executing code changes", status: "pending" },
+          { id: "s4", title: "Create Pull Request", description: "Creating Pull Request", status: "pending" },
+        ],
+      },
+    };
+
+    const updatedMessages = [...julesMessages, userMsg, initialModelMsg];
+    setJulesMessages(updatedMessages);
+
+    // Persist to session
+    const sessionWithMessages: JulesSession = {
+      ...currentSession,
+      updatedAt: Date.now(),
+      messages: updatedMessages,
+    };
+    updateStoredJulesSession(sessionWithMessages);
+    setActiveJulesSession(sessionWithMessages);
+    setJulesSessions((prev) =>
+      prev.map((s) => (s.id === sessionWithMessages.id ? sessionWithMessages : s))
+    );
+
+    setIsJulesExecuting(true);
+
+    try {
+      const dispatchedTask = await dispatchJulesTask(julesApiKey, {
+        repository: currentSession.repository,
+        prompt: promptText,
+        branch: currentSession.branch,
+        autoApprove: currentSession.autoApprovePlan,
+      });
+
+      const updatedActivityMsg: ChatMessage = {
+        ...initialModelMsg,
+        text: `Jules task created: #${dispatchedTask.id.slice(0, 8)}`,
+        julesActivity: {
+          type: "plan",
+          taskId: dispatchedTask.id,
+          status: dispatchedTask.status,
+          title: dispatchedTask.title || initialModelMsg.julesActivity?.title,
+          planDescription: dispatchedTask.planDescription,
+          steps: dispatchedTask.steps || initialModelMsg.julesActivity?.steps,
+          pullRequestUrl: dispatchedTask.pullRequestUrl,
+          pullRequestNumber: dispatchedTask.pullRequestNumber,
+          errorMessage: dispatchedTask.errorMessage,
+        },
+      };
+
+      setJulesMessages((prev) =>
+        prev.map((m) => (m.id === taskModelMsgId ? updatedActivityMsg : m))
+      );
+
+      // Start polling live proxy
+      julesPollingRef.current = pollJulesTask(
+        julesApiKey,
+        dispatchedTask.id,
+        (updatedTask) => {
+          setJulesMessages((prev) => {
+            const next = prev.map((m) => {
+              if (m.id === taskModelMsgId && m.julesActivity) {
+                return {
+                  ...m,
+                  text:
+                    updatedTask.status === "completed"
+                      ? `Task completed! Pull Request created for ${currentSession?.repository}.`
+                      : updatedTask.status === "failed"
+                      ? `Jules encountered an error while executing task.`
+                      : updatedTask.status === "awaiting_approval"
+                      ? `Plan ready. Awaiting approval to execute.`
+                      : m.text,
+                  julesActivity: {
+                    ...m.julesActivity,
+                    status: updatedTask.status,
+                    steps: updatedTask.steps || m.julesActivity.steps,
+                    planDescription: updatedTask.planDescription || m.julesActivity.planDescription,
+                    diffStats: updatedTask.diffStats || m.julesActivity.diffStats,
+                    pullRequestUrl: updatedTask.pullRequestUrl,
+                    pullRequestNumber: updatedTask.pullRequestNumber,
+                    errorMessage: updatedTask.errorMessage,
+                  },
+                };
+              }
+              return m;
+            });
+
+            if (currentSession) {
+              const updatedSess = { ...currentSession, messages: next, updatedAt: Date.now() };
+              updateStoredJulesSession(updatedSess);
+            }
+            return next;
+          });
+
+          if (updatedTask.status === "completed" || updatedTask.status === "failed") {
+            setIsJulesExecuting(false);
+          }
+        },
+        (error) => {
+          console.error("Jules polling error:", error);
+          setIsJulesExecuting(false);
+        }
+      );
+    } catch (err: unknown) {
+      setIsJulesExecuting(false);
+      const errMsg = err instanceof Error ? err.message : "Failed to dispatch Jules task";
+      setJulesMessages((prev) =>
+        prev.map((m) =>
+          m.id === taskModelMsgId
+            ? {
+                ...m,
+                error: errMsg,
+                julesActivity: m.julesActivity
+                  ? { ...m.julesActivity, status: "failed", errorMessage: errMsg }
+                  : undefined,
+              }
+            : m
+        )
+      );
+    }
+  };
+
+  const handleApproveJulesPlan = async (taskId: string) => {
+    if (!julesApiKey.trim()) return;
+    setIsApprovingJulesPlan(true);
+    try {
+      await approveJulesPlan(julesApiKey, taskId, true);
+      setJulesMessages((prev) =>
+        prev.map((m) => {
+          if (m.julesActivity && m.julesActivity.taskId === taskId) {
+            return {
+              ...m,
+              text: "Plan approved. Jules is executing changes and committing...",
+              julesActivity: {
+                ...m.julesActivity,
+                status: "executing",
+              },
+            };
+          }
+          return m;
+        })
+      );
+    } catch (err: unknown) {
+      console.error("Failed to approve plan:", err);
+    } finally {
+      setIsApprovingJulesPlan(false);
+    }
+  };
+
+  const handleRejectJulesPlan = async (taskId: string) => {
+    if (!julesApiKey.trim()) return;
+    try {
+      await approveJulesPlan(julesApiKey, taskId, false);
+      setJulesMessages((prev) =>
+        prev.map((m) => {
+          if (m.julesActivity && m.julesActivity.taskId === taskId) {
+            return {
+              ...m,
+              text: "Plan rejected by user.",
+              julesActivity: {
+                ...m.julesActivity,
+                status: "failed",
+                errorMessage: "Plan was rejected by user.",
+              },
+            };
+          }
+          return m;
+        })
+      );
+    } catch (err: unknown) {
+      console.error("Failed to reject plan:", err);
+    }
+  };
 
   // Dedicated resilient streaming hook
   const {
@@ -211,7 +473,7 @@ export default function App() {
 
   // Screen and window security (FLAG_SECURE)
   const { isShieldActive } = useWindowSecurity({
-    isSensitiveScreenActive: showSettingsModal || showImportModal || showApiKeyModal,
+    isSensitiveScreenActive: showSettingsModal || showImportModal,
   });
 
   // Debounced auto-save draft to protect against Android tab suspension (LMK)
@@ -231,6 +493,29 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, [promptType, config, freeformText, structuredExamples, messages, activeProject?.id]);
 
+  // Continuous debounced auto-archiving of active conversation into history
+  useEffect(() => {
+    if (messages && messages.length > 0 && currentSessionId) {
+      const hasMeaningfulContent = messages.some(
+        (m) => m.text.trim().length > 0 || (m.images && m.images.length > 0)
+      );
+      if (hasMeaningfulContent) {
+        saveChatSession(
+          {
+            id: currentSessionId,
+            title: generateSessionTitle(messages),
+            messages,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            model: config.model,
+            projectId: activeProject?.id,
+          },
+          activeProject?.id
+        );
+      }
+    }
+  }, [messages, currentSessionId, activeProject?.id, config.model]);
+
   // Initialize & fetch server health / models
   useEffect(() => {
     fetch("/api/health")
@@ -249,10 +534,19 @@ export default function App() {
       }
     });
 
-    fetch("/api/models")
-      .then((res) => res.json())
-      .then((data: { models?: ModelInfo[] }) => {
-        if (data.models && Array.isArray(data.models) && data.models.length > 0) {
+    const storedKey = loadStoredApiKey();
+    const modelHeaders: Record<string, string> = {};
+    if (storedKey) {
+      modelHeaders["x-gemini-api-key"] = storedKey;
+    }
+
+    fetch("/api/models", { headers: modelHeaders })
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((data: { models?: ModelInfo[] } | null) => {
+        if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
           setModels(data.models);
         }
       })
@@ -268,10 +562,17 @@ export default function App() {
     if (user) {
       setGoogleUser(user);
       // Re-fetch live models with the authenticated Google credentials
-      fetch("/api/models")
-        .then((res) => res.json())
-        .then((data: { models?: ModelInfo[] }) => {
-          if (data.models && Array.isArray(data.models) && data.models.length > 0) {
+      const modelHeaders: Record<string, string> = {};
+      const key = customApiKey || loadStoredApiKey();
+      if (key) modelHeaders["x-gemini-api-key"] = key;
+
+      fetch("/api/models?refresh=true", { headers: modelHeaders })
+        .then((res) => {
+          if (!res.ok) return null;
+          return res.json();
+        })
+        .then((data: { models?: ModelInfo[] } | null) => {
+          if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
             setModels(data.models);
           }
         })
@@ -287,6 +588,21 @@ export default function App() {
   const handleSaveApiKey = (key: string) => {
     setCustomApiKey(key);
     saveStoredApiKey(key);
+    if (key.trim()) {
+      fetch("/api/models?refresh=true", {
+        headers: { "x-gemini-api-key": key.trim() },
+      })
+        .then((res) => {
+          if (!res.ok) return null;
+          return res.json();
+        })
+        .then((data: { models?: ModelInfo[] } | null) => {
+          if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
+            setModels(data.models);
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   // Phase 3: Project switching, scope isolation & lifecycle wiring
@@ -333,6 +649,27 @@ export default function App() {
     setProjects(loadStoredProjects());
     setCandidateClipboardKey("");
     setClipboardToastKey(null);
+    setCurrentSessionId(`sess_${Date.now()}`);
+  };
+
+  const handleStartNewChat = () => {
+    if (isGenerating) {
+      stopStream();
+    }
+    const newSessionId = `sess_${Date.now()}`;
+    setCurrentSessionId(newSessionId);
+    setMessages([]);
+  };
+
+  const handleSelectChatSession = (session: ChatSession) => {
+    if (isGenerating) {
+      stopStream();
+    }
+    setCurrentSessionId(session.id);
+    setMessages(session.messages || []);
+    if (session.model) {
+      setConfig((prev) => ({ ...prev, model: session.model! }));
+    }
   };
 
   const handleRenameProject = (id: string, newName: string) => {
@@ -386,10 +723,15 @@ export default function App() {
   };
 
   // Chat: Send Message
-  const handleSendMessage = async (text: string, attachments?: MessageAttachment[]) => {
+  const handleSendMessage = async (
+    text: string,
+    attachments?: MessageAttachment[],
+    templateIds?: string[],
+    rawUserText?: string
+  ) => {
     if (isGenerating || !isOnline) return;
     if (!hasApiKey) {
-      setShowApiKeyModal(true);
+      handleOpenSettings("account");
       return;
     }
 
@@ -399,6 +741,8 @@ export default function App() {
       text,
       images: attachments,
       timestamp: Date.now(),
+      templateIds,
+      rawUserText,
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -489,7 +833,7 @@ export default function App() {
   const handleExecuteFreeform = async (promptContent: string) => {
     if (isGenerating || !isOnline) return;
     if (!hasApiKey) {
-      setShowApiKeyModal(true);
+      handleOpenSettings("account");
       return;
     }
     setFreeformOutput("");
@@ -527,7 +871,7 @@ export default function App() {
   ) => {
     if (isGenerating || !isOnline) return;
     if (!hasApiKey) {
-      setShowApiKeyModal(true);
+      handleOpenSettings("account");
       return;
     }
     setStructuredOutput("");
@@ -575,7 +919,9 @@ export default function App() {
     if (prompt.structuredExamples) {
       setStructuredExamples(prompt.structuredExamples);
     }
-    setActiveTab("chat");
+    if (prompt.type) {
+      setPromptType(prompt.type);
+    }
   };
 
   // Save current prompt
@@ -644,12 +990,15 @@ export default function App() {
         promptType={promptType}
         onSelectPromptType={(type) => {
           setPromptType(type);
-          setActiveTab("chat");
         }}
-        currentModelName={currentModelName}
-        onOpenParameters={() => handleOpenSettings("tune")}
+        currentModelName={
+          promptType === "jules"
+            ? "Google Jules Agent"
+            : currentModelName
+        }
+        onOpenParameters={() => setShowTunerSheet(true)}
         onOpenSettings={handleOpenSettings}
-        hasApiKey={hasApiKey}
+        hasApiKey={promptType === "jules" ? Boolean(julesApiKey.trim()) : hasApiKey}
         googleUser={googleUser}
         totalTokens={totalTokensEstimate}
         maxTokens={1_000_000}
@@ -657,7 +1006,10 @@ export default function App() {
         onUpdateSystemInstruction={(inst) =>
           setConfig((prev) => ({ ...prev, systemInstruction: inst }))
         }
-        onOpenCustomTabBrowser={() => setShowCustomTabBrowser(true)}
+        onOpenCustomTabBrowser={() => {
+          setBrowserService(promptType === "jules" ? "jules" : "aistudio");
+          setShowCustomTabBrowser(true);
+        }}
         onOpenImportProject={() => {
           setCandidateClipboardKey("");
           setShowImportModal(true);
@@ -666,6 +1018,8 @@ export default function App() {
         activeProject={activeProject}
         projects={projects}
         onSelectProject={handleProjectActivated}
+        activeJulesSession={activeJulesSession}
+        onOpenJulesSessions={() => setShowJulesDrawer(true)}
       />
 
       {/* Floating Clipboard Key Sniffer Detection Alert */}
@@ -723,17 +1077,17 @@ export default function App() {
 
       {/* Unauthenticated Alert Banner */}
       {!hasApiKey && (
-        <div className="bg-gradient-to-r from-blue-950/90 via-[#181b24] to-indigo-950/90 border-b border-blue-500/30 px-3.5 py-2 text-xs text-blue-200 flex items-center justify-between gap-2 shrink-0 animate-in fade-in">
+        <div className="bg-muted/90 border-b border-border px-3.5 py-2 text-xs text-foreground flex items-center justify-between gap-2 shrink-0 animate-in fade-in">
           <div className="flex items-center gap-2 overflow-hidden">
-            <Shield className="w-4 h-4 text-blue-400 shrink-0" />
+            <Shield className="w-4 h-4 text-primary shrink-0" />
             <span className="truncate text-[11px] sm:text-xs">
               <strong>Authentication Required:</strong> Connect your AI Studio workspace or API key to start prompting.
             </span>
           </div>
           <button
             id="banner-auth-btn"
-            onClick={() => handleOpenSettings("auth")}
-            className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] shadow-sm flex items-center gap-1 shrink-0 transition-colors"
+            onClick={() => handleOpenSettings("account")}
+            className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-[11px] shadow-sm flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
           >
             <Key className="w-3 h-3" />
             <span>Connect</span>
@@ -743,12 +1097,12 @@ export default function App() {
 
       {/* Offline Status Banner */}
       {!isOnline && (
-        <div className="bg-[#1e1714] border-b border-[#3d2718] px-3 py-2 text-xs text-zinc-300 flex items-center justify-between gap-2 shrink-0 animate-pulse">
+        <div className="bg-muted border-b border-border px-3 py-2 text-xs text-muted-foreground flex items-center justify-between gap-2 shrink-0 animate-pulse">
           <div className="flex items-center gap-2">
-            <WifiOff className="w-4 h-4 text-zinc-400 shrink-0" />
+            <WifiOff className="w-4 h-4 text-muted-foreground shrink-0" />
             <span>You are currently offline. Prompts will resume when network is restored.</span>
           </div>
-          <span className="px-2 py-0.5 rounded bg-[#2c1f17] text-zinc-300 border border-[#4a2e1c] font-mono text-[10px]">
+          <span className="px-2 py-0.5 rounded bg-card text-muted-foreground border border-border font-mono text-[10px]">
             OFFLINE
           </span>
         </div>
@@ -759,8 +1113,8 @@ export default function App() {
         <div
           className={`border-b px-3 py-2 text-xs flex items-center justify-between gap-2 shrink-0 ${
             errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key"
-              ? "bg-[#1f1914] border-[#3d2919] text-zinc-200"
-              : "bg-rose-950/80 border-rose-800/60 text-rose-200"
+              ? "bg-muted border-border text-foreground"
+              : "bg-destructive/15 border-destructive/30 text-foreground /* error */"
           }`}
         >
           <div className="flex items-center gap-2 overflow-hidden">
@@ -793,7 +1147,7 @@ export default function App() {
               <button
                 onClick={() => {
                   clearError();
-                  handleOpenSettings("auth");
+                  handleOpenSettings("account");
                 }}
                 className="px-2 py-0.5 rounded bg-rose-800 hover:bg-rose-700 text-rose-100 font-medium flex items-center gap-1 text-[11px]"
               >
@@ -811,6 +1165,17 @@ export default function App() {
                 <RefreshCw className="w-3 h-3" /> Try Lite
               </button>
             )}
+            {errorDetails?.isUnavailable && (
+              <button
+                onClick={() => {
+                  clearError();
+                  handleRegenerate();
+                }}
+                className="px-2 py-0.5 rounded bg-amber-800 hover:bg-amber-700 text-amber-100 font-medium flex items-center gap-1 text-[11px]"
+              >
+                <RefreshCw className="w-3 h-3" /> Retry
+              </button>
+            )}
             <button
               onClick={clearError}
               className="p-1 text-zinc-400 hover:text-white rounded transition-colors"
@@ -822,115 +1187,137 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Content Area based on activeTab */}
+      {/* Main Content Area: Primary Active Workspace */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        {activeTab === "chat" && (
-          <>
-            {promptType === "chat" && (
-              <ChatWorkspace
-                messages={messages}
-                onSendMessage={(text, atts) => void handleSendMessage(text, atts)}
-                onClearMessages={() => setMessages([])}
-                onRegenerate={handleRegenerate}
-                onStopGeneration={stopStream}
-                isGenerating={isGenerating}
-                config={config}
-                onUpdateSystemInstruction={(inst) =>
-                  setConfig((prev) => ({ ...prev, systemInstruction: inst }))
-                }
-                onOpenParameters={() => handleOpenSettings("tune")}
-                hasApiKey={hasApiKey}
-                onOpenAuth={() => handleOpenSettings("auth")}
-                speechSettings={speechSettings}
-                onSaveSpeechSettings={(newSettings) => {
-                  setSpeechSettings(newSettings);
-                  saveSpeechSettings(newSettings);
-                }}
-                onOpenSettings={handleOpenSettings}
-              />
-            )}
-            {promptType === "freeform" && (
-              <FreeformWorkspace
-                config={config}
-                freeformText={freeformText}
-                onChangeText={setFreeformText}
-                onExecute={(content) => void handleExecuteFreeform(content)}
-                onStop={stopStream}
-                isGenerating={isGenerating}
-                output={freeformOutput}
-                tokens={freeformTokens}
-                durationMs={freeformDurationMs}
-              />
-            )}
-            {promptType === "structured" && (
-              <StructuredWorkspace
-                config={config}
-                examples={structuredExamples}
-                onUpdateExamples={setStructuredExamples}
-                onExecute={(input, exs) => void handleExecuteStructured(input, exs)}
-                onStop={stopStream}
-                isGenerating={isGenerating}
-                output={structuredOutput}
-              />
-            )}
-            {promptType === "code" && (
-              <MobileIDEWorkspace
-                config={config}
-                messages={messages}
-                freeformText={freeformText}
-                structuredExamples={structuredExamples}
-                hasApiKey={hasApiKey}
-                onOpenAuth={() => handleOpenSettings("auth")}
-                onSwitchToPrompt={() => {
-                  setPromptType("chat");
-                  setActiveTab("chat");
-                }}
-                onOpenParameters={() => handleOpenSettings("tune")}
-              />
-            )}
-          </>
-        )}
-
-        {activeTab === "parameters" && (
-          <TunerBottomSheet
+        {promptType === "chat" && (
+          <ChatWorkspace
+            messages={messages}
+            onSendMessage={(text, atts) => void handleSendMessage(text, atts)}
+            onClearMessages={handleStartNewChat}
+            onRegenerate={handleRegenerate}
+            onStopGeneration={stopStream}
+            isGenerating={isGenerating}
             config={config}
-            onChangeConfig={setConfig}
-            models={models}
-            onClose={() => setActiveTab("chat")}
-            isModal={false}
+            onUpdateSystemInstruction={(inst) =>
+              setConfig((prev) => ({ ...prev, systemInstruction: inst }))
+            }
+            onOpenParameters={() => setShowTunerSheet(true)}
             hasApiKey={hasApiKey}
-            onOpenAuth={() => handleOpenSettings("auth")}
+            onOpenAuth={() => handleOpenSettings("account")}
+            speechSettings={speechSettings}
+            onSaveSpeechSettings={(newSettings) => {
+              setSpeechSettings(newSettings);
+              saveSpeechSettings(newSettings);
+            }}
+            onOpenSettings={handleOpenSettings}
+            activeProjectId={activeProject?.id}
+            currentSessionId={currentSessionId}
+            onSelectSession={handleSelectChatSession}
+            onNewChat={handleStartNewChat}
           />
         )}
-
-        {activeTab === "library" && (
-          <LibraryModal
-            savedPrompts={savedPrompts}
-            onLoadPrompt={handleLoadPrompt}
-            onSaveCurrentPrompt={handleSaveCurrentPrompt}
-            onDeletePrompt={handleDeleteSavedPrompt}
+        {promptType === "freeform" && (
+          <FreeformWorkspace
+            config={config}
+            freeformText={freeformText}
+            onChangeText={setFreeformText}
+            onExecute={(content) => void handleExecuteFreeform(content)}
+            onStop={stopStream}
+            isGenerating={isGenerating}
+            output={freeformOutput}
+            tokens={freeformTokens}
+            durationMs={freeformDurationMs}
           />
         )}
-
-        {activeTab === "export" && (
-          <CodeExportModal
+        {promptType === "structured" && (
+          <StructuredWorkspace
+            config={config}
+            examples={structuredExamples}
+            onUpdateExamples={setStructuredExamples}
+            onExecute={(input, exs) => void handleExecuteStructured(input, exs)}
+            onStop={stopStream}
+            isGenerating={isGenerating}
+            output={structuredOutput}
+          />
+        )}
+        {promptType === "code" && (
+          <MobileIDEWorkspace
             config={config}
             messages={messages}
-            onOpenMobileIDE={() => {
-              setPromptType("code");
-              setActiveTab("chat");
+            freeformText={freeformText}
+            structuredExamples={structuredExamples}
+            hasApiKey={hasApiKey}
+            onOpenAuth={() => handleOpenSettings("account")}
+            onSwitchToPrompt={() => {
+              setPromptType("chat");
             }}
+            onOpenParameters={() => setShowTunerSheet(true)}
           />
         )}
-
-        {activeTab === "companion" && (
-          <DesktopWrapperGuide
-            onOpenApiKeyModal={() => handleOpenSettings("auth")}
+        {promptType === "jules" && (
+          <ChatWorkspace
+            isJulesMode={true}
+            activeJulesSession={activeJulesSession}
+            onOpenJulesSessions={() => setShowJulesDrawer(true)}
+            onApproveJulesPlan={(taskId) => void handleApproveJulesPlan(taskId)}
+            onRejectJulesPlan={(taskId) => void handleRejectJulesPlan(taskId)}
+            isApprovingJulesPlan={isApprovingJulesPlan}
+            messages={julesMessages}
+            onSendMessage={(text, attachments, templateIds, rawUserText) =>
+              void handleSendJulesMessage(text, attachments, templateIds, rawUserText)
+            }
+            onClearMessages={handleClearJulesMessages}
+            onRegenerate={() => {}}
+            onStopGeneration={handleStopJulesPolling}
+            isGenerating={isJulesExecuting}
+            config={config}
+            onUpdateSystemInstruction={(inst) =>
+              setConfig((prev) => ({ ...prev, systemInstruction: inst }))
+            }
+            onOpenParameters={() => setShowTunerSheet(true)}
+            hasApiKey={Boolean(julesApiKey.trim())}
+            onOpenAuth={() => handleOpenSettings("account")}
+            speechSettings={speechSettings}
+            onSaveSpeechSettings={(newSettings) => {
+              setSpeechSettings(newSettings);
+              saveSpeechSettings(newSettings);
+            }}
+            onOpenSettings={handleOpenSettings}
+            activeProjectId={activeProject?.id}
+            currentSessionId={activeJulesSession?.id}
+            onSelectSession={(sess) => {
+              const jSession = julesSessions.find((s) => s.id === sess.id);
+              if (jSession) {
+                setActiveJulesSessionId(jSession.id);
+                setActiveJulesSession(jSession);
+                setJulesMessages(jSession.messages || []);
+              }
+            }}
+            onNewChat={() => setShowJulesDrawer(true)}
           />
         )}
       </main>
 
-      {/* Unified Settings Modal with Tabs (Tune, Library, Get Code, Companion, Audio, Auth, Display) */}
+      {/* Primary Android Workspace Bottom Navigation Bar */}
+      <BottomNavBar
+        activeWorkspace={promptType}
+        onSelectWorkspace={(ws) => setPromptType(ws)}
+      />
+
+      {/* Canonical Model & Tuner Bottom Sheet */}
+      {showTunerSheet && (
+        <TunerBottomSheet
+          config={config}
+          onChangeConfig={setConfig}
+          models={models}
+          onClose={() => setShowTunerSheet(false)}
+          isModal={true}
+          hasApiKey={hasApiKey}
+          onOpenAuth={() => handleOpenSettings("account")}
+        />
+      )}
+
+      {/* Unified Settings Modal Hub */}
       <UnifiedSettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
@@ -953,7 +1340,7 @@ export default function App() {
         savedPrompts={savedPrompts}
         onLoadPrompt={(p) => {
           handleLoadPrompt(p);
-          setActiveTab("chat");
+          setShowSettingsModal(false);
         }}
         onSaveCurrentPrompt={handleSaveCurrentPrompt}
         onDeletePrompt={handleDeleteSavedPrompt}
@@ -973,33 +1360,37 @@ export default function App() {
         onDeleteProject={handleDeleteProject}
       />
 
-      {/* Legacy API Key Modal fallback if needed */}
-      {showApiKeyModal && (
-        <ApiKeyModal
-          customApiKey={customApiKey}
-          onSaveCustomApiKey={handleSaveApiKey}
-          hasServerKey={hasServerKey}
-          onRefreshServerAuth={refreshServerAuth}
-          googleUser={googleUser}
-          onGoogleLogin={handleGoogleLogin}
-          onGoogleLogout={handleGoogleLogout}
-          onOpenCustomTabBrowser={() => setShowCustomTabBrowser(true)}
-          onOpenImportProject={() => {
-            setCandidateClipboardKey("");
-            setShowImportModal(true);
-          }}
-          onClose={() => setShowApiKeyModal(false)}
-        />
-      )}
-
-      {/* Phase 2: In-App AI Studio Launcher (Chrome Custom Tab style) */}
+      {/* Phase 2: In-App AI Studio Launcher & Jules Settings (Chrome Custom Tab style) */}
       <CustomTabBrowserModal
         isOpen={showCustomTabBrowser}
         onClose={() => setShowCustomTabBrowser(false)}
-        activeApiKey={customApiKey}
-        onImportKey={(key) => {
-          setCandidateClipboardKey(key);
-          setShowImportModal(true);
+        initialService={browserService}
+        activeApiKey={browserService === "jules" ? julesApiKey : customApiKey}
+        onImportKey={(key, service) => {
+          if (service === "jules") {
+            handleSaveJulesApiKey(key);
+            setShowCustomTabBrowser(false);
+          } else {
+            setCandidateClipboardKey(key);
+            setShowImportModal(true);
+            setShowCustomTabBrowser(false);
+          }
+        }}
+      />
+
+      {/* Google Jules Autonomous Agent Task & Session Management Drawer */}
+      <JulesSessionDrawer
+        isOpen={showJulesDrawer}
+        onClose={() => setShowJulesDrawer(false)}
+        activeSessionId={activeJulesSession?.id || null}
+        onSelectSession={(session) => {
+          setActiveJulesSessionId(session.id);
+          setActiveJulesSession(session);
+          setJulesMessages(session.messages || []);
+          setShowJulesDrawer(false);
+        }}
+        onOpenApiKeyModal={() => {
+          handleOpenSettings("account");
         }}
       />
 

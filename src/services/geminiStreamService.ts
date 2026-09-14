@@ -49,6 +49,7 @@ export class GeminiApiError extends Error {
   public isAuthError: boolean;
   public isKeyInvalid: boolean;
   public isRevoked: boolean;
+  public isUnavailable: boolean;
 
   constructor(rawMessage: string, statusCode?: number) {
     const cleanMessage = sanitizeLogMessage(rawMessage);
@@ -56,6 +57,13 @@ export class GeminiApiError extends Error {
     this.name = "GeminiApiError";
     this.statusCode = statusCode;
     const msg = cleanMessage.toLowerCase();
+
+    this.isUnavailable =
+      statusCode === 503 ||
+      msg.includes("unavailable") ||
+      msg.includes("service is currently unavailable") ||
+      msg.includes("overloaded") ||
+      msg.includes("backend error");
 
     this.isQuotaError =
       statusCode === 429 ||

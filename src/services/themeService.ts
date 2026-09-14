@@ -1,0 +1,183 @@
+/**
+ * Theme Service for Google AI Studio Mobile
+ * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
+ */
+
+export type ThemeMode = "light" | "dark" | "system";
+export type ResolvedTheme = "light" | "dark";
+
+export interface ThemeState {
+  mode: ThemeMode;
+  resolvedTheme: ResolvedTheme;
+}
+
+export type ThemeListener = (state: ThemeState) => void;
+
+const STORAGE_KEY = "aistudio_theme_mode";
+const memoryFallback: Record<string, string> = {};
+
+function getStorage(): {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+} {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const testKey = "__theme_test__";
+      window.localStorage.setItem(testKey, "1");
+      window.localStorage.removeItem(testKey);
+      return window.localStorage;
+    }
+  } catch {
+    // Fall back to memory
+  }
+  return {
+    getItem: (key: string) => memoryFallback[key] ?? null,
+    setItem: (key: string, value: string) => {
+      memoryFallback[key] = value;
+    },
+  };
+}
+
+let currentMode: ThemeMode = "system";
+let currentResolved: ResolvedTheme = "dark";
+const listeners = new Set<ThemeListener>();
+let initialized = false;
+let mediaQueryList: MediaQueryList | null = null;
+
+export function getSystemResolvedTheme(): ResolvedTheme {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return "dark"; // Default fallback
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+export function loadStoredThemeMode(): ThemeMode {
+  try {
+    const storage = getStorage();
+    const stored = storage.getItem(STORAGE_KEY);
+    if (stored === "light" || stored === "dark" || stored === "system") {
+      return stored;
+    }
+  } catch {
+    // Ignore storage quota or access issues
+  }
+  return "system";
+}
+
+export function persistThemeMode(mode: ThemeMode): void {
+  try {
+    const storage = getStorage();
+    storage.setItem(STORAGE_KEY, mode);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function resolveTheme(mode: ThemeMode): ResolvedTheme {
+  if (mode === "system") {
+    return getSystemResolvedTheme();
+  }
+  return mode;
+}
+
+export function applyThemeToDOM(resolved: ResolvedTheme): void {
+  if (typeof document === "undefined") return;
+
+  const root = document.documentElement;
+  root.setAttribute("data-theme", resolved);
+  if (resolved === "dark") {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
+
+  // Update theme-color meta tag if available
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (metaThemeColor) {
+    const computedBg = getComputedStyle(root).getPropertyValue("--background").trim();
+    if (computedBg) {
+      metaThemeColor.setAttribute("content", computedBg);
+    }
+  }
+}
+
+function notifyListeners(): void {
+  const state: ThemeState = {
+    mode: currentMode,
+    resolvedTheme: currentResolved,
+  };
+  listeners.forEach((listener) => {
+    try {
+      listener(state);
+    } catch (err) {
+      console.error("Error in theme listener:", err);
+    }
+  });
+}
+
+export function getThemeState(): ThemeState {
+  return {
+    mode: currentMode,
+    resolvedTheme: currentResolved,
+  };
+}
+
+export function setThemeMode(newMode: ThemeMode): void {
+  currentMode = newMode;
+  currentResolved = resolveTheme(newMode);
+  persistThemeMode(newMode);
+  applyThemeToDOM(currentResolved);
+  notifyListeners();
+}
+
+export function toggleTheme(): void {
+  // Toggle between light and dark explicitly
+  const nextResolved: ResolvedTheme = currentResolved === "dark" ? "light" : "dark";
+  setThemeMode(nextResolved);
+}
+
+export function subscribeToTheme(listener: ThemeListener): () => void {
+  listeners.add(listener);
+  // Emit initial state
+  listener({ mode: currentMode, resolvedTheme: currentResolved });
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function initThemeService(): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  if (!initialized) {
+    initialized = true;
+    currentMode = loadStoredThemeMode();
+    currentResolved = resolveTheme(currentMode);
+    applyThemeToDOM(currentResolved);
+
+    if (window.matchMedia) {
+      mediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = () => {
+        if (currentMode === "system") {
+          currentResolved = getSystemResolvedTheme();
+          applyThemeToDOM(currentResolved);
+          notifyListeners();
+        }
+      };
+
+      if (mediaQueryList.addEventListener) {
+        mediaQueryList.addEventListener("change", handleChange);
+      } else if ("addListener" in mediaQueryList) {
+        // Legacy browser fallback
+        ((mediaQueryList as unknown) as { addListener?: (cb: () => void) => void }).addListener?.(handleChange);
+      }
+    }
+  }
+
+  return () => {
+    if (mediaQueryList) {
+      // Cleanup if teardown needed
+    }
+  };
+}

@@ -26,15 +26,22 @@ The **Workspaces & UI** domain constitutes the interactive prompt engineering en
 
 | File | Purpose & Exported Symbols | Depends On |
 | :--- | :--- | :--- |
-| [`src/App.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/App.tsx) | Central coordinator component binding state, workspaces, and navigation | Workspaces, Services, Hooks |
-| [`src/components/ChatWorkspace.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/components/ChatWorkspace.tsx) | Multi-turn conversational chat UI with streaming and markdown rendering | `useGeminiStream`, `storage.ts` |
-| [`src/components/FreeformWorkspace.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/components/FreeformWorkspace.tsx) | Unconstrained prompt scratchpad with token counter and insertion tools | `TokenCounterVisualization` |
-| [`src/components/StructuredWorkspace.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/components/StructuredWorkspace.tsx) | Few-shot table-based input/output pair prompt builder | `types.ts` |
-| [`src/components/MobileIDEWorkspace.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/components/MobileIDEWorkspace.tsx) | Code generation and preview environment with export capabilities | `codeGenerators.ts`, `CodeExportModal` |
-| [`src/components/TopAppBar.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/components/TopAppBar.tsx) | App header with model picker, project indicator, and modal triggers | `types.ts`, `lucide-react` |
-| [`src/components/BottomNavBar.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/components/BottomNavBar.tsx) | Mobile bottom bar navigation between workspaces | `types.ts` |
-| [`src/components/TunerBottomSheet.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/components/TunerBottomSheet.tsx) | Parameter slider drawer (temperature, topP, topK, schema) | `types.ts` |
-| [`src/components/UnifiedSettingsModal.tsx`](file:///Users/lappier/code/projects/ai-studio-mobile/src/components/UnifiedSettingsModal.tsx) | Comprehensive settings dialog (storage, auth, preferences) | `storage.ts`, `auth.ts` |
+| [`src/App.tsx`](../../src/App.tsx) | Central coordinator component binding state, workspaces, and navigation | Workspaces, Services, Hooks |
+| [`src/components/ChatWorkspace.tsx`](../../src/components/ChatWorkspace.tsx) | Multi-turn conversational chat UI with streaming and markdown rendering | `useGeminiStream`, `storage.ts`, `speechVoices.ts` |
+| [`src/components/FreeformWorkspace.tsx`](../../src/components/FreeformWorkspace.tsx) | Unconstrained prompt scratchpad with token counter and insertion tools | `TokenCounterVisualization`, `useSpeechToText` |
+| [`src/components/StructuredWorkspace.tsx`](../../src/components/StructuredWorkspace.tsx) | Few-shot table-based input/output pair prompt builder | `types.ts` |
+| [`src/components/MobileIDEWorkspace.tsx`](../../src/components/MobileIDEWorkspace.tsx) | Code generation and preview environment with export capabilities | `codeGenerators.ts`, `CodeExportModal` |
+| [`src/components/MobileIDE.test.ts`](../../src/components/MobileIDE.test.ts) | Unit tests for mobile IDE mode resolution and code generator triggers | `MobileIDEWorkspace.tsx` |
+| [`src/components/TopAppBar.tsx`](../../src/components/TopAppBar.tsx) | App header with model picker, project indicator, and modal triggers | `types.ts`, `lucide-react` |
+| [`src/components/BottomNavBar.tsx`](../../src/components/BottomNavBar.tsx) | Mobile bottom bar navigation between workspaces | `types.ts` |
+| [`src/components/TunerBottomSheet.tsx`](../../src/components/TunerBottomSheet.tsx) | Parameter slider drawer (temperature, topP, topK, schema) | `types.ts` |
+| [`src/components/UnifiedSettingsModal.tsx`](../../src/components/UnifiedSettingsModal.tsx) | Comprehensive settings dialog (storage, auth, preferences) | `storage.ts`, `auth.ts` |
+| [`src/components/AndroidFrame.tsx`](../../src/components/AndroidFrame.tsx) | Realistic Android hardware bezel preview container for desktop viewport | `types.ts` |
+| [`src/components/CustomTabBrowserModal.tsx`](../../src/components/CustomTabBrowserModal.tsx) | In-app Chrome Custom Tab simulation for OAuth and documentation | `keyVerification.ts` |
+| [`src/components/DesktopWrapperGuide.tsx`](../../src/components/DesktopWrapperGuide.tsx) | Visual guidance card helping desktop developers emulate mobile workflows | `lucide-react` |
+| [`src/components/LibraryModal.tsx`](../../src/components/LibraryModal.tsx) | Prompt library browser for saving, organizing, and loading prompts | `data/templates.ts`, `storage.ts` |
+| [`src/components/RightDrawerMenu.tsx`](../../src/components/RightDrawerMenu.tsx) | Slide-over drawer offering quick actions, doc links, and settings access | `UnifiedSettingsModal.tsx` |
+| [`src/components/SecurePrivacyShield.tsx`](../../src/components/SecurePrivacyShield.tsx) | Privacy and network security banner reassuring user of local data safety | `lucide-react` |
 
 ## Domain Architecture & Flow
 

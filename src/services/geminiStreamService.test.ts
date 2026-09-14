@@ -31,6 +31,11 @@ export function testStreamService(): boolean {
     throw new Error("Expected isAuthError to be true for 403 API key error");
   }
 
+  const unavailableErr = new GeminiApiError("The service is currently unavailable.", 503);
+  if (!unavailableErr.isUnavailable) {
+    throw new Error("Expected isUnavailable to be true for 503 unavailable error");
+  }
+
   // 3. Test formatStreamError
   const abortErr = new Error("AbortError");
   abortErr.name = "AbortError";
