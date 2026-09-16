@@ -9,10 +9,12 @@ import {
   RotateCcw,
   Download,
   WrapText,
-  ArrowLeft,
   Sliders,
   CheckCircle2,
   AlertCircle,
+  ChevronUp,
+  ChevronDown,
+  Terminal,
 } from "lucide-react";
 import { PromptConfig, ChatMessage, StructuredExample } from "../types";
 import { getAuthHeaders } from "../services/auth";
@@ -56,7 +58,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   structuredExamples = [],
   hasApiKey,
   onOpenAuth,
-  onSwitchToPrompt,
+  onSwitchToPrompt: _onSwitchToPrompt,
   onOpenParameters,
 }) => {
   // Generate initial files from prompt context
@@ -116,7 +118,8 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   const [activeFileId, setActiveFileId] = useState<string>("typescript");
   const [wordWrap, setWordWrap] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
-  const [activeView, setActiveView] = useState<"editor" | "console" | "split">("split");
+  const [activeView, setActiveView] = useState<"editor" | "console" | "split">("editor");
+  const [isConsoleDrawerOpen, setIsConsoleDrawerOpen] = useState<boolean>(false);
 
   // Console state
   const [consoleLogs, setConsoleLogs] = useState<ConsoleLog[]>([
@@ -138,6 +141,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const consoleBottomRef = useRef<HTMLDivElement>(null);
+  const tabStripRef = useRef<HTMLDivElement>(null);
 
   const activeFile = files.find((f) => f.id === activeFileId) || files[0];
 
@@ -191,7 +195,9 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   const handleRunScript = async () => {
     if (isRunning) return;
     setIsRunning(true);
-    if (activeView === "editor") {
+    // On small screens, open the drawer; on desktop split view
+    setIsConsoleDrawerOpen(true);
+    if (typeof window !== "undefined" && window.innerWidth >= 640 && activeView === "editor") {
       setActiveView("split");
     }
 
@@ -390,37 +396,80 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden bg-background text-foreground font-sans select-none">
-      {/* IDE Top Navigation Bar */}
-      <div className="flex items-center justify-between px-2.5 py-1.5 bg-card border-b border-border shrink-0 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+      {/* 52px Unified Section Toolbar (ADR 0039): Swipeable Pull Strip File Tabs + View Switcher + Run Action */}
+      <div className="h-[52px] min-h-[52px] flex items-center justify-between px-2 bg-card border-b border-border shrink-0 gap-2">
+        {/* Left: Swipeable Pull Strip for File Explorer Tabs */}
+        <div
+          ref={tabStripRef}
+          className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1.5 min-w-0 flex-1 touch-pan-x cursor-grab active:cursor-grabbing overscroll-x-contain"
+        >
+          {files.map((file) => {
+            const isActive = file.id === activeFileId;
+            return (
+              <div
+                key={file.id}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
+                  isActive
+                    ? "bg-primary/10 text-primary border-primary/30 font-semibold shadow-xs"
+                    : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted border-border/50"
+                }`}
+                onClick={() => setActiveFileId(file.id)}
+              >
+                <span>{file.name}</span>
+                {file.isCustom && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFile(file.id, file.name);
+                    }}
+                    className="opacity-60 group-hover:opacity-100 p-0.5 hover:text-destructive transition-opacity cursor-pointer"
+                    title="Delete scratchpad"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
           <button
             type="button"
-            onClick={onSwitchToPrompt}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
-            title="Return to Prompt Editor"
-            aria-label="Return to Prompt Editor"
+            onClick={handleCreateScratchpad}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted border border-dashed border-border rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            title="Create new scratchpad file"
+            aria-label="Create scratchpad"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline">Prompt</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-mono">Scratch</span>
           </button>
-
-          <div className="h-3.5 w-px bg-border" />
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-foreground tracking-tight">
-              Mobile IDE
-            </span>
-          </div>
         </div>
 
-        {/* IDE Top Actions: Run, View switcher */}
+        {/* Right: View Switcher (Desktop/Tablet) / Logs Chip (Mobile) & Run Action */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* View Switcher: Editor, Split, Console */}
-          <div className="flex bg-muted p-0.5 rounded-lg border border-border text-[11px]">
+          {/* Mobile Peek Logs Trigger (hidden on sm screens) */}
+          <button
+            type="button"
+            onClick={() => setIsConsoleDrawerOpen((prev) => !prev)}
+            className="sm:hidden flex items-center gap-1 min-h-[38px] px-2.5 py-1 rounded-xl bg-muted/60 hover:bg-muted text-foreground border border-border text-[11px] font-mono transition-colors cursor-pointer touch-manipulation"
+            title="Toggle console logs drawer"
+            aria-label="Toggle console drawer"
+          >
+            <Terminal className="w-3.5 h-3.5 text-primary" />
+            <span>Logs</span>
+            {isConsoleDrawerOpen ? (
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+            ) : (
+              <ChevronUp className="w-3 h-3 text-muted-foreground" />
+            )}
+          </button>
+
+          {/* Desktop/Tablet View Switcher: Editor, Split, Console (hidden on extra small mobile screens) */}
+          <div className="hidden sm:flex bg-muted p-0.5 rounded-xl border border-border text-[11px]">
             <button
               type="button"
               onClick={() => setActiveView("editor")}
-              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${
                 activeView === "editor" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Editor only view"
@@ -430,7 +479,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setActiveView("split")}
-              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${
                 activeView === "split" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Split editor & console view"
@@ -440,7 +489,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setActiveView("console")}
-              className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${
                 activeView === "console" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Console terminal view"
@@ -455,7 +504,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             id="mobile-ide-run-btn"
             onClick={handleRunScript}
             disabled={isRunning}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm transition-colors active:scale-95 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-colors active:scale-95 cursor-pointer touch-manipulation ${
               isRunning
                 ? "bg-muted text-foreground cursor-wait"
                 : "bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -465,7 +514,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
           >
             {isRunning ? (
               <>
-                <Square className="w-3 h-3 animate-spin" />
+                <Square className="w-3.5 h-3.5 animate-spin" />
                 <span>Running...</span>
               </>
             ) : (
@@ -474,52 +523,6 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <span>Run</span>
               </>
             )}
-          </button>
-        </div>
-      </div>
-
-      {/* File Explorer Tab Bar */}
-      <div className="flex items-center bg-muted/40 border-b border-border px-1 overflow-x-auto scrollbar-none shrink-0">
-        <div className="flex items-center gap-1 py-1">
-          {files.map((file) => {
-            const isActive = file.id === activeFileId;
-            return (
-              <div
-                key={file.id}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono transition-colors cursor-pointer whitespace-nowrap group ${
-                  isActive
-                    ? "bg-card text-foreground border-b-2 border-primary font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-                onClick={() => setActiveFileId(file.id)}
-              >
-                <span>{file.name}</span>
-                {file.isCustom && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteFile(file.id, file.name);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-destructive transition-opacity cursor-pointer"
-                    title="Delete scratchpad"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-
-          <button
-            type="button"
-            onClick={handleCreateScratchpad}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors whitespace-nowrap ml-1 cursor-pointer"
-            title="Create new scratchpad file"
-            aria-label="Create scratchpad"
-          >
-            <Plus className="w-3 h-3" />
-            <span className="text-[11px]">Scratch</span>
           </button>
         </div>
       </div>
@@ -641,7 +644,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
           </div>
         )}
 
-        {/* Bottom Console Terminal Area */}
+        {/* Bottom Console Terminal Area (Desktop/Tablet split/console view) */}
         {(activeView === "console" || activeView === "split") && (
           <div
             className={`flex flex-col bg-muted/20 font-mono select-text relative ${
@@ -709,6 +712,90 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 })
               )}
               <div ref={consoleBottomRef} />
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Collapsible Bottom-Sheet Console Drawer (sm:hidden) */}
+        {activeView === "editor" && isConsoleDrawerOpen && (
+          <div className="sm:hidden absolute inset-x-0 bottom-0 max-h-[55%] flex flex-col bg-card/95 backdrop-blur-md border-t-2 border-primary shadow-2xl z-30 font-mono animate-in slide-in-from-bottom duration-200">
+            {/* Drawer Drag Bar & Header */}
+            <div className="flex items-center justify-between px-3 py-1.5 bg-muted/60 border-b border-border text-[11px] shrink-0">
+              <div
+                className="flex items-center gap-2 cursor-pointer select-none"
+                onClick={() => setIsConsoleDrawerOpen(false)}
+              >
+                <div className="w-8 h-1 bg-muted-foreground/40 rounded-full mx-auto mb-0.5 sm:hidden" />
+                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                  <Terminal className="w-3.5 h-3.5 text-primary" />
+                  Terminal Output
+                </span>
+                {isRunning && (
+                  <span className="text-[10px] uppercase tracking-wider text-primary animate-pulse">
+                    Executing
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConsoleLogs([])}
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
+                  title="Clear Console"
+                >
+                  Clear
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = consoleLogs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
+                    navigator.clipboard.writeText(text);
+                  }}
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
+                  title="Copy Console Logs"
+                >
+                  Copy
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsConsoleDrawerOpen(false)}
+                  className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  title="Close Console Drawer"
+                  aria-label="Close Console Drawer"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Logs List in Drawer */}
+            <div className="flex-1 p-2.5 overflow-y-auto space-y-1.5 text-xs leading-relaxed max-h-56">
+              {consoleLogs.length === 0 ? (
+                <div className="text-muted-foreground italic text-[11px]">
+                  Console cleared. Tap &apos;Run&apos; to execute your script.
+                </div>
+              ) : (
+                consoleLogs.map((log) => {
+                  let color = "text-foreground";
+                  if (log.type === "stderr") color = "text-destructive font-medium";
+                  else if (log.type === "stdout") color = "text-primary";
+                  else if (log.type === "success") color = "text-primary font-medium";
+                  else if (log.type === "system") color = "text-muted-foreground text-[10px]";
+                  else if (log.type === "info") color = "text-foreground font-mono";
+
+                  return (
+                    <div key={log.id} className={`flex items-start gap-1.5 font-mono ${color}`}>
+                      <span className="text-[10px] text-muted-foreground shrink-0 select-none">
+                        [{log.timestamp}]
+                      </span>
+                      <span className="break-all whitespace-pre-wrap flex-1">{log.message}</span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}

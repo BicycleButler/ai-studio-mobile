@@ -1,49 +1,64 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MessageSquare, FileText, Columns2, Code2, Bot } from "lucide-react";
+import { MessageSquare, Code2, Bot, Ticket } from "lucide-react";
 import { PromptType } from "../types";
 
 interface BottomNavBarProps {
   activeWorkspace: PromptType;
   onSelectWorkspace: (workspace: PromptType) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+interface WorkspaceItem {
+  id: PromptType;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tooltip: string;
+  badge?: string;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   activeWorkspace,
   onSelectWorkspace,
+  isOpen: propIsOpen,
+  onClose,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = propIsOpen !== undefined ? propIsOpen : internalIsOpen;
   const touchStartYRef = useRef<number | null>(null);
 
-  const workspaces = [
+  const handleClose = () => {
+    if (propIsOpen !== undefined) {
+      onClose?.();
+    } else {
+      setInternalIsOpen(false);
+    }
+  };
+
+  const workspaces: WorkspaceItem[] = [
     {
-      id: "chat" as PromptType,
+      id: "chat",
       label: "Chat",
       icon: MessageSquare,
-      tooltip: "Conversational multimodal chat",
+      tooltip: "Conversational multimodal chat & prompt tools",
     },
     {
-      id: "freeform" as PromptType,
-      label: "Freeform",
-      icon: FileText,
-      tooltip: "Direct prompt engineering workspace",
-    },
-    {
-      id: "structured" as PromptType,
-      label: "Structured",
-      icon: Columns2,
-      tooltip: "Few-shot input & output tables",
-    },
-    {
-      id: "code" as PromptType,
+      id: "code",
       label: "Mobile IDE",
       icon: Code2,
       tooltip: "Execute code snippets & prompt payloads",
     },
     {
-      id: "jules" as PromptType,
+      id: "jules",
       label: "Jules",
       icon: Bot,
       tooltip: "Autonomous GitHub coding agent",
+    },
+    {
+      id: "stubs",
+      label: "Stubs",
+      icon: Ticket,
+      tooltip: "Architecture-as-Code PWM Portal",
     },
   ];
 
@@ -53,7 +68,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setIsOpen(false);
+        handleClose();
       }
     };
 
@@ -63,21 +78,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
   const handleSelect = (workspace: PromptType) => {
     onSelectWorkspace(workspace);
-    setIsOpen(false);
-  };
-
-  // Touch gesture listeners for drag to expand/collapse
-  const handlePeekTouchStart = (e: React.TouchEvent) => {
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handlePeekTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartYRef.current === null) return;
-    const diff = touchStartYRef.current - e.changedTouches[0].clientY;
-    if (diff > 25) {
-      setIsOpen(true);
-    }
-    touchStartYRef.current = null;
+    handleClose();
   };
 
   const handleDrawerTouchStart = (e: React.TouchEvent) => {
@@ -88,44 +89,21 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     if (touchStartYRef.current === null) return;
     const diff = e.changedTouches[0].clientY - touchStartYRef.current;
     if (diff > 35) {
-      setIsOpen(false);
+      handleClose();
     }
     touchStartYRef.current = null;
   };
 
   return (
     <>
-      {/* Collapsed Minimal Drag Handle Peek (ADR 0045 docked safe-area bottom) */}
-      {!isOpen && (
-        <div
-          id="workspace-drawer-peek-container"
-          className="shrink-0 w-full flex flex-col items-center justify-end select-none bg-background/40 border-t border-border/30 z-30"
-        >
-          <button
-            type="button"
-            id="workspace-drawer-trigger-handle"
-            onClick={() => setIsOpen(true)}
-            onTouchStart={handlePeekTouchStart}
-            onTouchEnd={handlePeekTouchEnd}
-            className="w-full flex flex-col items-center justify-center py-1.5 hover:bg-muted/40 transition-colors cursor-pointer group active:scale-[0.99] outline-none focus-visible:ring-1 focus-visible:ring-primary pb-[max(0.375rem,env(safe-area-inset-bottom,0px))]"
-            aria-label="Open workspace navigation drawer"
-            aria-expanded={false}
-            title="Open workspace switcher"
-          >
-            {/* Classic subtle grab notch pill */}
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/40 group-hover:bg-muted-foreground/75 transition-colors" />
-          </button>
-        </div>
-      )}
-
       {/* Expanded Bottom-Up Drawer Modal Overlay & Container (z-50 backdrop, z-60 drawer) */}
       {isOpen && (
         <>
           {/* Backdrop */}
           <div
             id="workspace-drawer-backdrop"
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-150 motion-reduce:animate-none"
-            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-50 bg-black/40 transition-opacity animate-in fade-in duration-150 motion-reduce:animate-none"
+            onClick={handleClose}
             aria-hidden="true"
           />
 
@@ -138,19 +116,19 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               aria-expanded={true}
               onTouchStart={handleDrawerTouchStart}
               onTouchEnd={handleDrawerTouchEnd}
-              className="pointer-events-auto w-full max-w-lg bg-background/95 backdrop-blur-xl border-t border-x border-border rounded-t-2xl shadow-2xl px-2 pt-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] select-none animate-in slide-in-from-bottom duration-200 ease-out motion-reduce:animate-none"
+              className="pointer-events-auto w-full max-w-lg bg-background border-t border-x border-border rounded-t-2xl shadow-2xl px-2 pt-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] select-none animate-in slide-in-from-bottom duration-200 ease-out motion-reduce:animate-none"
             >
             {/* Top Grab / Dismiss Handle */}
             <div
               id="workspace-drawer-dismiss-bar"
-              onClick={() => setIsOpen(false)}
+              onClick={handleClose}
               className="w-full flex items-center justify-center py-1 cursor-pointer group"
               title="Collapse drawer"
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
-                  setIsOpen(false);
+                  handleClose();
                 }
               }}
               aria-label="Collapse workspace drawer"
@@ -158,8 +136,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               <div className="w-10 h-1 rounded-full bg-muted-foreground/40 group-hover:bg-muted-foreground/70 transition-colors" />
             </div>
 
-            {/* Workspaces horizontal layout matching original footer */}
-            <div className="flex items-center justify-around max-w-lg mx-auto mt-0.5">
+            {/* 4-Slot Workspace layout with generous touch ergonomics */}
+            <div className="grid grid-cols-4 max-w-lg mx-auto mt-0.5 gap-1">
               {workspaces.map((ws) => {
                 const Icon = ws.icon;
                 const isActive = activeWorkspace === ws.id;
@@ -169,13 +147,13 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                     key={ws.id}
                     id={`nav-workspace-${ws.id}`}
                     onClick={() => handleSelect(ws.id)}
-                    className="flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors relative group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-colors relative group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[48px]"
                     title={ws.tooltip}
                     aria-label={ws.label}
                   >
                     {/* Material You rounded pill highlight */}
                     <div
-                      className={`flex items-center justify-center w-12 h-7 rounded-full transition-colors duration-200 ${
+                      className={`flex items-center justify-center w-14 h-7.5 rounded-full transition-colors duration-200 relative ${
                         isActive
                           ? "bg-primary/20 text-primary"
                           : "text-muted-foreground group-hover:text-foreground group-hover:bg-muted/70"
@@ -188,7 +166,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                       />
                     </div>
                     <span
-                      className={`text-[10px] mt-0.5 tracking-tight transition-colors ${
+                      className={`text-[11px] mt-0.5 tracking-tight transition-colors truncate max-w-[72px] text-center ${
                         isActive
                           ? "text-primary font-semibold"
                           : "text-muted-foreground group-hover:text-foreground"

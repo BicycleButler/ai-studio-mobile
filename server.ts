@@ -8,6 +8,18 @@ import {
   TTSRequestSchema,
   formatZodError,
 } from "./src/schemas/validation";
+import {
+  getGraphData,
+  getDiagram,
+  getImpact,
+  lintArchitecture,
+  listSidecarSpecs,
+  getSpecContent,
+  saveSpecContent,
+  materializeSpec,
+  runCliCommand,
+  stubsEvents,
+} from "./server/stubsService";
 
 dotenv.config();
 
@@ -1197,6 +1209,171 @@ app.post("/api/jules/tasks/:id/approve", (req: Request, res: Response): void => 
     task,
     message: "Plan approved. Jules is now executing code edits.",
   });
+});
+
+/* ==========================================================================
+   STUBS ARCHITECTURE-AS-CODE & PWM (PORTAL WEB MODULE) API ROUTES
+   ========================================================================== */
+
+/**
+ * GET /api/stubs/graph - Returns full AST dependency graph data & hub metrics
+ */
+app.get("/api/stubs/graph", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const data = await getGraphData();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/diagram - Returns living Mermaid flowchart definition
+ */
+app.get("/api/stubs/diagram", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const groupBy = (req.query.groupBy as "domain" | "layer") || "domain";
+    const result = await getDiagram(groupBy);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/impact - Calculates blast radius, callers, and risk score for target file
+ */
+app.get("/api/stubs/impact", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const target = req.query.target as string;
+    if (!target) {
+      res.status(400).json({ error: "Missing required 'target' query parameter." });
+      return;
+    }
+    const result = await getImpact(target);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/lint - Runs architectural invariant checks (layers, cycles)
+ */
+app.get("/api/stubs/lint", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await lintArchitecture();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/specs - Lists all sidecar specs (*.ts.md) and architecture plans
+ */
+app.get("/api/stubs/specs", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const specs = await listSidecarSpecs();
+    res.json({ specs });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/spec-detail - Returns raw markdown content of a spec
+ */
+app.get("/api/stubs/spec-detail", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const filePath = req.query.path as string;
+    if (!filePath) {
+      res.status(400).json({ error: "Missing 'path' query parameter." });
+      return;
+    }
+    const detail = await getSpecContent(filePath);
+    res.json(detail);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * POST /api/stubs/spec-save - Updates spec content
+ */
+app.post("/api/stubs/spec-save", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { path: filePath, content } = req.body;
+    if (!filePath || typeof content !== "string") {
+      res.status(400).json({ error: "Missing 'path' or 'content' in request body." });
+      return;
+    }
+    await saveSpecContent(filePath, content);
+    res.json({ success: true, message: `Spec '${filePath}' saved.` });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * POST /api/stubs/spec-materialize - Materializes spec code into target source file
+ */
+app.post("/api/stubs/spec-materialize", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { path: filePath } = req.body;
+    if (!filePath) {
+      res.status(400).json({ error: "Missing 'path' in request body." });
+      return;
+    }
+    const result = await materializeSpec(filePath);
+    res.json({
+      success: true,
+      message: `Materialized spec into '${result.targetFile}' (${result.bytesWritten} bytes).`,
+      result,
+    });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/stream - Server-Sent Events channel streaming CLI logs
+ */
+app.get("/api/stubs/stream", (req: Request, res: Response): void => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  const listener = (data: unknown) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  stubsEvents.on("log", listener);
+
+  // Initial connection heartbeat
+  res.write(`data: ${JSON.stringify({ type: "connect", text: "Connected to Stubs PWM event bus", timestamp: Date.now() })}\n\n`);
+
+  req.on("close", () => {
+    stubsEvents.off("log", listener);
+  });
+});
+
+/**
+ * POST /api/stubs/execute - Triggers a CLI command and streams stdout/stderr
+ */
+app.post("/api/stubs/execute", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { command, args } = req.body;
+    if (!command) {
+      res.status(400).json({ error: "Missing 'command' parameter." });
+      return;
+    }
+    const result = await runCliCommand(command, Array.isArray(args) ? args : []);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
 });
 
 async function startServer(): Promise<void> {

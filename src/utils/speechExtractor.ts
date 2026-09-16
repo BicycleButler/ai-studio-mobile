@@ -3,12 +3,18 @@
  * strictly omitting code blocks, inline code, and formatting artifacts.
  */
 
-export function extractSpokenText(markdown: string): string {
+export function extractSpokenText(markdown: string, isStreaming = false): string {
   if (!markdown || typeof markdown !== "string") {
     return "";
   }
 
   let cleaned = markdown;
+
+  // If currently streaming, safely strip unclosed trailing code blocks or inline code
+  if (isStreaming) {
+    cleaned = cleaned.replace(/```[\s\S]*$/, " ");
+    cleaned = cleaned.replace(/`[^`\n]*$/, " ");
+  }
 
   // 1. Omit multi-line code blocks (fenced code: ```lang ... ``` or ``` ... ```)
   cleaned = cleaned.replace(/```[\s\S]*?```/g, " ");

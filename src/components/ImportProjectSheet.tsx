@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Key,
@@ -48,6 +48,21 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   onSuccess,
   availableModels = DEFAULT_MODELS,
 }) => {
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null) return;
+    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
+    if (diff > 45) {
+      void handleDismiss();
+    }
+    touchStartYRef.current = null;
+  };
+
   const [apiKey, setApiKey] = useState(initialKey);
   const [projectName, setProjectName] = useState("");
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
@@ -192,13 +207,24 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
       }}
     >
       <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         className="w-full max-w-lg bg-card border-t sm:border border-border rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in slide-in-from-bottom-4 duration-200 text-foreground"
         role="dialog"
         aria-modal="true"
         aria-labelledby="import-project-title"
       >
-        {/* Sheet Top Grabber (Mobile) */}
-        <div className="sm:hidden w-12 h-1.5 bg-muted rounded-full mx-auto mt-2.5" />
+        {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
+        <div
+          onClick={() => void handleDismiss()}
+          className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-1 cursor-pointer group touch-manipulation"
+          title="Swipe down or tap to dismiss"
+          role="button"
+          tabIndex={0}
+          aria-label="Dismiss import sheet"
+        >
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
+        </div>
 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border bg-muted/40">
@@ -218,7 +244,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
           <button
             type="button"
             onClick={() => void handleDismiss()}
-            className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -400,7 +426,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             <button
               type="button"
               onClick={() => void handleDismiss()}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer touch-manipulation flex items-center justify-center"
             >
               Cancel
             </button>
@@ -408,7 +434,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               type="submit"
               id="save-and-activate-btn"
               disabled={isSaving || validationState === "validating" || validationState === "invalid" || !apiKey.trim()}
-              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-colors disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+              className="min-h-[44px] px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-colors disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation"
             >
               {isSaving ? (
                 <>

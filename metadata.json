@@ -1,8 +1,9 @@
 {
   "name": "Client for Google AI Studio",
-  "description": "Mobile-optimized Android client for Google AI Studio with API key sniffing, instant verification, Chrome Custom Tab launcher, and project onboarding.",
+  "description": "Mobile-optimized Android client and Progressive Web App (PWA) for Google AI Studio with offline caching, installable standalone shell, Jules GitHub agent, and Capacitor native mobile readiness.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone"
   ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

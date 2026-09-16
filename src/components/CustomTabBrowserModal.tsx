@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Lock,
@@ -35,6 +35,21 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   activeApiKey = "",
   initialService = "aistudio",
 }) => {
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null) return;
+    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
+    if (diff > 45) {
+      onClose();
+    }
+    touchStartYRef.current = null;
+  };
+
   const [activeService, setActiveService] = useState<CredentialTargetService>(initialService);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [isCheckingClipboard, setIsCheckingClipboard] = useState(false);
@@ -106,14 +121,30 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
       id="custom-tab-browser-modal"
       className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm animate-in fade-in"
     >
-      <div className="flex-1 flex flex-col max-w-xl w-full mx-auto bg-card border-x border-b border-border shadow-2xl overflow-hidden rounded-b-2xl sm:my-4 sm:rounded-2xl sm:border-t">
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex-1 flex flex-col max-w-xl w-full mx-auto bg-card border-x border-b border-border shadow-2xl overflow-hidden rounded-b-2xl sm:my-4 sm:rounded-2xl sm:border-t"
+      >
+        {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
+        <div
+          onClick={onClose}
+          className="sm:hidden w-full flex items-center justify-center pt-2 pb-1 bg-muted cursor-pointer group touch-manipulation"
+          title="Swipe down or tap to dismiss"
+          role="button"
+          tabIndex={0}
+          aria-label="Dismiss in-app browser"
+        >
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
+        </div>
+
         {/* Chrome Custom Tab Top Toolbar */}
         <div className="bg-muted border-b border-border px-3 py-2 flex items-center justify-between gap-2 select-none">
           {/* Close button on the left (Chrome Custom Tab convention) */}
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/80 transition-colors cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/80 transition-colors cursor-pointer touch-manipulation"
             title="Close In-App Browser"
             aria-label="Close"
           >
@@ -140,7 +171,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
             <button
               type="button"
               onClick={handleCopyUrl}
-              className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation"
               title="Copy URL"
             >
               {copiedUrl ? (
@@ -152,7 +183,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
             <button
               type="button"
               onClick={handleOpenSystemBrowser}
-              className="p-1.5 text-primary hover:text-primary/80 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:text-primary/80 rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation"
               title="Open in System Browser"
             >
               <ExternalLink className="w-4 h-4" />

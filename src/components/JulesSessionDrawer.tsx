@@ -192,17 +192,19 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             <button
               type="button"
               onClick={() => setIsCreating(!isCreating)}
-              className="p-2 text-primary hover:text-primary/80 hover:bg-muted rounded-xl transition-colors cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:text-primary/80 hover:bg-muted rounded-xl transition-colors cursor-pointer touch-manipulation"
               title="New Jules Task Session"
+              aria-label="New Jules Session"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer touch-manipulation"
+              aria-label="Close Jules sessions"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>

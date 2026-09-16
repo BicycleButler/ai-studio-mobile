@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   X,
   Search,
@@ -12,10 +12,11 @@ import {
   FileCode,
   ShieldCheck,
   Layers,
-  Sparkles,
   ArrowRight,
   Eye,
   SlidersHorizontal,
+  Columns2,
+  Variable,
 } from "lucide-react";
 import { PromptTemplate, PromptTemplateCategory } from "../types";
 import {
@@ -24,6 +25,8 @@ import {
   deleteCustomTemplate,
   composePrompt,
 } from "../services/promptTemplateService";
+import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
+import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
 
 interface PromptTemplateDrawerProps {
   isOpen: boolean;
@@ -33,6 +36,7 @@ interface PromptTemplateDrawerProps {
   onRemoveTemplate: (templateId: string) => void;
   onClearAllTemplates: () => void;
   draftUserText?: string;
+  onInsertText?: (text: string) => void;
 }
 
 const CATEGORY_META: Record<
@@ -42,32 +46,32 @@ const CATEGORY_META: Record<
   tone: {
     label: "Tone",
     icon: MessageSquare,
-    color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+    color: "text-primary bg-primary/10 border-primary/20",
   },
   coding: {
     label: "Coding",
     icon: Code,
-    color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+    color: "text-primary bg-primary/10 border-primary/20",
   },
   reasoning: {
     label: "Reasoning",
     icon: Brain,
-    color: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+    color: "text-primary bg-primary/10 border-primary/20",
   },
   formatting: {
     label: "Formatting",
     icon: FileCode,
-    color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+    color: "text-primary bg-primary/10 border-primary/20",
   },
   analysis: {
     label: "Analysis",
     icon: ShieldCheck,
-    color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+    color: "text-primary bg-primary/10 border-primary/20",
   },
   custom: {
     label: "Custom",
-    icon: Sparkles,
-    color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
+    icon: Edit3,
+    color: "text-primary bg-primary/10 border-primary/20",
   },
 };
 
@@ -89,7 +93,24 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   onRemoveTemplate,
   onClearAllTemplates,
   draftUserText = "",
+  onInsertText,
 }) => {
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null) return;
+    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
+    if (diff > 45) {
+      onClose();
+    }
+    touchStartYRef.current = null;
+  };
+
+  const [activeToolTab, setActiveToolTab] = useState<"directives" | "few-shot" | "variables">("directives");
   const [activeCategory, setActiveCategory] = useState<"all" | PromptTemplateCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"browse" | "author" | "preview">("browse");
@@ -204,25 +225,50 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   return (
     <div
       id="prompt-templates-modal-overlay"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex flex-col animate-in fade-in duration-200"
     >
+      {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
+      <div
+        onClick={onClose}
+        className="w-full flex items-center justify-center pt-2 pb-1 cursor-pointer bg-card group touch-manipulation"
+        title="Swipe down or tap to dismiss"
+        role="button"
+        tabIndex={0}
+        aria-label="Dismiss template drawer"
+      >
+        <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
+      </div>
+
       {/* Mobile Drawer Header */}
       <div className="h-14 px-4 bg-card border-b border-border flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Layers className="w-4 h-4" />
+            {activeToolTab === "few-shot" ? (
+              <Columns2 className="w-4 h-4" />
+            ) : activeToolTab === "variables" ? (
+              <Variable className="w-4 h-4" />
+            ) : (
+              <Layers className="w-4 h-4" />
+            )}
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <span>Prompt Templates</span>
-              {selectedTemplateIds.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-mono font-medium">
-                  {selectedTemplateIds.length} active
-                </span>
-              )}
+              <span>
+                {activeToolTab === "few-shot"
+                  ? "Few-Shot Builder"
+                  : activeToolTab === "variables"
+                  ? "Variable Templates"
+                  : "Prompt Templates"}
+              </span>
             </h2>
             <p className="text-[11px] text-muted-foreground truncate">
-              {viewMode === "author"
+              {activeToolTab === "few-shot"
+                ? "Define input-output demonstration pairs for in-context learning"
+                : activeToolTab === "variables"
+                ? "Fill {{placeholders}} into prompt skeletons and insert into chat"
+                : viewMode === "author"
                 ? editingTemplateId
                   ? "Edit custom template"
                   : "Create new modular prompt directive"
@@ -234,46 +280,50 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {viewMode === "browse" ? (
+          {activeToolTab === "directives" && (
             <>
-              <button
-                type="button"
-                id="template-drawer-create-btn"
-                onClick={handleStartCreate}
-                className="h-8 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
-                title="Create custom template"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">New</span>
-              </button>
-              {selectedTemplateIds.length > 0 && (
+              {viewMode === "browse" ? (
+                <>
+                  <button
+                    type="button"
+                    id="template-drawer-create-btn"
+                    onClick={handleStartCreate}
+                    className="min-h-[44px] px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer touch-manipulation"
+                    title="Create custom template"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">New</span>
+                  </button>
+                  {selectedTemplateIds.length > 0 && (
+                    <button
+                      type="button"
+                      id="template-drawer-preview-toggle-btn"
+                      onClick={() => setViewMode("preview")}
+                      className="min-h-[44px] px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer touch-manipulation"
+                      title="Preview composite message"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Preview</span>
+                    </button>
+                  )}
+                </>
+              ) : (
                 <button
                   type="button"
-                  id="template-drawer-preview-toggle-btn"
-                  onClick={() => setViewMode("preview")}
-                  className="h-8 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Preview composite message"
+                  onClick={() => setViewMode("browse")}
+                  className="min-h-[44px] px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium transition-colors cursor-pointer touch-manipulation"
                 >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Preview</span>
+                  Back to list
                 </button>
               )}
             </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setViewMode("browse")}
-              className="h-8 px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium transition-colors cursor-pointer"
-            >
-              Back to list
-            </button>
           )}
 
           <button
             type="button"
             id="template-drawer-close-btn"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
             aria-label="Close templates drawer"
           >
             <X className="w-4 h-4" />
@@ -281,7 +331,67 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
         </div>
       </div>
 
+      {/* Sub-tool Segmented Tabs (Directives, Few-Shot Builder, Variables) */}
+      <div className="px-4 py-2 bg-card/60 border-b border-border flex items-center justify-center shrink-0">
+        <div className="inline-flex items-center bg-muted/60 p-1 rounded-xl text-xs font-medium border border-border/40 max-w-sm w-full">
+          <button
+            type="button"
+            id="tab-prompt-directives"
+            onClick={() => setActiveToolTab("directives")}
+            className={`flex-1 py-1 px-2.5 rounded-lg transition-colors text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeToolTab === "directives"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Directives</span>
+          </button>
+          <button
+            type="button"
+            id="tab-prompt-few-shot"
+            onClick={() => setActiveToolTab("few-shot")}
+            className={`flex-1 py-1 px-2.5 rounded-lg transition-colors text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeToolTab === "few-shot"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Columns2 className="w-3.5 h-3.5" />
+            <span>Few-Shot</span>
+          </button>
+          <button
+            type="button"
+            id="tab-prompt-variables"
+            onClick={() => setActiveToolTab("variables")}
+            className={`flex-1 py-1 px-2.5 rounded-lg transition-colors text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeToolTab === "variables"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Variable className="w-3.5 h-3.5" />
+            <span>Variables</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Drawer Body */}
+      {activeToolTab === "few-shot" ? (
+        <FewShotBuilderTool
+          onInsertText={(text) => {
+            onInsertText?.(text);
+            onClose();
+          }}
+        />
+      ) : activeToolTab === "variables" ? (
+        <VariablePromptTool
+          onInsertText={(text) => {
+            onInsertText?.(text);
+            onClose();
+          }}
+        />
+      ) : (
       <div className="flex-1 overflow-hidden flex flex-col">
         {viewMode === "author" ? (
           /* Custom Template Authoring Form */
@@ -474,7 +584,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
               </div>
 
               {/* Category Segmented Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar touch-pan-x overscroll-x-contain">
                 {CATEGORIES.map((cat) => {
                   const isActive = activeCategory === cat.id;
                   return (
@@ -524,7 +634,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                     <div
                       key={template.id}
                       id={`template-card-${template.id}`}
-                      className={`p-3.5 rounded-2xl border transition-all ${
+                      className={`p-3.5 rounded-2xl border transition-colors ${
                         isSelected
                           ? "bg-primary/5 border-primary/40 shadow-xs"
                           : "bg-card border-border hover:border-border/80"
@@ -653,9 +763,10 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
           </>
         )}
       </div>
+      )}
 
       {/* Mobile Drawer Bottom Dock */}
-      {viewMode === "browse" && (
+      {activeToolTab === "directives" && viewMode === "browse" && (
         <div className="p-3 bg-card border-t border-border flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             {selectedTemplateIds.length > 0 ? (

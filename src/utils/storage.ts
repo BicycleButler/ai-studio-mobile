@@ -197,6 +197,15 @@ export function loadDraftState(projectId?: string | null): DraftState {
     updatedAt: Date.now(),
   };
 
+  const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
+
+  const sanitizeType = (typeVal: unknown): PromptType => {
+    if (typeof typeVal === "string" && validPromptTypes.includes(typeVal as PromptType)) {
+      return typeVal as PromptType;
+    }
+    return "chat";
+  };
+
   const key = getProjectDraftKey(projectId);
   const stored = safeGetStorage<DraftState | null>(key, null);
   if (!stored) {
@@ -207,6 +216,7 @@ export function loadDraftState(projectId?: string | null): DraftState {
         return {
           ...fallback,
           ...globalStored,
+          promptType: sanitizeType(globalStored.promptType),
           config: {
             ...DEFAULT_CONFIG,
             ...(globalStored.config || {}),
@@ -220,6 +230,7 @@ export function loadDraftState(projectId?: string | null): DraftState {
   return {
     ...fallback,
     ...stored,
+    promptType: sanitizeType(stored.promptType),
     config: {
       ...DEFAULT_CONFIG,
       ...(stored.config || {}),

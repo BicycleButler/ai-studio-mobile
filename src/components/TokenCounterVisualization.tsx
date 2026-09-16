@@ -1,10 +1,11 @@
 import React from "react";
 
-interface TokenCounterVisualizationProps {
+export interface TokenCounterVisualizationProps {
   tokens: number;
   maxTokens?: number;
   onClick?: () => void;
   className?: string;
+  borderless?: boolean;
 }
 
 export const formatTokenNumber = (num: number): string => {
@@ -22,6 +23,7 @@ export const TokenCounterVisualization: React.FC<TokenCounterVisualizationProps>
   maxTokens = 1_000_000,
   onClick,
   className = "",
+  borderless = false,
 }) => {
   const safeTokens = Math.max(0, Math.round(tokens));
   const safeMax = Math.max(1, maxTokens);
@@ -47,7 +49,11 @@ export const TokenCounterVisualization: React.FC<TokenCounterVisualizationProps>
       type="button"
       id="header-token-counter-viz"
       onClick={onClick}
-      className={`h-8 flex items-center gap-1.5 px-2 sm:px-2.5 rounded-lg bg-card hover:bg-muted border border-border text-left transition-colors active:scale-[0.98] group cursor-pointer ${className}`}
+      className={`h-9 flex items-center gap-2 px-2.5 rounded-lg text-left transition-colors active:scale-[0.98] group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+        borderless
+          ? "bg-transparent hover:bg-muted text-foreground border-none shadow-none"
+          : "bg-card hover:bg-muted border border-border text-foreground shadow-xs"
+      } ${className}`}
       title={tooltipText}
       aria-label={`Token count: ${tooltipText}`}
     >

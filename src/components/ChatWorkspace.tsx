@@ -7,18 +7,19 @@ import {
   Copy,
   Check,
   RotateCcw,
-  Sparkles,
   Trash2,
   Loader2,
   ArrowRight,
   Volume2,
-  Mic,
   Plus,
   Clock,
   MessageSquare,
   Bot,
   FolderGit2,
   Layers,
+  Mic,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import {
@@ -35,6 +36,7 @@ import {
   SpeechSettings,
   loadSpeechSettings,
 } from "../services/speechVoices";
+import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { getAuthHeaders } from "../services/auth";
 import { SettingsTab } from "./UnifiedSettingsModal";
 import { useSpeechToText } from "../hooks/useSpeechToText";
@@ -84,6 +86,7 @@ interface ChatWorkspaceProps {
   onApproveJulesPlan?: (taskId: string) => void;
   onRejectJulesPlan?: (taskId: string) => void;
   isApprovingJulesPlan?: boolean;
+  onOpenBottomNav?: () => void;
 }
 
 export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
@@ -112,6 +115,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   onApproveJulesPlan,
   onRejectJulesPlan,
   isApprovingJulesPlan = false,
+  onOpenBottomNav: _onOpenBottomNav,
 }) => {
   const [inputText, setInputText] = useState("");
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
@@ -218,44 +222,162 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   const speechSettings = propSpeechSettings || localSpeechSettings;
 
+  // Conversational Two-Way Voice state machine
+  const [isVoiceModeActive, setIsVoiceModeActive] = useState<boolean>(() => {
+    return Boolean(speechSettings.handsFreeMode);
+  });
+  const [voiceState, setVoiceState] = useState<"idle" | "listening" | "processing" | "speaking">("idle");
+  const isVoiceModeActiveRef = useRef<boolean>(isVoiceModeActive);
+  isVoiceModeActiveRef.current = isVoiceModeActive;
+
+  const sentenceQueueRef = useRef<SentenceSpeechQueue | null>(null);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const touchIsDraggingRef = useRef<boolean>(false);
+
+  // Mobile virtual keyboard focus & visibility state
+  const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
+
+  // Expanded card height (250% of 80px = 200px) toggled via the borderless transparent button
+  const [isInputHeightExpanded, setIsInputHeightExpanded] = useState<boolean>(false);
+
+  const hasDraftContent = Boolean(
+    inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
+  );
+  // Input expands to 100% when focused or has draft content
+  const isInputExpanded = isInputFocused || hasDraftContent;
 
   const speechBaseTextRef = useRef<string>("");
 
+  // Dismiss / hide the mobile soft keyboard safely across platforms
+  const hideKeyboard = () => {
+    if (typeof navigator !== "undefined" && "virtualKeyboard" in navigator) {
+      try {
+        (navigator as { virtualKeyboard?: { hide?: () => void } }).virtualKeyboard?.hide?.();
+      } catch {
+        // ignore
+      }
+    }
+    if (textareaRef.current && document.activeElement === textareaRef.current) {
+      textareaRef.current.blur();
+    } else if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setIsInputFocused(false);
+  };
+
   const {
     isListening,
+    isAudioDetected,
     transcript: _speechTranscript,
+    silenceCountdownMs,
+    error: speechError,
     startListening,
     stopListening,
+    clearSilenceCountdown,
+    clearTranscript,
   } = useSpeechToText({
+    continuous: true,
+    continuousListening: isVoiceModeActive,
+    autoSendOnSilence: isVoiceModeActive,
+    silenceTimeoutMs: speechSettings.silenceTimeoutMs || 1500,
+    isMuted: isSpeaking,
     onTranscript: (spokenChunk) => {
       const base = speechBaseTextRef.current;
       const sep = base && !base.endsWith(" ") ? " " : "";
       setInputText(base ? `${base}${sep}${spokenChunk}` : spokenChunk);
     },
+    onSilenceAutoSend: (spokenText) => {
+      if (!spokenText.trim() || isGenerating) return;
+      setVoiceState("processing");
+      speechBaseTextRef.current = "";
+      clearTranscript();
+      setInputText("");
+
+      let textToSend = spokenText.trim();
+      let appliedTemplateIds: string[] | undefined = undefined;
+      let userRawText: string | undefined = undefined;
+
+      if (selectedTemplateIds.length > 0) {
+        const composed = composePrompt(selectedTemplateIds, spokenText.trim());
+        textToSend = composed.combinedText;
+        appliedTemplateIds = composed.templateIds;
+        userRawText = composed.userText;
+      }
+
+      onSendMessage(
+        textToSend,
+        attachments.length > 0 ? attachments : undefined,
+        appliedTemplateIds,
+        userRawText || spokenText.trim()
+      );
+      setAttachments([]);
+      setSelectedTemplateIds([]);
+    },
   });
 
-  const handleActivatePromptSpeech = () => {
-    // Synchronously focus the prompt instructions textarea (activates mobile keyboard and keyboard mic)
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      const len = textareaRef.current.value.length;
-      textareaRef.current.setSelectionRange(len, len);
-      textareaRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  // Keep conversational voice state synced with mic listening
+  useEffect(() => {
+    if (isListening && !isSpeaking) {
+      setVoiceState("listening");
+    } else if (!isListening && voiceState === "listening") {
+      if (!isGenerating && !isSpeaking) {
+        setVoiceState("idle");
+      }
     }
+  }, [isListening, isSpeaking, isGenerating, voiceState]);
 
-    if (isListening) {
-      stopListening();
-    } else {
-      speechBaseTextRef.current = inputText;
+  const handleToggleVoiceMode = () => {
+    const next = !isVoiceModeActive;
+    setIsVoiceModeActive(next);
+    setIsInputHeightExpanded(false);
+    if (next) {
+      // ENTERING HANDS-FREE VOICE MODE
+      stopAllPlayback();
+      // Append mode: preserve existing text input as base buffer so speech appends
+      speechBaseTextRef.current = inputText.trim();
       startListening();
+      setVoiceState("listening");
+    } else {
+      // EXITING HANDS-FREE VOICE MODE
+      stopListening();
+      stopAllPlayback();
+      clearSilenceCountdown();
+      setVoiceState("idle");
+
+      // Auto-expand into 100% text input interface if user spoke or has draft text
+      if (inputText.trim()) {
+        setIsInputFocused(true);
+        setTimeout(() => {
+          textareaRef.current?.focus();
+          const len = textareaRef.current?.value.length || 0;
+          textareaRef.current?.setSelectionRange(len, len);
+        }, 50);
+      }
+    }
+  };
+
+  const handleInterrupt = () => {
+    stopAllPlayback();
+    if (isVoiceModeActive) {
+      speechBaseTextRef.current = "";
+      clearTranscript();
+      setInputText("");
+      startListening();
+      setVoiceState("listening");
+    } else {
+      setVoiceState("idle");
     }
   };
 
   const stopAllPlayback = () => {
+    if (sentenceQueueRef.current) {
+      sentenceQueueRef.current.cancel();
+      sentenceQueueRef.current = null;
+    }
     if (activeAudioRef.current) {
       activeAudioRef.current.pause();
       activeAudioRef.current = null;
@@ -267,15 +389,48 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     setIsBufferingAudio(false);
   };
 
+  // Scroll anchoring: Keep latest message pinned on messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
 
-  // Adjust textarea height
+  // visualViewport scroll anchoring: dynamically re-anchor messages on mobile keyboard resize
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    let previousHeight = vv.height;
+    const handleViewportResize = () => {
+      // If viewport shrunk significantly (soft keyboard appeared) or input is focused
+      if (vv.height < previousHeight || isInputFocused) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+      previousHeight = vv.height;
+    };
+
+    const handleViewportScroll = () => {
+      if (isInputFocused) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      }
+    };
+
+    vv.addEventListener("resize", handleViewportResize);
+    vv.addEventListener("scroll", handleViewportScroll);
+
+    return () => {
+      vv.removeEventListener("resize", handleViewportResize);
+      vv.removeEventListener("scroll", handleViewportScroll);
+    };
+  }, [isInputFocused]);
+
+  // Adjust textarea height: limit multi-line auto-expansion to max 3 lines on mobile (~72px)
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+      const maxHeight = isMobile ? 72 : 112;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, maxHeight)}px`;
     }
   }, [inputText]);
 
@@ -283,6 +438,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   useEffect(() => {
     if (isGenerating) {
       stopAllPlayback();
+      setVoiceState("processing");
     }
   }, [isGenerating]);
 
@@ -297,6 +453,76 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const lastModelMessage = [...messages]
     .reverse()
     .find((m) => m.role === "model" && m.text && m.text.trim().length > 0);
+
+  // Streaming sentence-pipelined speech playback
+  const streamingModelMessage = useMemo(() => {
+    return messages.find((m) => m.role === "model" && m.isStreaming);
+  }, [messages]);
+
+  const prevStreamingTextRef = useRef<string>("");
+
+  useEffect(() => {
+    if (streamingModelMessage && streamingModelMessage.text) {
+      const currentText = streamingModelMessage.text;
+      const shouldStreamSpeech =
+        (isVoiceModeActive || speechSettings.autoReadResponses) &&
+        speechSettings.sentenceStreaming &&
+        speechSettings.engine === "device"; // Device speech is 100% free with 0ms network latency
+
+      if (shouldStreamSpeech) {
+        if (!sentenceQueueRef.current) {
+          sentenceQueueRef.current = new SentenceSpeechQueue({
+            speechSettings,
+            onSentenceStart: () => {
+              setIsSpeaking(true);
+              setVoiceState("speaking");
+            },
+            onAllSentencesCompleted: () => {
+              setIsSpeaking(false);
+              sentenceQueueRef.current = null;
+              if (isVoiceModeActiveRef.current) {
+                // Wait 350ms acoustic grace period to prevent microphone echo
+                setTimeout(() => {
+                  if (isVoiceModeActiveRef.current) {
+                    speechBaseTextRef.current = "";
+                    clearTranscript();
+                    setInputText("");
+                    startListening();
+                    setVoiceState("listening");
+                  }
+                }, 350);
+              } else {
+                setVoiceState("idle");
+              }
+            },
+            onInterrupted: () => {
+              setIsSpeaking(false);
+              sentenceQueueRef.current = null;
+            },
+          });
+        }
+        sentenceQueueRef.current.feed(currentText, true);
+        prevStreamingTextRef.current = currentText;
+      }
+    }
+  }, [streamingModelMessage?.text, isVoiceModeActive, speechSettings, startListening]);
+
+  // When generation finishes, finalize sentence speech queue or trigger non-streaming speech
+  useEffect(() => {
+    if (!isGenerating && prevStreamingTextRef.current) {
+      if (sentenceQueueRef.current) {
+        sentenceQueueRef.current.finalize();
+      }
+      prevStreamingTextRef.current = "";
+    } else if (!isGenerating && (isVoiceModeActive || speechSettings.autoReadResponses)) {
+      // If sentence streaming was disabled or engine is gemini, read full completed message
+      if (!speechSettings.sentenceStreaming || speechSettings.engine === "gemini") {
+        if (lastModelMessage?.text && !isSpeaking && !isBufferingAudio) {
+          void handleToggleSpeech(lastModelMessage.text);
+        }
+      }
+    }
+  }, [isGenerating]);
 
   // Helper for on-device speech synthesis fallback
   const fallbackToDeviceSpeech = (textToSpeak: string) => {
@@ -334,15 +560,33 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     utterance.onstart = () => {
       setIsBufferingAudio(false);
       setIsSpeaking(true);
+      setVoiceState("speaking");
     };
 
     utterance.onend = () => {
       setIsSpeaking(false);
+      if (isVoiceModeActiveRef.current) {
+        // Acoustic echo safety: delay 350ms before opening mic
+        setTimeout(() => {
+          if (isVoiceModeActiveRef.current) {
+            speechBaseTextRef.current = "";
+            clearTranscript();
+            setInputText("");
+            startListening();
+            setVoiceState("listening");
+          }
+        }, 350);
+      } else {
+        setVoiceState("idle");
+      }
     };
 
     utterance.onerror = () => {
       setIsSpeaking(false);
       setIsBufferingAudio(false);
+      if (isVoiceModeActiveRef.current) {
+        setVoiceState("idle");
+      }
     };
 
     window.speechSynthesis.speak(utterance);
@@ -395,11 +639,24 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         audio.onplay = () => {
           setIsBufferingAudio(false);
           setIsSpeaking(true);
+          setVoiceState("speaking");
         };
 
         audio.onended = () => {
           setIsSpeaking(false);
           activeAudioRef.current = null;
+          if (isVoiceModeActiveRef.current) {
+            setTimeout(() => {
+              if (isVoiceModeActiveRef.current) {
+                speechBaseTextRef.current = "";
+                setInputText("");
+                startListening();
+                setVoiceState("listening");
+              }
+            }, 350);
+          } else {
+            setVoiceState("idle");
+          }
         };
 
         audio.onerror = () => {
@@ -442,9 +699,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
 
     onSendMessage(textToSend, attachments, appliedTemplateIds, userRawText);
+    speechBaseTextRef.current = "";
+    clearTranscript();
     setInputText("");
     setAttachments([]);
     setSelectedTemplateIds([]);
+    setIsInputHeightExpanded(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -488,11 +748,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleClearChat = () => {
-    stopAllPlayback();
-    onClearMessages();
   };
 
   const handleStartNewChat = () => {
@@ -542,127 +797,67 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden bg-background relative">
-      {/* Contextual Subheader: Jules Repository Header OR Gemini Prompt Workspace Bar */}
-      {isJulesMode ? (
-        <div className="px-3 py-2 bg-card border-b border-border flex items-center justify-between gap-2 shrink-0 z-20">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="min-w-0">
-              <div className="text-xs font-semibold text-foreground truncate">
-                Google Jules Agent
-              </div>
-              <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 font-mono truncate">
-                <span className="text-foreground truncate">
-                  {activeJulesSession ? activeJulesSession.repository : "No repository selected"}
-                </span>
-                {activeJulesSession && (
-                  <>
-                    <span className="text-muted-foreground">•</span>
-                    <span className="text-muted-foreground">{activeJulesSession.branch}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {onOpenJulesSessions && (
-              <button
-                type="button"
-                id="jules-switch-task-btn"
-                onClick={onOpenJulesSessions}
-                className="px-2 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-[11px] font-medium transition-colors shrink-0 shadow-xs flex items-center gap-1 cursor-pointer"
-                title="Manage Jules Tasks & Sessions"
-              >
-                <Bot className="w-3 h-3 text-primary" />
-                <span className="hidden xs:inline">Tasks</span>
-              </button>
-            )}
-            <button
-              ref={historyButtonRef}
-              type="button"
-              id="chat-window-new-and-history-btn"
-              aria-label="New chat and historical chats"
-              aria-haspopup="true"
-              aria-expanded={isHistoryOpen}
-              title="New task & history"
-              onClick={() => setIsHistoryOpen((prev) => !prev)}
-              className={`h-7 px-2 flex items-center gap-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                isHistoryOpen
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted hover:bg-muted/80 text-foreground border-border"
-              }`}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="text-[11px]">New</span>
-            </button>
-            <button
-              type="button"
-              id="chat-top-right-templates-btn"
-              aria-label="Prompt Templates"
-              title="Prompt Templates"
-              onClick={() => setIsTemplateDrawerOpen(true)}
-              className={`h-7 px-2 flex items-center gap-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                selectedTemplateIds.length > 0
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted hover:bg-muted/80 text-foreground border-border"
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline text-[11px]">Templates</span>
-              {selectedTemplateIds.length > 0 && (
-                <span className="w-3.5 h-3.5 rounded-full bg-primary-foreground text-primary text-[9px] font-mono font-bold flex items-center justify-center">
-                  {selectedTemplateIds.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* Floating controls: '+' New/History button and directly below it the Templates button */
-        <div className="absolute top-1.5 right-2 z-30 flex flex-col items-center gap-1">
-          <button
-            ref={historyButtonRef}
-            type="button"
-            id="chat-window-new-and-history-btn"
-            aria-label="Chats menu"
-            aria-haspopup="true"
-            aria-expanded={isHistoryOpen}
-            title="Chats menu"
-            onClick={() => setIsHistoryOpen((prev) => !prev)}
-            className="w-9 h-9 min-w-[36px] min-h-[36px] sm:w-10 sm:h-10 sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center p-0 border-0 bg-transparent text-muted-foreground hover:text-foreground active:scale-95 transition-colors cursor-pointer rounded-xl focus:outline-none"
-          >
-            <Plus className="w-[11px] h-[11px]" />
-          </button>
-
-          {/* Accordion trigger button placed directly below the '+' icon (id="chat-top-right-templates-btn") */}
+      {/* Floating Action Controls on Right Side of Screen (Stacked vertically, borderless & transparent) */}
+      <div className="absolute top-3 right-3 z-30 flex flex-col items-center gap-1.5 pointer-events-auto">
+        {/* Jules Task / Session Switcher (Jules mode only) */}
+        {isJulesMode && onOpenJulesSessions && (
           <button
             type="button"
-            id="chat-top-right-templates-btn"
-            aria-label="Prompt Templates"
-            title="Prompt Templates (Modular directives)"
-            onClick={() => setIsTemplateDrawerOpen(true)}
-            className={`relative w-9 h-9 min-w-[36px] min-h-[36px] sm:w-10 sm:h-10 sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center p-0 border-0 bg-transparent transition-colors cursor-pointer rounded-xl focus:outline-none active:scale-95 ${
-              selectedTemplateIds.length > 0
-                ? "text-primary hover:text-primary/90"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            id="jules-switch-task-btn"
+            onClick={onOpenJulesSessions}
+            className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-transparent border-0 shadow-none text-purple-400 hover:text-purple-300 hover:bg-muted/40 transition-colors cursor-pointer active:scale-95 focus:outline-none touch-manipulation"
+            title="Manage Jules Tasks & Sessions"
+            aria-label="Manage Jules Tasks & Sessions"
           >
-            <Layers className="w-4 h-4" />
-            {selectedTemplateIds.length > 0 && (
-              <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[8px] font-mono font-bold flex items-center justify-center shadow-xs">
-                {selectedTemplateIds.length}
-              </span>
-            )}
+            <Bot className="w-4 h-4" />
           </button>
-        </div>
-      )}
+        )}
+
+        {/* Start New Chat Button (Stacked above Prompt Templates, borderless & transparent) */}
+        <button
+          ref={historyButtonRef}
+          type="button"
+          id="chat-top-right-new-chat-btn"
+          aria-label={isJulesMode ? "Start new task" : "Start new chat"}
+          title={isJulesMode ? "Start new task" : "Start new chat"}
+          onClick={handleStartNewChat}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setIsHistoryOpen((prev) => !prev);
+          }}
+          className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-transparent border-0 shadow-none hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors cursor-pointer active:scale-95 focus:outline-none touch-manipulation"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+
+        {/* Prompt Templates drawer trigger button (Stacked below New Chat, borderless & transparent) */}
+        <button
+          type="button"
+          id="chat-top-right-templates-btn"
+          aria-label="Prompt Templates"
+          title="Prompt Templates (Modular directives)"
+          onClick={() => setIsTemplateDrawerOpen(true)}
+          className={`relative w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-transparent border-0 shadow-none hover:bg-muted/50 transition-colors cursor-pointer active:scale-95 focus:outline-none touch-manipulation ${
+            selectedTemplateIds.length > 0
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          {selectedTemplateIds.length > 0 && (
+            <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[8px] font-mono font-bold flex items-center justify-center shadow-xs">
+              {selectedTemplateIds.length}
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Anchored History & New Chat Popover Menu */}
       {isHistoryOpen && (
         <div
           ref={historyPopoverRef}
           id="chat-window-history-popover"
-          className="absolute right-2 top-11 z-40 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover border border-border shadow-2xl overflow-hidden backdrop-blur-md"
+          className="absolute right-3 top-24 z-40 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover border border-border shadow-2xl overflow-hidden backdrop-blur-md"
         >
           {/* 1. Primary Action: Start New Chat */}
           <button
@@ -771,7 +966,27 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       )}
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto overscroll-contain p-3 pt-14 space-y-4 touch-pan-y"
+        onTouchStart={() => {
+          touchIsDraggingRef.current = true;
+        }}
+        onTouchMove={() => {
+          // On mobile, dragging through message history hides the soft keyboard
+          if (isInputFocused || document.activeElement === textareaRef.current) {
+            hideKeyboard();
+          }
+        }}
+        onTouchEnd={() => {
+          touchIsDraggingRef.current = false;
+        }}
+        onScroll={() => {
+          if (isInputFocused && touchIsDraggingRef.current) {
+            hideKeyboard();
+          }
+        }}
+      >
         {messages.length === 0 ? (
           isJulesMode ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-md mx-auto">
@@ -849,9 +1064,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-md mx-auto">
-              <div className="w-12 h-12 rounded-2xl bg-muted/40 border border-border flex items-center justify-center mb-3">
-                <Sparkles className="w-6 h-6 text-primary" />
-              </div>
               <h3 className="text-base font-semibold text-foreground mb-1">
                 Google AI Studio Playground
               </h3>
@@ -944,7 +1156,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-primary" />
                     <span className="font-medium text-foreground">Gemini</span>
                     {msg.tokenCount && (
                       <span className="text-[10px] text-muted-foreground">
@@ -1068,21 +1279,23 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 <div className="flex items-center gap-1 mt-1 px-1">
                   <button
                     onClick={() => handleCopy(msg.id, msg.text)}
-                    className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    className="min-w-[44px] min-h-[44px] p-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation"
                     title="Copy response"
+                    aria-label="Copy response"
                   >
                     {copiedId === msg.id ? (
-                      <Check className="w-3.5 h-3.5 text-primary" />
+                      <Check className="w-4 h-4 text-primary" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5" />
+                      <Copy className="w-4 h-4" />
                     )}
                   </button>
                   <button
                     onClick={onRegenerate}
-                    className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    className="min-w-[44px] min-h-[44px] p-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation"
                     title="Regenerate"
+                    aria-label="Regenerate response"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
+                    <RotateCcw className="w-4 h-4" />
                   </button>
                   <button
                     type="button"
@@ -1093,16 +1306,16 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                         handleToggleSpeech(msg.text);
                       }
                     }}
-                    className={`p-1 rounded transition-colors flex items-center gap-1 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer ${
+                    className={`min-w-[44px] min-h-[44px] p-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer touch-manipulation ${
                       isSpeaking ? "text-primary bg-primary/10" : ""
                     }`}
                     title={isSpeaking ? "Stop speech" : "Read aloud response"}
                     aria-label={isSpeaking ? "Stop speech" : "Read aloud response"}
                   >
                     {isSpeaking ? (
-                      <Square className="w-3.5 h-3.5 fill-primary text-primary" />
+                      <Square className="w-4 h-4 fill-primary text-primary" />
                     ) : (
-                      <Volume2 className="w-3.5 h-3.5" />
+                      <Volume2 className="w-4 h-4" />
                     )}
                   </button>
                 </div>
@@ -1165,11 +1378,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => handleRemoveTemplate(template.id)}
-                className="p-0.5 rounded-full hover:bg-destructive/20 text-muted-foreground hover:text-destructive cursor-pointer shrink-0 transition-colors"
+                className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full hover:bg-destructive/20 text-muted-foreground hover:text-destructive cursor-pointer shrink-0 transition-colors touch-manipulation relative after:absolute after:-inset-2"
                 title={`Dismiss #${idx + 1} ${template.title} (Dismiss to reorder)`}
                 aria-label={`Remove template ${template.title}`}
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           ))}
@@ -1178,10 +1391,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             type="button"
             id="tray-add-template-btn"
             onClick={() => setIsTemplateDrawerOpen(true)}
-            className="h-6 px-2 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-[11px] font-medium flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+            className="h-8 min-h-[32px] px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 shrink-0 transition-colors cursor-pointer touch-manipulation relative after:absolute after:-inset-1.5"
             title="Add or configure templates"
           >
-            <Plus className="w-3 h-3" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Add</span>
           </button>
 
@@ -1190,7 +1403,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               type="button"
               id="tray-clear-all-btn"
               onClick={handleClearAllTemplates}
-              className="text-[11px] text-muted-foreground hover:text-destructive px-1 shrink-0 transition-colors cursor-pointer"
+              className="text-xs text-muted-foreground hover:text-destructive px-2 py-1 shrink-0 transition-colors cursor-pointer touch-manipulation relative after:absolute after:-inset-1.5"
               title="Clear all selected templates"
             >
               Clear
@@ -1199,117 +1412,419 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         </div>
       )}
 
-      {/* Input Dock (Android Mobile Floating Keyboard Clearance) */}
-      <div className="p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] bg-card border-t border-border">
-        <div className="flex items-end gap-1.5 bg-background rounded-2xl border border-border focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50 p-1.5 transition-colors">
-          {/* Media Attach button */}
-          <button
-            type="button"
-            id="chat-attach-btn"
-            disabled={isOptimizingImage}
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
-            title={isOptimizingImage ? "Compressing image..." : "Attach image or screenshot"}
-          >
-            {isOptimizingImage ? (
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-            ) : (
-              <ImageIcon className="w-4 h-4" />
-            )}
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            multiple
-            className="hidden"
-          />
-
-          {/* Prompt textarea */}
-          <textarea
-            ref={textareaRef}
-            id="chat-prompt-input"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              isJulesMode
-                ? activeJulesSession
-                  ? `Describe a task or fix for Jules on ${activeJulesSession.repository}...`
-                  : "Select a repository to dispatch a Jules task..."
-                : "Type prompt or test instructions..."
-            }
-            rows={1}
-            className="flex-1 bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none py-1.5 px-1 max-h-28"
-          />
-
-          {/* Prompt Microphone button inside dock */}
-          <button
-            type="button"
-            id="chat-mic-btn"
-            onClick={handleActivatePromptSpeech}
-            className={`p-2 rounded-xl transition-colors shrink-0 cursor-pointer ${
-              isListening
-                ? "bg-destructive text-destructive-foreground animate-pulse"
-                : "text-muted-foreground hover:text-primary hover:bg-muted"
-            }`}
-            title={
-              isListening
-                ? "Stop speech-to-text"
-                : "Activate keyboard mic / speech-to-text"
-            }
-            aria-label="Activate keyboard mic or speech-to-text"
-          >
-            <Mic className="w-4 h-4" />
-          </button>
-
-          {/* Clear chat button if messages exist and input is empty */}
-          {messages.length > 0 && !inputText && (
+      {/* Optional Floating Action Button (FAB) placement when configured in settings */}
+      {speechSettings.voiceButtonPlacement === "fab" && (
+        <div className="absolute bottom-24 right-4 z-30 pointer-events-auto">
+          {!isVoiceModeActive ? (
             <button
               type="button"
-              id="chat-clear-btn"
-              onClick={handleClearChat}
-              className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-muted transition-colors shrink-0 cursor-pointer"
-              title="Reset prompt"
+              id="chat-handsfree-fab-btn"
+              onClick={handleToggleVoiceMode}
+              className="h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition-all active:scale-95 cursor-pointer touch-manipulation group"
+              title="Start hands-free continuous two-way voice conversation"
+              aria-label="Start hands-free continuous two-way voice conversation"
             >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Send / Stop button */}
-          {isGenerating ? (
-            <button
-              type="button"
-              id="chat-stop-btn"
-              onClick={onStopGeneration}
-              className="p-2.5 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer"
-              title="Stop generation"
-            >
-              <Square className="w-4 h-4 fill-destructive-foreground" />
+              <div className="w-6 h-6 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                <Mic className="w-3.5 h-3.5" />
+              </div>
+              <span>Hands-Free Voice</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             </button>
           ) : (
-            <button
-              type="button"
-              id="chat-send-btn"
-              onClick={handleSend}
-              disabled={
-                !inputText.trim() && attachments.length === 0 && selectedTemplateIds.length === 0
-              }
-              className={`p-2.5 rounded-xl transition-colors shrink-0 flex items-center gap-1 font-semibold ${
-                inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
-                  ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
-                  : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-              }`}
-              title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
-            >
-              {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-2 bg-card border border-primary/50 shadow-xl rounded-full p-1.5 pl-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-semibold text-foreground">
+                  {voiceState === "listening"
+                    ? isAudioDetected
+                      ? "Listening (Speaking)..."
+                      : "Listening..."
+                    : voiceState === "processing"
+                    ? "Thinking..."
+                    : voiceState === "speaking"
+                    ? "Speaking..."
+                    : "Standby"}
+                </span>
+              </div>
+              {voiceState === "speaking" && (
+                <button
+                  type="button"
+                  id="chat-voice-fab-interrupt-btn"
+                  onClick={handleInterrupt}
+                  className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                  title="Interrupt assistant speech"
+                >
+                  <Square className="w-3 h-3 fill-current" />
+                  <span>Interrupt</span>
+                </button>
+              )}
+              <button
+                type="button"
+                id="chat-voice-fab-end-btn"
+                onClick={handleToggleVoiceMode}
+                className="w-7 h-7 rounded-full bg-destructive/15 text-destructive hover:bg-destructive/25 flex items-center justify-center cursor-pointer"
+                title="End hands-free voice mode"
+                aria-label="End hands-free voice mode"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
         </div>
+      )}
+
+      {/* Adaptive Split-Dock (50/50 Resting Split ↔ 100% Expansions, Zero Outer Padding) */}
+      <div className="p-0 pb-[max(0rem,env(safe-area-inset-bottom))] bg-card border-t border-border">
+        {/* Case A: Voice Mode Active (100% Full-Width Conversational Voice Hub - Entire Section Tappable to Exit) */}
+        {isVoiceModeActive ? (
+          <div
+            id="conversational-voice-hud"
+            role="button"
+            tabIndex={0}
+            onClick={handleToggleVoiceMode}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleToggleVoiceMode();
+              }
+            }}
+            className="w-full h-20 min-h-[80px] px-4 py-2.5 bg-gradient-to-r from-primary/15 via-background to-primary/10 hover:from-primary/25 hover:via-background/90 hover:to-primary/20 active:scale-[0.995] border-t border-border shadow-xs flex items-center justify-between gap-3 animate-in fade-in duration-300 ease-in-out cursor-pointer select-none touch-manipulation group"
+            title="Tap anywhere to exit hands-free voice mode"
+            aria-label="Exit hands-free voice mode (tap anywhere)"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Dynamic Voice Visualizer */}
+              <div className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                {voiceState === "listening" && (
+                  <div className="flex items-center gap-1 h-5">
+                    <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:-0.3s] h-3" />
+                    <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:-0.15s] h-5" />
+                    <span className="w-1 bg-primary rounded-full animate-bounce h-2.5" />
+                  </div>
+                )}
+                {voiceState === "processing" && (
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                )}
+                {voiceState === "speaking" && (
+                  <div className="flex items-center gap-1 h-5">
+                    <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-5" />
+                    <span className="w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.2s] h-3.5" />
+                    <span className="w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.4s] h-5" />
+                  </div>
+                )}
+                {voiceState === "idle" && (
+                  <Mic className="w-5 h-5 text-muted-foreground" />
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                    {voiceState === "listening"
+                      ? isAudioDetected
+                        ? "Listening... (Speaking)"
+                        : "Listening... (Speak naturally)"
+                      : voiceState === "processing"
+                      ? "Gemini is thinking..."
+                      : voiceState === "speaking"
+                      ? "Assistant speaking..."
+                      : "Hands-free active"}
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  {silenceCountdownMs !== null && silenceCountdownMs > 0 && voiceState === "listening" && inputText.trim() && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                      Auto-send in {(silenceCountdownMs / 1000).toFixed(1)}s
+                    </span>
+                  )}
+                </div>
+                {speechError ? (
+                  <p className="text-[11px] text-amber-500 dark:text-amber-400 font-medium truncate">
+                    {speechError}
+                  </p>
+                ) : inputText.trim() ? (
+                  <p className="text-xs text-foreground/90 font-medium truncate italic max-w-[280px] sm:max-w-md md:max-w-xl">
+                    &ldquo;{inputText}&rdquo;
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {voiceState === "listening"
+                      ? "Speak now · Tap anywhere to exit & edit text"
+                      : voiceState === "speaking"
+                      ? "Tap Interrupt to cut in · Tap anywhere to exit"
+                      : "Tap anywhere to exit hands-free mode"}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {voiceState === "speaking" && (
+                <button
+                  type="button"
+                  id="chat-voice-interrupt-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleInterrupt();
+                  }}
+                  className="h-11 min-h-[44px] px-3.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 text-xs font-semibold flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
+                  title="Interrupt assistant speech"
+                  aria-label="Interrupt assistant speech"
+                >
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  <span>Interrupt</span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-1.5 text-muted-foreground group-hover:text-destructive transition-colors text-xs font-medium px-2 py-1">
+                <span className="hidden sm:inline text-[11px]">
+                  {inputText.trim() ? "Exit & edit text" : "Tap to exit"}
+                </span>
+                <X className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        ) : isInputExpanded ? (
+          /* Case B: Expanded 100% Full-Width Text Input Dock */
+          <div
+            className={`w-full bg-background border-t border-border transition-all duration-600 ease-in-out flex ${
+              isInputHeightExpanded ? "flex-col justify-between" : "items-end"
+            } gap-2 px-3 py-2 ${
+              isInputHeightExpanded ? "h-[200px] min-h-[200px]" : "h-20 min-h-[80px]"
+            }`}
+          >
+            {/* Standard height: Attachment button on the left */}
+            {!isInputHeightExpanded && (
+              <button
+                type="button"
+                id="chat-attach-btn"
+                disabled={isOptimizingImage}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:opacity-50 cursor-pointer touch-manipulation"
+                title={isOptimizingImage ? "Compressing image..." : "Attach image or screenshot"}
+                aria-label="Attach media"
+              >
+                {isOptimizingImage ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                ) : (
+                  <ImageIcon className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              multiple
+              className="hidden"
+            />
+
+            {/* Prompt textarea */}
+            <textarea
+              ref={textareaRef}
+              id="chat-prompt-input"
+              value={inputText}
+              autoFocus
+              onChange={(e) => setInputText(e.target.value)}
+              onFocus={() => {
+                setIsInputFocused(true);
+                setTimeout(() => {
+                  messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+                }, 120);
+              }}
+              onBlur={() => {
+                setTimeout(() => {
+                  if (document.activeElement !== textareaRef.current) {
+                    setIsInputFocused(false);
+                  }
+                }, 150);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                isJulesMode
+                  ? activeJulesSession
+                    ? `Describe a task or fix for Jules on ${activeJulesSession.repository}...`
+                    : "Select a repository to dispatch a Jules task..."
+                  : "Type prompt or test instructions..."
+              }
+              rows={isInputHeightExpanded ? 5 : 1}
+              className={`bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none py-2 px-1 overflow-y-auto leading-relaxed ${
+                isInputHeightExpanded
+                  ? "w-full flex-1 min-h-[110px] max-h-[135px]"
+                  : "flex-1 min-h-[44px] max-h-[58px]"
+              }`}
+            />
+
+            {/* When expanded to 250% height: bottom row containing attach on left, expand + send on right */}
+            {isInputHeightExpanded ? (
+              <div className="flex items-center justify-between w-full pt-1.5 border-t border-border/40 shrink-0">
+                {/* Media Attach button on the left */}
+                <button
+                  type="button"
+                  id="chat-attach-btn"
+                  disabled={isOptimizingImage}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:opacity-50 cursor-pointer touch-manipulation"
+                  title={isOptimizingImage ? "Compressing image..." : "Attach image or screenshot"}
+                  aria-label="Attach media"
+                >
+                  {isOptimizingImage ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  ) : (
+                    <ImageIcon className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* Right controls: borderless transparent expand button + send button */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    id="chat-expand-height-btn"
+                    onClick={() => setIsInputHeightExpanded(false)}
+                    className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors shadow-none touch-manipulation"
+                    title="Restore standard height"
+                    aria-label="Restore standard height"
+                  >
+                    <Minimize2 className="w-4 h-4" />
+                  </button>
+
+                  {isGenerating ? (
+                    <button
+                      type="button"
+                      id="chat-stop-btn"
+                      onClick={onStopGeneration}
+                      className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
+                      title="Stop generation"
+                      aria-label="Stop generation"
+                    >
+                      <Square className="w-4 h-4 fill-destructive-foreground" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      id="chat-send-btn"
+                      onClick={handleSend}
+                      disabled={
+                        !inputText.trim() && attachments.length === 0 && selectedTemplateIds.length === 0
+                      }
+                      className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 font-semibold touch-manipulation ${
+                        inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
+                          ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
+                          : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                      }`}
+                      title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                      aria-label={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                    >
+                      {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* When standard height: right controls inline with textarea */
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Borderless transparent Expand button (increases height by around 250%) */}
+                <button
+                  type="button"
+                  id="chat-expand-height-btn"
+                  onClick={() => setIsInputHeightExpanded(true)}
+                  className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors shadow-none touch-manipulation"
+                  title="Expand input height (250%)"
+                  aria-label="Expand input height"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+
+                {/* Send / Stop button on the right */}
+                {isGenerating ? (
+                  <button
+                    type="button"
+                    id="chat-stop-btn"
+                    onClick={onStopGeneration}
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
+                    title="Stop generation"
+                    aria-label="Stop generation"
+                  >
+                    <Square className="w-4 h-4 fill-destructive-foreground" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    id="chat-send-btn"
+                    onClick={handleSend}
+                    disabled={
+                      !inputText.trim() && attachments.length === 0 && selectedTemplateIds.length === 0
+                    }
+                    className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 font-semibold touch-manipulation ${
+                      inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
+                        ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
+                        : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                    }`}
+                    title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                    aria-label={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                  >
+                    {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Case C: Resting State 50/50 Adaptive Split-Dock (0 Outer Padding) */
+          <div className="flex items-stretch gap-0 w-full h-20 min-h-[80px]">
+            {/* Left 50%: Text Input Window (Placeholder text only, NO buttons at rest) */}
+            <div
+              id="chat-resting-text-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setIsInputFocused(true);
+                setTimeout(() => {
+                  textareaRef.current?.focus();
+                }, 50);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setIsInputFocused(true);
+                  setTimeout(() => {
+                    textareaRef.current?.focus();
+                  }, 50);
+                }
+              }}
+              className="flex-1 w-1/2 h-20 min-h-[80px] bg-background hover:bg-muted/30 border-r border-border focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-all duration-600 ease-in-out select-none group touch-manipulation"
+              title="Tap to type message (expands full width)"
+              aria-label="Tap to open chat text input"
+            >
+              <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors min-w-0">
+                <MessageSquare className="w-4 h-4 shrink-0 text-muted-foreground/70 group-hover:text-primary transition-colors" />
+                <span className="text-xs sm:text-sm truncate">
+                  {inputText ? (
+                    <span className="text-foreground font-medium">{inputText}</span>
+                  ) : isJulesMode ? (
+                    "Dispatch task..."
+                  ) : (
+                    "Type message..."
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Right 50%: Hands-Free Voice Button (Icon-only, microphone icon, colors extend to fill entire area) */}
+            <button
+              type="button"
+              id="chat-handsfree-primary-btn"
+              onClick={handleToggleVoiceMode}
+              className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-all duration-300 ease-in-out cursor-pointer touch-manipulation group"
+              title="Start hands-free voice mode"
+              aria-label="Start hands-free voice mode"
+            >
+              <Mic className="w-6 h-6 text-primary group-hover:scale-110 active:scale-95 transition-transform" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Full-Screen Mobile Drawer for Prompt Templates (Selection, Filtering, Authoring, Preview) */}
+      {/* Full-Screen Mobile Drawer for Prompt Templates (Selection, Filtering, Authoring, Preview, Prompt Tools) */}
       <PromptTemplateDrawer
         isOpen={isTemplateDrawerOpen}
         onClose={() => setIsTemplateDrawerOpen(false)}
@@ -1318,6 +1833,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         onRemoveTemplate={handleRemoveTemplate}
         onClearAllTemplates={handleClearAllTemplates}
         draftUserText={inputText}
+        onInsertText={(text) => {
+          setInputText((prev) => (prev.trim() ? `${prev}\n\n${text}` : text));
+          setIsTemplateDrawerOpen(false);
+        }}
       />
     </div>
   );

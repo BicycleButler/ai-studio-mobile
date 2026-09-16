@@ -1,10 +1,14 @@
 // Google AI Studio Mobile - Progressive Web App Service Worker
-const CACHE_NAME = "ai-studio-mobile-v1";
+const CACHE_NAME = "ai-studio-mobile-v2";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/favicon.svg"
+  "/favicon.svg",
+  "/apple-touch-icon.png",
+  "/pwa-192x192.png",
+  "/pwa-512x512.png",
+  "/pwa-maskable-512x512.png"
 ];
 
 self.addEventListener("install", (event) => {

@@ -54,6 +54,8 @@ import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
 import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
 import { useTheme } from "../hooks/useTheme";
+import { PWAInstallButton } from "./PWAInstallButton";
+import { getPlatformCapabilities } from "../utils/platform";
 
 export type SettingsTab =
   | "account"
@@ -67,7 +69,8 @@ export type SettingsTab =
   | "export"
   | "companion"
   | "tune"
-  | "model";
+  | "model"
+  | "pwa";
 
 interface UnifiedSettingsModalProps {
   isOpen: boolean;
@@ -155,10 +158,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const { mode: themeMode, setThemeMode } = useTheme();
 
   // Normalize initialTab to canonical tabs
-  const resolveTab = (tab?: SettingsTab): "account" | "audio" | "display" | "security" | "library" | "export" | "companion" => {
+  const resolveTab = (tab?: SettingsTab): "account" | "audio" | "display" | "security" | "library" | "export" | "companion" | "pwa" => {
     if (!tab) return "account";
     if (tab === "auth" || tab === "key") return "account";
     if (tab === "settings") return "security";
+    if (tab === "pwa") return "pwa";
     if (tab === "tune" || tab === "model") {
       if (onOpenParameters) {
         setTimeout(() => {
@@ -168,10 +172,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
       }
       return "account";
     }
-    return tab as "account" | "audio" | "display" | "security" | "library" | "export" | "companion";
+    return tab as "account" | "audio" | "display" | "security" | "library" | "export" | "companion" | "pwa";
   };
 
-  const [activeTab, setActiveTab] = useState<"account" | "audio" | "display" | "security" | "library" | "export" | "companion">(
+  const [activeTab, setActiveTab] = useState<"account" | "audio" | "display" | "security" | "library" | "export" | "companion" | "pwa">(
     resolveTab(initialTab)
   );
 
@@ -205,6 +209,22 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const [editingProjectName, setEditingProjectName] = useState("");
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
   const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
+
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null) return;
+    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
+    if (diff > 45) {
+      stopPreview();
+      onClose();
+    }
+    touchStartYRef.current = null;
+  };
 
   useEffect(() => {
     setInputApiKey(customApiKey);
@@ -533,6 +553,51 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     }
   };
 
+  const handleToggleAutoRead = () => {
+    const updated: SpeechSettings = {
+      ...currentSpeechSettings,
+      autoReadResponses: !currentSpeechSettings.autoReadResponses,
+    };
+    setCurrentSpeechSettings(updated);
+    onSaveSpeechSettings(updated);
+  };
+
+  const handleToggleHandsFree = () => {
+    const updated: SpeechSettings = {
+      ...currentSpeechSettings,
+      handsFreeMode: !currentSpeechSettings.handsFreeMode,
+    };
+    setCurrentSpeechSettings(updated);
+    onSaveSpeechSettings(updated);
+  };
+
+  const handleToggleSentenceStreaming = () => {
+    const updated: SpeechSettings = {
+      ...currentSpeechSettings,
+      sentenceStreaming: !currentSpeechSettings.sentenceStreaming,
+    };
+    setCurrentSpeechSettings(updated);
+    onSaveSpeechSettings(updated);
+  };
+
+  const handleSelectSilenceTimeout = (silenceTimeoutMs: number) => {
+    const updated: SpeechSettings = {
+      ...currentSpeechSettings,
+      silenceTimeoutMs,
+    };
+    setCurrentSpeechSettings(updated);
+    onSaveSpeechSettings(updated);
+  };
+
+  const handleSelectVoiceButtonPlacement = (placement: "footer" | "fab") => {
+    const updated: SpeechSettings = {
+      ...currentSpeechSettings,
+      voiceButtonPlacement: placement,
+    };
+    setCurrentSpeechSettings(updated);
+    onSaveSpeechSettings(updated);
+  };
+
   if (!isOpen) return null;
 
   const hasAnyAuth = Boolean(googleUser || customApiKey.trim() || hasServerKey);
@@ -551,8 +616,25 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     >
       <div
         id="unified-settings-dialog"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         className="relative w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-foreground"
       >
+        {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
+        <div
+          onClick={() => {
+            stopPreview();
+            onClose();
+          }}
+          className="sm:hidden w-full flex items-center justify-center pt-2 pb-1 bg-popover cursor-pointer group touch-manipulation"
+          title="Swipe down or tap to dismiss"
+          role="button"
+          tabIndex={0}
+          aria-label="Dismiss settings"
+        >
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-popover shrink-0">
           <div className="flex items-center gap-2">
@@ -566,7 +648,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               onClose();
             }}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation"
             title="Close Settings"
             aria-label="Close Settings"
           >
@@ -578,7 +660,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         <div
           role="tablist"
           aria-label="Settings and Hub sections"
-          className="flex border-b border-border bg-muted/40 px-2 overflow-x-auto scrollbar-none shrink-0"
+          className="flex border-b border-border bg-muted/40 px-2 overflow-x-auto scrollbar-none shrink-0 touch-pan-x overscroll-x-contain"
         >
           <button
             type="button"
@@ -665,6 +747,26 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           >
             <ShieldCheck className="w-5 h-5" />
             <span className="whitespace-nowrap">Security & App</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-pwa"
+            aria-selected={activeTab === "pwa"}
+            aria-controls="tabpanel-pwa"
+            onClick={() => {
+              stopPreview();
+              setActiveTab("pwa");
+            }}
+            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "pwa"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
+            }`}
+          >
+            <Smartphone className="w-5 h-5" />
+            <span className="whitespace-nowrap">PWA & Native</span>
           </button>
 
           <button
@@ -1446,7 +1548,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 </div>
               )}
 
-              {/* Speed rate */}
+              {/* Playback Speed */}
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Playback Speed
@@ -1466,6 +1568,170 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       {rate === 1.0 ? "1.0x (Normal)" : `${rate}x`}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Two-Way Voice & Latency Optimizations */}
+              <div className="pt-2 border-t border-border space-y-3">
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                    Two-Way Voice & Latency Optimizations
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    100% free browser-native pipeline with zero external API fees.
+                  </p>
+                </div>
+
+                {/* Hands-free Conversational Voice Mode Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
+                  <div className="space-y-0.5 pr-2">
+                    <div className="text-xs font-semibold text-foreground">
+                      Hands-Free Continuous Voice
+                    </div>
+                    <div className="text-[11px] text-muted-foreground leading-relaxed">
+                      Auto-sends upon pause, reads assistant responses, and resumes listening hands-free.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={currentSpeechSettings.handsFreeMode}
+                    onClick={handleToggleHandsFree}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      currentSpeechSettings.handsFreeMode ? "bg-primary" : "bg-muted"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        currentSpeechSettings.handsFreeMode ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Sentence Pipelining (Instant streaming audio) */}
+                <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
+                  <div className="space-y-0.5 pr-2">
+                    <div className="text-xs font-semibold text-foreground">
+                      Sentence Pipelining (Ultra-Low TTFA)
+                    </div>
+                    <div className="text-[11px] text-muted-foreground leading-relaxed">
+                      Synthesizes sentences in real time as tokens stream in (~250ms first-audio latency).
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={currentSpeechSettings.sentenceStreaming}
+                    onClick={handleToggleSentenceStreaming}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      currentSpeechSettings.sentenceStreaming ? "bg-primary" : "bg-muted"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        currentSpeechSettings.sentenceStreaming ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Auto-Read Responses Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
+                  <div className="space-y-0.5 pr-2">
+                    <div className="text-xs font-semibold text-foreground">
+                      Auto-Read Responses
+                    </div>
+                    <div className="text-[11px] text-muted-foreground leading-relaxed">
+                      Automatically speaks responses aloud even outside full hands-free mode.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={currentSpeechSettings.autoReadResponses}
+                    onClick={handleToggleAutoRead}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      currentSpeechSettings.autoReadResponses ? "bg-primary" : "bg-muted"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        currentSpeechSettings.autoReadResponses ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Silence Pause Detection Delay */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Silence Pause Before Auto-Send
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "1.0s (Fast)", ms: 1000 },
+                      { label: "1.5s (Balanced)", ms: 1500 },
+                      { label: "2.0s (Relaxed)", ms: 2000 },
+                    ].map((opt) => (
+                      <button
+                        key={opt.ms}
+                        type="button"
+                        onClick={() => handleSelectSilenceTimeout(opt.ms)}
+                        className={`py-1.5 px-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
+                          currentSpeechSettings.silenceTimeoutMs === opt.ms
+                            ? "bg-primary border-primary text-primary-foreground font-semibold shadow-sm"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Hands-Free Button Style / Placement */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Hands-Free Voice Button Style
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      id="settings-voice-style-footer"
+                      onClick={() => handleSelectVoiceButtonPlacement("footer")}
+                      className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                        currentSpeechSettings.voiceButtonPlacement !== "fab"
+                          ? "bg-primary/15 border-primary ring-1 ring-primary/40"
+                          : "bg-card border-border hover:border-primary/50 hover:bg-muted"
+                      }`}
+                    >
+                      <div className="text-xs font-semibold text-foreground">
+                        Full-Width Footer Bar
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Docked above input composer
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      id="settings-voice-style-fab"
+                      onClick={() => handleSelectVoiceButtonPlacement("fab")}
+                      className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                        currentSpeechSettings.voiceButtonPlacement === "fab"
+                          ? "bg-primary/15 border-primary ring-1 ring-primary/40"
+                          : "bg-card border-border hover:border-primary/50 hover:bg-muted"
+                      }`}
+                    >
+                      <div className="text-xs font-semibold text-foreground">
+                        Floating Action Button
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Elevated FAB on bottom right
+                      </p>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1667,6 +1933,110 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>Client for Google AI Studio</span>
                   <span className="text-primary font-medium">Official Gemini API</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: PROGRESSIVE WEB APP & CAPACITOR MOBILE NATIVE */}
+          {activeTab === "pwa" && (
+            <div className="space-y-4">
+              {/* Card 1: Runtime & Installation Card */}
+              <div className="p-4 rounded-xl bg-card border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground">Mobile Runtime Profile</h4>
+                      <p className="text-xs text-muted-foreground">Progressive Web App & Native mobile architecture</p>
+                    </div>
+                  </div>
+
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/15 text-primary border border-primary/20">
+                    {(() => {
+                      const caps = getPlatformCapabilities();
+                      if (caps.isNative) return "Capacitor Native";
+                      if (caps.isPWA) return "PWA Standalone";
+                      return "Web Browser";
+                    })()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                  <div className="p-3 rounded-lg bg-muted/50 border border-border/60">
+                    <span className="text-[11px] text-muted-foreground block">Service Worker</span>
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Active (v2 Caching)
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-muted/50 border border-border/60">
+                    <span className="text-[11px] text-muted-foreground block">Display Mode</span>
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-primary" />
+                      Standalone (Portrait)
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-muted/50 border border-border/60">
+                    <span className="text-[11px] text-muted-foreground block">Viewport Insets</span>
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Cover (Notch Safe)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: In-App Install Prompt */}
+              <PWAInstallButton variant="card" />
+
+              {/* Card 3: Capacitor Native Mobile Readiness */}
+              <div className="p-4 rounded-xl bg-card border border-border space-y-3">
+                <div className="flex items-center gap-2">
+                  <Monitor className="w-4 h-4 text-primary" />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Capacitor Native Mobile Readiness
+                  </h4>
+                </div>
+
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  This application is architected to run as both a Progressive Web App and a native Android / iOS app via Capacitor:
+                </p>
+
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2.5 text-xs text-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-foreground">Capacitor Config Initialized:</strong>
+                      <span className="text-muted-foreground ml-1">
+                        Root <code className="text-primary font-mono text-[11px]">capacitor.config.ts</code> with package ID <code className="text-primary font-mono text-[11px]">com.aistudio.mobile</code>.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-xs text-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-foreground">Safe Area & Notch Insets:</strong>
+                      <span className="text-muted-foreground ml-1">
+                        Hardware edge-to-edge support with <code className="text-primary font-mono text-[11px]">viewport-fit=cover</code> and automatic status bar padding.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 text-xs text-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-foreground">Offline-First Asset Precaching:</strong>
+                      <span className="text-muted-foreground ml-1">
+                        Web assets compiled into static <code className="text-primary font-mono text-[11px]">dist/</code> directory for native WebView synchronization.
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

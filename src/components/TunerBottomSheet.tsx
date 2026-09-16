@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   Sliders,
   RotateCcw,
-  Sparkles,
   FileJson,
   Layers,
   X,
@@ -30,6 +29,21 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
   hasApiKey = false,
   onOpenAuth,
 }) => {
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null) return;
+    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
+    if (diff > 40 && onClose) {
+      onClose();
+    }
+    touchStartYRef.current = null;
+  };
+
   const updateField = <K extends keyof PromptConfig>(
     field: K,
     value: PromptConfig[K]
@@ -65,19 +79,22 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
           <Sliders className="w-4 h-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Model & Tuners</h2>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             onClick={handleResetDefaults}
-            className="p-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+            className="min-h-[44px] px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation"
             title="Reset to defaults"
+            aria-label="Reset parameters to defaults"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Reset</span>
+            <span className="text-xs">Reset</span>
           </button>
           {isModal && onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted cursor-pointer"
+              className="min-w-[44px] min-h-[44px] p-2.5 text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted cursor-pointer flex items-center justify-center transition-colors touch-manipulation"
+              title="Close modal"
+              aria-label="Close modal"
             >
               <X className="w-4 h-4" />
             </button>
@@ -168,10 +185,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
       {/* 2. System Instruction */}
       <div className="space-y-1.5 bg-card border border-border rounded-xl p-3">
         <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            System Instructions
-          </span>
+          <span>System Instructions</span>
           <span className="text-[10px] text-muted-foreground font-mono">
             {config.systemInstruction.length} chars
           </span>
@@ -355,8 +369,21 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
       >
         <div
           id="tuner-bottom-sheet-dialog"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           className="w-full sm:max-w-md max-h-[85vh] h-auto bg-background border border-border sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
         >
+          {/* Universal Swipe Grab Handle (Mobile-first) */}
+          <div
+            onClick={onClose}
+            className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-1 cursor-pointer group"
+            title="Swipe down or tap to dismiss"
+            role="button"
+            tabIndex={0}
+            aria-label="Dismiss tuner sheet"
+          >
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
+          </div>
           {content}
         </div>
       </div>

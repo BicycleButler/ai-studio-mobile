@@ -71,7 +71,7 @@ fun RefreshableFeed(
   {
     id: "template-structured-json",
     title: "Receipt & Invoice JSON Extractor",
-    type: "structured",
+    type: "chat",
     config: {
       ...DEFAULT_CONFIG,
       temperature: 0.1,
@@ -104,12 +104,17 @@ fun RefreshableFeed(
         2
       ),
     },
-    messages: [],
-    structuredExamples: [
+    messages: [
       {
-        id: "ex-1",
-        input: "Google Store, Mountain View CA. Oct 14, 2025. Pixel 9 Pro 128GB $999.00, Pixel Stand 2nd Gen $79.00. Tax: $97.02. Total: $1175.02.",
-        output: JSON.stringify(
+        id: "ex-1-user",
+        role: "user",
+        text: "Google Store, Mountain View CA. Oct 14, 2025. Pixel 9 Pro 128GB $999.00, Pixel Stand 2nd Gen $79.00. Tax: $97.02. Total: $1175.02.",
+        timestamp: Date.now() - 300000,
+      },
+      {
+        id: "ex-1-model",
+        role: "model",
+        text: JSON.stringify(
           {
             vendor: "Google Store",
             date: "2025-10-14",
@@ -123,6 +128,7 @@ fun RefreshableFeed(
           null,
           2
         ),
+        timestamp: Date.now() - 290000,
       },
     ],
     updatedAt: Date.now() - 300000,

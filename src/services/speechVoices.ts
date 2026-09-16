@@ -26,6 +26,11 @@ export interface SpeechSettings {
   geminiVoice: string;
   deviceVoiceURI: string;
   playbackRate: number;
+  autoReadResponses: boolean;
+  handsFreeMode: boolean;
+  silenceTimeoutMs: number;
+  sentenceStreaming: boolean;
+  voiceButtonPlacement?: "footer" | "fab";
 }
 
 export const GEMINI_VOICES: GeminiVoiceOption[] = [
@@ -74,32 +79,44 @@ export const GEMINI_VOICES: GeminiVoiceOption[] = [
 ];
 
 const SETTINGS_KEY = "gemini_studio_speech_settings_v1";
+let inMemorySettings: SpeechSettings | null = null;
 
 export const DEFAULT_SPEECH_SETTINGS: SpeechSettings = {
-  engine: "gemini",
+  engine: "device", // Default to device for instant 0ms, 100% free, offline availability
   geminiVoice: "Puck",
   deviceVoiceURI: "",
   playbackRate: 1.0,
+  autoReadResponses: false,
+  handsFreeMode: false,
+  silenceTimeoutMs: 1500,
+  sentenceStreaming: true,
+  voiceButtonPlacement: "footer",
 };
 
 export function loadSpeechSettings(): SpeechSettings {
-  if (typeof window === "undefined") return DEFAULT_SPEECH_SETTINGS;
+  if (typeof window === "undefined") return inMemorySettings || DEFAULT_SPEECH_SETTINGS;
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return DEFAULT_SPEECH_SETTINGS;
+    if (!raw) return inMemorySettings || DEFAULT_SPEECH_SETTINGS;
     const parsed = JSON.parse(raw);
     return {
-      engine: parsed.engine === "device" ? "device" : "gemini",
+      engine: parsed.engine === "gemini" ? "gemini" : "device",
       geminiVoice: parsed.geminiVoice || "Puck",
       deviceVoiceURI: parsed.deviceVoiceURI || "",
       playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
+      autoReadResponses: Boolean(parsed.autoReadResponses),
+      handsFreeMode: Boolean(parsed.handsFreeMode),
+      silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
+      sentenceStreaming: parsed.sentenceStreaming !== false,
+      voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
     };
   } catch {
-    return DEFAULT_SPEECH_SETTINGS;
+    return inMemorySettings || DEFAULT_SPEECH_SETTINGS;
   }
 }
 
 export function saveSpeechSettings(settings: SpeechSettings): void {
+  inMemorySettings = settings;
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -153,4 +170,61 @@ export function getAvailableDeviceVoices(): DeviceVoiceOption[] {
     }
     return a.name.localeCompare(b.name);
   });
+}
+
+/**
+ * Automatically finds the highest-quality natural device voice matching the preferred URI or system
+ */
+export function getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return null;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  if (preferredURI) {
+    const matched = voices.find((v) => v.voiceURI === preferredURI);
+    if (matched) return matched;
+  }
+
+  const userLang = (navigator.language || "en").toLowerCase();
+  const userLangPrefix = userLang.slice(0, 2);
+
+  // 1. Natural / Neural voice in user's exact language
+  const naturalExactLang = voices.find((v) => {
+    const name = v.name.toLowerCase();
+    const isNat =
+      name.includes("natural") ||
+      name.includes("online") ||
+      name.includes("enhanced") ||
+      name.includes("google") ||
+      name.includes("siri") ||
+      name.includes("premium") ||
+      name.includes("neural");
+    return isNat && v.lang.toLowerCase() === userLang;
+  });
+  if (naturalExactLang) return naturalExactLang;
+
+  // 2. Natural / Neural voice in user's language family
+  const naturalPrefixLang = voices.find((v) => {
+    const name = v.name.toLowerCase();
+    const isNat =
+      name.includes("natural") ||
+      name.includes("online") ||
+      name.includes("enhanced") ||
+      name.includes("google") ||
+      name.includes("siri") ||
+      name.includes("premium") ||
+      name.includes("neural");
+    return isNat && v.lang.toLowerCase().startsWith(userLangPrefix);
+  });
+  if (naturalPrefixLang) return naturalPrefixLang;
+
+  // 3. Any voice in user's language
+  const anyUserLang = voices.find((v) => v.lang.toLowerCase().startsWith(userLangPrefix));
+  if (anyUserLang) return anyUserLang;
+
+  // 4. Default voice
+  const defaultVoice = voices.find((v) => v.default);
+  return defaultVoice || voices[0] || null;
 }

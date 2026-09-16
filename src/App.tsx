@@ -27,9 +27,8 @@ import {
 import { STARTER_TEMPLATES } from "./data/templates";
 import { TopAppBar } from "./components/TopAppBar";
 import { ChatWorkspace } from "./components/ChatWorkspace";
-import { FreeformWorkspace } from "./components/FreeformWorkspace";
-import { StructuredWorkspace } from "./components/StructuredWorkspace";
 import { MobileIDEWorkspace } from "./components/MobileIDEWorkspace";
+import { StubsWorkspace } from "./components/StubsWorkspace";
 import { TunerBottomSheet } from "./components/TunerBottomSheet";
 import { UnifiedSettingsModal, SettingsTab } from "./components/UnifiedSettingsModal";
 import { AndroidFrame } from "./components/AndroidFrame";
@@ -73,6 +72,7 @@ import {
   saveSpeechSettings,
 } from "./services/speechVoices";
 import { AlertCircle, AlertTriangle, Key, RefreshCw, WifiOff, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
+import { OfflineIndicator } from "./components/OfflineIndicator";
 
 export default function App() {
   // Phase 3: Active Project & Projects vault
@@ -85,6 +85,7 @@ export default function App() {
   // Navigation & Mode states
   const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
   const [deviceMode, setDeviceMode] = useState<DeviceFrameMode>("responsive");
+  const [showBottomNav, setShowBottomNav] = useState(false);
   const [showTunerSheet, setShowTunerSheet] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("account");
@@ -171,17 +172,11 @@ export default function App() {
     return STARTER_TEMPLATES[0].messages;
   });
 
-  // Freeform state
-  const [freeformText, setFreeformText] = useState(initialDraft.freeformText);
-  const [freeformOutput, setFreeformOutput] = useState("");
-  const [freeformTokens, setFreeformTokens] = useState<number | undefined>();
-  const [freeformDurationMs, setFreeformDurationMs] = useState<number | undefined>();
-
-  // Structured state
-  const [structuredExamples, setStructuredExamples] = useState<StructuredExample[]>(
+  // Mobile IDE compatibility state
+  const [freeformText] = useState(initialDraft.freeformText);
+  const [structuredExamples] = useState<StructuredExample[]>(
     initialDraft.structuredExamples
   );
-  const [structuredOutput, setStructuredOutput] = useState("");
 
   // Library / saved prompts
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(() => loadSavedPrompts());
@@ -637,8 +632,6 @@ export default function App() {
       ...targetDraft.config,
       ...(project.defaultModel ? { model: project.defaultModel } : {}),
     });
-    setFreeformText(targetDraft.freeformText);
-    setStructuredExamples(targetDraft.structuredExamples);
     if (targetDraft.messages && targetDraft.messages.length > 0) {
       setMessages(targetDraft.messages);
     } else {
@@ -694,9 +687,6 @@ export default function App() {
         saveStoredApiKey("");
         // Clean wipe to starter state
         setMessages(STARTER_TEMPLATES[0].messages);
-        setFreeformText("");
-        setFreeformOutput("");
-        setStructuredOutput("");
       }
     }
   };
@@ -829,98 +819,16 @@ export default function App() {
     void handleSendMessage(lastUser.text, lastUser.images);
   };
 
-  // Freeform: Run prompt
-  const handleExecuteFreeform = async (promptContent: string) => {
-    if (isGenerating || !isOnline) return;
-    if (!hasApiKey) {
-      handleOpenSettings("account");
-      return;
-    }
-    setFreeformOutput("");
-    setFreeformTokens(undefined);
-    setFreeformDurationMs(undefined);
-
-    const result = await startStream(
-      {
-        model: config.model,
-        messages: [{ role: "user", text: promptContent }],
-        systemInstruction: config.systemInstruction,
-        temperature: config.temperature,
-        topP: config.topP,
-        topK: config.topK,
-        maxOutputTokens: config.maxOutputTokens,
-      },
-      (accumulatedText) => {
-        setFreeformOutput(accumulatedText);
-      }
-    );
-
-    if (result) {
-      setFreeformOutput(result.text);
-      setFreeformDurationMs(result.durationMs);
-      setFreeformTokens(result.totalTokens);
-    } else if (streamError) {
-      setFreeformOutput(`Error: ${streamError}`);
-    }
-  };
-
-  // Structured: Run prompt
-  const handleExecuteStructured = async (
-    testInput: string,
-    examples: StructuredExample[]
-  ) => {
-    if (isGenerating || !isOnline) return;
-    if (!hasApiKey) {
-      handleOpenSettings("account");
-      return;
-    }
-    setStructuredOutput("");
-
-    const fewShotMessages: IncomingMessage[] = [];
-    examples.forEach((ex) => {
-      if (ex.input) fewShotMessages.push({ role: "user", text: ex.input });
-      if (ex.output) fewShotMessages.push({ role: "model", text: ex.output });
-    });
-    fewShotMessages.push({ role: "user", text: testInput });
-
-    const result = await startStream(
-      {
-        model: config.model,
-        messages: fewShotMessages,
-        systemInstruction: config.systemInstruction,
-        temperature: config.temperature,
-        topP: config.topP,
-        topK: config.topK,
-        maxOutputTokens: config.maxOutputTokens,
-        responseMimeType: config.responseMimeType,
-      },
-      (accumulatedText) => {
-        setStructuredOutput(accumulatedText);
-      }
-    );
-
-    if (result) {
-      setStructuredOutput(result.text);
-    } else if (streamError) {
-      setStructuredOutput(`Error: ${streamError}`);
-    }
-  };
-
   // Load a prompt template or saved item
   const handleLoadPrompt = (prompt: SavedPrompt) => {
-    setPromptType(prompt.type);
+    const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
+    const targetType: PromptType = validPromptTypes.includes(prompt.type as PromptType)
+      ? (prompt.type as PromptType)
+      : "chat";
+    setPromptType(targetType);
     setConfig(prompt.config);
     if (prompt.messages && prompt.messages.length > 0) {
       setMessages(prompt.messages);
-    }
-    if (prompt.freeformText) {
-      setFreeformText(prompt.freeformText);
-    }
-    if (prompt.structuredExamples) {
-      setStructuredExamples(prompt.structuredExamples);
-    }
-    if (prompt.type) {
-      setPromptType(prompt.type);
     }
   };
 
@@ -932,8 +840,6 @@ export default function App() {
       type: promptType,
       config: { ...config },
       messages: [...messages],
-      freeformText,
-      structuredExamples: [...structuredExamples],
       updatedAt: Date.now(),
       projectId: activeProject?.id,
     };
@@ -952,27 +858,11 @@ export default function App() {
 
   const totalTokensEstimate = (() => {
     const sysTokens = Math.round((config.systemInstruction?.length || 0) / 4);
-    if (promptType === "chat") {
+    if (promptType === "chat" || promptType === "jules") {
       const msgTokens = messages.reduce((acc, m) => {
         return acc + (m.tokenCount || Math.round((m.text?.length || 0) / 4));
       }, 0);
       return msgTokens + sysTokens;
-    }
-    if (promptType === "freeform") {
-      const inTokens = Math.round((freeformText?.length || 0) / 4);
-      const outTokens = Math.round((freeformOutput?.length || 0) / 4);
-      return inTokens + outTokens + sysTokens;
-    }
-    if (promptType === "structured") {
-      const examplesTokens = structuredExamples.reduce((acc, ex) => {
-        return (
-          acc +
-          Math.round((ex.input?.length || 0) / 4) +
-          Math.round((ex.output?.length || 0) / 4)
-        );
-      }, 0);
-      const outTokens = Math.round((structuredOutput?.length || 0) / 4);
-      return examplesTokens + outTokens + sysTokens;
     }
     return sysTokens;
   })();
@@ -998,6 +888,7 @@ export default function App() {
         }
         onOpenParameters={() => setShowTunerSheet(true)}
         onOpenSettings={handleOpenSettings}
+        onOpenBottomNav={() => setShowBottomNav(true)}
         hasApiKey={promptType === "jules" ? Boolean(julesApiKey.trim()) : hasApiKey}
         googleUser={googleUser}
         totalTokens={totalTokensEstimate}
@@ -1192,7 +1083,7 @@ export default function App() {
         {promptType === "chat" && (
           <ChatWorkspace
             messages={messages}
-            onSendMessage={(text, atts) => void handleSendMessage(text, atts)}
+            onSendMessage={(text, atts, tplIds, rawText) => void handleSendMessage(text, atts, tplIds, rawText)}
             onClearMessages={handleStartNewChat}
             onRegenerate={handleRegenerate}
             onStopGeneration={stopStream}
@@ -1214,30 +1105,7 @@ export default function App() {
             currentSessionId={currentSessionId}
             onSelectSession={handleSelectChatSession}
             onNewChat={handleStartNewChat}
-          />
-        )}
-        {promptType === "freeform" && (
-          <FreeformWorkspace
-            config={config}
-            freeformText={freeformText}
-            onChangeText={setFreeformText}
-            onExecute={(content) => void handleExecuteFreeform(content)}
-            onStop={stopStream}
-            isGenerating={isGenerating}
-            output={freeformOutput}
-            tokens={freeformTokens}
-            durationMs={freeformDurationMs}
-          />
-        )}
-        {promptType === "structured" && (
-          <StructuredWorkspace
-            config={config}
-            examples={structuredExamples}
-            onUpdateExamples={setStructuredExamples}
-            onExecute={(input, exs) => void handleExecuteStructured(input, exs)}
-            onStop={stopStream}
-            isGenerating={isGenerating}
-            output={structuredOutput}
+            onOpenBottomNav={() => setShowBottomNav(true)}
           />
         )}
         {promptType === "code" && (
@@ -1294,6 +1162,13 @@ export default function App() {
               }
             }}
             onNewChat={() => setShowJulesDrawer(true)}
+            onOpenBottomNav={() => setShowBottomNav(true)}
+          />
+        )}
+        {promptType === "stubs" && (
+          <StubsWorkspace
+            onOpenBottomNav={() => setShowBottomNav(true)}
+            onOpenParameters={() => setShowTunerSheet(true)}
           />
         )}
       </main>
@@ -1301,7 +1176,12 @@ export default function App() {
       {/* Primary Android Workspace Bottom Navigation Bar */}
       <BottomNavBar
         activeWorkspace={promptType}
-        onSelectWorkspace={(ws) => setPromptType(ws)}
+        onSelectWorkspace={(ws) => {
+          setPromptType(ws);
+          setShowBottomNav(false);
+        }}
+        isOpen={showBottomNav}
+        onClose={() => setShowBottomNav(false)}
       />
 
       {/* Canonical Model & Tuner Bottom Sheet */}
@@ -1405,6 +1285,9 @@ export default function App() {
         onSuccess={handleProjectActivated}
         availableModels={models.map((m) => ({ id: m.id, name: m.name }))}
       />
+
+      {/* Progressive Web App Network & Offline Mode Banner Indicator */}
+      <OfflineIndicator />
     </AndroidFrame>
   );
 }

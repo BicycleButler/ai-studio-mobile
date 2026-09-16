@@ -12,6 +12,8 @@ import { testKeyVerificationSubsystem } from "./services/keyVerification.test";
 import { testChatHistoryService } from "./services/chatHistoryService.test";
 import { testThemeService } from "./services/themeService.test";
 import { testPromptTemplateService } from "./services/promptTemplateService.test";
+import { testSentenceSpeechQueue } from "./services/sentenceSpeechQueue.test";
+import { testSpeechSettingsSuite } from "./services/speechVoices.test";
 
 interface TestSuite {
   name: string;
@@ -26,6 +28,8 @@ const suites: TestSuite[] = [
   { name: "Authentication Helpers & Mode Resolution", run: testAuthHelpers },
   { name: "Speech Text Extraction (Code Omission)", run: testSpeechExtractor },
   { name: "Speech-to-Text Environment Safety", run: testSpeechToText },
+  { name: "Sentence Speech Pipelining Queue", run: testSentenceSpeechQueue },
+  { name: "Speech Settings & Voice Placement Configuration", run: testSpeechSettingsSuite },
   { name: "Token Counter Visualization & Formatter", run: testTokenCounterVisualization },
   { name: "Mobile IDE & Header State Selector", run: testMobileIDEAndPromptModes },
   { name: "Key Ingestion, Sniffing & Verification Subsystem", run: testKeyVerificationSubsystem },
