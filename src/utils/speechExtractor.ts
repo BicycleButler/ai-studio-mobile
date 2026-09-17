@@ -10,45 +10,58 @@ export function extractSpokenText(markdown: string, isStreaming = false): string
 
   let cleaned = markdown;
 
-  // If currently streaming, safely strip unclosed trailing code blocks or inline code
+  // 1. Omit completed multi-line code blocks FIRST so greedy unclosed matching doesn't destroy earlier text
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, " ");
+
+  // 2. If currently streaming, safely strip unclosed trailing code block
   if (isStreaming) {
-    cleaned = cleaned.replace(/```[\s\S]*$/, " ");
+    cleaned = cleaned.replace(/```[a-zA-Z0-9_-]*\s*[\s\S]*$/, " ");
+  }
+
+  // 3. Omit completed inline code snippets
+  cleaned = cleaned.replace(/`[^`\n]*`/g, " ");
+
+  // 4. If currently streaming, safely strip unclosed trailing inline code
+  if (isStreaming) {
     cleaned = cleaned.replace(/`[^`\n]*$/, " ");
   }
 
-  // 1. Omit multi-line code blocks (fenced code: ```lang ... ``` or ``` ... ```)
-  cleaned = cleaned.replace(/```[\s\S]*?```/g, " ");
+  // 5. Omit Markdown table rows and table separator rows (|---|---|)
+  cleaned = cleaned.replace(/^\s*\|.*\|\s*$/gm, " ");
+  cleaned = cleaned.replace(/^\s*\|?[-:| ]+\|?\s*$/gm, " ");
 
-  // 2. Omit inline code snippets (e.g. `val x = 1` or `myFunction()`)
-  cleaned = cleaned.replace(/`[^`\n]*`/g, " ");
-
-  // 3. Omit Markdown images: ![alt](url)
+  // 6. Omit Markdown images: ![alt](url)
   cleaned = cleaned.replace(/!\[([^\]]*)\]\([^)]*\)/g, " ");
 
-  // 4. Retain link anchor text while omitting target URL: [Google](https://...) -> Google
+  // 7. Retain link anchor text while omitting target URL: [Google](https://...) -> Google
   cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
 
-  // 5. Omit raw web URLs to avoid TTS spelling out domain characters
+  // 8. Omit raw web URLs to avoid TTS spelling out domain characters
   cleaned = cleaned.replace(/https?:\/\/\S+/gi, " ");
 
-  // 6. Omit HTML tags (<br>, <div>, etc.)
+  // 9. Omit HTML tags (<br>, <div>, etc.)
   cleaned = cleaned.replace(/<[^>]+>/g, " ");
 
-  // 7. Strip Markdown headings (#, ##, ###, etc.)
+  // 10. Strip Markdown headings (#, ##, ###, etc.)
   cleaned = cleaned.replace(/^#{1,6}\s+/gm, "");
 
-  // 8. Strip Markdown blockquote markers (> )
+  // 11. Strip Markdown blockquote markers (> )
   cleaned = cleaned.replace(/^>\s+/gm, "");
 
-  // 9. Strip text styling marks: bold (**text** or __text__), italic (*text* or _text_), strikethrough (~~text~~)
+  // 12. Strip text styling marks: bold (**text** or __text__), italic (*text* or _text_), strikethrough (~~text~~)
   cleaned = cleaned.replace(/(\*\*|__)(.*?)\1/g, "$2");
   cleaned = cleaned.replace(/(\*|_)(.*?)\1/g, "$2");
   cleaned = cleaned.replace(/~~(.*?)~~/g, "$1");
 
-  // 10. Clean unordered list bullets (*, -, +)
+  // 13. Clean list bullets (*, -, +) and ordered list prefixes (1., 2.)
   cleaned = cleaned.replace(/^[\*\-\+]\s+/gm, "");
+  cleaned = cleaned.replace(/^\s*\d+\.\s+/gm, "");
 
-  // 11. Normalize newlines to sentence pauses and remove duplicate spaces
+  // 14. Strip LaTeX math expressions: $$...$$ and $...$
+  cleaned = cleaned.replace(/\$\$[\s\S]*?\$\$/g, " ");
+  cleaned = cleaned.replace(/\$[^$\n]+\$/g, " ");
+
+  // 15. Normalize newlines to sentence pauses and remove duplicate spaces
   cleaned = cleaned
     .replace(/\r\n/g, "\n")
     .replace(/\n{2,}/g, ". ")

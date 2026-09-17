@@ -1,5 +1,5 @@
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
-import { DEFAULT_CONFIG, STARTER_TEMPLATES } from "../data/templates";
+import { DEFAULT_CONFIG } from "../data/templates";
 
 const STORAGE_KEYS = {
   API_KEY: "ai_studio_api_key",
@@ -65,7 +65,7 @@ export interface DraftState {
 
 const memoryFallback: Record<string, string> = {};
 
-function getStorageInstance(): {
+export function getStorageInstance(): {
   getItem: (key: string) => string | null;
   setItem: (key: string, value: string) => void;
   removeItem: (key: string) => void;
@@ -145,8 +145,8 @@ export function saveStoredApiKey(key: string): void {
 // Saved Prompts Library
 export function loadSavedPrompts(): SavedPrompt[] {
   const stored = safeGetStorage<SavedPrompt[]>(STORAGE_KEYS.SAVED_PROMPTS, []);
-  if (!stored || stored.length === 0) {
-    return STARTER_TEMPLATES;
+  if (!stored) {
+    return [];
   }
   return stored;
 }
@@ -179,20 +179,8 @@ export function loadDraftState(projectId?: string | null): DraftState {
     promptType: "chat",
     config: DEFAULT_CONFIG,
     chatInputText: "",
-    freeformText:
-      "Translate the following product description into Spanish and generate 3 catchy social media bullet points:\n\nDescription:\n{{description}}\n\nTarget Audience:\n{{audience}}",
-    structuredExamples: [
-      {
-        id: "ex-1",
-        input: "The battery lasts only 2 hours and gets hot.",
-        output: '{"sentiment": "negative", "topic": "battery", "urgency": "high"}',
-      },
-      {
-        id: "ex-2",
-        input: "Fast shipping and works as advertised!",
-        output: '{"sentiment": "positive", "topic": "delivery", "urgency": "low"}',
-      },
-    ],
+    freeformText: "",
+    structuredExamples: [],
     messages: undefined,
     updatedAt: Date.now(),
   };
@@ -227,9 +215,30 @@ export function loadDraftState(projectId?: string | null): DraftState {
     return fallback;
   }
 
+  const sanitizeMessages = (msgs: unknown): ChatMessage[] | undefined => {
+    if (!Array.isArray(msgs)) return undefined;
+    const clean = msgs.filter((m) => {
+      if (!m || typeof m !== "object") return false;
+      const mid = String(m.id || "").toLowerCase();
+      const text = String(m.text || "").trim().toLowerCase();
+      return !(
+        mid === "m1" ||
+        mid === "m2" ||
+        mid === "msg_1" ||
+        mid === "msg_2" ||
+        mid === "msg_3" ||
+        text === "alpha" ||
+        text === "beta" ||
+        text === "sample test prompt"
+      );
+    });
+    return clean.length > 0 ? clean : undefined;
+  };
+
   return {
     ...fallback,
     ...stored,
+    messages: sanitizeMessages(stored.messages),
     promptType: sanitizeType(stored.promptType),
     config: {
       ...DEFAULT_CONFIG,
@@ -401,12 +410,37 @@ export function saveStoredJulesApiKey(key: string): void {
   safeSetStorage(STORAGE_KEYS.JULES_API_KEY, encrypted);
 }
 
+export function isMockJulesSession(session: Partial<JulesSession>): boolean {
+  if (!session) return true;
+  const id = (session.id || "").toLowerCase();
+  const title = (session.title || "").toLowerCase();
+  const repo = (session.repository || "").toLowerCase();
+  return (
+    id.startsWith("test_") ||
+    id.startsWith("mock_") ||
+    id.startsWith("sample_") ||
+    id.startsWith("dummy_") ||
+    title.includes("mock") ||
+    title.includes("test task") ||
+    repo.includes("mock") ||
+    repo === "test/repo" ||
+    repo === "sample/repo"
+  );
+}
+
 export function loadStoredJulesSessions(): JulesSession[] {
-  return safeGetStorage<JulesSession[]>(STORAGE_KEYS.JULES_SESSIONS, []);
+  const sessions = safeGetStorage<JulesSession[]>(STORAGE_KEYS.JULES_SESSIONS, []);
+  if (!Array.isArray(sessions)) return [];
+  const clean = sessions.filter((s) => !isMockJulesSession(s));
+  if (clean.length !== sessions.length) {
+    safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean);
+  }
+  return clean;
 }
 
 export function saveStoredJulesSessions(sessions: JulesSession[]): void {
-  safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, sessions);
+  const clean = Array.isArray(sessions) ? sessions.filter((s) => !isMockJulesSession(s)) : [];
+  safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean);
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {

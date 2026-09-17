@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, Share, PlusSquare, X, CheckCircle2, Smartphone } from "lucide-react";
+import { Download, Share, PlusSquare, X, CheckCircle2, Smartphone, Monitor } from "lucide-react";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 
 interface PWAInstallButtonProps {
@@ -14,7 +14,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   onInstalled,
 }) => {
   const { isInstallable, isInstalled, isIOS, isCapacitor, install } = usePWAInstall();
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
   // If already installed as PWA or running inside Capacitor native shell, suppress install action
@@ -45,15 +45,13 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       } finally {
         setIsInstalling(false);
       }
-    } else if (isIOS) {
-      setShowIOSGuide(true);
+    } else {
+      setShowGuide(true);
     }
   };
 
-  // Header button variant (compact icon + optional badge)
+  // Header button variant (clean toolbar button to the left of workspaces button)
   if (variant === "header") {
-    if (!isInstallable && !isIOS) return null;
-
     return (
       <>
         <button
@@ -61,22 +59,21 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           id="pwa-header-install-btn"
           onClick={handleInstallClick}
           disabled={isInstalling}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary hover:text-primary transition-colors text-xs font-medium cursor-pointer min-h-[36px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${className}`}
-          title={isIOS ? "Install AI Studio on iPhone / iPad" : "Install AI Studio PWA"}
-          aria-label={isIOS ? "Install AI Studio on iPhone / iPad" : "Install AI Studio PWA"}
+          className={`p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${className}`}
+          title="Install Progressive Web App (PWA)"
+          aria-label="Install Progressive Web App (PWA)"
         >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Install App</span>
+          <Download className="w-4 h-4 text-primary" />
         </button>
 
-        {showIOSGuide && (
-          <IOSInstallModal onClose={() => setShowIOSGuide(false)} />
+        {showGuide && (
+          <InstallGuideModal isIOS={isIOS} onClose={() => setShowGuide(false)} />
         )}
       </>
     );
   }
 
-  // Card variant (for Settings / Hub tab)
+  // Card variant
   if (variant === "card") {
     return (
       <>
@@ -104,8 +101,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           </button>
         </div>
 
-        {showIOSGuide && (
-          <IOSInstallModal onClose={() => setShowIOSGuide(false)} />
+        {showGuide && (
+          <InstallGuideModal isIOS={isIOS} onClose={() => setShowGuide(false)} />
         )}
       </>
     );
@@ -131,21 +128,22 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         </button>
       </div>
 
-      {showIOSGuide && (
-        <IOSInstallModal onClose={() => setShowIOSGuide(false)} />
+      {showGuide && (
+        <InstallGuideModal isIOS={isIOS} onClose={() => setShowGuide(false)} />
       )}
     </>
   );
 };
 
-interface IOSInstallModalProps {
+interface InstallGuideModalProps {
+  isIOS: boolean;
   onClose: () => void;
 }
 
-const IOSInstallModal: React.FC<IOSInstallModalProps> = ({ onClose }) => {
+const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose }) => {
   return (
     <div
-      id="ios-install-guide-modal"
+      id="pwa-install-guide-modal"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -154,8 +152,14 @@ const IOSInstallModal: React.FC<IOSInstallModalProps> = ({ onClose }) => {
       <div className="w-full max-w-sm rounded-2xl bg-card border border-border p-5 shadow-2xl text-foreground">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Smartphone className="w-5 h-5 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Install on iPhone / iPad</h3>
+            {isIOS ? (
+              <Smartphone className="w-5 h-5 text-primary" />
+            ) : (
+              <Download className="w-5 h-5 text-primary" />
+            )}
+            <h3 className="text-sm font-semibold text-foreground">
+              {isIOS ? "Install on iPhone / iPad" : "Install Progressive Web App"}
+            </h3>
           </div>
           <button
             type="button"
@@ -168,33 +172,65 @@ const IOSInstallModal: React.FC<IOSInstallModalProps> = ({ onClose }) => {
         </div>
 
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Safari on iOS installs Progressive Web Apps using the system share menu:
+          {isIOS
+            ? "Safari on iOS installs Progressive Web Apps using the system share menu:"
+            : "Install Google AI Studio as a standalone app directly from your browser:"}
         </p>
 
         <div className="mt-3 space-y-2.5">
-          <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/60 border border-border">
-            <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-              <Share className="w-3.5 h-3.5" />
-            </div>
-            <div className="text-xs">
-              <span className="font-semibold text-foreground">Step 1: Tap Share</span>
-              <p className="text-muted-foreground text-[11px] mt-0.5">
-                Tap the Share icon at the bottom of Safari's toolbar.
-              </p>
-            </div>
-          </div>
+          {isIOS ? (
+            <>
+              <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/60 border border-border">
+                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <Share className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xs">
+                  <span className="font-semibold text-foreground">Step 1: Tap Share</span>
+                  <p className="text-muted-foreground text-[11px] mt-0.5">
+                    Tap the Share icon at the bottom of Safari's toolbar.
+                  </p>
+                </div>
+              </div>
 
-          <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/60 border border-border">
-            <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-              <PlusSquare className="w-3.5 h-3.5" />
-            </div>
-            <div className="text-xs">
-              <span className="font-semibold text-foreground">Step 2: Add to Home Screen</span>
-              <p className="text-muted-foreground text-[11px] mt-0.5">
-                Scroll down in the share sheet and tap "Add to Home Screen".
-              </p>
-            </div>
-          </div>
+              <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/60 border border-border">
+                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <PlusSquare className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xs">
+                  <span className="font-semibold text-foreground">Step 2: Add to Home Screen</span>
+                  <p className="text-muted-foreground text-[11px] mt-0.5">
+                    Scroll down in the share sheet and tap "Add to Home Screen".
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/60 border border-border">
+                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <Monitor className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xs">
+                  <span className="font-semibold text-foreground">Step 1: Check Address Bar or Menu</span>
+                  <p className="text-muted-foreground text-[11px] mt-0.5">
+                    Look for the Install icon (computer with down arrow) in the browser address bar, or click the browser menu (⋮).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-2.5 rounded-xl bg-muted/60 border border-border">
+                <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <Download className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xs">
+                  <span className="font-semibold text-foreground">Step 2: Select Install</span>
+                  <p className="text-muted-foreground text-[11px] mt-0.5">
+                    Choose "Install Google AI Studio" or "Add to Home screen" to install as a standalone application.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <button

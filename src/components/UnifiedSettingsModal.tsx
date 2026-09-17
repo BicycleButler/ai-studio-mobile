@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   X,
-  Key,
   Volume2,
   Sliders,
   Smartphone,
@@ -31,6 +30,9 @@ import {
   Monitor,
   Bot,
   ClipboardPaste,
+  ArrowLeft,
+  User,
+  Layers,
 } from "lucide-react";
 import {
   PromptConfig,
@@ -42,6 +44,7 @@ import {
   ProjectInfo,
 } from "../types";
 import { GoogleAuthCard } from "./GoogleAuthCard";
+import { TunerBottomSheet } from "./TunerBottomSheet";
 import {
   GEMINI_VOICES,
   SpeechSettings,
@@ -54,15 +57,16 @@ import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
 import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
 import { useTheme } from "../hooks/useTheme";
-import { PWAInstallButton } from "./PWAInstallButton";
-import { getPlatformCapabilities } from "../utils/platform";
 
 export type SettingsTab =
   | "account"
   | "auth"
   | "key"
+  | "profile"
   | "audio"
   | "display"
+  | "theme"
+  | "themes"
   | "security"
   | "settings"
   | "library"
@@ -70,7 +74,7 @@ export type SettingsTab =
   | "companion"
   | "tune"
   | "model"
-  | "pwa";
+  | "models";
 
 interface UnifiedSettingsModalProps {
   isOpen: boolean;
@@ -145,8 +149,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onDeleteProject,
   speechSettings,
   onSaveSpeechSettings,
-  onOpenParameters,
+  onOpenParameters: _onOpenParameters,
   config,
+  onChangeConfig,
+  models = [],
   savedPrompts = [],
   onLoadPrompt,
   onSaveCurrentPrompt,
@@ -158,26 +164,20 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const { mode: themeMode, setThemeMode } = useTheme();
 
   // Normalize initialTab to canonical tabs
-  const resolveTab = (tab?: SettingsTab): "account" | "audio" | "display" | "security" | "library" | "export" | "companion" | "pwa" => {
+  const resolveTab = (
+    tab?: SettingsTab
+  ): "account" | "display" | "security" | "model" | "audio" | "library" | "export" | "companion" => {
     if (!tab) return "account";
-    if (tab === "auth" || tab === "key") return "account";
+    if (tab === "auth" || tab === "key" || tab === "profile") return "account";
+    if (tab === "display" || tab === "theme" || tab === "themes") return "display";
     if (tab === "settings") return "security";
-    if (tab === "pwa") return "pwa";
-    if (tab === "tune" || tab === "model") {
-      if (onOpenParameters) {
-        setTimeout(() => {
-          onOpenParameters();
-          onClose();
-        }, 10);
-      }
-      return "account";
-    }
-    return tab as "account" | "audio" | "display" | "security" | "library" | "export" | "companion" | "pwa";
+    if (tab === "tune" || tab === "model" || tab === "models") return "model";
+    return tab as "account" | "display" | "security" | "model" | "audio" | "library" | "export" | "companion";
   };
 
-  const [activeTab, setActiveTab] = useState<"account" | "audio" | "display" | "security" | "library" | "export" | "companion" | "pwa">(
-    resolveTab(initialTab)
-  );
+  const [activeTab, setActiveTab] = useState<
+    "account" | "display" | "security" | "model" | "audio" | "library" | "export" | "companion"
+  >(resolveTab(initialTab));
 
   // Sync initial tab when modal opens
   useEffect(() => {
@@ -210,21 +210,49 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
   const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
 
+  const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
     touchStartYRef.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartYRef.current === null) return;
-    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
-    if (diff > 45) {
-      stopPreview();
-      onClose();
+    if (touchStartXRef.current !== null) {
+      const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
+      // Swiping right from left-to-right dismisses the slide-out drawer
+      if (diffX > 60) {
+        stopPreview();
+        onClose();
+        touchStartXRef.current = null;
+        touchStartYRef.current = null;
+        return;
+      }
     }
+    if (touchStartYRef.current !== null) {
+      const diffY = e.changedTouches[0].clientY - touchStartYRef.current;
+      if (diffY > 80) {
+        stopPreview();
+        onClose();
+      }
+    }
+    touchStartXRef.current = null;
     touchStartYRef.current = null;
   };
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        stopPreview();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     setInputApiKey(customApiKey);
@@ -606,7 +634,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   return (
     <div
       id="unified-settings-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           stopPreview();
@@ -616,9 +644,12 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     >
       <div
         id="unified-settings-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings and Hub drawer"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="relative w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-foreground"
+        className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground animate-in slide-in-from-right duration-300 ease-out"
       >
         {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
         <div
@@ -626,8 +657,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             stopPreview();
             onClose();
           }}
-          className="sm:hidden w-full flex items-center justify-center pt-2 pb-1 bg-popover cursor-pointer group touch-manipulation"
-          title="Swipe down or tap to dismiss"
+          className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-1 bg-muted/20 cursor-pointer group touch-manipulation"
+          title="Swipe right/down or tap to dismiss"
           role="button"
           tabIndex={0}
           aria-label="Dismiss settings"
@@ -635,32 +666,90 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-popover shrink-0">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-primary shrink-0" />
-            <h3 className="text-sm font-semibold text-foreground">Settings & Hub</h3>
+        {/* Top Drawer Header with Back button */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-background/95 backdrop-blur-md shrink-0 select-none">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              type="button"
+              id="settings-modal-back-btn"
+              onClick={() => {
+                stopPreview();
+                onClose();
+              }}
+              className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title="Close drawer"
+              aria-label="Back / Close drawer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-xs font-semibold sm:inline hidden">Back</span>
+            </button>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                {activeTab === "account" ? (
+                  <User className="w-4 h-4" />
+                ) : activeTab === "display" ? (
+                  <Sun className="w-4 h-4" />
+                ) : activeTab === "security" ? (
+                  <Sliders className="w-4 h-4" />
+                ) : activeTab === "model" ? (
+                  <Layers className="w-4 h-4" />
+                ) : activeTab === "audio" ? (
+                  <Volume2 className="w-4 h-4" />
+                ) : activeTab === "library" ? (
+                  <FolderHeart className="w-4 h-4" />
+                ) : activeTab === "export" ? (
+                  <Code2 className="w-4 h-4" />
+                ) : (
+                  <Compass className="w-4 h-4" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm sm:text-base font-semibold text-foreground tracking-tight truncate">
+                  {activeTab === "account"
+                    ? "Profile & Account"
+                    : activeTab === "display"
+                    ? "Themes & Appearance"
+                    : activeTab === "security"
+                    ? "Settings & Security"
+                    : activeTab === "model"
+                    ? "Models & Tuners"
+                    : activeTab === "audio"
+                    ? "Voice & Audio"
+                    : activeTab === "library"
+                    ? "Prompt Library"
+                    : activeTab === "export"
+                    ? "Get Code"
+                    : "Companion & Guide"}
+                </h2>
+                <p className="text-[11px] text-muted-foreground hidden sm:block truncate">
+                  Slide-out drawer configuration for your active workspace
+                </p>
+              </div>
+            </div>
           </div>
-          <button
-            type="button"
-            id="settings-modal-close-btn"
-            onClick={() => {
-              stopPreview();
-              onClose();
-            }}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation"
-            title="Close Settings"
-            aria-label="Close Settings"
-          >
-            <X className="w-4 h-4" />
-          </button>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              id="settings-modal-close-btn"
+              onClick={() => {
+                stopPreview();
+                onClose();
+              }}
+              className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title="Close drawer"
+              aria-label="Close drawer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Tab Navigation: Account, Audio, Display, Security, Library, Get Code, Companion */}
+        {/* Tab Navigation: Profile, Themes, Settings, Models, Audio, Library, Get Code, Companion */}
         <div
           role="tablist"
           aria-label="Settings and Hub sections"
-          className="flex border-b border-border bg-muted/40 px-2 overflow-x-auto scrollbar-none shrink-0 touch-pan-x overscroll-x-contain"
+          className="flex border-b border-border bg-muted/40 px-2 sm:px-6 overflow-x-auto scrollbar-none shrink-0 touch-pan-x overscroll-x-contain gap-1"
         >
           <button
             type="button"
@@ -672,41 +761,21 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("account");
             }}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeTab === "account"
                 ? "border-primary text-primary bg-primary/10 font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
             <div className="relative flex items-center justify-center">
-              <Key className="w-5 h-5" />
+              <User className="w-4 h-4" />
               {!hasAnyAuth && (
                 <span className="absolute -top-1 -right-2 text-[10px] font-mono text-destructive font-bold" title="Authentication needed">
                   !
                 </span>
               )}
             </div>
-            <span className="whitespace-nowrap">Account & Keys</span>
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            id="tab-btn-audio"
-            aria-selected={activeTab === "audio"}
-            aria-controls="tabpanel-audio"
-            onClick={() => {
-              stopPreview();
-              setActiveTab("audio");
-            }}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-              activeTab === "audio"
-                ? "border-primary text-primary bg-primary/10 font-semibold"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
-            }`}
-          >
-            <Volume2 className="w-5 h-5" />
-            <span className="whitespace-nowrap">Voice & Audio</span>
+            <span className="whitespace-nowrap text-[11px]">Profile</span>
           </button>
 
           <button
@@ -719,14 +788,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("display");
             }}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeTab === "display"
                 ? "border-primary text-primary bg-primary/10 font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <Laptop className="w-5 h-5" />
-            <span className="whitespace-nowrap">Display & Frame</span>
+            <Sun className="w-4 h-4" />
+            <span className="whitespace-nowrap text-[11px]">Themes</span>
           </button>
 
           <button
@@ -739,34 +808,54 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("security");
             }}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeTab === "security"
                 ? "border-primary text-primary bg-primary/10 font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <ShieldCheck className="w-5 h-5" />
-            <span className="whitespace-nowrap">Security & App</span>
+            <Sliders className="w-4 h-4" />
+            <span className="whitespace-nowrap text-[11px]">Settings</span>
           </button>
 
           <button
             type="button"
             role="tab"
-            id="tab-btn-pwa"
-            aria-selected={activeTab === "pwa"}
-            aria-controls="tabpanel-pwa"
+            id="tab-btn-model"
+            aria-selected={activeTab === "model"}
+            aria-controls="tabpanel-model"
             onClick={() => {
               stopPreview();
-              setActiveTab("pwa");
+              setActiveTab("model");
             }}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-              activeTab === "pwa"
+            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "model"
                 ? "border-primary text-primary bg-primary/10 font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <Smartphone className="w-5 h-5" />
-            <span className="whitespace-nowrap">PWA & Native</span>
+            <Layers className="w-4 h-4" />
+            <span className="whitespace-nowrap text-[11px]">Models</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            id="tab-btn-audio"
+            aria-selected={activeTab === "audio"}
+            aria-controls="tabpanel-audio"
+            onClick={() => {
+              stopPreview();
+              setActiveTab("audio");
+            }}
+            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              activeTab === "audio"
+                ? "border-primary text-primary bg-primary/10 font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
+            }`}
+          >
+            <Volume2 className="w-4 h-4" />
+            <span className="whitespace-nowrap text-[11px]">Voice</span>
           </button>
 
           <button
@@ -779,14 +868,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("library");
             }}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeTab === "library"
                 ? "border-primary text-primary bg-primary/10 font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <FolderHeart className="w-5 h-5" />
-            <span className="whitespace-nowrap">Library</span>
+            <FolderHeart className="w-4 h-4" />
+            <span className="whitespace-nowrap text-[11px]">Library</span>
           </button>
 
           <button
@@ -799,14 +888,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("export");
             }}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeTab === "export"
                 ? "border-primary text-primary bg-primary/10 font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <Code2 className="w-5 h-5" />
-            <span className="whitespace-nowrap">Get Code</span>
+            <Code2 className="w-4 h-4" />
+            <span className="whitespace-nowrap text-[11px]">Code</span>
           </button>
 
           <button
@@ -819,14 +908,14 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               stopPreview();
               setActiveTab("companion");
             }}
-            className={`flex flex-col items-center justify-center gap-1.5 py-3.5 px-3 min-w-[78px] sm:min-w-[88px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeTab === "companion"
                 ? "border-primary text-primary bg-primary/10 font-semibold"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border font-medium"
             }`}
           >
-            <Compass className="w-5 h-5" />
-            <span className="whitespace-nowrap">About & Guide</span>
+            <Compass className="w-4 h-4" />
+            <span className="whitespace-nowrap text-[11px]">Guide</span>
           </button>
         </div>
 
@@ -835,7 +924,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           role="tabpanel"
           id={`tabpanel-${activeTab}`}
           aria-labelledby={`tab-btn-${activeTab}`}
-          className="p-5 overflow-y-auto flex-1 space-y-5"
+          className="p-4 sm:p-6 lg:p-8 overflow-y-auto flex-1 space-y-6 max-w-4xl mx-auto w-full"
         >
           {/* TAB 1: CONSOLIDATED ACCOUNT & KEYS HUB (Q1) */}
           {activeTab === "account" && (
@@ -1338,6 +1427,41 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     <span className="leading-relaxed">{julesTestResult.message}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Native Android Application • Google Play Store Distribution Placeholder */}
+              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 p-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-semibold text-foreground">
+                          Native Android Application
+                        </h4>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+                          Google Play
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        If you want the mobile native version with full system integration and background execution, download it directly from Google Play.
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.aistudio.mobile"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    id="play-store-download-btn"
+                    className="px-3.5 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium shrink-0 transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <span>Get on Play Store</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
             </div>
           )}
@@ -1938,107 +2062,29 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             </div>
           )}
 
-          {/* TAB: PROGRESSIVE WEB APP & CAPACITOR MOBILE NATIVE */}
-          {activeTab === "pwa" && (
+          {/* TAB: MODELS & TUNERS */}
+          {activeTab === "model" && (
             <div className="space-y-4">
-              {/* Card 1: Runtime & Installation Card */}
-              <div className="p-4 rounded-xl bg-card border border-border space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                      <Smartphone className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground">Mobile Runtime Profile</h4>
-                      <p className="text-xs text-muted-foreground">Progressive Web App & Native mobile architecture</p>
-                    </div>
+              {config && onChangeConfig ? (
+                <TunerBottomSheet
+                  config={config}
+                  onChangeConfig={onChangeConfig}
+                  models={models || []}
+                  isModal={false}
+                  hasApiKey={hasAnyAuth}
+                  onOpenAuth={() => setActiveTab("account")}
+                />
+              ) : (
+                <div className="p-8 rounded-2xl border border-border bg-card text-center space-y-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                    <Layers className="w-6 h-6" />
                   </div>
-
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/15 text-primary border border-primary/20">
-                    {(() => {
-                      const caps = getPlatformCapabilities();
-                      if (caps.isNative) return "Capacitor Native";
-                      if (caps.isPWA) return "PWA Standalone";
-                      return "Web Browser";
-                    })()}
-                  </span>
+                  <h3 className="text-base font-semibold text-foreground">Models & Parameters</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    Configure Gemini models, temperature, reasoning limits, and structured schemas directly within your active workspace.
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                  <div className="p-3 rounded-lg bg-muted/50 border border-border/60">
-                    <span className="text-[11px] text-muted-foreground block">Service Worker</span>
-                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      Active (v2 Caching)
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-muted/50 border border-border/60">
-                    <span className="text-[11px] text-muted-foreground block">Display Mode</span>
-                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-primary" />
-                      Standalone (Portrait)
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-muted/50 border border-border/60">
-                    <span className="text-[11px] text-muted-foreground block">Viewport Insets</span>
-                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      Cover (Notch Safe)
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: In-App Install Prompt */}
-              <PWAInstallButton variant="card" />
-
-              {/* Card 3: Capacitor Native Mobile Readiness */}
-              <div className="p-4 rounded-xl bg-card border border-border space-y-3">
-                <div className="flex items-center gap-2">
-                  <Monitor className="w-4 h-4 text-primary" />
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Capacitor Native Mobile Readiness
-                  </h4>
-                </div>
-
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  This application is architected to run as both a Progressive Web App and a native Android / iOS app via Capacitor:
-                </p>
-
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2.5 text-xs text-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-foreground">Capacitor Config Initialized:</strong>
-                      <span className="text-muted-foreground ml-1">
-                        Root <code className="text-primary font-mono text-[11px]">capacitor.config.ts</code> with package ID <code className="text-primary font-mono text-[11px]">com.aistudio.mobile</code>.
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 text-xs text-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-foreground">Safe Area & Notch Insets:</strong>
-                      <span className="text-muted-foreground ml-1">
-                        Hardware edge-to-edge support with <code className="text-primary font-mono text-[11px]">viewport-fit=cover</code> and automatic status bar padding.
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 text-xs text-foreground p-2.5 rounded-lg bg-muted/40 border border-border/50">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-foreground">Offline-First Asset Precaching:</strong>
-                      <span className="text-muted-foreground ml-1">
-                        Web assets compiled into static <code className="text-primary font-mono text-[11px]">dist/</code> directory for native WebView synchronization.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -2080,38 +2126,40 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-border bg-muted/40 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span
-              className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border ${
-                hasAnyAuth
-                  ? "bg-primary/20 text-primary border-primary/30"
-                  : "bg-muted text-muted-foreground border-border"
-              }`}
-            >
-              {hasAnyAuth ? "Ready" : "Unauthenticated"}
-            </span>
-            <span>
-              {hasAnyAuth
-                ? isJulesConfigured
-                  ? "Gemini & Jules Active"
-                  : "Gemini AI Studio Connected"
-                : "API Key Required"}
-            </span>
-          </div>
+        {/* Drawer Footer */}
+        <div className="px-4 sm:px-6 py-3 border-t border-border bg-background/95 backdrop-blur-md shrink-0">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+              <span
+                className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold shrink-0 ${
+                  hasAnyAuth
+                    ? "bg-primary/20 text-primary border-primary/30"
+                    : "bg-muted text-muted-foreground border-border"
+                }`}
+              >
+                {hasAnyAuth ? "Ready" : "Unauthenticated"}
+              </span>
+              <span className="truncate hidden sm:inline">
+                {hasAnyAuth
+                  ? isJulesConfigured
+                    ? "Gemini & Jules Active"
+                    : "Gemini AI Studio Connected"
+                  : "API Key Required"}
+              </span>
+            </div>
 
-          <button
-            type="button"
-            id="settings-done-btn"
-            onClick={() => {
-              stopPreview();
-              onClose();
-            }}
-            className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-colors cursor-pointer"
-          >
-            Done
-          </button>
+            <button
+              type="button"
+              id="settings-done-btn"
+              onClick={() => {
+                stopPreview();
+                onClose();
+              }}
+              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -62,18 +62,7 @@ const PRESETS: Array<{
 ];
 
 export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsertText }) => {
-  const [examples, setExamples] = useState<StructuredExample[]>([
-    {
-      id: "ex-1",
-      input: "The battery lasts only 2 hours and gets hot.",
-      output: '{"sentiment": "negative", "topic": "battery", "urgency": "high"}',
-    },
-    {
-      id: "ex-2",
-      input: "Fast shipping and works as advertised!",
-      output: '{"sentiment": "positive", "topic": "delivery", "urgency": "low"}',
-    },
-  ]);
+  const [examples, setExamples] = useState<StructuredExample[]>([]);
   const [testInput, setTestInput] = useState("");
   const [copied, setCopied] = useState(false);
   const [inserted, setInserted] = useState(false);

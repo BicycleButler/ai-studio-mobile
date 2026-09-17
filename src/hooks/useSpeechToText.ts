@@ -70,9 +70,9 @@ export interface UseSpeechToTextReturn {
   transcript: string;
   silenceCountdownMs: number | null;
   error: string | null;
-  startListening: (onResult?: (text: string, isFinal: boolean) => void) => void;
+  startListening: (onResult?: (text: string, isFinal: boolean) => void, forceContinuous?: boolean) => void;
   stopListening: () => void;
-  toggleListening: (onResult?: (text: string, isFinal: boolean) => void) => void;
+  toggleListening: (onResult?: (text: string, isFinal: boolean) => void, forceContinuous?: boolean) => void;
   clearSilenceCountdown: () => void;
   clearTranscript: () => void;
 }
@@ -143,7 +143,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
   }, [clearSilenceTimer]);
 
   const startListening = useCallback(
-    (onResult?: (text: string, isFinal: boolean) => void) => {
+    (onResult?: (text: string, isFinal: boolean) => void, forceContinuous?: boolean) => {
       setError(null);
       clearSilenceTimer();
       // Only clear text on manual fresh start
@@ -177,7 +177,8 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
         const recognition = new SpeechRecognitionClass();
         recognitionRef.current = recognition;
-        shouldKeepListeningRef.current = Boolean(optionsRef.current.continuousListening);
+        const isContinuous = forceContinuous !== undefined ? forceContinuous : Boolean(optionsRef.current.continuousListening);
+        shouldKeepListeningRef.current = isContinuous;
 
         recognition.lang =
           optionsRef.current.lang || (typeof navigator !== "undefined" ? navigator.language : "en-US");
@@ -205,8 +206,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
         };
 
         recognition.onresult = (event: SpeechRecognitionEventLike) => {
-          // Acoustic echo suppression guard: if muted, discard input
+          // Acoustic echo suppression guard: if muted, discard input and clear any countdown
           if (optionsRef.current.isMuted) {
+            clearSilenceTimer();
             return;
           }
 
@@ -265,9 +267,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
                 clearSilenceTimer();
                 if (textToSend.length > 0) {
                   stopListening();
-                  optionsRef.current.onSilenceAutoSend?.(textToSend);
                   activeTranscriptRef.current = "";
                   accumulatedAcrossRestartsRef.current = "";
+                  optionsRef.current.onSilenceAutoSend?.(textToSend);
                 }
               }, timeoutDelay);
             }
@@ -298,8 +300,13 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
         recognition.onend = () => {
           setIsAudioDetected(false);
+          // Release dead recognition instance reference so restart condition passes
+          if (recognitionRef.current === recognition) {
+            recognitionRef.current = null;
+          }
           // Resilient auto-restart in continuous hands-free voice mode
-          if (shouldKeepListeningRef.current && optionsRef.current.continuousListening) {
+          const shouldRestart = shouldKeepListeningRef.current && Boolean(optionsRef.current.continuousListening);
+          if (shouldRestart) {
             // Preserve finalized transcript across restart
             if (activeTranscriptRef.current) {
               accumulatedAcrossRestartsRef.current = activeTranscriptRef.current;

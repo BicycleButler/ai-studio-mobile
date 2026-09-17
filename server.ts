@@ -9,6 +9,11 @@ import {
   formatZodError,
 } from "./src/schemas/validation";
 import {
+  CURATED_MODELS,
+  isDeprecatedOrUnusableModel,
+  sanitizeModelId,
+} from "./src/utils/modelCatalog";
+import {
   getGraphData,
   getDiagram,
   getImpact,
@@ -128,69 +133,8 @@ interface GoogleSessionUser {
 let activeGoogleUser: GoogleSessionUser | null = null;
 let savedUserPrompts: Array<Record<string, unknown>> = [];
 
-// Fallback models when offline
-const DEFAULT_FALLBACK_MODELS = [
-  {
-    id: "gemini-3.8-flash",
-    name: "Gemini 3.8 Flash",
-    category: "Recommended",
-    badge: "Fast & Multimodal",
-    description: "Google's latest versatile model for general text, multimodal reasoning, and coding.",
-    contextWindow: "1M tokens",
-    supportsVision: true,
-    supportsAudio: true,
-    supportsSystemInstruction: true,
-    supportsJson: true,
-  },
-  {
-    id: "gemini-3.1-flash-lite",
-    name: "Gemini 3.1 Flash Lite",
-    category: "High Speed",
-    badge: "Ultra Low Latency",
-    description: "Lightweight and optimized for swift, cost-effective mobile responses and turnarounds.",
-    contextWindow: "1M tokens",
-    supportsVision: true,
-    supportsAudio: false,
-    supportsSystemInstruction: true,
-    supportsJson: true,
-  },
-  {
-    id: "gemini-flash-latest",
-    name: "Gemini Flash (Latest)",
-    category: "Latest Stable",
-    badge: "Stable",
-    description: "Always targets the latest recommended stable Gemini Flash release.",
-    contextWindow: "1M tokens",
-    supportsVision: true,
-    supportsAudio: true,
-    supportsSystemInstruction: true,
-    supportsJson: true,
-  },
-  {
-    id: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    category: "Stable Production",
-    badge: "Fast & Multimodal",
-    description: "Stable multimodal model supporting up to 1 million tokens.",
-    contextWindow: "1M tokens",
-    supportsVision: true,
-    supportsAudio: true,
-    supportsSystemInstruction: true,
-    supportsJson: true,
-  },
-  {
-    id: "gemini-2.5-pro",
-    name: "Gemini 2.5 Pro",
-    category: "Complex Reasoning",
-    badge: "High Intelligence",
-    description: "Advanced reasoning model with deep analysis and coding capabilities.",
-    contextWindow: "2M tokens",
-    supportsVision: true,
-    supportsAudio: true,
-    supportsSystemInstruction: true,
-    supportsJson: true,
-  },
-];
+// Fallback models when offline or unauthenticated
+const DEFAULT_FALLBACK_MODELS = CURATED_MODELS;
 
 // Cached live models and backoff tracking
 let cachedLiveModels: typeof DEFAULT_FALLBACK_MODELS | null = null;
@@ -481,39 +425,51 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
     for await (const m of pager) {
       if (m.name && m.supportedActions?.includes("generateContent")) {
         const id = m.name.replace(/^models\//, "");
+        if (isDeprecatedOrUnusableModel(id)) {
+          continue; // Filter out deprecated, legacy, and non-chat models
+        }
+
         const inputLimit = m.inputTokenLimit;
         const ctx = inputLimit
           ? `${inputLimit >= 1_000_000 ? `${(inputLimit / 1_000_000).toFixed(0)}M` : `${Math.round(inputLimit / 1_000)}k`} tokens`
           : "1M tokens";
 
-        let category = "General";
-        let badge = "Multimodal";
-        if (id.includes("flash-lite")) {
-          category = "High Speed";
-          badge = "Ultra Low Latency";
-        } else if (id.includes("flash")) {
-          category = "Recommended";
-          badge = "Fast & Multimodal";
-        } else if (id.includes("pro")) {
-          category = "Complex Reasoning";
-          badge = "High Intelligence";
-        } else if (id.includes("tts")) {
-          category = "Audio / Speech";
-          badge = "TTS Voice";
+        const curated = CURATED_MODELS.find((cm) => cm.id === id);
+
+        let category = curated?.category || "General";
+        let badge = curated?.badge || "Multimodal";
+        if (!curated) {
+          if (id.includes("flash-lite")) {
+            category = "High Speed";
+            badge = "Ultra Low Latency";
+          } else if (id.includes("flash")) {
+            category = "Recommended";
+            badge = "Fast & Multimodal";
+          } else if (id.includes("pro")) {
+            category = "Complex Reasoning";
+            badge = "High Intelligence";
+          }
         }
 
         liveModels.push({
           id,
-          name: m.displayName || id,
+          name: curated?.name || m.displayName || id,
           category,
           badge,
-          description: m.description || `Google AI Studio ${id} model.`,
+          description: curated?.description || m.description || `Google AI Studio ${id} model.`,
           contextWindow: ctx,
           supportsVision: true,
-          supportsAudio: id.includes("pro") || id.includes("flash") || id.includes("tts"),
+          supportsAudio: curated?.supportsAudio ?? (id.includes("pro") || id.includes("flash")),
           supportsSystemInstruction: true,
           supportsJson: true,
         });
+      }
+    }
+
+    // Ensure all standard curated models are included in the available menu
+    for (const curated of CURATED_MODELS) {
+      if (!liveModels.some((lm) => lm.id === curated.id)) {
+        liveModels.push(curated);
       }
     }
 
@@ -522,12 +478,14 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
       liveModels.sort((a, b) => {
         const priority = (id: string) => {
           if (id === "gemini-3.8-flash") return 1;
-          if (id === "gemini-2.5-flash") return 2;
-          if (id === "gemini-2.5-pro") return 3;
-          if (id === "gemini-3.1-flash-lite") return 4;
-          if (id.includes("flash")) return 5;
-          if (id.includes("pro")) return 6;
-          return 10;
+          if (id === "gemini-3.1-pro-preview") return 2;
+          if (id === "gemini-3.1-flash-lite") return 3;
+          if (id === "gemini-flash-latest") return 4;
+          if (id === "gemini-pro-latest") return 5;
+          if (id === "gemini-3.7-flash") return 6;
+          if (id === "gemini-2.5-flash") return 7;
+          if (id === "gemini-2.5-pro") return 8;
+          return 20;
         };
         return priority(a.id) - priority(b.id);
       });
@@ -568,7 +526,8 @@ app.post("/api/count-tokens", async (req: Request, res: Response): Promise<void>
 
     const customKey = req.headers["x-gemini-api-key"] as string | undefined;
     const ai = getGenAIClient(customKey);
-    const { model, contents } = parseResult.data;
+    const { model: rawModel, contents } = parseResult.data;
+    const model = sanitizeModelId(rawModel);
 
     const countResult = await ai.models.countTokens({
       model,
@@ -623,7 +582,7 @@ app.post(
       const ai = getGenAIClient(customKey);
 
       const {
-        model,
+        model: rawModel,
         messages,
         systemInstruction,
         temperature,
@@ -634,6 +593,7 @@ app.post(
         responseSchema,
         stream,
       } = parseResult.data;
+      const model = sanitizeModelId(rawModel);
 
       // Convert messages to GenAI contents format
       const contents: FormattedContent[] = messages.map((msg) => {
@@ -1057,60 +1017,11 @@ app.post("/api/jules/tasks", async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const taskId = `jules_task_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const now = Date.now();
-
-  const task: ServerJulesTask = {
-    id: taskId,
-    repository,
-    branch,
-    prompt,
-    status: "analyzing",
-    plan: [
-      `Inspect codebase files in repository ${repository} on branch ${branch}`,
-      `Analyze issue and formulate targeted implementation strategy`,
-      `Apply source modifications and run automated regression verification`,
-      `Commit changes and generate pull request for human review`,
-    ],
-    steps: [
-      {
-        id: "step_1",
-        title: "Clone & Inspect Repository",
-        detail: `Connecting to ${repository} (${branch}) and analyzing project structure`,
-        status: "running",
-        timestamp: now,
-      },
-      {
-        id: "step_2",
-        title: "Synthesize Implementation Plan",
-        detail: "Formulating architectural edits based on prompt request",
-        status: "pending",
-        timestamp: now,
-      },
-      {
-        id: "step_3",
-        title: "Execute Code Modifications",
-        detail: "Modifying target files and verifying syntax",
-        status: "pending",
-        timestamp: now,
-      },
-      {
-        id: "step_4",
-        title: "Create GitHub Pull Request",
-        detail: "Pushing branch and preparing pull request description",
-        status: "pending",
-        timestamp: now,
-      },
-    ],
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  activeJulesTasks.set(taskId, task);
-
-  // Trigger real Jules API call if available
   try {
-    fetch("https://jules.googleapis.com/v1alpha/tasks", {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    const julesRes = await fetch("https://jules.googleapis.com/v1alpha/tasks", {
       method: "POST",
       headers: {
         "x-goog-api-key": apiKey,
@@ -1122,16 +1033,30 @@ app.post("/api/jules/tasks", async (req: Request, res: Response): Promise<void> 
         instruction: prompt,
         autoApprove,
       }),
-    }).catch((err) => {
-      console.warn("Jules API remote dispatch background notice:", err);
+      signal: controller.signal,
     });
-  } catch {
-    // Non-blocking
-  }
+    clearTimeout(timeout);
 
-  res.status(201).json({
-    task,
-  });
+    if (julesRes.ok) {
+      const data = (await julesRes.json()) as { task?: ServerJulesTask } & ServerJulesTask;
+      const returnedTask = data.task || data;
+      if (returnedTask && returnedTask.id) {
+        activeJulesTasks.set(returnedTask.id, returnedTask);
+      }
+      res.status(201).json({ task: returnedTask });
+      return;
+    }
+
+    const errData = (await julesRes.json().catch(() => ({}))) as { error?: { message?: string } | string };
+    const errMsg = typeof errData.error === "object" ? errData.error.message : errData.error;
+    res.status(julesRes.status).json({
+      error: errMsg || `Jules API rejected task dispatch (${julesRes.status})`,
+    });
+  } catch (err: unknown) {
+    res.status(500).json({
+      error: getErrorMessage(err),
+    });
+  }
 });
 
 /**
@@ -1139,76 +1064,126 @@ app.post("/api/jules/tasks", async (req: Request, res: Response): Promise<void> 
  */
 app.get("/api/jules/tasks/:id", async (req: Request, res: Response): Promise<void> => {
   const taskId = req.params.id;
-  const task = activeJulesTasks.get(taskId);
+  const apiKey = extractJulesKey(req);
 
-  if (!task) {
-    res.status(404).json({
-      error: `Jules task with ID '${taskId}' not found.`,
+  if (!apiKey) {
+    const localTask = activeJulesTasks.get(taskId);
+    if (localTask) {
+      res.json({ task: localTask });
+      return;
+    }
+    res.status(401).json({
+      error: "Jules API key is required to poll task status.",
     });
     return;
   }
 
-  const elapsedSec = (Date.now() - task.createdAt) / 1000;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
-  // Progressive lifecycle step state machine
-  if (task.status === "analyzing" && elapsedSec > 2) {
-    task.steps[0].status = "completed";
-    task.steps[1].status = "running";
-    task.status = "planning";
-    task.updatedAt = Date.now();
-  } else if (task.status === "planning" && elapsedSec > 5) {
-    task.steps[1].status = "completed";
-    task.status = "awaiting_approval";
-    task.updatedAt = Date.now();
-  } else if (task.status === "executing") {
-    task.steps[2].status = "running";
-    if (elapsedSec > 10) {
-      task.steps[2].status = "completed";
-      task.steps[3].status = "running";
+    const julesRes = await fetch(
+      `https://jules.googleapis.com/v1alpha/tasks/${encodeURIComponent(taskId)}`,
+      {
+        headers: {
+          "x-goog-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeout);
+
+    if (julesRes.ok) {
+      const data = (await julesRes.json()) as { task?: ServerJulesTask } & ServerJulesTask;
+      const returnedTask = data.task || data;
+      if (returnedTask && returnedTask.id) {
+        activeJulesTasks.set(returnedTask.id, returnedTask);
+      }
+      res.json({ task: returnedTask });
+      return;
     }
-    if (elapsedSec > 15) {
-      task.steps[3].status = "completed";
-      task.status = "completed";
-      const prNumber = Math.floor(Math.random() * 80) + 12;
-      const targetBranch = `jules/task-${taskId.slice(-5)}`;
-      task.pullRequest = {
-        number: prNumber,
-        title: task.prompt.slice(0, 60),
-        branch: targetBranch,
-        url: `https://github.com/${task.repository}/pull/${prNumber}`,
-        state: "open",
-      };
-      task.updatedAt = Date.now();
+
+    const localTask = activeJulesTasks.get(taskId);
+    if (localTask) {
+      res.json({ task: localTask });
+      return;
     }
+
+    const errData = (await julesRes.json().catch(() => ({}))) as { error?: { message?: string } | string };
+    const errMsg = typeof errData.error === "object" ? errData.error.message : errData.error;
+    res.status(julesRes.status).json({
+      error: errMsg || `Jules task '${taskId}' not found (${julesRes.status})`,
+    });
+  } catch (err: unknown) {
+    const localTask = activeJulesTasks.get(taskId);
+    if (localTask) {
+      res.json({ task: localTask });
+      return;
+    }
+    res.status(500).json({
+      error: getErrorMessage(err),
+    });
   }
-
-  res.json({
-    task,
-  });
 });
 
 /**
  * Approves an awaiting plan for execution
  */
-app.post("/api/jules/tasks/:id/approve", (req: Request, res: Response): void => {
+app.post("/api/jules/tasks/:id/approve", async (req: Request, res: Response): Promise<void> => {
   const taskId = req.params.id;
-  const task = activeJulesTasks.get(taskId);
+  const apiKey = extractJulesKey(req);
 
-  if (!task) {
-    res.status(404).json({
-      error: `Jules task '${taskId}' not found.`,
+  if (!apiKey) {
+    res.status(401).json({
+      error: "Jules API key is required to approve plans.",
     });
     return;
   }
 
-  task.status = "executing";
-  task.steps[2].status = "running";
-  task.updatedAt = Date.now();
+  const { approved = true } = req.body || {};
 
-  res.json({
-    task,
-    message: "Plan approved. Jules is now executing code edits.",
-  });
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const julesRes = await fetch(
+      `https://jules.googleapis.com/v1alpha/tasks/${encodeURIComponent(taskId)}:approve`,
+      {
+        method: "POST",
+        headers: {
+          "x-goog-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ approved }),
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeout);
+
+    if (julesRes.ok) {
+      const data = (await julesRes.json()) as { task?: ServerJulesTask } & ServerJulesTask;
+      const returnedTask = data.task || data;
+      if (returnedTask && returnedTask.id) {
+        activeJulesTasks.set(returnedTask.id, returnedTask);
+      }
+      res.json({
+        task: returnedTask,
+        message: "Plan approved via Jules API.",
+      });
+      return;
+    }
+
+    const errData = (await julesRes.json().catch(() => ({}))) as { error?: { message?: string } | string };
+    const errMsg = typeof errData.error === "object" ? errData.error.message : errData.error;
+    res.status(julesRes.status).json({
+      error: errMsg || `Failed to approve plan with Jules API (${julesRes.status})`,
+    });
+  } catch (err: unknown) {
+    res.status(500).json({
+      error: getErrorMessage(err),
+    });
+  }
 });
 
 /* ==========================================================================

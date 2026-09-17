@@ -14,6 +14,112 @@ export function getChatSessionsStorageKey(projectId?: string): string {
 }
 
 /**
+ * Identifies if a chat session is synthetic, test, or mock data.
+ * Mock data is strictly forbidden from appearing in user chat history,
+ * even in the development environment.
+ */
+export function isMockChatSession(session: Partial<ChatSession>): boolean {
+  if (!session) return true;
+  const id = (session.id || "").trim().toLowerCase();
+  const title = (session.title || "").trim().toLowerCase();
+  const projectId = (session.projectId || "").trim().toLowerCase();
+
+  // 1. Synthetic/test/mock ID patterns
+  if (
+    id === "session_1" ||
+    id === "session_2" ||
+    id === "session_a" ||
+    id === "session_b" ||
+    id.startsWith("mock_") ||
+    id.startsWith("dummy_") ||
+    id.startsWith("sample_") ||
+    id.startsWith("test_")
+  ) {
+    return true;
+  }
+
+  // 2. Project ID marked as test/mock
+  if (
+    projectId.startsWith("test_") ||
+    projectId.startsWith("mock_") ||
+    projectId.includes("sample")
+  ) {
+    return true;
+  }
+
+  // 3. Known test/mock conversation titles
+  if (
+    title === "earlier chat" ||
+    title === "later chat" ||
+    title === "untitled chat" ||
+    title === "mock chat" ||
+    title === "mock conversation" ||
+    title === "test session" ||
+    title === "sample prompt" ||
+    title === "sample test prompt"
+  ) {
+    return true;
+  }
+
+  // 4. Test/mock messages payload signatures
+  if (Array.isArray(session.messages)) {
+    const hasMockMessage = session.messages.some((m) => {
+      const mid = (m.id || "").trim().toLowerCase();
+      const text = (m.text || "").trim().toLowerCase();
+      return (
+        mid === "m1" ||
+        mid === "m2" ||
+        mid === "msg_1" ||
+        mid === "msg_2" ||
+        mid === "msg_3" ||
+        text === "alpha" ||
+        text === "beta" ||
+        text === "sample test prompt"
+      );
+    });
+    if (hasMockMessage) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Purges all mock/test sessions and stale synthetic keys from persistent storage.
+ * Automatically runs on module initialization and session queries to ensure
+ * zero mock data remains in localStorage.
+ */
+export function purgeMockSessionsFromStorage(): void {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const keysToClean: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (key && key.startsWith(CHAT_SESSIONS_PREFIX)) {
+          keysToClean.push(key);
+        }
+      }
+
+      keysToClean.forEach((key) => {
+        const sessions = safeGetStorage<ChatSession[]>(key, []);
+        if (Array.isArray(sessions)) {
+          const cleanSessions = sessions.filter((s) => !isMockChatSession(s));
+          if (cleanSessions.length !== sessions.length) {
+            safeSetStorage(key, cleanSessions);
+          }
+        }
+      });
+    }
+  } catch {
+    // Fail gracefully if storage access is restricted
+  }
+}
+
+// Initial sweep when module loads in browser
+if (typeof window !== "undefined") {
+  purgeMockSessionsFromStorage();
+}
+
+/**
  * Sanitizes messages by removing heavy base64 image data before persisting
  */
 export function sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[] {
@@ -44,20 +150,36 @@ export function generateSessionTitle(messages: ChatMessage[]): string {
 }
 
 /**
- * Retrieves all saved chat sessions for a project sorted by most recent
+ * Retrieves all saved chat sessions for a project sorted by most recent.
+ * Enforces strict filtering to guarantee zero mock data is returned.
  */
 export function getChatSessions(projectId?: string): ChatSession[] {
   const key = getChatSessionsStorageKey(projectId);
   const sessions = safeGetStorage<ChatSession[]>(key, []);
   if (!Array.isArray(sessions)) return [];
-  return sessions.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+  // Exclude any mock or synthetic sessions
+  const cleanSessions = sessions.filter((s) => !isMockChatSession(s));
+
+  // If mock data was detected and stripped, update storage to keep it permanently clean
+  if (cleanSessions.length !== sessions.length) {
+    safeSetStorage(key, cleanSessions);
+  }
+
+  return cleanSessions.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 
 /**
- * Saves or updates a chat session in persistent storage
+ * Saves or updates a chat session in persistent storage.
+ * Strictly blocks saving any mock or synthetic data.
  */
 export function saveChatSession(session: ChatSession, projectId?: string): void {
   if (!session || !session.id) return;
+
+  // Never persist mock sessions, even in development
+  if (isMockChatSession(session)) {
+    return;
+  }
 
   const key = getChatSessionsStorageKey(projectId);
   const existing = getChatSessions(projectId);

@@ -7,7 +7,7 @@ import {
   Sliders,
   MoreVertical,
   FolderGit2,
-  Smartphone,
+  Layers,
 } from "lucide-react";
 import { PromptType, GoogleUser, ProjectInfo, JulesSession } from "../types";
 import { SettingsTab } from "./UnifiedSettingsModal";
@@ -53,7 +53,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   activeJulesSession = null,
   onOpenJulesSessions,
 }) => {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -104,7 +104,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           id="top-workspace-switcher-btn"
           onClick={onOpenBottomNav}
           className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation"
-          title="Switch Workspace (Chat, Mobile IDE, Jules, Stubs)"
+          title={`Switch Workspace (${activeProject?.name || activeProjectName || "Default"})`}
           aria-label="Switch Workspace"
         >
           <LayoutGrid className="w-4 h-4 text-primary" />
@@ -163,64 +163,35 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                   </div>
                 </button>
 
-                {/* Option 2: Theme Selector */}
+                {/* Option 2: Themes Drawer */}
                 <button
                   type="button"
                   id="overflow-nav-theme"
                   role="menuitem"
                   onClick={() => {
-                    toggleTheme();
+                    setIsMenuOpen(false);
+                    onOpenSettings("display");
                   }}
                   className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                     {resolvedTheme === "dark" ? (
-                      <Sun className="w-4 h-4" />
-                    ) : (
                       <Moon className="w-4 h-4" />
+                    ) : (
+                      <Sun className="w-4 h-4" />
                     )}
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="text-xs font-semibold text-foreground tracking-tight">
-                      Theme
+                      Themes
                     </span>
                     <span className="text-[11px] text-muted-foreground capitalize truncate">
-                      {resolvedTheme === "dark" ? "Dark Mode" : "Light Mode"} (Tap to toggle)
+                      {resolvedTheme === "dark" ? "Dark Theme" : "Light Theme"} • Appearance
                     </span>
                   </div>
                 </button>
 
-                {/* Option 3: Workspaces (descending in current order) */}
-                <button
-                  type="button"
-                  id="overflow-nav-workspaces"
-                  role="menuitem"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    onOpenBottomNav();
-                  }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
-                    <LayoutGrid className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-xs font-semibold text-foreground tracking-tight">
-                      Workspaces
-                    </span>
-                    <span className="text-[11px] text-muted-foreground truncate">
-                      {promptType === "chat"
-                        ? `Chat • ${activeProject?.name || activeProjectName || "Default"}`
-                        : promptType === "code"
-                        ? "Mobile IDE Playground"
-                        : promptType === "jules"
-                        ? "Jules Agent"
-                        : "Stubs Architecture"}
-                    </span>
-                  </div>
-                </button>
-
-                {/* Option 4: Settings (descending in current order) */}
+                {/* Option 3: Settings */}
                 <button
                   type="button"
                   id="overflow-nav-settings"
@@ -239,31 +210,31 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                       Settings
                     </span>
                     <span className="text-[11px] text-muted-foreground truncate">
-                      {currentModelName} • Audio & Display
+                      Security, Audio & Storage
                     </span>
                   </div>
                 </button>
 
-                {/* Option: PWA & Native Mobile Hub */}
+                {/* Option 4: Models & Tuners */}
                 <button
                   type="button"
-                  id="overflow-nav-pwa"
+                  id="overflow-nav-models"
                   role="menuitem"
                   onClick={() => {
                     setIsMenuOpen(false);
-                    onOpenSettings("pwa");
+                    onOpenParameters();
                   }}
                   className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
-                    <Smartphone className="w-4 h-4" />
+                    <Layers className="w-4 h-4" />
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="text-xs font-semibold text-foreground tracking-tight">
-                      PWA & Native Mobile
+                      Models & Tuners
                     </span>
                     <span className="text-[11px] text-muted-foreground truncate">
-                      Install App, Offline & Capacitor
+                      {currentModelName} • Gemini 3.8 & Flash
                     </span>
                   </div>
                 </button>

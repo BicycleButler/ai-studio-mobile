@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useMemo, useEffect } from "react";
 import {
   Sliders,
   RotateCcw,
@@ -7,8 +7,20 @@ import {
   X,
   Key,
   ShieldCheck,
+  Check,
+  Sparkles,
+  Zap,
+  Brain,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { PromptConfig, ModelInfo } from "../types";
+import {
+  CURATED_MODELS,
+  isDeprecatedOrUnusableModel,
+  sanitizeModelId,
+} from "../utils/modelCatalog";
 
 interface TunerBottomSheetProps {
   config: PromptConfig;
@@ -29,20 +41,76 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
   hasApiKey = false,
   onOpenAuth,
 }) => {
+  const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+
+  // Filter out any deprecated, legacy, or unusable non-chat models
+  const cleanModels = useMemo(() => {
+    const source = models && models.length > 0 ? models : CURATED_MODELS;
+    const filtered = source.filter((m) => !isDeprecatedOrUnusableModel(m.id));
+    return filtered.length > 0 ? filtered : CURATED_MODELS;
+  }, [models]);
+
+  // Guard against deprecated/unusable model saved in config
+  useEffect(() => {
+    if (isDeprecatedOrUnusableModel(config.model)) {
+      onChangeConfig({
+        ...config,
+        model: sanitizeModelId(config.model),
+      });
+    }
+  }, [config.model, onChangeConfig, config]);
+
+  // Distinct category filters
+  const categories = useMemo(() => {
+    const set = new Set<string>(["All"]);
+    cleanModels.forEach((m) => {
+      if (m.category) set.add(m.category);
+    });
+    return Array.from(set);
+  }, [cleanModels]);
+
+  const displayedModels = useMemo(() => {
+    if (activeCategory === "All") return cleanModels;
+    return cleanModels.filter((m) => m.category === activeCategory);
+  }, [cleanModels, activeCategory]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
     touchStartYRef.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartYRef.current === null) return;
-    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
-    if (diff > 40 && onClose) {
-      onClose();
+    if (touchStartXRef.current !== null) {
+      const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
+      if (diffX > 60 && onClose) {
+        onClose();
+        touchStartXRef.current = null;
+        touchStartYRef.current = null;
+        return;
+      }
     }
+    if (touchStartYRef.current !== null) {
+      const diffY = e.changedTouches[0].clientY - touchStartYRef.current;
+      if (diffY > 80 && onClose) {
+        onClose();
+      }
+    }
+    touchStartXRef.current = null;
     touchStartYRef.current = null;
   };
+
+  useEffect(() => {
+    if (!isModal || !onClose) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModal, onClose]);
 
   const updateField = <K extends keyof PromptConfig>(
     field: K,
@@ -65,48 +133,52 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
   };
 
   const getTemperatureDescription = (temp: number) => {
-    if (temp <= 0.2) return "Deterministic • Best for code, math & structured data";
-    if (temp <= 0.7) return "Focused & accurate";
-    if (temp <= 1.2) return "Balanced • Standard AI Studio default";
-    return "High variance • Highly creative & exploratory";
+    if (temp <= 0.2) return "Deterministic • Best for code, math & structured JSON";
+    if (temp <= 0.7) return "Focused & accurate • Standard factual reasoning";
+    if (temp <= 1.2) return "Balanced • Recommended AI Studio default";
+    return "High variance • Highly creative, conversational & exploratory";
   };
 
-  const content = (
-    <div className="flex flex-col h-full overflow-y-auto bg-background p-3.5 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">Model & Tuners</h2>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={handleResetDefaults}
-            className="min-h-[44px] px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation"
-            title="Reset to defaults"
-            aria-label="Reset parameters to defaults"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="text-xs">Reset</span>
-          </button>
-          {isModal && onClose && (
-            <button
-              onClick={onClose}
-              className="min-w-[44px] min-h-[44px] p-2.5 text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted cursor-pointer flex items-center justify-center transition-colors touch-manipulation"
-              title="Close modal"
-              aria-label="Close modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
+  // Schema validation status
+  const schemaStatus = useMemo(() => {
+    if (!config.responseSchemaText?.trim()) return null;
+    try {
+      JSON.parse(config.responseSchemaText);
+      return { valid: true, message: "Valid JSON schema" };
+    } catch {
+      return { valid: false, message: "Invalid JSON syntax" };
+    }
+  }, [config.responseSchemaText]);
 
+  const handleInsertSampleSchema = () => {
+    const sampleSchema = {
+      type: "object",
+      properties: {
+        summary: { type: "string", description: "Brief executive summary" },
+        keyPoints: {
+          type: "array",
+          items: { type: "string" },
+          description: "List of actionable takeaways",
+        },
+        sentiment: {
+          type: "string",
+          enum: ["positive", "neutral", "negative"],
+        },
+      },
+      required: ["summary", "keyPoints"],
+    };
+    updateField("responseSchemaText", JSON.stringify(sampleSchema, null, 2));
+  };
+
+  const selectedModelInfo = cleanModels.find((m) => m.id === config.model);
+
+  const bodyFields = (
+    <div className="space-y-5">
       {/* Authentication Status Card */}
       <div
         id="tuner-auth-card"
         onClick={onOpenAuth}
-        className="p-3 rounded-xl border border-border bg-card hover:bg-muted/50 flex items-center justify-between gap-3 cursor-pointer transition-colors"
+        className="p-3.5 rounded-xl border border-border bg-card hover:bg-muted/50 flex items-center justify-between gap-3 cursor-pointer transition-colors"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="p-1.5 rounded-lg bg-muted text-foreground shrink-0">
@@ -122,58 +194,116 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
             </span>
             <span className="text-[11px] block text-muted-foreground truncate">
               {hasApiKey
-                ? "Connected to Gemini • Tap to manage"
-                : "Tap to connect credentials"}
+                ? "Connected to Gemini • Tap to manage keys"
+                : "Tap to connect API credentials"}
             </span>
           </div>
         </div>
-        <span
-          className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border border-border bg-muted text-foreground shrink-0 transition-colors font-mono"
-        >
+        <span className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border border-border bg-muted text-foreground shrink-0 font-mono">
           {hasApiKey ? "Connected" : "Authenticate"}
         </span>
       </div>
 
       {/* 1. Model Selection */}
-      <div className="space-y-2">
-        <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-primary" />
-          <span>Select Model</span>
-        </label>
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-primary" />
+            <span>Select Model</span>
+          </label>
+          {selectedModelInfo && (
+            <span className="text-[10px] font-mono text-muted-foreground">
+              Active: <strong className="text-primary font-semibold">{selectedModelInfo.name}</strong>
+            </span>
+          )}
+        </div>
+
+        {/* Category Pills */}
+        {categories.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {categories.map((cat) => {
+              const isActive = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Clean Model Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {models.map((m) => {
+          {displayedModels.map((m) => {
             const isSelected = config.model === m.id;
             return (
               <button
                 key={m.id}
+                type="button"
                 onClick={() => updateField("model", m.id)}
-                className={`text-left p-2.5 rounded-xl border transition-colors relative cursor-pointer ${
+                className={`text-left p-3 rounded-xl border transition-all relative cursor-pointer group ${
                   isSelected
-                    ? "bg-primary/10 border-primary text-foreground"
-                    : "bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-primary/10 border-primary ring-1 ring-primary/30 text-foreground"
+                    : "bg-card border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:border-muted-foreground/30"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-foreground truncate">
-                    {m.name}
-                  </span>
+                <div className="flex items-center justify-between mb-1 gap-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                    ) : m.category === "Complex Reasoning" ? (
+                      <Brain className="w-3 h-3 text-muted-foreground shrink-0" />
+                    ) : m.category === "High Speed" ? (
+                      <Zap className="w-3 h-3 text-muted-foreground shrink-0" />
+                    ) : (
+                      <Sparkles className="w-3 h-3 text-muted-foreground shrink-0" />
+                    )}
+                    <span className="text-xs font-semibold text-foreground truncate">
+                      {m.name}
+                    </span>
+                  </div>
                   <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
+                    className={`text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0 ${
                       isSelected
-                        ? "bg-primary text-primary-foreground font-medium"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-primary text-primary-foreground font-semibold"
+                        : "bg-muted text-muted-foreground group-hover:text-foreground"
                     }`}
                   >
                     {m.badge}
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground line-clamp-2 mb-1.5">
+
+                <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2 leading-relaxed">
                   {m.description}
                 </p>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                  <span>Context: {m.contextWindow}</span>
+
+                <div className="flex items-center flex-wrap gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="px-1.5 py-0.5 rounded bg-muted/80 font-mono">
+                    {m.contextWindow}
+                  </span>
                   {m.supportsVision && (
-                    <span className="text-primary font-medium">• Vision</span>
+                    <span className="px-1.5 py-0.5 rounded bg-muted/80 font-medium text-foreground">
+                      Vision
+                    </span>
+                  )}
+                  {m.supportsAudio && (
+                    <span className="px-1.5 py-0.5 rounded bg-muted/80 font-medium text-foreground">
+                      Audio
+                    </span>
+                  )}
+                  {m.supportsJson && (
+                    <span className="px-1.5 py-0.5 rounded bg-muted/80 font-medium text-foreground">
+                      JSON
+                    </span>
                   )}
                 </div>
               </button>
@@ -184,26 +314,39 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
 
       {/* 2. System Instruction */}
       <div className="space-y-1.5 bg-card border border-border rounded-xl p-3">
-        <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-          <span>System Instructions</span>
-          <span className="text-[10px] text-muted-foreground font-mono">
-            {config.systemInstruction.length} chars
-          </span>
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-foreground">
+            System Instructions
+          </label>
+          <div className="flex items-center gap-2">
+            {config.systemInstruction.length > 0 && (
+              <button
+                type="button"
+                onClick={() => updateField("systemInstruction", "")}
+                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+            <span className="text-[10px] text-muted-foreground font-mono">
+              {config.systemInstruction.length} chars
+            </span>
+          </div>
+        </div>
         <p className="text-[11px] text-muted-foreground">
-          Steer model behavior, tone, style, output constraints, or instructions.
+          Steer model behavior, tone, style, and guardrails across turns.
         </p>
         <textarea
           id="tuner-sys-prompt"
           value={config.systemInstruction}
           onChange={(e) => updateField("systemInstruction", e.target.value)}
-          placeholder="You are a helpful software assistant. Be succinct..."
+          placeholder="You are an intelligent, concise AI assistant inside Google AI Studio..."
           rows={3}
           className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none font-mono"
         />
       </div>
 
-      {/* 3. Temperature Slider */}
+      {/* 3. Temperature Slider & Presets */}
       <div className="space-y-2 bg-card border border-border rounded-xl p-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-foreground">
@@ -213,6 +356,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
             {config.temperature.toFixed(2)}
           </span>
         </div>
+
         <input
           type="range"
           min="0"
@@ -222,11 +366,33 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
           onChange={(e) => updateField("temperature", parseFloat(e.target.value))}
           className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
         />
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>0.0 (Precise)</span>
-          <span>1.0 (Balanced)</span>
-          <span>2.0 (Creative)</span>
+
+        {/* Quick Temperature Presets */}
+        <div className="flex items-center gap-1.5 pt-0.5">
+          {[
+            { label: "0.2 Code", val: 0.2 },
+            { label: "0.7 Precise", val: 0.7 },
+            { label: "1.0 Default", val: 1.0 },
+            { label: "1.5 Creative", val: 1.5 },
+          ].map((preset) => {
+            const isPresetActive = Math.abs(config.temperature - preset.val) < 0.05;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => updateField("temperature", preset.val)}
+                className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                  isPresetActive
+                    ? "bg-primary text-primary-foreground border-primary font-medium"
+                    : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
+
         <p className="text-[10px] text-muted-foreground italic mt-0.5">
           {getTemperatureDescription(config.temperature)}
         </p>
@@ -252,7 +418,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
             className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
           />
           <p className="text-[10px] text-muted-foreground">
-            Nucleus sampling probability mass threshold.
+            Nucleus sampling probability mass cutoff.
           </p>
         </div>
 
@@ -274,7 +440,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
             className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
           />
           <p className="text-[10px] text-muted-foreground">
-            Selects from the top K most likely tokens.
+            Restricts candidates to the top K most likely tokens.
           </p>
         </div>
       </div>
@@ -300,14 +466,34 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
           }
           className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
         />
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>128</span>
-          <span>2048 (default)</span>
-          <span>8192</span>
+        {/* Token Presets */}
+        <div className="flex items-center gap-1.5 pt-0.5">
+          {[
+            { label: "1,024", val: 1024 },
+            { label: "2,048 (Def)", val: 2048 },
+            { label: "4,096", val: 4096 },
+            { label: "8,192", val: 8192 },
+          ].map((preset) => {
+            const isPresetActive = config.maxOutputTokens === preset.val;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => updateField("maxOutputTokens", preset.val)}
+                className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                  isPresetActive
+                    ? "bg-primary text-primary-foreground border-primary font-medium"
+                    : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* 6. Response MIME Type (JSON Schema Mode) */}
+      {/* 6. Structured Output (JSON Schema Mode) */}
       <div className="bg-card border border-border rounded-xl p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -316,10 +502,11 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
               Structured Output (JSON)
             </label>
             <p className="text-[10px] text-muted-foreground">
-              Force response to follow a strict JSON schema
+              Forces response to conform to strict JSON schema
             </p>
           </div>
           <button
+            type="button"
             onClick={() =>
               updateField(
                 "responseMimeType",
@@ -339,15 +526,40 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
         </div>
 
         {config.responseMimeType === "application/json" && (
-          <div className="space-y-1.5 pt-2 border-t border-border">
-            <label className="text-[11px] font-medium text-muted-foreground block">
-              Optional JSON Schema
-            </label>
+          <div className="space-y-2 pt-2 border-t border-border">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-medium text-muted-foreground block">
+                JSON Schema Definition
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleInsertSampleSchema}
+                  className="text-[10px] text-primary hover:underline font-medium cursor-pointer"
+                >
+                  Insert Sample Schema
+                </button>
+                {schemaStatus && (
+                  <span
+                    className={`text-[10px] flex items-center gap-1 font-mono ${
+                      schemaStatus.valid ? "text-emerald-500" : "text-rose-500"
+                    }`}
+                  >
+                    {schemaStatus.valid ? (
+                      <CheckCircle2 className="w-3 h-3" />
+                    ) : (
+                      <AlertCircle className="w-3 h-3" />
+                    )}
+                    {schemaStatus.message}
+                  </span>
+                )}
+              </div>
+            </div>
             <textarea
               value={config.responseSchemaText}
               onChange={(e) => updateField("responseSchemaText", e.target.value)}
               placeholder='{\n  "type": "object",\n  "properties": {\n    "name": { "type": "string" }\n  }\n}'
-              rows={4}
+              rows={5}
               className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none font-mono"
             />
           </div>
@@ -359,8 +571,8 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
   if (isModal) {
     return (
       <div
-        id="tuner-bottom-sheet-overlay"
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
+        id="tuner-drawer-overlay"
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={(e) => {
           if (e.target === e.currentTarget && onClose) {
             onClose();
@@ -368,27 +580,136 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
         }}
       >
         <div
-          id="tuner-bottom-sheet-dialog"
+          id="tuner-drawer-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Models and Parameters drawer"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="w-full sm:max-w-md max-h-[85vh] h-auto bg-background border border-border sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
+          className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground animate-in slide-in-from-right duration-300 ease-out"
         >
           {/* Universal Swipe Grab Handle (Mobile-first) */}
           <div
             onClick={onClose}
-            className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-1 cursor-pointer group"
-            title="Swipe down or tap to dismiss"
+            className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-1 bg-muted/20 cursor-pointer group touch-manipulation"
+            title="Swipe right/down or tap to dismiss"
             role="button"
             tabIndex={0}
-            aria-label="Dismiss tuner sheet"
+            aria-label="Dismiss models drawer"
           >
             <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
           </div>
-          {content}
+
+          {/* Top Drawer Header with Back button */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-background/95 backdrop-blur-md shrink-0 select-none">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {onClose && (
+                <button
+                  type="button"
+                  id="tuner-modal-back-btn"
+                  onClick={onClose}
+                  className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  title="Close drawer"
+                  aria-label="Back / Close drawer"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  <span className="text-xs font-semibold sm:inline hidden">Back</span>
+                </button>
+              )}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-sm sm:text-base font-semibold text-foreground tracking-tight truncate">
+                    Models & Parameters
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground hidden sm:block truncate">
+                    Select Gemini models and customize temperature, output tokens & schema
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                title="Reset parameters to defaults"
+                aria-label="Reset parameters to defaults"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium sm:inline hidden">Reset</span>
+              </button>
+              {onClose && (
+                <button
+                  type="button"
+                  id="tuner-modal-close-btn"
+                  onClick={onClose}
+                  className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  title="Close drawer"
+                  aria-label="Close drawer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Drawer Body */}
+          <div className="flex-1 overflow-y-auto w-full p-4 sm:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto">
+            {bodyFields}
+          </div>
+
+          {/* Drawer Footer */}
+          <div className="px-4 sm:px-6 py-3 border-t border-border bg-background/95 backdrop-blur-md shrink-0">
+            <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded border border-primary/30 bg-primary/20 text-primary font-semibold shrink-0">
+                  Active Model
+                </span>
+                <span className="truncate font-medium text-foreground">
+                  {selectedModelInfo?.name || config.model}
+                </span>
+              </div>
+
+              {onClose && (
+                <button
+                  type="button"
+                  id="tuner-done-btn"
+                  onClick={onClose}
+                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  Done
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  return content;
+  return (
+    <div className="flex flex-col h-full overflow-y-auto bg-background p-3.5 space-y-4">
+      {/* Header for embedded mode */}
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Sliders className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">Model & Tuners</h2>
+        </div>
+        <button
+          onClick={handleResetDefaults}
+          className="px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation"
+          title="Reset parameters to defaults"
+          aria-label="Reset parameters to defaults"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span className="text-xs">Reset</span>
+        </button>
+      </div>
+      {bodyFields}
+    </div>
+  );
 };

@@ -47,8 +47,8 @@ const PRESETS: PresetItem[] = [
 ];
 
 export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsertText }) => {
-  const [template, setTemplate] = useState<string>(PRESETS[0].template);
-  const [values, setValues] = useState<Record<string, string>>(PRESETS[0].defaults);
+  const [template, setTemplate] = useState<string>("");
+  const [values, setValues] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
   const [inserted, setInserted] = useState(false);
 

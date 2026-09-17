@@ -25,6 +25,10 @@ import {
   saveAndActivateProject,
   loadStoredProjects,
 } from "../utils/storage";
+import {
+  CURATED_MODELS,
+  isDeprecatedOrUnusableModel,
+} from "../utils/modelCatalog";
 
 interface ImportProjectSheetProps {
   isOpen: boolean;
@@ -34,12 +38,10 @@ interface ImportProjectSheetProps {
   availableModels?: Array<{ id: string; name: string }>;
 }
 
-const DEFAULT_MODELS = [
-  { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash (Default)" },
-  { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash" },
-  { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite" },
-  { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
-];
+const DEFAULT_MODELS = CURATED_MODELS.map((m) => ({
+  id: m.id,
+  name: m.name,
+}));
 
 export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   isOpen,
@@ -65,7 +67,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
 
   const [apiKey, setApiKey] = useState(initialKey);
   const [projectName, setProjectName] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-3.8-flash");
   const [showRawKey, setShowRawKey] = useState(false);
 
   // Validation State: 'idle' | 'validating' | 'valid' | 'invalid'
@@ -79,13 +81,13 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
       const projects = loadStoredProjects();
       const defaultName = `AI Studio Project ${projects.length + 1}`;
       setProjectName(defaultName);
-      setSelectedModel("gemini-2.5-flash");
+      setSelectedModel("gemini-3.8-flash");
       setShowRawKey(false);
       setIsSaving(false);
 
       if (initialKey) {
         setApiKey(initialKey);
-        void performVerification(initialKey, "gemini-2.5-flash");
+        void performVerification(initialKey, "gemini-3.8-flash");
       } else {
         setApiKey("");
         setValidationState("idle");
@@ -340,14 +342,14 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             )}
           </div>
 
-          {/* 3. Default model selection (defaulting to gemini-2.5-flash) */}
+          {/* 3. Default model selection (defaulting to gemini-3.8-flash) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-foreground block">
                 Default Model
               </label>
               <span className="text-[10px] text-primary font-medium">
-                gemini-2.5-flash default
+                gemini-3.8-flash recommended
               </span>
             </div>
             <div className="relative">
@@ -357,11 +359,13 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                 onChange={handleModelChange}
                 className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-xs text-foreground appearance-none focus:outline-none focus:border-primary transition-colors pr-8 cursor-pointer"
               >
-                {availableModels.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-card text-foreground">
-                    {m.name} ({m.id})
-                  </option>
-                ))}
+                {availableModels
+                  .filter((m) => !isDeprecatedOrUnusableModel(m.id))
+                  .map((m) => (
+                    <option key={m.id} value={m.id} className="bg-card text-foreground">
+                      {m.name} ({m.id})
+                    </option>
+                  ))}
               </select>
               <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground absolute right-3 top-3 pointer-events-none" />
             </div>

@@ -17,6 +17,7 @@ import {
 import {
   saveChatSession,
   generateSessionTitle,
+  purgeMockSessionsFromStorage,
 } from "./services/chatHistoryService";
 import {
   getStoredGoogleUser,
@@ -24,7 +25,6 @@ import {
   initiateGoogleLogin,
   logoutGoogleUser,
 } from "./services/googleAuth";
-import { STARTER_TEMPLATES } from "./data/templates";
 import { TopAppBar } from "./components/TopAppBar";
 import { ChatWorkspace } from "./components/ChatWorkspace";
 import { MobileIDEWorkspace } from "./components/MobileIDEWorkspace";
@@ -38,6 +38,11 @@ import { ImportProjectSheet } from "./components/ImportProjectSheet";
 import { SecurePrivacyShield } from "./components/SecurePrivacyShield";
 import { JulesSessionDrawer } from "./components/JulesSessionDrawer";
 import { useGeminiStream } from "./hooks/useGeminiStream";
+import {
+  CURATED_MODELS,
+  isDeprecatedOrUnusableModel,
+  sanitizeModelId,
+} from "./utils/modelCatalog";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
 import { useWindowSecurity } from "./hooks/useWindowSecurity";
@@ -105,63 +110,17 @@ export default function App() {
   };
 
   // Models & Server Key state
-  const [models, setModels] = useState<ModelInfo[]>([
-    {
-      id: "gemini-3.8-flash",
-      name: "Gemini 3.8 Flash",
-      category: "Recommended",
-      badge: "Fast & Multimodal",
-      description: "Google's latest versatile model for general text, multimodal reasoning, and coding.",
-      contextWindow: "1M tokens",
-      supportsVision: true,
-      supportsAudio: true,
-      supportsSystemInstruction: true,
-      supportsJson: true,
-    },
-    {
-      id: "gemini-3.1-flash-lite",
-      name: "Gemini 3.1 Flash Lite",
-      category: "High Speed",
-      badge: "Ultra Low Latency",
-      description: "Lightweight and optimized for swift, cost-effective mobile responses and turnarounds.",
-      contextWindow: "1M tokens",
-      supportsVision: true,
-      supportsAudio: false,
-      supportsSystemInstruction: true,
-      supportsJson: true,
-    },
-    {
-      id: "gemini-flash-latest",
-      name: "Gemini Flash (Latest)",
-      category: "Latest Stable",
-      badge: "Stable",
-      description: "Always targets the latest recommended stable Gemini Flash release.",
-      contextWindow: "1M tokens",
-      supportsVision: true,
-      supportsAudio: true,
-      supportsSystemInstruction: true,
-      supportsJson: true,
-    },
-    {
-      id: "gemini-2.5-flash",
-      name: "Gemini 2.5 Flash",
-      category: "Legacy Fast",
-      badge: "2.5 Generation",
-      description: "Previous generation high-speed multimodal model.",
-      contextWindow: "1M tokens",
-      supportsVision: true,
-      supportsAudio: true,
-      supportsSystemInstruction: true,
-      supportsJson: true,
-    },
-  ]);
+  const [models, setModels] = useState<ModelInfo[]>(CURATED_MODELS);
   const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => getStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState(false);
   const [customApiKey, setCustomApiKey] = useState<string>(() => loadStoredApiKey());
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
-  // Prompt Configuration state
-  const [config, setConfig] = useState<PromptConfig>(initialDraft.config);
+  // Prompt Configuration state - ensure model is never deprecated/unusable
+  const [config, setConfig] = useState<PromptConfig>(() => ({
+    ...initialDraft.config,
+    model: sanitizeModelId(initialDraft.config?.model),
+  }));
 
   // Chat state & active session tracking
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${Date.now()}`);
@@ -169,7 +128,7 @@ export default function App() {
     if (initialDraft.messages && initialDraft.messages.length > 0) {
       return initialDraft.messages;
     }
-    return STARTER_TEMPLATES[0].messages;
+    return [];
   });
 
   // Mobile IDE compatibility state
@@ -511,6 +470,11 @@ export default function App() {
     }
   }, [messages, currentSessionId, activeProject?.id, config.model]);
 
+  // Ensure persistent storage has zero mock data on application boot
+  useEffect(() => {
+    purgeMockSessionsFromStorage();
+  }, []);
+
   // Initialize & fetch server health / models
   useEffect(() => {
     fetch("/api/health")
@@ -542,7 +506,10 @@ export default function App() {
       })
       .then((data: { models?: ModelInfo[] } | null) => {
         if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-          setModels(data.models);
+          const cleaned = data.models.filter((m) => !isDeprecatedOrUnusableModel(m.id));
+          if (cleaned.length > 0) {
+            setModels(cleaned);
+          }
         }
       })
       .catch(() => {});
@@ -568,7 +535,10 @@ export default function App() {
         })
         .then((data: { models?: ModelInfo[] } | null) => {
           if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-            setModels(data.models);
+            const cleaned = data.models.filter((m) => !isDeprecatedOrUnusableModel(m.id));
+            if (cleaned.length > 0) {
+              setModels(cleaned);
+            }
           }
         })
         .catch(() => {});
@@ -635,7 +605,7 @@ export default function App() {
     if (targetDraft.messages && targetDraft.messages.length > 0) {
       setMessages(targetDraft.messages);
     } else {
-      setMessages(STARTER_TEMPLATES[0].messages);
+      setMessages([]);
     }
 
     // 5. Synchronize project list & clear transient toasts
@@ -686,7 +656,7 @@ export default function App() {
         setCustomApiKey("");
         saveStoredApiKey("");
         // Clean wipe to starter state
-        setMessages(STARTER_TEMPLATES[0].messages);
+        setMessages([]);
       }
     }
   };

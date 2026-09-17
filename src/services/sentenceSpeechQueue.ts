@@ -59,8 +59,12 @@ export class SentenceSpeechQueue {
     let lastMatchEnd = 0;
 
     while ((match = sentenceSplitRegex.exec(remaining)) !== null) {
-      const sentenceEnd = match.index + match[0].length;
       const rawCandidate = remaining.slice(lastMatchEnd, match.index).trim();
+      // Avoid premature splitting on common abbreviations
+      if (/(?:e\.g|i\.e|vs|mr|mrs|ms|dr|prof|etc)\.$/i.test(rawCandidate)) {
+        continue;
+      }
+      const sentenceEnd = match.index + match[0].length;
       lastMatchEnd = sentenceEnd;
 
       if (rawCandidate.length > 0) {
@@ -90,8 +94,10 @@ export class SentenceSpeechQueue {
       this.processedIndex = this.buffer.length;
     }
 
-    // If no utterances were queued at all
-    if (this.pendingUtterances.length === 0 && !this.isSpeaking) {
+    // If no utterances are in flight or queued, finish immediately
+    if (this.pendingUtterances.length === 0) {
+      this.isSpeaking = false;
+      this.stopHeartbeat();
       this.options.onAllSentencesCompleted?.();
     }
   }
@@ -130,10 +136,14 @@ export class SentenceSpeechQueue {
         this.pendingUtterances = this.pendingUtterances.filter((u) => u !== utterance);
         this.options.onSentenceEnd?.(spokenText, idx);
 
-        if (this.pendingUtterances.length === 0 && this.isFinalized) {
-          this.isSpeaking = false;
-          this.stopHeartbeat();
-          this.options.onAllSentencesCompleted?.();
+        if (this.pendingUtterances.length === 0) {
+          if (this.isFinalized) {
+            this.isSpeaking = false;
+            this.stopHeartbeat();
+            this.options.onAllSentencesCompleted?.();
+          } else {
+            this.isSpeaking = false;
+          }
         }
       };
 
@@ -143,10 +153,14 @@ export class SentenceSpeechQueue {
           this.options.onError?.(e);
         }
         this.pendingUtterances = this.pendingUtterances.filter((u) => u !== utterance);
-        if (this.pendingUtterances.length === 0 && this.isFinalized) {
-          this.isSpeaking = false;
-          this.stopHeartbeat();
-          this.options.onAllSentencesCompleted?.();
+        if (this.pendingUtterances.length === 0) {
+          if (this.isFinalized) {
+            this.isSpeaking = false;
+            this.stopHeartbeat();
+            this.options.onAllSentencesCompleted?.();
+          } else {
+            this.isSpeaking = false;
+          }
         }
       };
 
@@ -228,8 +242,11 @@ export class SentenceSpeechQueue {
     const sentences: string[] = [];
 
     while ((match = sentenceSplitRegex.exec(text)) !== null) {
-      const sentenceEnd = match.index + match[0].length;
       const rawCandidate = text.slice(lastMatchEnd, match.index).trim();
+      if (/(?:e\.g|i\.e|vs|mr|mrs|ms|dr|prof|etc)\.$/i.test(rawCandidate)) {
+        continue;
+      }
+      const sentenceEnd = match.index + match[0].length;
       lastMatchEnd = sentenceEnd;
 
       if (rawCandidate.length > 0) {

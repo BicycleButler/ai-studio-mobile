@@ -7,87 +7,109 @@ import {
   generateSessionTitle,
   formatRelativeTime,
   getChatSessionsStorageKey,
+  isMockChatSession,
+  purgeMockSessionsFromStorage,
 } from "./chatHistoryService";
 import { ChatSession, ChatMessage } from "../types";
 
 export function testChatHistoryService(): boolean {
-  const testProjectId = "test_proj_hist_1";
+  const activeProjectId = "proj_mobile_arch_101";
 
-  // Clean initial state
-  clearAllChatSessions(testProjectId);
-  let sessions = getChatSessions(testProjectId);
+  // 1. Verify mock data detection and strict rejection
+  const mockCandidateSession: ChatSession = {
+    id: "session_1",
+    title: "Earlier Chat",
+    messages: [{ id: "m1", role: "user", text: "Alpha", timestamp: 1000 }],
+    createdAt: 1000,
+    updatedAt: 1000,
+    projectId: activeProjectId,
+  };
+  if (!isMockChatSession(mockCandidateSession)) {
+    throw new Error("Expected mock session to be flagged by isMockChatSession");
+  }
+
+  // Attempting to save mock session should be safely ignored
+  clearAllChatSessions(activeProjectId);
+  saveChatSession(mockCandidateSession, activeProjectId);
+  if (getChatSessions(activeProjectId).length !== 0) {
+    throw new Error("Mock sessions must never be saved or returned in chat history");
+  }
+
+  // 2. Clean initial state for authentic user sessions
+  clearAllChatSessions(activeProjectId);
+  let sessions = getChatSessions(activeProjectId);
   if (sessions.length !== 0) {
     throw new Error("Expected initial chat sessions to be empty");
   }
 
-  // Test title generation
-  const mockMessages: ChatMessage[] = [
+  // 3. Test title generation
+  const realMessages: ChatMessage[] = [
     {
-      id: "msg_1",
+      id: "hist_msg_001",
       role: "user",
-      text: "How do I build an Android Jetpack Compose animation?",
+      text: "How do I implement dynamic Material You color themes in Android Compose?",
       timestamp: Date.now() - 5000,
     },
     {
-      id: "msg_2",
+      id: "hist_msg_002",
       role: "model",
-      text: "Use animateFloatAsState and rememberInfiniteTransition.",
+      text: "Use dynamicLightColorScheme and dynamicDarkColorScheme on Android 12+.",
       timestamp: Date.now(),
     },
   ];
 
-  const generatedTitle = generateSessionTitle(mockMessages);
-  if (!generatedTitle.startsWith("How do I build an Android")) {
+  const generatedTitle = generateSessionTitle(realMessages);
+  if (!generatedTitle.startsWith("How do I implement dynamic")) {
     throw new Error(`Unexpected generated title: ${generatedTitle}`);
   }
 
-  // Test saving session
-  const session1: ChatSession = {
-    id: "session_1",
+  // 4. Test saving authentic session
+  const realSession1: ChatSession = {
+    id: "sess_material_theme_001",
     title: generatedTitle,
-    messages: mockMessages,
+    messages: realMessages,
     createdAt: Date.now() - 10000,
     updatedAt: Date.now() - 10000,
-    projectId: testProjectId,
+    projectId: activeProjectId,
     model: "gemini-3.8-flash",
   };
 
-  saveChatSession(session1, testProjectId);
-  sessions = getChatSessions(testProjectId);
+  saveChatSession(realSession1, activeProjectId);
+  sessions = getChatSessions(activeProjectId);
   if (sessions.length !== 1) {
     throw new Error(`Expected 1 saved session, got ${sessions.length}`);
   }
 
-  const fetched = getChatSessionById("session_1", testProjectId);
-  if (!fetched || fetched.id !== "session_1") {
+  const fetched = getChatSessionById("sess_material_theme_001", activeProjectId);
+  if (!fetched || fetched.id !== "sess_material_theme_001") {
     throw new Error("Failed to fetch session by ID");
   }
 
-  // Test updating session
+  // 5. Test updating session
   const updatedMessages: ChatMessage[] = [
-    ...mockMessages,
+    ...realMessages,
     {
-      id: "msg_3",
+      id: "hist_msg_003",
       role: "user",
-      text: "Can you provide a snippet?",
+      text: "Can you provide the Kotlin snippet for the Theme composable?",
       timestamp: Date.now(),
     },
   ];
 
   saveChatSession(
     {
-      ...session1,
+      ...realSession1,
       messages: updatedMessages,
     },
-    testProjectId
+    activeProjectId
   );
 
-  const updated = getChatSessionById("session_1", testProjectId);
+  const updated = getChatSessionById("sess_material_theme_001", activeProjectId);
   if (!updated || updated.messages.length !== 3) {
     throw new Error(`Expected updated session to have 3 messages, got ${updated?.messages.length}`);
   }
 
-  // Test relative time format
+  // 6. Test relative time format
   const justNow = formatRelativeTime(Date.now() - 10000);
   if (justNow !== "Just now") {
     throw new Error(`Expected 'Just now', got ${justNow}`);
@@ -98,21 +120,48 @@ export function testChatHistoryService(): boolean {
     throw new Error(`Expected '5m ago', got ${fiveMinAgo}`);
   }
 
-  // Test storage key generation
+  // 7. Test storage key generation
   if (getChatSessionsStorageKey("proj_123") !== "ai_studio_chat_sessions_v1_proj_123") {
     throw new Error("Invalid project storage key");
   }
 
-  // Test deleting session
-  const deleted = deleteChatSession("session_1", testProjectId);
+  // 8. Test deleting session
+  const deleted = deleteChatSession("sess_material_theme_001", activeProjectId);
   if (!deleted) {
-    throw new Error("Failed to delete session_1");
+    throw new Error("Failed to delete sess_material_theme_001");
   }
-  if (getChatSessions(testProjectId).length !== 0) {
+  if (getChatSessions(activeProjectId).length !== 0) {
     throw new Error("Expected 0 sessions after deletion");
   }
 
+  // 9. Test multi-session ordering (newest first)
+  const sessionAlpha: ChatSession = {
+    id: "sess_earlier_arch_conv_1",
+    title: "Android Architecture Components",
+    messages: [{ id: "arch_m1", role: "user", text: "Explain Unidirectional Data Flow", timestamp: 1000 }],
+    createdAt: 1000,
+    updatedAt: 1000,
+    projectId: activeProjectId,
+  };
+  const sessionBeta: ChatSession = {
+    id: "sess_later_arch_conv_2",
+    title: "Jetpack Compose Navigation",
+    messages: [{ id: "arch_m2", role: "user", text: "Setup type-safe Compose navigation", timestamp: 2000 }],
+    createdAt: 2000,
+    updatedAt: 2000,
+    projectId: activeProjectId,
+  };
+  saveChatSession(sessionAlpha, activeProjectId);
+  saveChatSession(sessionBeta, activeProjectId);
+  const orderedSessions = getChatSessions(activeProjectId);
+  if (orderedSessions.length !== 2 || orderedSessions[0].id !== "sess_later_arch_conv_2") {
+    throw new Error("Expected sessions to be ordered with newest first");
+  }
+
+  // 10. Test storage purge
+  purgeMockSessionsFromStorage();
+
   // Cleanup
-  clearAllChatSessions(testProjectId);
+  clearAllChatSessions(activeProjectId);
   return true;
 }

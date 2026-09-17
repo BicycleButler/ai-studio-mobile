@@ -44,6 +44,7 @@ import {
   getChatSessions,
   deleteChatSession,
   formatRelativeTime,
+  isMockChatSession,
 } from "../services/chatHistoryService";
 import { JulesActivityCard } from "./JulesActivityCard";
 import { GoogleIcon } from "./GoogleIcon";
@@ -54,6 +55,10 @@ import {
   getAllTemplates,
 } from "../services/promptTemplateService";
 import { PromptTemplate } from "../types";
+import {
+  loadStoredJulesSessions,
+  saveStoredJulesSessions,
+} from "../utils/storage";
 
 interface ChatWorkspaceProps {
   messages: ChatMessage[];
@@ -103,8 +108,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   googleUser = null,
   onOpenAuth,
   speechSettings: propSpeechSettings,
-  onSaveSpeechSettings: _onSaveSpeechSettings,
-  onOpenSettings: _onOpenSettings,
+  onSaveSpeechSettings,
+  onOpenSettings,
   activeProjectId,
   currentSessionId,
   onSelectSession,
@@ -129,11 +134,26 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [historySessions, setHistorySessions] = useState<ChatSession[]>(() =>
-    getChatSessions(activeProjectId)
-  );
+  const [historySessions, setHistorySessions] = useState<ChatSession[]>(() => {
+    if (isJulesMode) {
+      return loadStoredJulesSessions().map((js) => ({
+        id: js.id,
+        title: js.title || js.repository,
+        messages: js.messages || [],
+        createdAt: js.createdAt,
+        updatedAt: js.updatedAt,
+        model: "Jules Agent",
+      }));
+    }
+    return getChatSessions(activeProjectId);
+  });
   const historyPopoverRef = useRef<HTMLDivElement>(null);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Filter out any mock/test sessions to ensure purely authentic history
+  const validHistorySessions = useMemo(() => {
+    return historySessions.filter((s) => !isMockChatSession(s));
+  }, [historySessions]);
 
   // Prompt Templates State (Strict FIFO selection order)
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
@@ -185,8 +205,21 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // Sync saved history sessions on project change, messages change, or popover toggle
   useEffect(() => {
-    setHistorySessions(getChatSessions(activeProjectId));
-  }, [activeProjectId, messages.length, isHistoryOpen]);
+    if (isJulesMode) {
+      setHistorySessions(
+        loadStoredJulesSessions().map((js) => ({
+          id: js.id,
+          title: js.title || js.repository,
+          messages: js.messages || [],
+          createdAt: js.createdAt,
+          updatedAt: js.updatedAt,
+          model: "Jules Agent",
+        }))
+      );
+    } else {
+      setHistorySessions(getChatSessions(activeProjectId));
+    }
+  }, [activeProjectId, messages.length, isHistoryOpen, isJulesMode]);
 
   // Click outside and escape key handling for popover
   useEffect(() => {
@@ -204,6 +237,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsHistoryOpen(false);
+        historyButtonRef.current?.focus();
       }
     };
 
@@ -232,6 +266,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   const sentenceQueueRef = useRef<SentenceSpeechQueue | null>(null);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -291,7 +326,26 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       setInputText(base ? `${base}${sep}${spokenChunk}` : spokenChunk);
     },
     onSilenceAutoSend: (spokenText) => {
-      if (!spokenText.trim() || isGenerating) return;
+      if (!spokenText.trim()) return;
+      if (isGenerating) {
+        // Assistant is already processing: keep listening without dropping input
+        startListening(undefined, true);
+        return;
+      }
+
+      // Guard against offline or missing API key so voice state does not hang indefinitely
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setVoiceState("listening");
+        startListening(undefined, true);
+        return;
+      }
+      if (!hasApiKey) {
+        onOpenSettings?.("account");
+        setVoiceState("listening");
+        startListening(undefined, true);
+        return;
+      }
+
       setVoiceState("processing");
       speechBaseTextRef.current = "";
       clearTranscript();
@@ -330,16 +384,36 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
   }, [isListening, isSpeaking, isGenerating, voiceState]);
 
+  // Sync handsFreeMode from speechSettings prop when toggled in Settings modal
+  useEffect(() => {
+    if (speechSettings.handsFreeMode !== isVoiceModeActive) {
+      setIsVoiceModeActive(speechSettings.handsFreeMode);
+      if (speechSettings.handsFreeMode) {
+        startListening(undefined, true);
+        setVoiceState("listening");
+      } else {
+        stopListening();
+        stopAllPlayback();
+        setVoiceState("idle");
+      }
+    }
+  }, [speechSettings.handsFreeMode]);
+
   const handleToggleVoiceMode = () => {
     const next = !isVoiceModeActive;
     setIsVoiceModeActive(next);
     setIsInputHeightExpanded(false);
+
+    if (onSaveSpeechSettings) {
+      onSaveSpeechSettings({ ...speechSettings, handsFreeMode: next });
+    }
+
     if (next) {
       // ENTERING HANDS-FREE VOICE MODE
       stopAllPlayback();
       // Append mode: preserve existing text input as base buffer so speech appends
       speechBaseTextRef.current = inputText.trim();
-      startListening();
+      startListening(undefined, true);
       setVoiceState("listening");
     } else {
       // EXITING HANDS-FREE VOICE MODE
@@ -361,12 +435,18 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   };
 
   const handleInterrupt = () => {
+    // 1. Immediately cancel the ongoing model stream if active
+    if (isGenerating && onStopGeneration) {
+      onStopGeneration();
+    }
+    // 2. Halt all speech playback and audio buffers
     stopAllPlayback();
+    // 3. Immediately reopen microphone for continuous conversational turn
     if (isVoiceModeActive) {
       speechBaseTextRef.current = "";
       clearTranscript();
       setInputText("");
-      startListening();
+      startListening(undefined, true);
       setVoiceState("listening");
     } else {
       setVoiceState("idle");
@@ -378,12 +458,19 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       sentenceQueueRef.current.cancel();
       sentenceQueueRef.current = null;
     }
+    if (activeUtteranceRef.current) {
+      activeUtteranceRef.current = null;
+    }
     if (activeAudioRef.current) {
       activeAudioRef.current.pause();
       activeAudioRef.current = null;
     }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // Safe ignore
+      }
     }
     setIsSpeaking(false);
     setIsBufferingAudio(false);
@@ -487,7 +574,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     speechBaseTextRef.current = "";
                     clearTranscript();
                     setInputText("");
-                    startListening();
+                    startListening(undefined, true);
                     setVoiceState("listening");
                   }
                 }, 350);
@@ -520,7 +607,29 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         if (lastModelMessage?.text && !isSpeaking && !isBufferingAudio) {
           void handleToggleSpeech(lastModelMessage.text);
         }
+      } else if (isVoiceModeActive && !sentenceQueueRef.current && !isSpeaking && !isBufferingAudio) {
+        // Recover to listening state if generation finished without speaking (e.g. error, code-only, or stopped)
+        setTimeout(() => {
+          if (isVoiceModeActiveRef.current && !sentenceQueueRef.current && !isSpeaking) {
+            speechBaseTextRef.current = "";
+            clearTranscript();
+            setInputText("");
+            startListening(undefined, true);
+            setVoiceState("listening");
+          }
+        }, 350);
       }
+    } else if (!isGenerating && isVoiceModeActive && voiceState === "processing") {
+      // Fallback recovery if voiceState is stuck on processing
+      setTimeout(() => {
+        if (isVoiceModeActiveRef.current && !sentenceQueueRef.current && !isSpeaking) {
+          speechBaseTextRef.current = "";
+          clearTranscript();
+          setInputText("");
+          startListening(undefined, true);
+          setVoiceState("listening");
+        }
+      }, 350);
     }
   }, [isGenerating]);
 
@@ -534,6 +643,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    activeUtteranceRef.current = utterance;
     utterance.rate = speechSettings.playbackRate;
 
     // Pick chosen device voice or best natural voice
@@ -564,6 +674,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     };
 
     utterance.onend = () => {
+      activeUtteranceRef.current = null;
       setIsSpeaking(false);
       if (isVoiceModeActiveRef.current) {
         // Acoustic echo safety: delay 350ms before opening mic
@@ -572,7 +683,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             speechBaseTextRef.current = "";
             clearTranscript();
             setInputText("");
-            startListening();
+            startListening(undefined, true);
             setVoiceState("listening");
           }
         }, 350);
@@ -582,9 +693,20 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     };
 
     utterance.onerror = () => {
+      activeUtteranceRef.current = null;
       setIsSpeaking(false);
       setIsBufferingAudio(false);
       if (isVoiceModeActiveRef.current) {
+        setTimeout(() => {
+          if (isVoiceModeActiveRef.current) {
+            speechBaseTextRef.current = "";
+            clearTranscript();
+            setInputText("");
+            startListening(undefined, true);
+            setVoiceState("listening");
+          }
+        }, 350);
+      } else {
         setVoiceState("idle");
       }
     };
@@ -649,8 +771,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             setTimeout(() => {
               if (isVoiceModeActiveRef.current) {
                 speechBaseTextRef.current = "";
+                clearTranscript();
                 setInputText("");
-                startListening();
+                startListening(undefined, true);
                 setVoiceState("listening");
               }
             }, 350);
@@ -758,6 +881,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     } else {
       onClearMessages();
     }
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
   };
 
   const handleSelectSession = (session: ChatSession) => {
@@ -769,14 +895,36 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   };
 
   const handleDeleteSession = (sessionId: string) => {
-    deleteChatSession(sessionId, activeProjectId);
-    const updated = getChatSessions(activeProjectId);
-    setHistorySessions(updated);
-    if (sessionId === currentSessionId) {
-      if (onNewChat) {
-        onNewChat();
-      } else {
-        onClearMessages();
+    if (isJulesMode) {
+      const all = loadStoredJulesSessions().filter((s) => s.id !== sessionId);
+      saveStoredJulesSessions(all);
+      setHistorySessions(
+        all.map((js) => ({
+          id: js.id,
+          title: js.title || js.repository,
+          messages: js.messages || [],
+          createdAt: js.createdAt,
+          updatedAt: js.updatedAt,
+          model: "Jules Agent",
+        }))
+      );
+      if (sessionId === currentSessionId) {
+        if (onNewChat) {
+          onNewChat();
+        } else {
+          onClearMessages();
+        }
+      }
+    } else {
+      deleteChatSession(sessionId, activeProjectId);
+      const updated = getChatSessions(activeProjectId);
+      setHistorySessions(updated);
+      if (sessionId === currentSessionId) {
+        if (onNewChat) {
+          onNewChat();
+        } else {
+          onClearMessages();
+        }
       }
     }
   };
@@ -813,22 +961,164 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           </button>
         )}
 
-        {/* Start New Chat Button (Stacked above Prompt Templates, borderless & transparent) */}
-        <button
-          ref={historyButtonRef}
-          type="button"
-          id="chat-top-right-new-chat-btn"
-          aria-label={isJulesMode ? "Start new task" : "Start new chat"}
-          title={isJulesMode ? "Start new task" : "Start new chat"}
-          onClick={handleStartNewChat}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setIsHistoryOpen((prev) => !prev);
-          }}
-          className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-transparent border-0 shadow-none hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors cursor-pointer active:scale-95 focus:outline-none touch-manipulation"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
+        {/* Start New Chat & History Trigger (Stacked above Prompt Templates) */}
+        <div className="relative group/newchat flex items-center justify-center">
+          <button
+            ref={historyButtonRef}
+            type="button"
+            id="chat-top-right-new-chat-btn"
+            aria-label={isJulesMode ? "Start new task or select history" : "New chat or select history"}
+            title={isJulesMode ? "Start new task or select history" : "New chat or select history"}
+            aria-haspopup="dialog"
+            aria-expanded={isHistoryOpen}
+            aria-controls="chat-window-history-popover"
+            onClick={() => setIsHistoryOpen((prev) => !prev)}
+            className={`w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl transition-all cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${
+              isHistoryOpen
+                ? "bg-muted text-foreground ring-1 ring-border shadow-xs"
+                : "bg-transparent border-0 shadow-none hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Plus
+              className={`w-4 h-4 transition-transform duration-200 ${
+                isHistoryOpen ? "rotate-45 text-foreground" : ""
+              }`}
+            />
+          </button>
+
+          {/* Micro Tooltip on hover when popover is closed */}
+          {!isHistoryOpen && (
+            <div
+              role="tooltip"
+              className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover/95 backdrop-blur-sm border border-border text-foreground text-[11px] font-medium rounded-lg whitespace-nowrap shadow-md pointer-events-none opacity-0 group-hover/newchat:opacity-100 transition-opacity duration-150 z-20"
+            >
+              {isJulesMode ? "New task or history" : "New chat or history"}
+            </div>
+          )}
+
+          {/* Anchored History & New Chat Popover Menu */}
+          {isHistoryOpen && (
+            <div
+              ref={historyPopoverRef}
+              id="chat-window-history-popover"
+              role="dialog"
+              aria-label={isJulesMode ? "New task and history menu" : "New chat and history menu"}
+              className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover/98 border border-border shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
+            >
+              {/* Arrow Indicator pointing up to Plus button */}
+              <div className="absolute -top-1.5 right-3 w-3 h-3 rotate-45 bg-popover border-t border-l border-border pointer-events-none" />
+
+              {/* 1. Primary Action: Start New Chat */}
+              <button
+                type="button"
+                id="chat-popover-new-chat-btn"
+                onClick={handleStartNewChat}
+                className="w-full p-3 flex items-center gap-3 text-left text-xs font-semibold text-foreground hover:bg-muted/70 active:bg-muted transition-colors group border-0 bg-transparent cursor-pointer"
+              >
+                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="leading-tight text-foreground font-medium">
+                    {isJulesMode ? "Start New Task" : "Start New Chat"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                    {isJulesMode ? "Create a clean task workspace" : "Fresh conversation & clean context"}
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+              </button>
+
+              <div className="border-t border-border" />
+
+              {/* 2. Historical Chats Header */}
+              <div className="px-3 py-2 bg-muted/40 flex items-center justify-between border-b border-border/60">
+                <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>{isJulesMode ? "Task History" : "Recent Chats"}</span>
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-mono font-medium text-muted-foreground border border-border/40">
+                  {validHistorySessions.length} {validHistorySessions.length === 1 ? "chat" : "chats"}
+                </span>
+              </div>
+
+              {/* 3. Historical Chats Scrollable List */}
+              <div className="max-h-60 sm:max-h-72 overflow-y-auto divide-y divide-border/60 overscroll-contain">
+                {validHistorySessions.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <Clock className="w-6 h-6 text-muted-foreground/60 mx-auto mb-1.5" />
+                    <p className="text-xs text-foreground font-medium">No previous chats</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Send a message to automatically save your conversation history.
+                    </p>
+                  </div>
+                ) : (
+                  validHistorySessions.map((session) => {
+                    const isActive = session.id === currentSessionId;
+                    return (
+                      <div
+                        key={session.id}
+                        className={`flex items-center justify-between gap-2 p-2.5 transition-colors group ${
+                          isActive ? "bg-primary/10 hover:bg-primary/15" : "hover:bg-muted/70"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleSelectSession(session)}
+                          className="flex-1 min-w-0 text-left flex items-start gap-2.5 border-0 bg-transparent cursor-pointer p-0"
+                        >
+                          <div className="mt-0.5 shrink-0">
+                            <MessageSquare
+                              className={`w-3.5 h-3.5 ${
+                                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                              }`}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div
+                              className={`text-xs truncate font-medium ${
+                                isActive ? "text-primary font-semibold" : "text-foreground group-hover:text-foreground"
+                              }`}
+                            >
+                              {session.title || "Untitled Conversation"}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              {isActive && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-medium text-primary bg-primary/15 border border-primary/25">
+                                  Active
+                                </span>
+                              )}
+                              <span>{formatRelativeTime(session.updatedAt)}</span>
+                              <span>•</span>
+                              <span>
+                                {session.messages?.length || 0}{" "}
+                                {session.messages?.length === 1 ? "msg" : "msgs"}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          id={`chat-delete-session-${session.id}`}
+                          aria-label={`Delete chat: ${session.title}`}
+                          title="Delete chat"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSession(session.id);
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors shrink-0 opacity-60 group-hover:opacity-100 border-0 bg-transparent cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Prompt Templates drawer trigger button (Stacked below New Chat, borderless & transparent) */}
         <button
@@ -851,119 +1141,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           )}
         </button>
       </div>
-
-      {/* Anchored History & New Chat Popover Menu */}
-      {isHistoryOpen && (
-        <div
-          ref={historyPopoverRef}
-          id="chat-window-history-popover"
-          className="absolute right-3 top-24 z-40 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover border border-border shadow-2xl overflow-hidden backdrop-blur-md"
-        >
-          {/* 1. Primary Action: Start New Chat */}
-          <button
-            type="button"
-            id="chat-popover-new-chat-btn"
-            onClick={handleStartNewChat}
-            className="w-full p-3 flex items-center gap-2.5 text-left text-xs font-semibold text-foreground hover:bg-muted active:bg-muted/80 transition-colors group border-0 bg-transparent cursor-pointer"
-          >
-            <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary/20">
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="leading-none text-foreground">Start New Chat</div>
-              <div className="text-[10px] text-muted-foreground font-normal mt-0.5">Fresh conversation</div>
-            </div>
-          </button>
-
-          <div className="border-t border-border" />
-
-          {/* 2. Historical Chats Header */}
-          <div className="px-3 py-2 bg-muted/50 flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Clock className="w-3 h-3 text-muted-foreground" />
-              <span>Recent Chats</span>
-            </span>
-            <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-mono text-muted-foreground">
-              {historySessions.length}
-            </span>
-          </div>
-
-          {/* 3. Historical Chats Scrollable List */}
-          <div className="max-h-60 sm:max-h-72 overflow-y-auto divide-y divide-border">
-            {historySessions.length === 0 ? (
-              <div className="p-4 text-center">
-                <Clock className="w-5 h-5 text-muted-foreground mx-auto mb-1.5" />
-                <p className="text-xs text-muted-foreground font-medium">No previous chats</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Send a message to save your conversation history.
-                </p>
-              </div>
-            ) : (
-              historySessions.map((session) => {
-                const isActive = session.id === currentSessionId;
-                return (
-                  <div
-                    key={session.id}
-                    className={`flex items-center justify-between gap-2 p-2.5 transition-colors group ${
-                      isActive ? "bg-primary/10" : "hover:bg-muted"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleSelectSession(session)}
-                      className="flex-1 min-w-0 text-left flex items-start gap-2 border-0 bg-transparent cursor-pointer p-0"
-                    >
-                      <div className="mt-0.5 shrink-0">
-                        <MessageSquare
-                          className={`w-3.5 h-3.5 ${
-                            isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                          }`}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className={`text-xs truncate font-medium ${
-                            isActive ? "text-primary" : "text-foreground group-hover:text-foreground"
-                          }`}
-                        >
-                          {session.title || "Untitled Conversation"}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                          {isActive && (
-                            <span className="text-[9px] px-1 py-0.2 rounded font-mono text-primary bg-primary/10 border border-primary/20">
-                              Active
-                            </span>
-                          )}
-                          <span>{formatRelativeTime(session.updatedAt)}</span>
-                          <span>•</span>
-                          <span>
-                            {session.messages?.length || 0}{" "}
-                            {session.messages?.length === 1 ? "msg" : "msgs"}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      id={`chat-delete-session-${session.id}`}
-                      aria-label={`Delete chat: ${session.title}`}
-                      title="Delete chat"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSession(session.id);
-                      }}
-                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors shrink-0 opacity-70 group-hover:opacity-100 border-0 bg-transparent cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Messages Scroll Area */}
       <div
@@ -1772,7 +1949,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         ) : (
           /* Case C: Resting State 50/50 Adaptive Split-Dock (0 Outer Padding) */
           <div className="flex items-stretch gap-0 w-full h-20 min-h-[80px]">
-            {/* Left 50%: Text Input Window (Placeholder text only, NO buttons at rest) */}
+            {/* Left Card: Expands full width in FAB mode, or 50% split in Footer mode */}
             <div
               id="chat-resting-text-card"
               role="button"
@@ -1791,7 +1968,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   }, 50);
                 }
               }}
-              className="flex-1 w-1/2 h-20 min-h-[80px] bg-background hover:bg-muted/30 border-r border-border focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-all duration-600 ease-in-out select-none group touch-manipulation"
+              className={`flex-1 ${
+                speechSettings.voiceButtonPlacement === "fab" ? "w-full" : "w-1/2 border-r border-border"
+              } h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-all duration-600 ease-in-out select-none group touch-manipulation`}
               title="Tap to type message (expands full width)"
               aria-label="Tap to open chat text input"
             >
@@ -1809,17 +1988,19 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               </div>
             </div>
 
-            {/* Right 50%: Hands-Free Voice Button (Icon-only, microphone icon, colors extend to fill entire area) */}
-            <button
-              type="button"
-              id="chat-handsfree-primary-btn"
-              onClick={handleToggleVoiceMode}
-              className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-all duration-300 ease-in-out cursor-pointer touch-manipulation group"
-              title="Start hands-free voice mode"
-              aria-label="Start hands-free voice mode"
-            >
-              <Mic className="w-6 h-6 text-primary group-hover:scale-110 active:scale-95 transition-transform" />
-            </button>
+            {/* Right 50%: Hands-Free Voice Button (Only shown in Footer mode to avoid duplicate with FAB) */}
+            {speechSettings.voiceButtonPlacement !== "fab" && (
+              <button
+                type="button"
+                id="chat-handsfree-primary-btn"
+                onClick={handleToggleVoiceMode}
+                className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-all duration-300 ease-in-out cursor-pointer touch-manipulation group"
+                title="Start hands-free voice mode"
+                aria-label="Start hands-free voice mode"
+              >
+                <Mic className="w-6 h-6 text-primary group-hover:scale-110 active:scale-95 transition-transform" />
+              </button>
+            )}
           </div>
         )}
       </div>
