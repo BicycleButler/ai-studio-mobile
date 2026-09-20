@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Plus,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   RefreshCw,
   GitPullRequest,
+  ArrowLeft,
 } from "lucide-react";
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
 import {
@@ -24,6 +26,7 @@ import {
   getStoredJulesSessions,
 } from "../services/julesService";
 import { loadStoredJulesApiKey } from "../utils/storage";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 interface JulesSessionDrawerProps {
   isOpen: boolean;
@@ -43,6 +46,21 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const [sessions, setSessions] = useState<JulesSession[]>([]);
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
+
+  // Enable device/browser back navigation to dismiss drawer smoothly
+  useBackNavigation(isOpen, onClose, "jules-sessions-drawer");
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
@@ -79,8 +97,6 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
       }
     }
   }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const handleCreateSession = (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,31 +180,58 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div
-        className="fixed inset-0"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="jules-drawer-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.26, ease: "easeOut" }}
+          className="fixed inset-0 z-50 flex bg-background/80 backdrop-blur-sm"
+        >
+          <div
+            className="fixed inset-0"
+            onClick={onClose}
+            aria-hidden="true"
+          />
 
-      <div className="relative ml-auto w-full max-w-md h-full bg-card border-l border-border shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200 text-foreground">
+          <motion.div
+            key="jules-drawer-sheet"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ duration: 1.26, ease: [0.32, 0.72, 0, 1] }}
+            className="relative ml-auto w-full max-w-md h-full bg-card border-l border-border shadow-2xl flex flex-col z-10 text-foreground"
+          >
         {/* Drawer Header */}
         <div className="p-4 border-b border-border bg-muted/40 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <button
+              type="button"
+              id="jules-drawer-back-btn"
+              onClick={onClose}
+              className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
+              title="Close drawer"
+              aria-label="Back / Close drawer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-xs font-semibold sm:inline hidden">Back</span>
+            </button>
+            <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
               <Bot className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-foreground truncate">
                 Google Jules Sessions
               </h2>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground truncate">
                 Autonomous coding tasks and PR tracking
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onClick={() => setIsCreating(!isCreating)}
@@ -200,8 +243,10 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             </button>
             <button
               type="button"
+              id="jules-drawer-close-btn"
               onClick={onClose}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer touch-manipulation"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title="Close drawer"
               aria-label="Close Jules sessions"
             >
               <X className="w-5 h-5" />
@@ -450,7 +495,9 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             Manage Jules Key
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+    )}
+  </AnimatePresence>
   );
 };

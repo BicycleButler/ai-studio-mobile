@@ -104,6 +104,26 @@ export default function App() {
   const [candidateClipboardKey, setCandidateClipboardKey] = useState<string>("");
   const [clipboardToastKey, setClipboardToastKey] = useState<string | null>(null);
 
+  // Prompt Templates State (Global to header & chat)
+  const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+
+  const handleToggleTemplate = (templateId: string) => {
+    setSelectedTemplateIds((prev) =>
+      prev.includes(templateId)
+        ? prev.filter((id) => id !== templateId)
+        : [...prev, templateId]
+    );
+  };
+
+  const handleRemoveTemplate = (templateId: string) => {
+    setSelectedTemplateIds((prev) => prev.filter((id) => id !== templateId));
+  };
+
+  const handleClearAllTemplates = () => {
+    setSelectedTemplateIds([]);
+  };
+
   const handleOpenSettings = (tab: SettingsTab = "account") => {
     setSettingsTab(tab);
     setShowSettingsModal(true);
@@ -881,6 +901,13 @@ export default function App() {
         onSelectProject={handleProjectActivated}
         activeJulesSession={activeJulesSession}
         onOpenJulesSessions={() => setShowJulesDrawer(true)}
+        onOpenPromptTemplates={() => {
+          if (promptType !== "chat" && promptType !== "jules") {
+            setPromptType("chat");
+          }
+          setIsTemplateDrawerOpen(true);
+        }}
+        selectedTemplateCount={selectedTemplateIds.length}
       />
 
       {/* Floating Clipboard Key Sniffer Detection Alert */}
@@ -1076,6 +1103,13 @@ export default function App() {
             onSelectSession={handleSelectChatSession}
             onNewChat={handleStartNewChat}
             onOpenBottomNav={() => setShowBottomNav(true)}
+            isTemplateDrawerOpen={isTemplateDrawerOpen}
+            onOpenTemplateDrawer={() => setIsTemplateDrawerOpen(true)}
+            onCloseTemplateDrawer={() => setIsTemplateDrawerOpen(false)}
+            selectedTemplateIds={selectedTemplateIds}
+            onToggleTemplate={handleToggleTemplate}
+            onRemoveTemplate={handleRemoveTemplate}
+            onClearAllTemplates={handleClearAllTemplates}
           />
         )}
         {promptType === "code" && (
@@ -1133,6 +1167,13 @@ export default function App() {
             }}
             onNewChat={() => setShowJulesDrawer(true)}
             onOpenBottomNav={() => setShowBottomNav(true)}
+            isTemplateDrawerOpen={isTemplateDrawerOpen}
+            onOpenTemplateDrawer={() => setIsTemplateDrawerOpen(true)}
+            onCloseTemplateDrawer={() => setIsTemplateDrawerOpen(false)}
+            selectedTemplateIds={selectedTemplateIds}
+            onToggleTemplate={handleToggleTemplate}
+            onRemoveTemplate={handleRemoveTemplate}
+            onClearAllTemplates={handleClearAllTemplates}
           />
         )}
         {promptType === "stubs" && (
@@ -1155,17 +1196,16 @@ export default function App() {
       />
 
       {/* Canonical Model & Tuner Bottom Sheet */}
-      {showTunerSheet && (
-        <TunerBottomSheet
-          config={config}
-          onChangeConfig={setConfig}
-          models={models}
-          onClose={() => setShowTunerSheet(false)}
-          isModal={true}
-          hasApiKey={hasApiKey}
-          onOpenAuth={() => handleOpenSettings("account")}
-        />
-      )}
+      <TunerBottomSheet
+        isOpen={showTunerSheet}
+        config={config}
+        onChangeConfig={setConfig}
+        models={models}
+        onClose={() => setShowTunerSheet(false)}
+        isModal={true}
+        hasApiKey={hasApiKey}
+        onOpenAuth={() => handleOpenSettings("account")}
+      />
 
       {/* Unified Settings Modal Hub */}
       <UnifiedSettingsModal

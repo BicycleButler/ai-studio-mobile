@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Lock,
@@ -12,8 +13,10 @@ import {
   ArrowRight,
   ClipboardPaste,
   Bot,
+  ArrowLeft,
 } from "lucide-react";
 import { detectGoogleApiKey, detectJulesApiKey, maskApiKey } from "../services/keyVerification";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 export type CredentialTargetService = "aistudio" | "jules";
 
@@ -35,20 +38,8 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   activeApiKey = "",
   initialService = "aistudio",
 }) => {
-  const touchStartYRef = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartYRef.current === null) return;
-    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
-    if (diff > 45) {
-      onClose();
-    }
-    touchStartYRef.current = null;
-  };
+  // Enable device/browser back navigation to dismiss browser smoothly
+  useBackNavigation(isOpen, onClose, "custom-tab-browser");
 
   const [activeService, setActiveService] = useState<CredentialTargetService>(initialService);
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -93,8 +84,6 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
     return () => clearInterval(interval);
   }, [isOpen, activeApiKey, activeService]);
 
-  if (!isOpen) return null;
-
   const handleOpenSystemBrowser = () => {
     window.open(targetUrl, "_blank", "noopener,noreferrer");
   };
@@ -117,38 +106,37 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   };
 
   return (
-    <div
-      id="custom-tab-browser-modal"
-      className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm animate-in fade-in"
-    >
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        className="flex-1 flex flex-col max-w-xl w-full mx-auto bg-card border-x border-b border-border shadow-2xl overflow-hidden rounded-b-2xl sm:my-4 sm:rounded-2xl sm:border-t"
-      >
-        {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
-        <div
-          onClick={onClose}
-          className="sm:hidden w-full flex items-center justify-center pt-2 pb-1 bg-muted cursor-pointer group touch-manipulation"
-          title="Swipe down or tap to dismiss"
-          role="button"
-          tabIndex={0}
-          aria-label="Dismiss in-app browser"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="custom-tab-browser-modal"
+          id="custom-tab-browser-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.27, ease: "easeOut" }}
+          className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm"
         >
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
-        </div>
-
+          <motion.div
+            key="custom-tab-browser-dialog"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.27, ease: [0.32, 0.72, 0, 1] }}
+            className="flex-1 flex flex-col max-w-xl w-full mx-auto bg-card border-x border-b border-border shadow-2xl overflow-hidden rounded-b-2xl sm:my-4 sm:rounded-2xl sm:border-t"
+          >
         {/* Chrome Custom Tab Top Toolbar */}
         <div className="bg-muted border-b border-border px-3 py-2 flex items-center justify-between gap-2 select-none">
-          {/* Close button on the left (Chrome Custom Tab convention) */}
+          {/* Back button on the left */}
           <button
             type="button"
+            id="custom-tab-back-btn"
             onClick={onClose}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/80 transition-colors cursor-pointer touch-manipulation"
-            title="Close In-App Browser"
-            aria-label="Close"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/80 transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            title="Back / Close"
+            aria-label="Back"
           >
-            <X className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
 
           {/* Center Address and Identity bar */}
@@ -187,6 +175,16 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
               title="Open in System Browser"
             >
               <ExternalLink className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              id="custom-tab-close-btn"
+              onClick={onClose}
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title="Close browser"
+              aria-label="Close browser"
+            >
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -394,8 +392,10 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
             <span>Encrypted local storage with automatic clipboard wipe</span>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+    )}
+  </AnimatePresence>
   );
 };
 

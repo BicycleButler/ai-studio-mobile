@@ -1,4 +1,5 @@
-import React, { useRef, useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Sliders,
   RotateCcw,
@@ -21,6 +22,7 @@ import {
   isDeprecatedOrUnusableModel,
   sanitizeModelId,
 } from "../utils/modelCatalog";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 interface TunerBottomSheetProps {
   config: PromptConfig;
@@ -28,6 +30,7 @@ interface TunerBottomSheetProps {
   models: ModelInfo[];
   onClose?: () => void;
   isModal?: boolean;
+  isOpen?: boolean;
   hasApiKey?: boolean;
   onOpenAuth?: () => void;
 }
@@ -38,12 +41,14 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
   models,
   onClose,
   isModal = false,
+  isOpen = true,
   hasApiKey = false,
   onOpenAuth,
 }) => {
-  const touchStartXRef = useRef<number | null>(null);
-  const touchStartYRef = useRef<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("All");
+
+  // Device/browser back navigation support
+  useBackNavigation(Boolean(isModal && onClose), onClose || (() => {}), "tuner-drawer");
 
   // Filter out any deprecated, legacy, or unusable non-chat models
   const cleanModels = useMemo(() => {
@@ -75,31 +80,6 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
     if (activeCategory === "All") return cleanModels;
     return cleanModels.filter((m) => m.category === activeCategory);
   }, [cleanModels, activeCategory]);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartXRef.current !== null) {
-      const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
-      if (diffX > 60 && onClose) {
-        onClose();
-        touchStartXRef.current = null;
-        touchStartYRef.current = null;
-        return;
-      }
-    }
-    if (touchStartYRef.current !== null) {
-      const diffY = e.changedTouches[0].clientY - touchStartYRef.current;
-      if (diffY > 80 && onClose) {
-        onClose();
-      }
-    }
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-  };
 
   useEffect(() => {
     if (!isModal || !onClose) return;
@@ -570,124 +550,123 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
 
   if (isModal) {
     return (
-      <div
-        id="tuner-drawer-overlay"
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-        onClick={(e) => {
-          if (e.target === e.currentTarget && onClose) {
-            onClose();
-          }
-        }}
-      >
-        <div
-          id="tuner-drawer-dialog"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Models and Parameters drawer"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground animate-in slide-in-from-right duration-300 ease-out"
-        >
-          {/* Universal Swipe Grab Handle (Mobile-first) */}
-          <div
-            onClick={onClose}
-            className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-1 bg-muted/20 cursor-pointer group touch-manipulation"
-            title="Swipe right/down or tap to dismiss"
-            role="button"
-            tabIndex={0}
-            aria-label="Dismiss models drawer"
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="tuner-drawer-overlay"
+            id="tuner-drawer-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.89, ease: "easeOut" }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && onClose) {
+                onClose();
+              }
+            }}
           >
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
-          </div>
-
-          {/* Top Drawer Header with Back button */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-background/95 backdrop-blur-md shrink-0 select-none">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              {onClose && (
-                <button
-                  type="button"
-                  id="tuner-modal-back-btn"
-                  onClick={onClose}
-                  className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  title="Close drawer"
-                  aria-label="Back / Close drawer"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                  <span className="text-xs font-semibold sm:inline hidden">Back</span>
-                </button>
-              )}
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Layers className="w-4 h-4" />
+            <motion.div
+              key="tuner-drawer-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Models and Parameters drawer"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 1.89, ease: [0.32, 0.72, 0, 1] }}
+              className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground"
+            >
+              {/* Top Drawer Header with Back button */}
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-background/95 backdrop-blur-md shrink-0 select-none">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  {onClose && (
+                    <button
+                      type="button"
+                      id="tuner-modal-back-btn"
+                      onClick={onClose}
+                      className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      title="Close drawer"
+                      aria-label="Back / Close drawer"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                      <span className="text-xs font-semibold sm:inline hidden">Back</span>
+                    </button>
+                  )}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-sm sm:text-base font-semibold text-foreground tracking-tight truncate">
+                        Models & Parameters
+                      </h2>
+                      <p className="text-[11px] text-muted-foreground hidden sm:block truncate">
+                        Select Gemini models and customize temperature, output tokens & schema
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-sm sm:text-base font-semibold text-foreground tracking-tight truncate">
-                    Models & Parameters
-                  </h2>
-                  <p className="text-[11px] text-muted-foreground hidden sm:block truncate">
-                    Select Gemini models and customize temperature, output tokens & schema
-                  </p>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleResetDefaults}
+                    className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    title="Reset parameters to defaults"
+                    aria-label="Reset parameters to defaults"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium sm:inline hidden">Reset</span>
+                  </button>
+                  {onClose && (
+                    <button
+                      type="button"
+                      id="tuner-modal-close-btn"
+                      onClick={onClose}
+                      className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      title="Close drawer"
+                      aria-label="Close drawer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleResetDefaults}
-                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                title="Reset parameters to defaults"
-                aria-label="Reset parameters to defaults"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span className="text-xs font-medium sm:inline hidden">Reset</span>
-              </button>
-              {onClose && (
-                <button
-                  type="button"
-                  id="tuner-modal-close-btn"
-                  onClick={onClose}
-                  className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  title="Close drawer"
-                  aria-label="Close drawer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto w-full p-4 sm:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto">
-            {bodyFields}
-          </div>
-
-          {/* Drawer Footer */}
-          <div className="px-4 sm:px-6 py-3 border-t border-border bg-background/95 backdrop-blur-md shrink-0">
-            <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
-                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded border border-primary/30 bg-primary/20 text-primary font-semibold shrink-0">
-                  Active Model
-                </span>
-                <span className="truncate font-medium text-foreground">
-                  {selectedModelInfo?.name || config.model}
-                </span>
+              {/* Drawer Body */}
+              <div className="flex-1 overflow-y-auto w-full p-4 sm:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto">
+                {bodyFields}
               </div>
 
-              {onClose && (
-                <button
-                  type="button"
-                  id="tuner-done-btn"
-                  onClick={onClose}
-                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  Done
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+              {/* Drawer Footer */}
+              <div className="px-4 sm:px-6 py-3 border-t border-border bg-background/95 backdrop-blur-md shrink-0">
+                <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded border border-primary/30 bg-primary/20 text-primary font-semibold shrink-0">
+                      Active Model
+                    </span>
+                    <span className="truncate font-medium text-foreground">
+                      {selectedModelInfo?.name || config.model}
+                    </span>
+                  </div>
+
+                  {onClose && (
+                    <button
+                      type="button"
+                      id="tuner-done-btn"
+                      onClick={onClose}
+                      className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      Done
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   }
 

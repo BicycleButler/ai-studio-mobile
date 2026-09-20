@@ -22,6 +22,7 @@ import {
   Minimize2,
 } from "lucide-react";
 import Markdown from "react-markdown";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ChatMessage,
   MessageAttachment,
@@ -92,6 +93,13 @@ interface ChatWorkspaceProps {
   onRejectJulesPlan?: (taskId: string) => void;
   isApprovingJulesPlan?: boolean;
   onOpenBottomNav?: () => void;
+  isTemplateDrawerOpen?: boolean;
+  onOpenTemplateDrawer?: () => void;
+  onCloseTemplateDrawer?: () => void;
+  selectedTemplateIds?: string[];
+  onToggleTemplate?: (templateId: string) => void;
+  onRemoveTemplate?: (templateId: string) => void;
+  onClearAllTemplates?: () => void;
 }
 
 export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
@@ -121,6 +129,13 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   onRejectJulesPlan,
   isApprovingJulesPlan = false,
   onOpenBottomNav: _onOpenBottomNav,
+  isTemplateDrawerOpen: propIsTemplateDrawerOpen,
+  onOpenTemplateDrawer: propOnOpenTemplateDrawer,
+  onCloseTemplateDrawer: propOnCloseTemplateDrawer,
+  selectedTemplateIds: propSelectedTemplateIds,
+  onToggleTemplate: propOnToggleTemplate,
+  onRemoveTemplate: propOnRemoveTemplate,
+  onClearAllTemplates: propOnClearAllTemplates,
 }) => {
   const [inputText, setInputText] = useState("");
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
@@ -156,8 +171,18 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   }, [historySessions]);
 
   // Prompt Templates State (Strict FIFO selection order)
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
-  const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
+  const [internalSelectedTemplateIds, setInternalSelectedTemplateIds] = useState<string[]>([]);
+  const [internalIsTemplateDrawerOpen, setInternalIsTemplateDrawerOpen] = useState(false);
+
+  const selectedTemplateIds =
+    propSelectedTemplateIds !== undefined
+      ? propSelectedTemplateIds
+      : internalSelectedTemplateIds;
+  const isTemplateDrawerOpen =
+    propIsTemplateDrawerOpen !== undefined
+      ? propIsTemplateDrawerOpen
+      : internalIsTemplateDrawerOpen;
+
   const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
   const [allTemplatesList, setAllTemplatesList] = useState<PromptTemplate[]>(() => getAllTemplates());
 
@@ -167,19 +192,49 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   }, [isTemplateDrawerOpen]);
 
   const handleToggleTemplate = (templateId: string) => {
-    setSelectedTemplateIds((prev) =>
-      prev.includes(templateId)
-        ? prev.filter((id) => id !== templateId)
-        : [...prev, templateId]
-    );
+    if (propOnToggleTemplate) {
+      propOnToggleTemplate(templateId);
+    } else {
+      setInternalSelectedTemplateIds((prev) =>
+        prev.includes(templateId)
+          ? prev.filter((id) => id !== templateId)
+          : [...prev, templateId]
+      );
+    }
   };
 
   const handleRemoveTemplate = (templateId: string) => {
-    setSelectedTemplateIds((prev) => prev.filter((id) => id !== templateId));
+    if (propOnRemoveTemplate) {
+      propOnRemoveTemplate(templateId);
+    } else {
+      setInternalSelectedTemplateIds((prev) =>
+        prev.filter((id) => id !== templateId)
+      );
+    }
   };
 
   const handleClearAllTemplates = () => {
-    setSelectedTemplateIds([]);
+    if (propOnClearAllTemplates) {
+      propOnClearAllTemplates();
+    } else {
+      setInternalSelectedTemplateIds([]);
+    }
+  };
+
+  const handleOpenTemplateDrawer = () => {
+    if (propOnOpenTemplateDrawer) {
+      propOnOpenTemplateDrawer();
+    } else {
+      setInternalIsTemplateDrawerOpen(true);
+    }
+  };
+
+  const handleCloseTemplateDrawer = () => {
+    if (propOnCloseTemplateDrawer) {
+      propOnCloseTemplateDrawer();
+    } else {
+      setInternalIsTemplateDrawerOpen(false);
+    }
   };
 
   const toggleMessageExpanded = (messageId: string) => {
@@ -369,7 +424,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         userRawText || spokenText.trim()
       );
       setAttachments([]);
-      setSelectedTemplateIds([]);
+      handleClearAllTemplates();
     },
   });
 
@@ -826,7 +881,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     clearTranscript();
     setInputText("");
     setAttachments([]);
-    setSelectedTemplateIds([]);
+    handleClearAllTemplates();
     setIsInputHeightExpanded(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -1119,27 +1174,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             </div>
           )}
         </div>
-
-        {/* Prompt Templates drawer trigger button (Stacked below New Chat, borderless & transparent) */}
-        <button
-          type="button"
-          id="chat-top-right-templates-btn"
-          aria-label="Prompt Templates"
-          title="Prompt Templates (Modular directives)"
-          onClick={() => setIsTemplateDrawerOpen(true)}
-          className={`relative w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-transparent border-0 shadow-none hover:bg-muted/50 transition-colors cursor-pointer active:scale-95 focus:outline-none touch-manipulation ${
-            selectedTemplateIds.length > 0
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          {selectedTemplateIds.length > 0 && (
-            <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[8px] font-mono font-bold flex items-center justify-center shadow-xs">
-              {selectedTemplateIds.length}
-            </span>
-          )}
-        </button>
       </div>
 
       {/* Messages Scroll Area */}
@@ -1567,7 +1601,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           <button
             type="button"
             id="tray-add-template-btn"
-            onClick={() => setIsTemplateDrawerOpen(true)}
+            onClick={handleOpenTemplateDrawer}
             className="h-8 min-h-[32px] px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 shrink-0 transition-colors cursor-pointer touch-manipulation relative after:absolute after:-inset-1.5"
             title="Add or configure templates"
           >
@@ -1592,423 +1626,463 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       {/* Optional Floating Action Button (FAB) placement when configured in settings */}
       {speechSettings.voiceButtonPlacement === "fab" && (
         <div className="absolute bottom-24 right-4 z-30 pointer-events-auto">
-          {!isVoiceModeActive ? (
-            <button
-              type="button"
-              id="chat-handsfree-fab-btn"
-              onClick={handleToggleVoiceMode}
-              className="h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition-all active:scale-95 cursor-pointer touch-manipulation group"
-              title="Start hands-free continuous two-way voice conversation"
-              aria-label="Start hands-free continuous two-way voice conversation"
-            >
-              <div className="w-6 h-6 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                <Mic className="w-3.5 h-3.5" />
-              </div>
-              <span>Hands-Free Voice</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 bg-card border border-primary/50 shadow-xl rounded-full p-1.5 pl-3 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-semibold text-foreground">
-                  {voiceState === "listening"
-                    ? isAudioDetected
-                      ? "Listening (Speaking)..."
-                      : "Listening..."
-                    : voiceState === "processing"
-                    ? "Thinking..."
-                    : voiceState === "speaking"
-                    ? "Speaking..."
-                    : "Standby"}
-                </span>
-              </div>
-              {voiceState === "speaking" && (
+          <AnimatePresence mode="wait" initial={false}>
+            {!isVoiceModeActive ? (
+              <motion.div
+                key="fab-button"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
+              >
                 <button
                   type="button"
-                  id="chat-voice-fab-interrupt-btn"
-                  onClick={handleInterrupt}
-                  className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
-                  title="Interrupt assistant speech"
+                  id="chat-handsfree-fab-btn"
+                  onClick={handleToggleVoiceMode}
+                  className="h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition-all duration-[945ms] active:scale-95 cursor-pointer touch-manipulation group"
+                  title="Start hands-free continuous two-way voice conversation"
+                  aria-label="Start hands-free continuous two-way voice conversation"
                 >
-                  <Square className="w-3 h-3 fill-current" />
-                  <span>Interrupt</span>
+                  <div className="w-6 h-6 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                    <Mic className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Hands-Free Voice</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 </button>
-              )}
-              <button
-                type="button"
-                id="chat-voice-fab-end-btn"
-                onClick={handleToggleVoiceMode}
-                className="w-7 h-7 rounded-full bg-destructive/15 text-destructive hover:bg-destructive/25 flex items-center justify-center cursor-pointer"
-                title="End hands-free voice mode"
-                aria-label="End hands-free voice mode"
+              </motion.div>
+            ) : (
+              <motion.div
+                key="fab-active"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
+                className="flex items-center gap-2 bg-card border border-primary/50 shadow-xl rounded-full p-1.5 pl-3 text-xs animate-in fade-in duration-[945ms]"
               >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-semibold text-foreground">
+                    {voiceState === "listening"
+                      ? isAudioDetected
+                        ? "Listening (Speaking)..."
+                        : "Listening..."
+                      : voiceState === "processing"
+                      ? "Thinking..."
+                      : voiceState === "speaking"
+                      ? "Speaking..."
+                      : "Standby"}
+                  </span>
+                </div>
+                {voiceState === "speaking" && (
+                  <button
+                    type="button"
+                    id="chat-voice-fab-interrupt-btn"
+                    onClick={handleInterrupt}
+                    className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                    title="Interrupt assistant speech"
+                  >
+                    <Square className="w-3 h-3 fill-current" />
+                    <span>Interrupt</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  id="chat-voice-fab-end-btn"
+                  onClick={handleToggleVoiceMode}
+                  className="w-7 h-7 rounded-full bg-destructive/15 text-destructive hover:bg-destructive/25 flex items-center justify-center cursor-pointer"
+                  title="End hands-free voice mode"
+                  aria-label="End hands-free voice mode"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
       {/* Adaptive Split-Dock (50/50 Resting Split ↔ 100% Expansions, Zero Outer Padding) */}
-      <div className="p-0 pb-[max(0rem,env(safe-area-inset-bottom))] bg-card border-t border-border">
-        {/* Case A: Voice Mode Active (100% Full-Width Conversational Voice Hub - Entire Section Tappable to Exit) */}
-        {isVoiceModeActive ? (
-          <div
-            id="conversational-voice-hud"
-            role="button"
-            tabIndex={0}
-            onClick={handleToggleVoiceMode}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleToggleVoiceMode();
-              }
-            }}
-            className="w-full h-20 min-h-[80px] px-4 py-2.5 bg-gradient-to-r from-primary/15 via-background to-primary/10 hover:from-primary/25 hover:via-background/90 hover:to-primary/20 active:scale-[0.995] border-t border-border shadow-xs flex items-center justify-between gap-3 animate-in fade-in duration-300 ease-in-out cursor-pointer select-none touch-manipulation group"
-            title="Tap anywhere to exit hands-free voice mode"
-            aria-label="Exit hands-free voice mode (tap anywhere)"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              {/* Dynamic Voice Visualizer */}
-              <div className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                {voiceState === "listening" && (
-                  <div className="flex items-center gap-1 h-5">
-                    <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:-0.3s] h-3" />
-                    <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:-0.15s] h-5" />
-                    <span className="w-1 bg-primary rounded-full animate-bounce h-2.5" />
-                  </div>
-                )}
-                {voiceState === "processing" && (
-                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                )}
-                {voiceState === "speaking" && (
-                  <div className="flex items-center gap-1 h-5">
-                    <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-5" />
-                    <span className="w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.2s] h-3.5" />
-                    <span className="w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.4s] h-5" />
-                  </div>
-                )}
-                {voiceState === "idle" && (
-                  <Mic className="w-5 h-5 text-muted-foreground" />
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
-                    {voiceState === "listening"
-                      ? isAudioDetected
-                        ? "Listening... (Speaking)"
-                        : "Listening... (Speak naturally)"
-                      : voiceState === "processing"
-                      ? "Gemini is thinking..."
-                      : voiceState === "speaking"
-                      ? "Assistant speaking..."
-                      : "Hands-free active"}
-                  </span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                  {silenceCountdownMs !== null && silenceCountdownMs > 0 && voiceState === "listening" && inputText.trim() && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
-                      Auto-send in {(silenceCountdownMs / 1000).toFixed(1)}s
-                    </span>
-                  )}
-                </div>
-                {speechError ? (
-                  <p className="text-[11px] text-amber-500 dark:text-amber-400 font-medium truncate">
-                    {speechError}
-                  </p>
-                ) : inputText.trim() ? (
-                  <p className="text-xs text-foreground/90 font-medium truncate italic max-w-[280px] sm:max-w-md md:max-w-xl">
-                    &ldquo;{inputText}&rdquo;
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {voiceState === "listening"
-                      ? "Speak now · Tap anywhere to exit & edit text"
-                      : voiceState === "speaking"
-                      ? "Tap Interrupt to cut in · Tap anywhere to exit"
-                      : "Tap anywhere to exit hands-free mode"}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {voiceState === "speaking" && (
-                <button
-                  type="button"
-                  id="chat-voice-interrupt-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleInterrupt();
-                  }}
-                  className="h-11 min-h-[44px] px-3.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 text-xs font-semibold flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
-                  title="Interrupt assistant speech"
-                  aria-label="Interrupt assistant speech"
-                >
-                  <Square className="w-3.5 h-3.5 fill-current" />
-                  <span>Interrupt</span>
-                </button>
-              )}
-
-              <div className="flex items-center gap-1.5 text-muted-foreground group-hover:text-destructive transition-colors text-xs font-medium px-2 py-1">
-                <span className="hidden sm:inline text-[11px]">
-                  {inputText.trim() ? "Exit & edit text" : "Tap to exit"}
-                </span>
-                <X className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-        ) : isInputExpanded ? (
-          /* Case B: Expanded 100% Full-Width Text Input Dock */
-          <div
-            className={`w-full bg-background border-t border-border transition-all duration-600 ease-in-out flex ${
-              isInputHeightExpanded ? "flex-col justify-between" : "items-end"
-            } gap-2 px-3 py-2 ${
-              isInputHeightExpanded ? "h-[200px] min-h-[200px]" : "h-20 min-h-[80px]"
-            }`}
-          >
-            {/* Standard height: Attachment button on the left */}
-            {!isInputHeightExpanded && (
-              <button
-                type="button"
-                id="chat-attach-btn"
-                disabled={isOptimizingImage}
-                onClick={() => fileInputRef.current?.click()}
-                className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:opacity-50 cursor-pointer touch-manipulation"
-                title={isOptimizingImage ? "Compressing image..." : "Attach image or screenshot"}
-                aria-label="Attach media"
-              >
-                {isOptimizingImage ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                ) : (
-                  <ImageIcon className="w-4 h-4" />
-                )}
-              </button>
-            )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              multiple
-              className="hidden"
-            />
-
-            {/* Prompt textarea */}
-            <textarea
-              ref={textareaRef}
-              id="chat-prompt-input"
-              value={inputText}
-              autoFocus
-              onChange={(e) => setInputText(e.target.value)}
-              onFocus={() => {
-                setIsInputFocused(true);
-                setTimeout(() => {
-                  messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-                }, 120);
-              }}
-              onBlur={() => {
-                setTimeout(() => {
-                  if (document.activeElement !== textareaRef.current) {
-                    setIsInputFocused(false);
-                  }
-                }, 150);
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                isJulesMode
-                  ? activeJulesSession
-                    ? `Describe a task or fix for Jules on ${activeJulesSession.repository}...`
-                    : "Select a repository to dispatch a Jules task..."
-                  : "Type prompt or test instructions..."
-              }
-              rows={isInputHeightExpanded ? 5 : 1}
-              className={`bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none py-2 px-1 overflow-y-auto leading-relaxed ${
-                isInputHeightExpanded
-                  ? "w-full flex-1 min-h-[110px] max-h-[135px]"
-                  : "flex-1 min-h-[44px] max-h-[58px]"
-              }`}
-            />
-
-            {/* When expanded to 250% height: bottom row containing attach on left, expand + send on right */}
-            {isInputHeightExpanded ? (
-              <div className="flex items-center justify-between w-full pt-1.5 border-t border-border/40 shrink-0">
-                {/* Media Attach button on the left */}
-                <button
-                  type="button"
-                  id="chat-attach-btn"
-                  disabled={isOptimizingImage}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:opacity-50 cursor-pointer touch-manipulation"
-                  title={isOptimizingImage ? "Compressing image..." : "Attach image or screenshot"}
-                  aria-label="Attach media"
-                >
-                  {isOptimizingImage ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  ) : (
-                    <ImageIcon className="w-4 h-4" />
-                  )}
-                </button>
-
-                {/* Right controls: borderless transparent expand button + send button */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    id="chat-expand-height-btn"
-                    onClick={() => setIsInputHeightExpanded(false)}
-                    className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors shadow-none touch-manipulation"
-                    title="Restore standard height"
-                    aria-label="Restore standard height"
-                  >
-                    <Minimize2 className="w-4 h-4" />
-                  </button>
-
-                  {isGenerating ? (
-                    <button
-                      type="button"
-                      id="chat-stop-btn"
-                      onClick={onStopGeneration}
-                      className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
-                      title="Stop generation"
-                      aria-label="Stop generation"
-                    >
-                      <Square className="w-4 h-4 fill-destructive-foreground" />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      id="chat-send-btn"
-                      onClick={handleSend}
-                      disabled={
-                        !inputText.trim() && attachments.length === 0 && selectedTemplateIds.length === 0
-                      }
-                      className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 font-semibold touch-manipulation ${
-                        inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
-                          ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
-                          : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                      }`}
-                      title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
-                      aria-label={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
-                    >
-                      {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              /* When standard height: right controls inline with textarea */
-              <div className="flex items-center gap-1 shrink-0">
-                {/* Borderless transparent Expand button (increases height by around 250%) */}
-                <button
-                  type="button"
-                  id="chat-expand-height-btn"
-                  onClick={() => setIsInputHeightExpanded(true)}
-                  className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors shadow-none touch-manipulation"
-                  title="Expand input height (250%)"
-                  aria-label="Expand input height"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                </button>
-
-                {/* Send / Stop button on the right */}
-                {isGenerating ? (
-                  <button
-                    type="button"
-                    id="chat-stop-btn"
-                    onClick={onStopGeneration}
-                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
-                    title="Stop generation"
-                    aria-label="Stop generation"
-                  >
-                    <Square className="w-4 h-4 fill-destructive-foreground" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    id="chat-send-btn"
-                    onClick={handleSend}
-                    disabled={
-                      !inputText.trim() && attachments.length === 0 && selectedTemplateIds.length === 0
-                    }
-                    className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 font-semibold touch-manipulation ${
-                      inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
-                        ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
-                        : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                    }`}
-                    title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
-                    aria-label={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
-                  >
-                    {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Case C: Resting State 50/50 Adaptive Split-Dock (0 Outer Padding) */
-          <div className="flex items-stretch gap-0 w-full h-20 min-h-[80px]">
-            {/* Left Card: Expands full width in FAB mode, or 50% split in Footer mode */}
-            <div
-              id="chat-resting-text-card"
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                setIsInputFocused(true);
-                setTimeout(() => {
-                  textareaRef.current?.focus();
-                }, 50);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  setIsInputFocused(true);
-                  setTimeout(() => {
-                    textareaRef.current?.focus();
-                  }, 50);
-                }
-              }}
-              className={`flex-1 ${
-                speechSettings.voiceButtonPlacement === "fab" ? "w-full" : "w-1/2 border-r border-border"
-              } h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-all duration-600 ease-in-out select-none group touch-manipulation`}
-              title="Tap to type message (expands full width)"
-              aria-label="Tap to open chat text input"
+      <div className="p-0 pb-[max(0rem,env(safe-area-inset-bottom))] bg-card border-t border-border overflow-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          {/* Case A: Voice Mode Active (100% Full-Width Conversational Voice Hub - Entire Section Tappable to Exit) */}
+          {isVoiceModeActive ? (
+            <motion.div
+              key="voice-mode-hud"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
+              className="w-full"
             >
-              <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors min-w-0">
-                <MessageSquare className="w-4 h-4 shrink-0 text-muted-foreground/70 group-hover:text-primary transition-colors" />
-                <span className="text-xs sm:text-sm truncate">
-                  {inputText ? (
-                    <span className="text-foreground font-medium">{inputText}</span>
-                  ) : isJulesMode ? (
-                    "Dispatch task..."
-                  ) : (
-                    "Type message..."
-                  )}
-                </span>
-              </div>
-            </div>
-
-            {/* Right 50%: Hands-Free Voice Button (Only shown in Footer mode to avoid duplicate with FAB) */}
-            {speechSettings.voiceButtonPlacement !== "fab" && (
-              <button
-                type="button"
-                id="chat-handsfree-primary-btn"
+              <div
+                id="conversational-voice-hud"
+                role="button"
+                tabIndex={0}
                 onClick={handleToggleVoiceMode}
-                className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-all duration-300 ease-in-out cursor-pointer touch-manipulation group"
-                title="Start hands-free voice mode"
-                aria-label="Start hands-free voice mode"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleToggleVoiceMode();
+                  }
+                }}
+                className="w-full h-20 min-h-[80px] px-4 py-2.5 bg-gradient-to-r from-primary/15 via-background to-primary/10 hover:from-primary/25 hover:via-background/90 hover:to-primary/20 active:scale-[0.995] border-t border-border shadow-xs flex items-center justify-between gap-3 animate-in fade-in duration-[945ms] ease-in-out cursor-pointer select-none touch-manipulation group"
+                title="Tap anywhere to exit hands-free voice mode"
+                aria-label="Exit hands-free voice mode (tap anywhere)"
               >
-                <Mic className="w-6 h-6 text-primary group-hover:scale-110 active:scale-95 transition-transform" />
-              </button>
-            )}
-          </div>
-        )}
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Dynamic Voice Visualizer */}
+                  <div className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    {voiceState === "listening" && (
+                      <div className="flex items-center gap-1 h-5">
+                        <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:-0.3s] h-3" />
+                        <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:-0.15s] h-5" />
+                        <span className="w-1 bg-primary rounded-full animate-bounce h-2.5" />
+                      </div>
+                    )}
+                    {voiceState === "processing" && (
+                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    )}
+                    {voiceState === "speaking" && (
+                      <div className="flex items-center gap-1 h-5">
+                        <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-5" />
+                        <span className="w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.2s] h-3.5" />
+                        <span className="w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.4s] h-5" />
+                      </div>
+                    )}
+                    {voiceState === "idle" && (
+                      <Mic className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                        {voiceState === "listening"
+                          ? isAudioDetected
+                            ? "Listening... (Speaking)"
+                            : "Listening... (Speak naturally)"
+                          : voiceState === "processing"
+                          ? "Gemini is thinking..."
+                          : voiceState === "speaking"
+                          ? "Assistant speaking..."
+                          : "Hands-free active"}
+                      </span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      {silenceCountdownMs !== null && silenceCountdownMs > 0 && voiceState === "listening" && inputText.trim() && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                          Auto-send in {(silenceCountdownMs / 1000).toFixed(1)}s
+                        </span>
+                      )}
+                    </div>
+                    {speechError ? (
+                      <p className="text-[11px] text-amber-500 dark:text-amber-400 font-medium truncate">
+                        {speechError}
+                      </p>
+                    ) : inputText.trim() ? (
+                      <p className="text-xs text-foreground/90 font-medium truncate italic max-w-[280px] sm:max-w-md md:max-w-xl">
+                        &ldquo;{inputText}&rdquo;
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {voiceState === "listening"
+                          ? "Speak now · Tap anywhere to exit & edit text"
+                          : voiceState === "speaking"
+                          ? "Tap Interrupt to cut in · Tap anywhere to exit"
+                          : "Tap anywhere to exit hands-free mode"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {voiceState === "speaking" && (
+                    <button
+                      type="button"
+                      id="chat-voice-interrupt-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleInterrupt();
+                      }}
+                      className="h-11 min-h-[44px] px-3.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 text-xs font-semibold flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
+                      title="Interrupt assistant speech"
+                      aria-label="Interrupt assistant speech"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                      <span>Interrupt</span>
+                    </button>
+                  )}
+
+                  <div className="flex items-center gap-1.5 text-muted-foreground group-hover:text-destructive transition-colors text-xs font-medium px-2 py-1">
+                    <span className="hidden sm:inline text-[11px]">
+                      {inputText.trim() ? "Exit & edit text" : "Tap to exit"}
+                    </span>
+                    <X className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            /* Case B & C: Text Input Mode (Expanded Dock or Resting 50/50 Split) */
+            <motion.div
+              key="text-mode-dock"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
+              className="w-full"
+            >
+              {isInputExpanded ? (
+                /* Case B: Expanded 100% Full-Width Text Input Dock */
+                <div
+                  className={`w-full bg-background border-t border-border transition-all duration-[945ms] ease-in-out flex ${
+                    isInputHeightExpanded ? "flex-col justify-between" : "items-end"
+                  } gap-2 px-3 py-2 ${
+                    isInputHeightExpanded ? "h-[200px] min-h-[200px]" : "h-20 min-h-[80px]"
+                  }`}
+                >
+                  {/* Standard height: Attachment button on the left */}
+                  {!isInputHeightExpanded && (
+                    <button
+                      type="button"
+                      id="chat-attach-btn"
+                      disabled={isOptimizingImage}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:opacity-50 cursor-pointer touch-manipulation"
+                      title={isOptimizingImage ? "Compressing image..." : "Attach image or screenshot"}
+                      aria-label="Attach media"
+                    >
+                      {isOptimizingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      ) : (
+                        <ImageIcon className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                  />
+
+                  {/* Prompt textarea */}
+                  <textarea
+                    ref={textareaRef}
+                    id="chat-prompt-input"
+                    value={inputText}
+                    autoFocus
+                    onChange={(e) => setInputText(e.target.value)}
+                    onFocus={() => {
+                      setIsInputFocused(true);
+                      setTimeout(() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+                      }, 120);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        if (document.activeElement !== textareaRef.current) {
+                          setIsInputFocused(false);
+                        }
+                      }, 150);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    placeholder={
+                      isJulesMode
+                        ? activeJulesSession
+                          ? `Describe a task or fix for Jules on ${activeJulesSession.repository}...`
+                          : "Select a repository to dispatch a Jules task..."
+                        : "Type prompt or test instructions..."
+                    }
+                    rows={isInputHeightExpanded ? 5 : 1}
+                    className={`bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none py-2 px-1 overflow-y-auto leading-relaxed ${
+                      isInputHeightExpanded
+                        ? "w-full flex-1 min-h-[110px] max-h-[135px]"
+                        : "flex-1 min-h-[44px] max-h-[58px]"
+                    }`}
+                  />
+
+                  {/* When expanded to 250% height: bottom row containing attach on left, expand + send on right */}
+                  {isInputHeightExpanded ? (
+                    <div className="flex items-center justify-between w-full pt-1.5 border-t border-border/40 shrink-0">
+                      {/* Media Attach button on the left */}
+                      <button
+                        type="button"
+                        id="chat-attach-btn"
+                        disabled={isOptimizingImage}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 disabled:opacity-50 cursor-pointer touch-manipulation"
+                        title={isOptimizingImage ? "Compressing image..." : "Attach image or screenshot"}
+                        aria-label="Attach media"
+                      >
+                        {isOptimizingImage ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      {/* Right controls: borderless transparent expand button + send button */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          id="chat-expand-height-btn"
+                          onClick={() => setIsInputHeightExpanded(false)}
+                          className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors shadow-none touch-manipulation"
+                          title="Restore standard height"
+                          aria-label="Restore standard height"
+                        >
+                          <Minimize2 className="w-4 h-4" />
+                        </button>
+
+                        {isGenerating ? (
+                          <button
+                            type="button"
+                            id="chat-stop-btn"
+                            onClick={onStopGeneration}
+                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
+                            title="Stop generation"
+                            aria-label="Stop generation"
+                          >
+                            <Square className="w-4 h-4 fill-destructive-foreground" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            id="chat-send-btn"
+                            onClick={handleSend}
+                            disabled={
+                              !inputText.trim() && attachments.length === 0 && selectedTemplateIds.length === 0
+                            }
+                            className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 font-semibold touch-manipulation ${
+                              inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
+                                ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
+                                : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                            }`}
+                            title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                            aria-label={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                          >
+                            {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* When standard height: right controls inline with textarea */
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Borderless transparent Expand button (increases height by around 250%) */}
+                      <button
+                        type="button"
+                        id="chat-expand-height-btn"
+                        onClick={() => setIsInputHeightExpanded(true)}
+                        className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors shadow-none touch-manipulation"
+                        title="Expand input height (250%)"
+                        aria-label="Expand input height"
+                      >
+                        <Maximize2 className="w-4 h-4" />
+                      </button>
+
+                      {/* Send / Stop button on the right */}
+                      {isGenerating ? (
+                        <button
+                          type="button"
+                          id="chat-stop-btn"
+                          onClick={onStopGeneration}
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
+                          title="Stop generation"
+                          aria-label="Stop generation"
+                        >
+                          <Square className="w-4 h-4 fill-destructive-foreground" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          id="chat-send-btn"
+                          onClick={handleSend}
+                          disabled={
+                            !inputText.trim() && attachments.length === 0 && selectedTemplateIds.length === 0
+                          }
+                          className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 font-semibold touch-manipulation ${
+                            inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
+                              ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
+                              : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                          }`}
+                          title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                          aria-label={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                        >
+                          {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Case C: Resting State 50/50 Adaptive Split-Dock (0 Outer Padding) */
+                <div className="flex items-stretch gap-0 w-full h-20 min-h-[80px]">
+                  {/* Left Card: Expands full width in FAB mode, or 50% split in Footer mode */}
+                  <div
+                    id="chat-resting-text-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setIsInputFocused(true);
+                      setTimeout(() => {
+                        textareaRef.current?.focus();
+                      }, 50);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        setIsInputFocused(true);
+                        setTimeout(() => {
+                          textareaRef.current?.focus();
+                        }, 50);
+                      }
+                    }}
+                    className={`flex-1 ${
+                      speechSettings.voiceButtonPlacement === "fab" ? "w-full" : "w-1/2 border-r border-border"
+                    } h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-all duration-[945ms] ease-in-out select-none group touch-manipulation`}
+                    title="Tap to type message (expands full width)"
+                    aria-label="Tap to open chat text input"
+                  >
+                    <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors min-w-0">
+                      <MessageSquare className="w-4 h-4 shrink-0 text-muted-foreground/70 group-hover:text-primary transition-colors" />
+                      <span className="text-xs sm:text-sm truncate">
+                        {inputText ? (
+                          <span className="text-foreground font-medium">{inputText}</span>
+                        ) : isJulesMode ? (
+                          "Dispatch task..."
+                        ) : (
+                          "Type message..."
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right 50%: Hands-Free Voice Button (Only shown in Footer mode to avoid duplicate with FAB) */}
+                  {speechSettings.voiceButtonPlacement !== "fab" && (
+                    <button
+                      type="button"
+                      id="chat-handsfree-primary-btn"
+                      onClick={handleToggleVoiceMode}
+                      className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-all duration-[945ms] ease-in-out cursor-pointer touch-manipulation group"
+                      title="Start hands-free voice mode"
+                      aria-label="Start hands-free voice mode"
+                    >
+                      <Mic className="w-6 h-6 text-primary group-hover:scale-110 active:scale-95 transition-transform" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Full-Screen Mobile Drawer for Prompt Templates (Selection, Filtering, Authoring, Preview, Prompt Tools) */}
       <PromptTemplateDrawer
         isOpen={isTemplateDrawerOpen}
-        onClose={() => setIsTemplateDrawerOpen(false)}
+        onClose={handleCloseTemplateDrawer}
         selectedTemplateIds={selectedTemplateIds}
         onToggleTemplate={handleToggleTemplate}
         onRemoveTemplate={handleRemoveTemplate}
@@ -2016,7 +2090,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         draftUserText={inputText}
         onInsertText={(text) => {
           setInputText((prev) => (prev.trim() ? `${prev}\n\n${text}` : text));
-          setIsTemplateDrawerOpen(false);
+          handleCloseTemplateDrawer();
         }}
       />
     </div>

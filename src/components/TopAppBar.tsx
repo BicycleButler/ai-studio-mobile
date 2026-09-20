@@ -9,6 +9,7 @@ import {
   FolderGit2,
   Layers,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { PromptType, GoogleUser, ProjectInfo, JulesSession } from "../types";
 import { SettingsTab } from "./UnifiedSettingsModal";
 import { useTheme } from "../hooks/useTheme";
@@ -36,6 +37,8 @@ interface TopAppBarProps {
   onSelectProject?: (project: ProjectInfo) => void;
   activeJulesSession?: JulesSession | null;
   onOpenJulesSessions?: () => void;
+  onOpenPromptTemplates?: () => void;
+  selectedTemplateCount?: number;
 }
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
@@ -52,6 +55,8 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   activeProject = null,
   activeJulesSession = null,
   onOpenJulesSessions,
+  onOpenPromptTemplates,
+  selectedTemplateCount = 0,
 }) => {
   const { resolvedTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -98,6 +103,25 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
         {/* PWA Install Button (Displays when installable or on iOS) */}
         <PWAInstallButton variant="header" />
 
+        {/* Prompt Templates Trigger Button */}
+        {onOpenPromptTemplates && (
+          <button
+            type="button"
+            id="top-prompt-templates-btn"
+            onClick={onOpenPromptTemplates}
+            className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation relative"
+            title="Prompt Templates (Modular directives)"
+            aria-label="Prompt Templates"
+          >
+            <Layers className="w-4 h-4 text-primary" />
+            {selectedTemplateCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-mono font-bold flex items-center justify-center shadow-xs">
+                {selectedTemplateCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* Standardized Primary Workspace Switcher Button (ADR 0045 / Navigation Consistency) */}
         <button
           type="button"
@@ -130,15 +154,21 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             )}
           </button>
 
-          {isMenuOpen && (
-            <div
-              id="header-overflow-popover"
-              role="menu"
-              aria-orientation="vertical"
-              aria-labelledby="top-settings-btn"
-              className="absolute right-0 top-full mt-2 w-56 sm:w-64 rounded-xl bg-popover text-popover-foreground border border-border shadow-md p-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 ease-out"
-            >
-              <div className="flex flex-col gap-0.5">
+          <AnimatePresence>
+            {isMenuOpen && (
+              <motion.div
+                key="header-overflow-popover"
+                id="header-overflow-popover"
+                role="menu"
+                aria-orientation="vertical"
+                aria-labelledby="top-settings-btn"
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ duration: 0.135, ease: "easeOut" }}
+                className="absolute right-0 top-full mt-2 w-56 sm:w-64 rounded-xl bg-popover text-popover-foreground border border-border shadow-md p-1.5 z-40 origin-top-right"
+              >
+                <div className="flex flex-col gap-0.5">
                 {/* Option 1: Profile (Takes user to Auth) */}
                 <button
                   type="button"
@@ -265,8 +295,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                   </button>
                 )}
               </div>
-            </div>
+            </motion.div>
           )}
+        </AnimatePresence>
         </div>
       </div>
     </header>

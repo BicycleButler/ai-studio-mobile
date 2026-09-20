@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Volume2,
@@ -57,6 +58,7 @@ import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
 import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
 import { useTheme } from "../hooks/useTheme";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 export type SettingsTab =
   | "account"
@@ -210,36 +212,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
   const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
 
-  const touchStartXRef = useRef<number | null>(null);
-  const touchStartYRef = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartXRef.current !== null) {
-      const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
-      // Swiping right from left-to-right dismisses the slide-out drawer
-      if (diffX > 60) {
-        stopPreview();
-        onClose();
-        touchStartXRef.current = null;
-        touchStartYRef.current = null;
-        return;
-      }
-    }
-    if (touchStartYRef.current !== null) {
-      const diffY = e.changedTouches[0].clientY - touchStartYRef.current;
-      if (diffY > 80) {
-        stopPreview();
-        onClose();
-      }
-    }
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-  };
+  // Enable device/browser back navigation to dismiss drawer smoothly
+  useBackNavigation(isOpen, () => {
+    stopPreview();
+    onClose();
+  }, "settings-drawer");
 
   // Keyboard Escape listener
   useEffect(() => {
@@ -626,46 +603,39 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     onSaveSpeechSettings(updated);
   };
 
-  if (!isOpen) return null;
-
   const hasAnyAuth = Boolean(googleUser || customApiKey.trim() || hasServerKey);
   const isJulesConfigured = Boolean(julesApiKey.trim());
 
   return (
-    <div
-      id="unified-settings-backdrop"
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          stopPreview();
-          onClose();
-        }
-      }}
-    >
-      <div
-        id="unified-settings-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Settings and Hub drawer"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground animate-in slide-in-from-right duration-300 ease-out"
-      >
-        {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
-        <div
-          onClick={() => {
-            stopPreview();
-            onClose();
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="unified-settings-backdrop"
+          id="unified-settings-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.89, ease: "easeOut" }}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              stopPreview();
+              onClose();
+            }
           }}
-          className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-1 bg-muted/20 cursor-pointer group touch-manipulation"
-          title="Swipe right/down or tap to dismiss"
-          role="button"
-          tabIndex={0}
-          aria-label="Dismiss settings"
         >
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
-        </div>
-
+          <motion.div
+            key="unified-settings-dialog"
+            id="unified-settings-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Settings and Hub drawer"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ duration: 1.89, ease: [0.32, 0.72, 0, 1] }}
+            className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground"
+          >
         {/* Top Drawer Header with Back button */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-background/95 backdrop-blur-md shrink-0 select-none">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -2161,7 +2131,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+    )}
+  </AnimatePresence>
   );
 };

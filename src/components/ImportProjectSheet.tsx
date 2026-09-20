@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Key,
@@ -13,6 +14,7 @@ import {
   SlidersHorizontal,
   FolderPlus,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
 import { ProjectInfo, KeyVerificationResult } from "../types";
 import {
@@ -29,6 +31,7 @@ import {
   CURATED_MODELS,
   isDeprecatedOrUnusableModel,
 } from "../utils/modelCatalog";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 interface ImportProjectSheetProps {
   isOpen: boolean;
@@ -50,20 +53,10 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   onSuccess,
   availableModels = DEFAULT_MODELS,
 }) => {
-  const touchStartYRef = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartYRef.current === null) return;
-    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
-    if (diff > 45) {
-      void handleDismiss();
-    }
-    touchStartYRef.current = null;
-  };
+  // Enable device/browser back navigation to dismiss sheet smoothly
+  useBackNavigation(isOpen, () => {
+    void handleDismiss();
+  }, "import-project-sheet");
 
   const [apiKey, setApiKey] = useState(initialKey);
   const [projectName, setProjectName] = useState("");
@@ -194,62 +187,71 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   const maskedPreview = maskApiKey(apiKey);
 
   return (
-    <div
-      id="import-project-sheet"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          void handleDismiss();
-        }
-      }}
-    >
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        className="w-full max-w-lg bg-card border-t sm:border border-border rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in slide-in-from-bottom-4 duration-200 text-foreground"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="import-project-title"
-      >
-        {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
-        <div
-          onClick={() => void handleDismiss()}
-          className="sm:hidden w-full flex items-center justify-center pt-2.5 pb-1 cursor-pointer group touch-manipulation"
-          title="Swipe down or tap to dismiss"
-          role="button"
-          tabIndex={0}
-          aria-label="Dismiss import sheet"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="import-project-sheet"
+          id="import-project-sheet"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.26, ease: "easeOut" }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              void handleDismiss();
+            }
+          }}
         >
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
-        </div>
-
+          <motion.div
+            key="import-project-dialog"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ duration: 1.26, ease: [0.32, 0.72, 0, 1] }}
+            className="w-full max-w-lg bg-card border-t sm:border border-border rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-foreground"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="import-project-title"
+          >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border bg-muted/40">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <button
+              type="button"
+              id="import-sheet-back-btn"
+              onClick={() => void handleDismiss()}
+              className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
+              title="Close sheet"
+              aria-label="Back / Close sheet"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-xs font-semibold sm:inline hidden">Back</span>
+            </button>
+            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary shrink-0">
               <FolderPlus className="w-5 h-5" />
             </div>
-            <div>
-              <h2 id="import-project-title" className="text-sm font-semibold text-foreground">
+            <div className="min-w-0">
+              <h2 id="import-project-title" className="text-sm font-semibold text-foreground truncate">
                 Import AI Studio Project
               </h2>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground truncate">
                 Configure and activate your Google AI Studio project credentials
               </p>
             </div>
           </div>
           <button
             type="button"
+            id="import-sheet-close-btn"
             onClick={() => void handleDismiss()}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
+            title="Close sheet"
             aria-label="Close"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -454,7 +456,9 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+    )}
+  </AnimatePresence>
   );
 };

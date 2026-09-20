@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Search,
@@ -13,6 +14,7 @@ import {
   ShieldCheck,
   Layers,
   ArrowRight,
+  ArrowLeft,
   Eye,
   SlidersHorizontal,
   Columns2,
@@ -27,6 +29,7 @@ import {
 } from "../services/promptTemplateService";
 import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 interface PromptTemplateDrawerProps {
   isOpen: boolean;
@@ -95,20 +98,20 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   draftUserText = "",
   onInsertText,
 }) => {
-  const touchStartYRef = useRef<number | null>(null);
+  // Enable device/browser back navigation to dismiss drawer smoothly
+  useBackNavigation(isOpen, onClose, "prompt-templates-drawer");
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartYRef.current === null) return;
-    const diff = e.changedTouches[0].clientY - touchStartYRef.current;
-    if (diff > 45) {
-      onClose();
-    }
-    touchStartYRef.current = null;
-  };
+  // Keyboard Escape listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   const [activeToolTab, setActiveToolTab] = useState<"directives" | "few-shot" | "variables">("directives");
   const [activeCategory, setActiveCategory] = useState<"all" | PromptTemplateCategory>("all");
@@ -223,27 +226,48 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   };
 
   return (
-    <div
-      id="prompt-templates-modal-overlay"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex flex-col animate-in fade-in duration-200"
-    >
-      {/* Universal Swipe-to-Dismiss Grab Handle (Mobile-first) */}
-      <div
-        onClick={onClose}
-        className="w-full flex items-center justify-center pt-2 pb-1 cursor-pointer bg-card group touch-manipulation"
-        title="Swipe down or tap to dismiss"
-        role="button"
-        tabIndex={0}
-        aria-label="Dismiss template drawer"
-      >
-        <div className="w-10 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-muted-foreground/60 transition-colors" />
-      </div>
-
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="prompt-templates-backdrop"
+          id="prompt-templates-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.26, ease: "easeOut" }}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              onClose();
+            }
+          }}
+        >
+          <motion.div
+            key="prompt-templates-drawer-dialog"
+            id="prompt-templates-drawer-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Prompt Templates drawer"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ duration: 1.26, ease: [0.32, 0.72, 0, 1] }}
+            className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground"
+          >
       {/* Mobile Drawer Header */}
       <div className="h-14 px-4 bg-card border-b border-border flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <button
+            type="button"
+            id="template-drawer-back-btn"
+            onClick={onClose}
+            className="p-2 -ml-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
+            title="Close drawer"
+            aria-label="Back / Close drawer"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-xs font-semibold sm:inline hidden">Back</span>
+          </button>
           <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             {activeToolTab === "few-shot" ? (
               <Columns2 className="w-4 h-4" />
@@ -323,10 +347,11 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="template-drawer-close-btn"
             onClick={onClose}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            title="Close drawer"
             aria-label="Close templates drawer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -804,6 +829,9 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
           </div>
         </div>
       )}
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

@@ -1,10 +1,485 @@
 {
   "targetDir": "src",
-  "totalFiles": 61,
-  "filesWithViolationsCount": 0,
-  "cleanFilesCount": 61,
-  "totalViolations": 0,
-  "byRule": {},
-  "byDir": [],
-  "violations": []
+  "totalFiles": 70,
+  "filesWithViolationsCount": 6,
+  "cleanFilesCount": 64,
+  "totalViolations": 24,
+  "byRule": {
+    "transition:all Banned": 10,
+    "Status Dot Deprecation": 2,
+    "Static Alert Colors": 10,
+    "Semantic Color at Rest": 2
+  },
+  "byDir": [
+    {
+      "domain": "components/ChatWorkspace.tsx",
+      "violationCount": 13,
+      "violations": [
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1030,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "className={`w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl transition-all cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1083,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "<ArrowRight className=\"w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all\" />",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1633,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "className=\"h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition-all active:scale-95 cursor-pointer touch-manipulation group\"",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1641,
+          "rule": "Status Dot Deprecation",
+          "adr": "ADR 0035",
+          "severity": "WARNING",
+          "snippet": "<span className=\"w-2 h-2 rounded-full bg-emerald-400 animate-pulse\" />",
+          "description": "Colored status dots are deprecated. Use Concept C sub-label stacking."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1720,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "<span className=\"w-1 bg-emerald-500 rounded-full animate-pulse h-5\" />",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1721,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "<span className=\"w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.2s] h-3.5\" />",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1722,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "<span className=\"w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.4s] h-5\" />",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1743,
+          "rule": "Status Dot Deprecation",
+          "adr": "ADR 0035",
+          "severity": "WARNING",
+          "snippet": "<span className=\"w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0\" />",
+          "description": "Colored status dots are deprecated. Use Concept C sub-label stacking."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1745,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "<span className=\"px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse\">",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1751,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "<p className=\"text-[11px] text-amber-500 dark:text-amber-400 font-medium truncate\">",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 1799,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "className={`w-full bg-background border-t border-border transition-all duration-600 ease-in-out flex ${",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 2006,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "} h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-all duration-600 ease-in-out select-none group touch-manipulation`}",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        },
+        {
+          "file": "src/components/ChatWorkspace.tsx",
+          "line": 2030,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "className=\"flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-all duration-300 ease-in-out cursor-pointer touch-manipulation group\"",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        }
+      ]
+    },
+    {
+      "domain": "components/MobileIDEWorkspace.tsx",
+      "violationCount": 2,
+      "violations": [
+        {
+          "file": "src/components/MobileIDEWorkspace.tsx",
+          "line": 411,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer whitespace-nowrap group shrink-0 border select-none ${",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        },
+        {
+          "file": "src/components/MobileIDEWorkspace.tsx",
+          "line": 783,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "if (log.type === \"stderr\") color = \"text-destructive font-medium\";",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        }
+      ]
+    },
+    {
+      "domain": "components/OfflineIndicator.tsx",
+      "violationCount": 2,
+      "violations": [
+        {
+          "file": "src/components/OfflineIndicator.tsx",
+          "line": 26,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "className=\"fixed bottom-16 sm:bottom-4 left-3 sm:left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-600/95 text-white shadow-lg border border-amber-400/40 text-xs font-medium animate-in fade-in slide-in-from-bottom-2 duration-200\"",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/OfflineIndicator.tsx",
+          "line": 40,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "className=\"fixed bottom-16 sm:bottom-4 left-3 sm:left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600/95 text-white shadow-lg border border-emerald-400/40 text-xs font-medium animate-in fade-in slide-in-from-bottom-2 duration-200\"",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        }
+      ]
+    },
+    {
+      "domain": "components/PWAInstallButton.tsx",
+      "violationCount": 1,
+      "violations": [
+        {
+          "file": "src/components/PWAInstallButton.tsx",
+          "line": 24,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<div className=\"flex items-center gap-2.5 p-3 rounded-xl bg-success/10 border border-success/20 text-success text-xs font-medium\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        }
+      ]
+    },
+    {
+      "domain": "components/TunerBottomSheet.tsx",
+      "violationCount": 3,
+      "violations": [
+        {
+          "file": "src/components/TunerBottomSheet.tsx",
+          "line": 230,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "className={`text-left p-3 rounded-xl border transition-all relative cursor-pointer group ${",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        },
+        {
+          "file": "src/components/TunerBottomSheet.tsx",
+          "line": 522,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "schemaStatus.valid ? \"text-emerald-500\" : \"text-rose-500\"",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/TunerBottomSheet.tsx",
+          "line": 645,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "className=\"px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary\"",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        }
+      ]
+    },
+    {
+      "domain": "components/UnifiedSettingsModal.tsx",
+      "violationCount": 3,
+      "violations": [
+        {
+          "file": "src/components/UnifiedSettingsModal.tsx",
+          "line": 1395,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "<div className=\"mt-0.5 p-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0\">",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/UnifiedSettingsModal.tsx",
+          "line": 1403,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "<span className=\"text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/25\">",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/UnifiedSettingsModal.tsx",
+          "line": 2117,
+          "rule": "transition:all Banned",
+          "adr": "ADR 0022",
+          "severity": "WARNING",
+          "snippet": "className=\"px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary\"",
+          "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+        }
+      ]
+    }
+  ],
+  "violations": [
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1030,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "className={`w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl transition-all cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1083,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "<ArrowRight className=\"w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all\" />",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1633,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "className=\"h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition-all active:scale-95 cursor-pointer touch-manipulation group\"",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1641,
+      "rule": "Status Dot Deprecation",
+      "adr": "ADR 0035",
+      "severity": "WARNING",
+      "snippet": "<span className=\"w-2 h-2 rounded-full bg-emerald-400 animate-pulse\" />",
+      "description": "Colored status dots are deprecated. Use Concept C sub-label stacking."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1720,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "<span className=\"w-1 bg-emerald-500 rounded-full animate-pulse h-5\" />",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1721,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "<span className=\"w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.2s] h-3.5\" />",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1722,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "<span className=\"w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.4s] h-5\" />",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1743,
+      "rule": "Status Dot Deprecation",
+      "adr": "ADR 0035",
+      "severity": "WARNING",
+      "snippet": "<span className=\"w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0\" />",
+      "description": "Colored status dots are deprecated. Use Concept C sub-label stacking."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1745,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "<span className=\"px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse\">",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1751,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "<p className=\"text-[11px] text-amber-500 dark:text-amber-400 font-medium truncate\">",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 1799,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "className={`w-full bg-background border-t border-border transition-all duration-600 ease-in-out flex ${",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 2006,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "} h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-all duration-600 ease-in-out select-none group touch-manipulation`}",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/ChatWorkspace.tsx",
+      "line": 2030,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "className=\"flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-all duration-300 ease-in-out cursor-pointer touch-manipulation group\"",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/MobileIDEWorkspace.tsx",
+      "line": 411,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer whitespace-nowrap group shrink-0 border select-none ${",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/MobileIDEWorkspace.tsx",
+      "line": 783,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "if (log.type === \"stderr\") color = \"text-destructive font-medium\";",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/OfflineIndicator.tsx",
+      "line": 26,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "className=\"fixed bottom-16 sm:bottom-4 left-3 sm:left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-600/95 text-white shadow-lg border border-amber-400/40 text-xs font-medium animate-in fade-in slide-in-from-bottom-2 duration-200\"",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/OfflineIndicator.tsx",
+      "line": 40,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "className=\"fixed bottom-16 sm:bottom-4 left-3 sm:left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600/95 text-white shadow-lg border border-emerald-400/40 text-xs font-medium animate-in fade-in slide-in-from-bottom-2 duration-200\"",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/PWAInstallButton.tsx",
+      "line": 24,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<div className=\"flex items-center gap-2.5 p-3 rounded-xl bg-success/10 border border-success/20 text-success text-xs font-medium\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/TunerBottomSheet.tsx",
+      "line": 230,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "className={`text-left p-3 rounded-xl border transition-all relative cursor-pointer group ${",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/TunerBottomSheet.tsx",
+      "line": 522,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "schemaStatus.valid ? \"text-emerald-500\" : \"text-rose-500\"",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/TunerBottomSheet.tsx",
+      "line": 645,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "className=\"px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary\"",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    },
+    {
+      "file": "src/components/UnifiedSettingsModal.tsx",
+      "line": 1395,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "<div className=\"mt-0.5 p-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0\">",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/UnifiedSettingsModal.tsx",
+      "line": 1403,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "<span className=\"text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/25\">",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/UnifiedSettingsModal.tsx",
+      "line": 2117,
+      "rule": "transition:all Banned",
+      "adr": "ADR 0022",
+      "severity": "WARNING",
+      "snippet": "className=\"px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary\"",
+      "description": "`transition: all` is a forbidden pattern — animates unintended properties. Use specific transition properties."
+    }
+  ]
 }
