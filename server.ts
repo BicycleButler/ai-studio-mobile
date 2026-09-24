@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import path from "path";
+import fs from "fs";
 import { GoogleGenAI, GenerateContentConfig } from "@google/genai";
 import dotenv from "dotenv";
 import {
@@ -230,9 +231,25 @@ app.get("/auth/callback", (_req: Request, res: Response): void => {
 </html>`);
 });
 
+function getOAuthClientId(): string {
+  if (process.env.CLIENT_ID) return process.env.CLIENT_ID;
+  if (process.env.GOOGLE_CLIENT_ID) return process.env.GOOGLE_CLIENT_ID;
+  try {
+    const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (parsed.oAuthClientId) return parsed.oAuthClientId;
+    }
+  } catch {
+    // ignore
+  }
+  return "";
+}
+
 // OAuth Authorization URL generator
 app.get("/api/auth/url", (req: Request, res: Response): void => {
-  const clientId = process.env.CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
+  const clientId = getOAuthClientId();
   const host = req.get("host") || "localhost:3000";
   const protocol = req.protocol === "https" || host.includes("run.app") ? "https" : "http";
   const redirectUri = `${protocol}://${host}/auth/callback`;

@@ -1,7 +1,70 @@
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signOut as firebaseSignOut,
+  User as FirebaseUser,
+  type Auth,
+} from "firebase/auth";
+import firebaseConfig from "../../firebase-applet-config.json";
 import { GoogleUser } from "../types";
 import { safeGetStorage, safeSetStorage } from "../utils/storage";
 
 const GOOGLE_USER_STORAGE_KEY = "ai_studio_google_user_v1";
+
+// In-memory token cache as required by OAuth security guidelines
+let cachedAccessToken: string | null = null;
+let isSigningIn = false;
+
+let firebaseAppInstance: FirebaseApp | null = null;
+let firebaseAuthInstance: Auth | null = null;
+let googleAuthProviderInstance: GoogleAuthProvider | null = null;
+
+/**
+ * Lazily and safely initialize Firebase Auth for browser environments
+ */
+export function getFirebaseAuth(): Auth | null {
+  if (firebaseAuthInstance) return firebaseAuthInstance;
+
+  try {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    if (!firebaseAppInstance) {
+      firebaseAppInstance = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    }
+    firebaseAuthInstance = getAuth(firebaseAppInstance);
+    return firebaseAuthInstance;
+  } catch (err) {
+    console.error("Failed to initialize Firebase Auth:", err);
+    return null;
+  }
+}
+
+/**
+ * Returns configured GoogleAuthProvider instance with proper scopes
+ */
+export function getGoogleAuthProvider(): GoogleAuthProvider {
+  if (!googleAuthProviderInstance) {
+    googleAuthProviderInstance = new GoogleAuthProvider();
+    googleAuthProviderInstance.addScope("https://www.googleapis.com/auth/userinfo.email");
+    googleAuthProviderInstance.addScope("https://www.googleapis.com/auth/userinfo.profile");
+    googleAuthProviderInstance.setCustomParameters({
+      prompt: "select_account",
+    });
+  }
+  return googleAuthProviderInstance;
+}
+
+/**
+ * Returns the currently cached OAuth access token from memory
+ */
+export const getAccessToken = async (): Promise<string | null> => {
+  return cachedAccessToken;
+};
 
 /**
  * Loads the active Google user from local client storage
@@ -70,28 +133,132 @@ export function parseGoogleJwtPayload(
 }
 
 /**
- * Initiates Google login by syncing with the backend and saving the active user.
+ * Initiates the Google OAuth sign-in process via Firebase Auth popup.
+ * Opens the Google account sign in consent screen directly without manual email entry.
+ */
+export async function googleSignIn(): Promise<{ user: GoogleUser; accessToken: string }> {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error("Google authentication is not available in this environment.");
+  }
+
+  isSigningIn = true;
+  try {
+    const provider = getGoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    
+    cachedAccessToken = credential?.accessToken || null;
+
+    const email = result.user.email;
+    if (!email) {
+      throw new Error("No verified email address found on the Google account.");
+    }
+
+    const name = result.user.displayName || email.split("@")[0];
+    const picture = result.user.photoURL || undefined;
+    const sub = result.user.uid;
+
+    const syncedUser = await syncGoogleUserWithBackend({
+      email,
+      name,
+      picture,
+      sub,
+      authSource: "google_oauth",
+    });
+
+    return { user: syncedUser, accessToken: cachedAccessToken || "" };
+  } catch (error: unknown) {
+    const errObj = error as { code?: string; message?: string };
+    if (
+      errObj?.code === "auth/popup-closed-by-user" ||
+      errObj?.code === "auth/cancelled-popup-request"
+    ) {
+      throw new Error("Sign-in popup was closed before completing authentication.");
+    }
+    if (errObj?.code === "auth/popup-blocked") {
+      throw new Error("Sign-in popup was blocked by the browser. Please allow popups for this site and try again.");
+    }
+    console.error("Google sign in error:", error);
+    throw error instanceof Error ? error : new Error(String(error));
+  } finally {
+    isSigningIn = false;
+  }
+}
+
+/**
+ * Initiates Google login. Initiates Google OAuth popup workflow.
  */
 export async function initiateGoogleLogin(
   email?: string,
   name?: string,
   picture?: string,
   sub?: string,
-  authSource: "google_oauth" | "google_identity" | "google_account" = "google_account"
+  authSource: "google_oauth" | "google_identity" | "google_account" = "google_oauth"
 ): Promise<GoogleUser> {
-  const targetEmail = email?.trim();
-  if (!targetEmail) {
-    throw new Error("A valid email address is required to connect your Google account.");
+  // If email is provided programmatically, sync with backend
+  if (email && email.trim()) {
+    return syncGoogleUserWithBackend({
+      email: email.trim(),
+      name: name?.trim() || email.trim().split("@")[0],
+      picture,
+      sub,
+      authSource,
+    });
   }
-  const targetName = name?.trim() || targetEmail.split("@")[0];
-  return syncGoogleUserWithBackend({
-    email: targetEmail,
-    name: targetName,
-    picture,
-    sub,
-    authSource,
-  });
+
+  // Otherwise, trigger the real Google OAuth sign in process
+  const { user } = await googleSignIn();
+  return user;
 }
+
+/**
+ * Initializes Google OAuth state listener.
+ */
+export const initAuth = (
+  onAuthSuccess?: (user: GoogleUser, token: string | null) => void,
+  onAuthFailure?: () => void
+): (() => void) => {
+  const auth = getFirebaseAuth();
+  if (!auth) return () => {};
+
+  return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+    if (firebaseUser && firebaseUser.email) {
+      const email = firebaseUser.email;
+      const name = firebaseUser.displayName || email.split("@")[0];
+      const picture = firebaseUser.photoURL || undefined;
+      const sub = firebaseUser.uid;
+
+      try {
+        const synced = await syncGoogleUserWithBackend({
+          email,
+          name,
+          picture,
+          sub,
+          authSource: "google_oauth",
+        });
+        if (onAuthSuccess) onAuthSuccess(synced, cachedAccessToken);
+      } catch {
+        const localUser: GoogleUser = {
+          email,
+          name,
+          picture,
+          sub,
+          authSource: "google_oauth",
+          authenticatedAt: Date.now(),
+          aiStudioSynced: true,
+        };
+        saveStoredGoogleUser(localUser);
+        if (onAuthSuccess) onAuthSuccess(localUser, cachedAccessToken);
+      }
+    } else {
+      if (!isSigningIn) {
+        cachedAccessToken = null;
+        if (onAuthFailure) onAuthFailure();
+      }
+    }
+  });
+};
 
 /**
  * Fetches current authenticated Google user session from backend
@@ -117,9 +284,18 @@ export async function fetchCurrentGoogleUser(): Promise<GoogleUser | null> {
 export const fetchServerCurrentUser = fetchCurrentGoogleUser;
 
 /**
- * Terminates the authenticated Google session both on backend and client
+ * Terminates the authenticated Google session both on Firebase Auth, backend and client storage.
  */
 export async function logoutGoogleUser(): Promise<void> {
+  try {
+    const auth = getFirebaseAuth();
+    if (auth) {
+      await firebaseSignOut(auth);
+    }
+  } catch (err) {
+    console.warn("Firebase signout error:", err);
+  }
+  cachedAccessToken = null;
   try {
     await fetch("/api/auth/logout", { method: "POST" });
   } catch {
@@ -130,7 +306,6 @@ export async function logoutGoogleUser(): Promise<void> {
 
 /**
  * Opens Google OAuth popup and listens for completion via postMessage
- * conforming to the AI Studio OAuth integration pattern.
  */
 export function openGoogleOAuthPopup(authUrl: string): Promise<{ token?: string; code?: string }> {
   return new Promise((resolve, reject) => {
@@ -151,7 +326,6 @@ export function openGoogleOAuthPopup(authUrl: string): Promise<{ token?: string;
     }
 
     const messageHandler = (event: MessageEvent) => {
-      // Validate origin if desired, or check event.data type
       if (event.data && event.data.type === "OAUTH_AUTH_SUCCESS") {
         window.removeEventListener("message", messageHandler);
         clearInterval(pollTimer);
@@ -164,7 +338,6 @@ export function openGoogleOAuthPopup(authUrl: string): Promise<{ token?: string;
 
     window.addEventListener("message", messageHandler);
 
-    // Poll for closed popup
     const pollTimer = setInterval(() => {
       if (popup.closed) {
         clearInterval(pollTimer);

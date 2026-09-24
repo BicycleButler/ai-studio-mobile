@@ -24,6 +24,7 @@ import {
   fetchServerCurrentUser,
   initiateGoogleLogin,
   logoutGoogleUser,
+  initAuth,
 } from "./services/googleAuth";
 import { TopAppBar } from "./components/TopAppBar";
 import { ChatWorkspace } from "./components/ChatWorkspace";
@@ -537,6 +538,16 @@ export default function App() {
     if (window.innerWidth >= 1024) {
       setDeviceMode("pixel");
     }
+
+    const unsubscribeAuth = initAuth((user) => {
+      if (user) {
+        setGoogleUser(user);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+    };
   }, []);
 
   const handleGoogleLogin = async (email?: string, name?: string) => {
