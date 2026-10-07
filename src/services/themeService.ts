@@ -3,6 +3,8 @@
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
  */
 
+import { safeGetStorage, safeSetStorage } from "../utils/storage";
+
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
@@ -14,29 +16,6 @@ export interface ThemeState {
 export type ThemeListener = (state: ThemeState) => void;
 
 const STORAGE_KEY = "aistudio_theme_mode";
-const memoryFallback: Record<string, string> = {};
-
-function getStorage(): {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
-} {
-  try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const testKey = "__theme_test__";
-      window.localStorage.setItem(testKey, "1");
-      window.localStorage.removeItem(testKey);
-      return window.localStorage;
-    }
-  } catch {
-    // Fall back to memory
-  }
-  return {
-    getItem: (key: string) => memoryFallback[key] ?? null,
-    setItem: (key: string, value: string) => {
-      memoryFallback[key] = value;
-    },
-  };
-}
 
 let currentMode: ThemeMode = "system";
 let currentResolved: ResolvedTheme = "dark";
@@ -52,25 +31,15 @@ export function getSystemResolvedTheme(): ResolvedTheme {
 }
 
 export function loadStoredThemeMode(): ThemeMode {
-  try {
-    const storage = getStorage();
-    const stored = storage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      return stored;
-    }
-  } catch {
-    // Ignore storage quota or access issues
+  const stored = safeGetStorage<string>(STORAGE_KEY, "system");
+  if (stored === "light" || stored === "dark" || stored === "system") {
+    return stored as ThemeMode;
   }
   return "system";
 }
 
 export function persistThemeMode(mode: ThemeMode): void {
-  try {
-    const storage = getStorage();
-    storage.setItem(STORAGE_KEY, mode);
-  } catch {
-    // Ignore storage errors
-  }
+  safeSetStorage(STORAGE_KEY, mode);
 }
 
 export function resolveTheme(mode: ThemeMode): ResolvedTheme {
