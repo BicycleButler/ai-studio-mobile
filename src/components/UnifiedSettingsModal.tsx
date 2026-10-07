@@ -1403,7 +1403,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               <div className="p-4 rounded-xl border border-border bg-card space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 p-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                    <div className="mt-0.5 p-2 rounded-xl bg-muted/40 text-foreground border border-border shrink-0">
                       <Smartphone className="w-5 h-5" />
                     </div>
                     <div>
@@ -1411,7 +1411,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                         <h4 className="text-xs font-semibold text-foreground">
                           Native Android Application
                         </h4>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-muted/40 text-foreground border border-border">
                           Google Play
                         </span>
                       </div>
@@ -2125,7 +2125,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 stopPreview();
                 onClose();
               }}
-              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Done
             </button>

@@ -1,3 +1,4 @@
+import { getStorageInstance } from "../utils/storage";
 /**
  * Theme Service for Google AI Studio Mobile
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
@@ -13,30 +14,8 @@ export interface ThemeState {
 
 export type ThemeListener = (state: ThemeState) => void;
 
-const STORAGE_KEY = "aistudio_theme_mode";
-const memoryFallback: Record<string, string> = {};
 
-function getStorage(): {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
-} {
-  try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const testKey = "__theme_test__";
-      window.localStorage.setItem(testKey, "1");
-      window.localStorage.removeItem(testKey);
-      return window.localStorage;
-    }
-  } catch {
-    // Fall back to memory
-  }
-  return {
-    getItem: (key: string) => memoryFallback[key] ?? null,
-    setItem: (key: string, value: string) => {
-      memoryFallback[key] = value;
-    },
-  };
-}
+const STORAGE_KEY = "aistudio_theme_mode";
 
 let currentMode: ThemeMode = "system";
 let currentResolved: ResolvedTheme = "dark";
@@ -53,7 +32,7 @@ export function getSystemResolvedTheme(): ResolvedTheme {
 
 export function loadStoredThemeMode(): ThemeMode {
   try {
-    const storage = getStorage();
+    const storage = getStorageInstance();
     const stored = storage.getItem(STORAGE_KEY);
     if (stored === "light" || stored === "dark" || stored === "system") {
       return stored;
@@ -66,7 +45,7 @@ export function loadStoredThemeMode(): ThemeMode {
 
 export function persistThemeMode(mode: ThemeMode): void {
   try {
-    const storage = getStorage();
+    const storage = getStorageInstance();
     storage.setItem(STORAGE_KEY, mode);
   } catch {
     // Ignore storage errors

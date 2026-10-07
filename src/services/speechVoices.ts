@@ -1,3 +1,4 @@
+import { safeGetStorage, safeSetStorage } from "../utils/storage";
 /**
  * Voice definitions and speech playback engine
  * Supports:
@@ -93,36 +94,29 @@ export const DEFAULT_SPEECH_SETTINGS: SpeechSettings = {
   voiceButtonPlacement: "footer",
 };
 
+
 export function loadSpeechSettings(): SpeechSettings {
   if (typeof window === "undefined") return inMemorySettings || DEFAULT_SPEECH_SETTINGS;
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return inMemorySettings || DEFAULT_SPEECH_SETTINGS;
-    const parsed = JSON.parse(raw);
-    return {
-      engine: parsed.engine === "gemini" ? "gemini" : "device",
-      geminiVoice: parsed.geminiVoice || "Puck",
-      deviceVoiceURI: parsed.deviceVoiceURI || "",
-      playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
-      autoReadResponses: Boolean(parsed.autoReadResponses),
-      handsFreeMode: Boolean(parsed.handsFreeMode),
-      silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
-      sentenceStreaming: parsed.sentenceStreaming !== false,
-      voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
-    };
-  } catch {
-    return inMemorySettings || DEFAULT_SPEECH_SETTINGS;
-  }
+  const parsed = safeGetStorage<Partial<SpeechSettings> | null>(SETTINGS_KEY, null);
+  if (!parsed) return inMemorySettings || DEFAULT_SPEECH_SETTINGS;
+
+  return {
+    engine: parsed.engine === "gemini" ? "gemini" : "device",
+    geminiVoice: parsed.geminiVoice || "Puck",
+    deviceVoiceURI: parsed.deviceVoiceURI || "",
+    playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
+    autoReadResponses: Boolean(parsed.autoReadResponses),
+    handsFreeMode: Boolean(parsed.handsFreeMode),
+    silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
+    sentenceStreaming: parsed.sentenceStreaming !== false,
+    voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
+  };
 }
 
 export function saveSpeechSettings(settings: SpeechSettings): void {
   inMemorySettings = settings;
   if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch (err) {
-    console.warn("Failed to persist speech settings:", err);
-  }
+  safeSetStorage(SETTINGS_KEY, settings);
 }
 
 /**

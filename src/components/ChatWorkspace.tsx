@@ -1028,7 +1028,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             aria-expanded={isHistoryOpen}
             aria-controls="chat-window-history-popover"
             onClick={() => setIsHistoryOpen((prev) => !prev)}
-            className={`w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl transition-all cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${
+            className={`w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl transition cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${
               isHistoryOpen
                 ? "bg-muted text-foreground ring-1 ring-border shadow-xs"
                 : "bg-transparent border-0 shadow-none hover:bg-muted/50 text-muted-foreground hover:text-foreground"
@@ -1081,7 +1081,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     {isJulesMode ? "Create a clean task workspace" : "Fresh conversation & clean context"}
                   </div>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition" />
               </button>
 
               <div className="border-t border-border" />
@@ -1639,7 +1639,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   type="button"
                   id="chat-handsfree-fab-btn"
                   onClick={handleToggleVoiceMode}
-                  className="h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition-all duration-[945ms] active:scale-95 cursor-pointer touch-manipulation group"
+                  className="h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition duration-[945ms] active:scale-95 cursor-pointer touch-manipulation group"
                   title="Start hands-free continuous two-way voice conversation"
                   aria-label="Start hands-free continuous two-way voice conversation"
                 >
@@ -1647,7 +1647,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     <Mic className="w-3.5 h-3.5" />
                   </div>
                   <span>Hands-Free Voice</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-mono text-primary-foreground/80 animate-pulse">Ready</span>
                 </button>
               </motion.div>
             ) : (
@@ -1744,9 +1744,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     )}
                     {voiceState === "speaking" && (
                       <div className="flex items-center gap-1 h-5">
-                        <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-5" />
-                        <span className="w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.2s] h-3.5" />
-                        <span className="w-1 bg-emerald-500 rounded-full animate-pulse [animation-delay:0.4s] h-5" />
+                        <span className="w-1 bg-primary rounded-full animate-pulse h-5" />
+                        <span className="w-1 bg-primary rounded-full animate-pulse [animation-delay:0.2s] h-3.5" />
+                        <span className="w-1 bg-primary rounded-full animate-pulse [animation-delay:0.4s] h-5" />
                       </div>
                     )}
                     {voiceState === "idle" && (
@@ -1767,15 +1767,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                           ? "Assistant speaking..."
                           : "Hands-free active"}
                       </span>
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                       {silenceCountdownMs !== null && silenceCountdownMs > 0 && voiceState === "listening" && inputText.trim() && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-muted-foreground animate-pulse">
                           Auto-send in {(silenceCountdownMs / 1000).toFixed(1)}s
                         </span>
                       )}
                     </div>
                     {speechError ? (
-                      <p className="text-[11px] text-amber-500 dark:text-amber-400 font-medium truncate">
+                      <p className="text-[11px] font-medium truncate error-text text-destructive">
                         {speechError}
                       </p>
                     ) : inputText.trim() ? (
@@ -1834,7 +1833,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               {isInputExpanded ? (
                 /* Case B: Expanded 100% Full-Width Text Input Dock */
                 <div
-                  className={`w-full bg-background border-t border-border transition-all duration-[945ms] ease-in-out flex ${
+                  className={`w-full bg-background border-t border-border transition duration-[945ms] ease-in-out flex ${
                     isInputHeightExpanded ? "flex-col justify-between" : "items-end"
                   } gap-2 px-3 py-2 ${
                     isInputHeightExpanded ? "h-[200px] min-h-[200px]" : "h-20 min-h-[80px]"
@@ -2041,7 +2040,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     }}
                     className={`flex-1 ${
                       speechSettings.voiceButtonPlacement === "fab" ? "w-full" : "w-1/2 border-r border-border"
-                    } h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-all duration-[945ms] ease-in-out select-none group touch-manipulation`}
+                    } h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition duration-[945ms] ease-in-out select-none group touch-manipulation`}
                     title="Tap to type message (expands full width)"
                     aria-label="Tap to open chat text input"
                   >
@@ -2065,7 +2064,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       type="button"
                       id="chat-handsfree-primary-btn"
                       onClick={handleToggleVoiceMode}
-                      className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-all duration-[945ms] ease-in-out cursor-pointer touch-manipulation group"
+                      className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition duration-[945ms] ease-in-out cursor-pointer touch-manipulation group"
                       title="Start hands-free voice mode"
                       aria-label="Start hands-free voice mode"
                     >

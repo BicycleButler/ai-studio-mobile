@@ -90,6 +90,8 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
  */
 export function purgeMockSessionsFromStorage(): void {
   try {
+    // getStorageInstance doesn't support length or key(i) iterations directly right now,
+    // so we still check window.localStorage if available, but wrap gracefully.
     if (typeof window !== "undefined" && window.localStorage) {
       const keysToClean: string[] = [];
       for (let i = 0; i < window.localStorage.length; i++) {

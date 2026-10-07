@@ -21,7 +21,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   if (isInstalled || isCapacitor) {
     if (variant === "card") {
       return (
-        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-success/10 border border-success/20 text-success text-xs font-medium">
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/40 border border-border text-foreground text-xs font-medium">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>
             {isCapacitor
