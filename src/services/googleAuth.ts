@@ -38,7 +38,7 @@ export function getFirebaseAuth(): Auth | null {
     }
     firebaseAuthInstance = getAuth(firebaseAppInstance);
     return firebaseAuthInstance;
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Failed to initialize Firebase Auth:", err);
     return null;
   }
@@ -292,7 +292,7 @@ export async function logoutGoogleUser(): Promise<void> {
     if (auth) {
       await firebaseSignOut(auth);
     }
-  } catch (err) {
+  } catch (err: unknown) {
     console.warn("Firebase signout error:", err);
   }
   cachedAccessToken = null;

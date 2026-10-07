@@ -134,7 +134,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
         securityLevel: "loose",
         flowchart: { curve: "basis" },
       });
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn("Mermaid initialization warning:", e);
     }
   }, []);
