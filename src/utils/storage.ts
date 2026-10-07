@@ -63,13 +63,42 @@ export interface DraftState {
   updatedAt: number;
 }
 
-const memoryFallback: Record<string, string> = {};
+class MemoryStorage {
+  private store: Map<string, string>;
 
-export function getStorageInstance(): {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
-  removeItem: (key: string) => void;
-} {
+  constructor() {
+    this.store = new Map();
+  }
+
+  getItem(key: string): string | null {
+    return this.store.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.store.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.store.delete(key);
+  }
+
+  clear(): void {
+    this.store.clear();
+  }
+
+  get length(): number {
+    return this.store.size;
+  }
+
+  key(index: number): string | null {
+    const keys = Array.from(this.store.keys());
+    return keys[index] ?? null;
+  }
+}
+
+const memoryFallbackInstance = new MemoryStorage();
+
+export function getStorageInstance(): Storage | MemoryStorage {
   try {
     if (typeof window !== "undefined" && window.localStorage) {
       // Test if storage is actually accessible (not disabled by incognito / iframe policy)
@@ -82,15 +111,7 @@ export function getStorageInstance(): {
     // Fall back to in-memory store
   }
 
-  return {
-    getItem: (key: string) => memoryFallback[key] ?? null,
-    setItem: (key: string, value: string) => {
-      memoryFallback[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete memoryFallback[key];
-    },
-  };
+  return memoryFallbackInstance;
 }
 
 /**

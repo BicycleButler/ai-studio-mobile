@@ -9,6 +9,13 @@
 
 export type AppRuntime = "capacitor" | "pwa" | "browser";
 
+/**
+ * Safely checks if the current environment is a browser context.
+ */
+export function isBrowserEnvironment(): boolean {
+  return typeof window !== "undefined";
+}
+
 export interface PlatformCapabilities {
   runtime: AppRuntime;
   isNative: boolean;
@@ -25,7 +32,7 @@ export interface PlatformCapabilities {
  * Checks if the application is running inside a Capacitor native app wrapper.
  */
 export function isCapacitor(): boolean {
-  if (typeof window === "undefined") return false;
+  if (!isBrowserEnvironment()) return false;
   const win = window as unknown as {
     Capacitor?: {
       isNativePlatform?: () => boolean;
@@ -43,7 +50,7 @@ export function isCapacitor(): boolean {
  * Checks if the application is running in installed PWA standalone mode.
  */
 export function isPWA(): boolean {
-  if (typeof window === "undefined") return false;
+  if (!isBrowserEnvironment()) return false;
   const isStandaloneMatch = window.matchMedia("(display-mode: standalone)").matches;
   const isNavigatorStandalone =
     (window.navigator as unknown as { standalone?: boolean }).standalone === true;
@@ -69,12 +76,12 @@ export function getPlatformCapabilities(): PlatformCapabilities {
   const isIOS = /iphone|ipad|ipod/.test(userAgent);
   const isAndroid = /android/.test(userAgent);
   const hasTouch =
-    typeof window !== "undefined" &&
+    isBrowserEnvironment() &&
     ("ontouchstart" in window || (navigator && navigator.maxTouchPoints > 0));
   const supportsServiceWorker =
     typeof navigator !== "undefined" && "serviceWorker" in navigator;
   const supportsInstallPrompt =
-    typeof window !== "undefined" && "BeforeInstallPromptEvent" in window;
+    isBrowserEnvironment() && "BeforeInstallPromptEvent" in window;
 
   return {
     runtime,
