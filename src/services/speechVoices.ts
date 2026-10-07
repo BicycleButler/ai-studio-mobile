@@ -23,8 +23,6 @@ export interface DeviceVoiceOption {
   isDefault: boolean;
 }
 
-import { safeGetStorage, safeSetStorage } from "../utils/storage";
-
 export interface SpeechSettings {
   engine: "gemini" | "device";
   geminiVoice: string;
