@@ -71,11 +71,8 @@ export function getBuiltinTemplates(): PromptTemplate[] {
 }
 
 export function getCustomTemplates(): PromptTemplate[] {
-  const parsed = safeGetStorage<PromptTemplate[]>(CUSTOM_TEMPLATES_STORAGE_KEY, []);
-  if (Array.isArray(parsed)) {
-    return parsed;
-  }
-  return [];
+  const templates = safeGetStorage<PromptTemplate[]>(CUSTOM_TEMPLATES_STORAGE_KEY, []);
+  return Array.isArray(templates) ? templates : [];
 }
 
 export function getAllTemplates(): PromptTemplate[] {

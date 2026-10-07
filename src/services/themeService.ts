@@ -13,6 +13,8 @@ export interface ThemeState {
   resolvedTheme: ResolvedTheme;
 }
 
+import { safeGetStorage, safeSetStorage } from "../utils/storage";
+
 export type ThemeListener = (state: ThemeState) => void;
 
 const STORAGE_KEY = "aistudio_theme_mode";

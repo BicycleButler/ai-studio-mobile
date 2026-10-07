@@ -23,6 +23,8 @@ export interface DeviceVoiceOption {
   isDefault: boolean;
 }
 
+import { safeGetStorage, safeSetStorage } from "../utils/storage";
+
 export interface SpeechSettings {
   engine: "gemini" | "device";
   geminiVoice: string;
@@ -99,7 +101,7 @@ export function loadSpeechSettings(): SpeechSettings {
   const fallback = inMemorySettings || DEFAULT_SPEECH_SETTINGS;
   const parsed = safeGetStorage<Partial<SpeechSettings>>(SETTINGS_KEY, fallback);
 
-  if (parsed === fallback) return fallback;
+  if (parsed === fallback) return fallback as SpeechSettings;
 
   return {
     engine: parsed.engine === "gemini" ? "gemini" : "device",
