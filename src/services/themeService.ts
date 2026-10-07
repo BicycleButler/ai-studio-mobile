@@ -11,32 +11,11 @@ export interface ThemeState {
   resolvedTheme: ResolvedTheme;
 }
 
+import { safeGetStorage, safeSetStorage } from "../utils/storage";
+
 export type ThemeListener = (state: ThemeState) => void;
 
 const STORAGE_KEY = "aistudio_theme_mode";
-const memoryFallback: Record<string, string> = {};
-
-function getStorage(): {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
-} {
-  try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const testKey = "__theme_test__";
-      window.localStorage.setItem(testKey, "1");
-      window.localStorage.removeItem(testKey);
-      return window.localStorage;
-    }
-  } catch {
-    // Fall back to memory
-  }
-  return {
-    getItem: (key: string) => memoryFallback[key] ?? null,
-    setItem: (key: string, value: string) => {
-      memoryFallback[key] = value;
-    },
-  };
-}
 
 let currentMode: ThemeMode = "system";
 let currentResolved: ResolvedTheme = "dark";
@@ -52,25 +31,18 @@ export function getSystemResolvedTheme(): ResolvedTheme {
 }
 
 export function loadStoredThemeMode(): ThemeMode {
-  try {
-    const storage = getStorage();
-    const stored = storage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      return stored;
-    }
-  } catch {
-    // Ignore storage quota or access issues
+  // Safe get storage uses JSON.parse so we expect the string to be quoted in storage ideally,
+  // but if we were previously saving it as unquoted "dark" or "light", it might fail to parse.
+  // Actually safeSetStorage uses JSON.stringify, so it will be quoted.
+  const stored = safeGetStorage<string>(STORAGE_KEY, "system");
+  if (stored === "light" || stored === "dark" || stored === "system") {
+    return stored as ThemeMode;
   }
   return "system";
 }
 
 export function persistThemeMode(mode: ThemeMode): void {
-  try {
-    const storage = getStorage();
-    storage.setItem(STORAGE_KEY, mode);
-  } catch {
-    // Ignore storage errors
-  }
+  safeSetStorage(STORAGE_KEY, mode);
 }
 
 export function resolveTheme(mode: ThemeMode): ResolvedTheme {

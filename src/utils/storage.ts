@@ -119,6 +119,17 @@ export function safeSetStorage<T>(key: string, value: T): boolean {
   }
 }
 
+export function safeRemoveStorage(key: string): boolean {
+  try {
+    const storage = getStorageInstance();
+    storage.removeItem(key);
+    return true;
+  } catch (err: unknown) {
+    console.warn(`Failed to remove ${key} from storage:`, err);
+    return false;
+  }
+}
+
 // API Key management
 export function loadStoredApiKey(): string {
   try {

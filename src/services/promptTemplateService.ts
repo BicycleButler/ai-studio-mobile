@@ -1,4 +1,5 @@
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
+import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "../utils/storage";
 
 export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
   {
@@ -65,30 +66,13 @@ export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
 
 const CUSTOM_TEMPLATES_STORAGE_KEY = "ai_studio_custom_prompt_templates";
 
-// In-memory fallback for environments without localStorage (e.g. Node tests)
-let memoryCustomTemplates: PromptTemplate[] = [];
-
 export function getBuiltinTemplates(): PromptTemplate[] {
   return [...BUILTIN_PROMPT_TEMPLATES];
 }
 
 export function getCustomTemplates(): PromptTemplate[] {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return [...memoryCustomTemplates];
-  }
-
-  try {
-    const raw = localStorage.getItem(CUSTOM_TEMPLATES_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-    return [];
-  } catch (err) {
-    console.warn("Failed to load custom prompt templates from storage:", err);
-    return [];
-  }
+  const templates = safeGetStorage<PromptTemplate[]>(CUSTOM_TEMPLATES_STORAGE_KEY, []);
+  return Array.isArray(templates) ? templates : [];
 }
 
 export function getAllTemplates(): PromptTemplate[] {
@@ -160,15 +144,7 @@ export function saveCustomTemplate(data: {
     existingList.push(savedTemplate);
   }
 
-  if (typeof window !== "undefined" && window.localStorage) {
-    try {
-      localStorage.setItem(CUSTOM_TEMPLATES_STORAGE_KEY, JSON.stringify(existingList));
-    } catch (err) {
-      console.warn("Failed to persist custom prompt templates:", err);
-    }
-  } else {
-    memoryCustomTemplates = existingList;
-  }
+  safeSetStorage(CUSTOM_TEMPLATES_STORAGE_KEY, existingList);
 
   return savedTemplate;
 }
@@ -186,28 +162,13 @@ export function deleteCustomTemplate(id: string): boolean {
     return false;
   }
 
-  if (typeof window !== "undefined" && window.localStorage) {
-    try {
-      localStorage.setItem(CUSTOM_TEMPLATES_STORAGE_KEY, JSON.stringify(filtered));
-    } catch (err) {
-      console.warn("Failed to delete custom prompt template from storage:", err);
-    }
-  } else {
-    memoryCustomTemplates = filtered;
-  }
+  safeSetStorage(CUSTOM_TEMPLATES_STORAGE_KEY, filtered);
 
   return true;
 }
 
 export function clearCustomTemplates(): void {
-  memoryCustomTemplates = [];
-  if (typeof window !== "undefined" && window.localStorage) {
-    try {
-      localStorage.removeItem(CUSTOM_TEMPLATES_STORAGE_KEY);
-    } catch (err) {
-      console.warn("Failed to clear custom prompt templates:", err);
-    }
-  }
+  safeRemoveStorage(CUSTOM_TEMPLATES_STORAGE_KEY);
 }
 
 /**

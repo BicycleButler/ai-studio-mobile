@@ -86,17 +86,22 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
 /**
  * Purges all mock/test sessions and stale synthetic keys from persistent storage.
  * Automatically runs on module initialization and session queries to ensure
- * zero mock data remains in localStorage.
+ * zero mock data remains in storage.
  */
 export function purgeMockSessionsFromStorage(): void {
   try {
+    // Memory rule fallback: "For iterating over storage keys, fallback to safely accessing window.localStorage directly."
     if (typeof window !== "undefined" && window.localStorage) {
       const keysToClean: string[] = [];
-      for (let i = 0; i < window.localStorage.length; i++) {
-        const key = window.localStorage.key(i);
-        if (key && key.startsWith(CHAT_SESSIONS_PREFIX)) {
-          keysToClean.push(key);
+      try {
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          if (key && key.startsWith(CHAT_SESSIONS_PREFIX)) {
+            keysToClean.push(key);
+          }
         }
+      } catch {
+        // Ignore quota or security errors during key enumeration
       }
 
       keysToClean.forEach((key) => {
