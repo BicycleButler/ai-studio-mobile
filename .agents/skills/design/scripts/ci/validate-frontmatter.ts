@@ -16,7 +16,7 @@ async function getFiles(dir: string, files: string[] = [], excludePrefixes: stri
                 files.push(fullPath);
             }
         }
-    } catch(e) {}
+    } catch {}
     return files;
 }
 
