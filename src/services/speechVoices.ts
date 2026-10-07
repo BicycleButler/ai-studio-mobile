@@ -5,6 +5,8 @@
  * 2. Enhanced On-Device System Voices (with intelligent Natural/Neural voice prioritization)
  */
 
+import { safeGetStorage, safeSetStorage } from "../utils/storage";
+
 export interface GeminiVoiceOption {
   id: string;
   name: string;

@@ -3,6 +3,8 @@
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
  */
 
+import { safeGetStorage, safeSetStorage } from "../utils/storage";
+
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
@@ -31,9 +33,6 @@ export function getSystemResolvedTheme(): ResolvedTheme {
 }
 
 export function loadStoredThemeMode(): ThemeMode {
-  // Safe get storage uses JSON.parse so we expect the string to be quoted in storage ideally,
-  // but if we were previously saving it as unquoted "dark" or "light", it might fail to parse.
-  // Actually safeSetStorage uses JSON.stringify, so it will be quoted.
   const stored = safeGetStorage<string>(STORAGE_KEY, "system");
   if (stored === "light" || stored === "dark" || stored === "system") {
     return stored as ThemeMode;
