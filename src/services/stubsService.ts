@@ -27,102 +27,82 @@ export interface StubsExecuteResponse {
   stderr: string;
 }
 
-export async function fetchGraphData(): Promise<StubsGraphData> {
-  const res = await fetch("/api/stubs/graph");
+async function apiFetch<T>(
+  endpoint: string,
+  options?: RequestInit,
+  defaultErrorMessage: string = "API request failed"
+): Promise<T> {
+  const res = await fetch(endpoint, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to fetch Stubs graph data");
+    throw new Error(err.error || defaultErrorMessage);
   }
   return res.json();
+}
+
+export async function fetchGraphData(): Promise<StubsGraphData> {
+  return apiFetch<StubsGraphData>("/api/stubs/graph", undefined, "Failed to fetch Stubs graph data");
 }
 
 export async function fetchDiagram(
   groupBy: "domain" | "layer" = "domain"
 ): Promise<StubsDiagramResponse> {
-  const res = await fetch(`/api/stubs/diagram?groupBy=${encodeURIComponent(groupBy)}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to fetch Stubs diagram");
-  }
-  return res.json();
+  return apiFetch<StubsDiagramResponse>(
+    `/api/stubs/diagram?groupBy=${encodeURIComponent(groupBy)}`,
+    undefined,
+    "Failed to fetch Stubs diagram"
+  );
 }
 
 export async function fetchImpact(target: string): Promise<StubsImpactResult> {
-  const res = await fetch(`/api/stubs/impact?target=${encodeURIComponent(target)}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to fetch impact analysis");
-  }
-  return res.json();
+  return apiFetch<StubsImpactResult>(
+    `/api/stubs/impact?target=${encodeURIComponent(target)}`,
+    undefined,
+    "Failed to fetch impact analysis"
+  );
 }
 
 export async function fetchLintResults(): Promise<StubsLintResponse> {
-  const res = await fetch("/api/stubs/lint");
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to fetch architecture lint results");
-  }
-  return res.json();
+  return apiFetch<StubsLintResponse>("/api/stubs/lint", undefined, "Failed to fetch architecture lint results");
 }
 
 export async function fetchSidecarSpecs(): Promise<StubsSpecsResponse> {
-  const res = await fetch("/api/stubs/specs");
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to list sidecar specs");
-  }
-  return res.json();
+  return apiFetch<StubsSpecsResponse>("/api/stubs/specs", undefined, "Failed to list sidecar specs");
 }
 
 export async function fetchSpecDetail(path: string): Promise<{ content: string; path: string }> {
-  const res = await fetch(`/api/stubs/spec-detail?path=${encodeURIComponent(path)}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to fetch spec content");
-  }
-  return res.json();
+  return apiFetch<{ content: string; path: string }>(
+    `/api/stubs/spec-detail?path=${encodeURIComponent(path)}`,
+    undefined,
+    "Failed to fetch spec content"
+  );
 }
 
 export async function saveSpecContent(path: string, content: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch("/api/stubs/spec-save", {
+  return apiFetch<{ success: boolean; message: string }>("/api/stubs/spec-save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path, content }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to save spec");
-  }
-  return res.json();
+  }, "Failed to save spec");
 }
 
 export async function materializeSpec(path: string): Promise<{ success: boolean; message: string; result: { targetFile: string; bytesWritten: number } }> {
-  const res = await fetch("/api/stubs/spec-materialize", {
+  return apiFetch<{ success: boolean; message: string; result: { targetFile: string; bytesWritten: number } }>("/api/stubs/spec-materialize", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to materialize spec");
-  }
-  return res.json();
+  }, "Failed to materialize spec");
 }
 
 export async function executeStubsCommand(
   command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
   args: string[] = []
 ): Promise<StubsExecuteResponse> {
-  const res = await fetch("/api/stubs/execute", {
+  return apiFetch<StubsExecuteResponse>("/api/stubs/execute", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ command, args }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Failed to execute stubs ${command}`);
-  }
-  return res.json();
+  }, `Failed to execute stubs ${command}`);
 }
 
 export function connectStubsStream(
