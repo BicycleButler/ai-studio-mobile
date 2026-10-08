@@ -230,7 +230,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                 key={m.id}
                 type="button"
                 onClick={() => updateField("model", m.id)}
-                className={`text-left p-3 rounded-xl border transition-all relative cursor-pointer group ${
+                className={`text-left p-3 rounded-xl border transition relative cursor-pointer group ${
                   isSelected
                     ? "bg-primary/10 border-primary ring-1 ring-primary/30 text-foreground"
                     : "bg-card border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:border-muted-foreground/30"
@@ -522,8 +522,8 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                 {schemaStatus && (
                   <span
                     className={`text-[10px] flex items-center gap-1 font-mono ${
-                      schemaStatus.valid ? "text-emerald-500" : "text-rose-500"
-                    }`}
+                      schemaStatus.valid ? "text-primary" : "text-destructive validation"
+                    } toast-element`}
                   >
                     {schemaStatus.valid ? (
                       <CheckCircle2 className="w-3 h-3" />
@@ -656,7 +656,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                       type="button"
                       id="tuner-done-btn"
                       onClick={onClose}
-                      className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       Done
                     </button>
