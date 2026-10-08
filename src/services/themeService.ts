@@ -140,7 +140,7 @@ export function initThemeService(): () => void {
         mediaQueryList.addEventListener("change", handleChange);
       } else if ("addListener" in mediaQueryList) {
         // Legacy browser fallback
-        ((mediaQueryList as unknown) as { addListener?: (cb: () => void) => void }).addListener?.(handleChange);
+        (mediaQueryList as MediaQueryList & { addListener: (cb: () => void) => void }).addListener(handleChange);
       }
     }
   }

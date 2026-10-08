@@ -13,7 +13,7 @@ export type AppRuntime = "capacitor" | "pwa" | "browser";
  * Safely checks if the current environment is a browser context.
  */
 export function isBrowserEnvironment(): boolean {
-  return typeof window !== "undefined";
+  return typeof window !== "undefined" && typeof document !== "undefined";
 }
 
 export interface PlatformCapabilities {
@@ -33,7 +33,7 @@ export interface PlatformCapabilities {
  */
 export function isCapacitor(): boolean {
   if (!isBrowserEnvironment()) return false;
-  const win = window as unknown as {
+  const win = window as typeof window & {
     Capacitor?: {
       isNativePlatform?: () => boolean;
       getPlatform?: () => string;
@@ -52,8 +52,8 @@ export function isCapacitor(): boolean {
 export function isPWA(): boolean {
   if (!isBrowserEnvironment()) return false;
   const isStandaloneMatch = window.matchMedia ? window.matchMedia("(display-mode: standalone)").matches : false;
-  const isNavigatorStandalone =
-    (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  const nav = window.navigator as typeof navigator & { standalone?: boolean };
+  const isNavigatorStandalone = nav.standalone === true;
   return isStandaloneMatch || isNavigatorStandalone;
 }
 

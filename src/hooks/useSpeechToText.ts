@@ -103,7 +103,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
   const getConstructor = useCallback((): SpeechRecognitionConstructor | undefined => {
     if (!isBrowserEnvironment()) return undefined;
-    const win = window as unknown as WindowWithSpeech;
+    const win = window as typeof window & WindowWithSpeech;
     return win.SpeechRecognition || win.webkitSpeechRecognition;
   }, []);
 
@@ -161,7 +161,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
       // Pre-flight microphone permission check if supported
       if (isBrowserEnvironment() && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
-        navigator.mediaDevices.getUserMedia({ audio: true }).catch((permErr) => {
+        navigator.mediaDevices.getUserMedia({ audio: true }).catch((permErr: unknown) => {
           console.warn("[SpeechToText] Microphone pre-flight check notice:", permErr);
         });
       }
