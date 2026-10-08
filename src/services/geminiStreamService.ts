@@ -1,5 +1,6 @@
 import { GenerateRequestBody } from "../types";
 
+
 export interface StreamCallbacks {
   onChunk: (text: string) => void;
   onDone?: (metadata: { durationMs: number; totalTokens: number }) => void;

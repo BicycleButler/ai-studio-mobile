@@ -22,6 +22,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import mermaid from "mermaid";
+import { apiFetch } from "../utils/apiClient";
+
 import {
   StubsGraphData,
   StubsLintViolation,
@@ -141,8 +143,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
 
   // Fetch Jules Repositories for top switcher
   useEffect(() => {
-    fetch("/api/jules/repos")
-      .then((res) => (res.ok ? res.json() : { repositories: [] }))
+    apiFetch<{ repositories?: import("../types").JulesRepository[] }>("/api/jules/repos")
       .then((data) => {
         if (Array.isArray(data.repositories)) {
           setRepositories(data.repositories);
