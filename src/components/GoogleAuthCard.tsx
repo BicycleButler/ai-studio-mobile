@@ -214,7 +214,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
             id="primary-google-sign-in-btn"
             onClick={handleSignIn}
             disabled={isLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-lg transition-all flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-primary/20 hover:bg-primary/90"
+            className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-lg transition flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-primary/20 hover:bg-primary/90"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
@@ -227,7 +227,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
       )}
 
       {error && (
-        <div className="mt-3 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive flex items-start gap-2">
+        <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-destructive/30 text-xs text-destructive flex items-start gap-2 validation-container">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>

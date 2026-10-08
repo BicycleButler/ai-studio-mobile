@@ -408,7 +408,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             return (
               <div
                 key={file.id}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
                   isActive
                     ? "bg-primary/10 text-primary border-primary/30 font-semibold shadow-xs"
                     : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted border-border/50"
@@ -695,7 +695,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
               ) : (
                 consoleLogs.map((log) => {
                   let color = "text-foreground";
-                  if (log.type === "stderr") color = "text-destructive font-medium"; // execution error
+                  if (log.type === "stderr") color = "text-destructive font-medium error-text"; // execution error
                   else if (log.type === "stdout") color = "text-primary";
                   else if (log.type === "success") color = "text-primary font-medium";
                   else if (log.type === "system") color = "text-muted-foreground text-[10px]";
@@ -780,7 +780,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
               ) : (
                 consoleLogs.map((log) => {
                   let color = "text-foreground";
-                  if (log.type === "stderr") color = "text-destructive font-medium";
+                  if (log.type === "stderr") color = "text-destructive font-medium error-text";
                   else if (log.type === "stdout") color = "text-primary";
                   else if (log.type === "success") color = "text-primary font-medium";
                   else if (log.type === "system") color = "text-muted-foreground text-[10px]";
