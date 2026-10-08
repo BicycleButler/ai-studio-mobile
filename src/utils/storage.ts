@@ -160,25 +160,35 @@ export function safeRemoveStorage(key: string): boolean {
 }
 
 // API Key management
-export function loadStoredApiKey(): string {
+export function safeGetStorageString(key: string, fallback: string = ""): string {
   try {
     const storage = getStorageInstance();
-    return storage.getItem(STORAGE_KEYS.API_KEY) || "";
+    return storage.getItem(key) || fallback;
   } catch {
-    return "";
+    return fallback;
   }
 }
 
-export function saveStoredApiKey(key: string): void {
+export function safeSetStorageString(key: string, value: string): boolean {
   try {
     const storage = getStorageInstance();
-    if (key.trim()) {
-      storage.setItem(STORAGE_KEYS.API_KEY, key.trim());
-    } else {
-      safeRemoveStorage(STORAGE_KEYS.API_KEY);
-    }
+    storage.setItem(key, value);
+    return true;
   } catch (err: unknown) {
-    console.warn("Failed to persist API key:", err);
+    console.warn(`Failed to write ${key} to storage:`, err);
+    return false;
+  }
+}
+
+export function loadStoredApiKey(): string {
+  return safeGetStorageString(STORAGE_KEYS.API_KEY, "");
+}
+
+export function saveStoredApiKey(key: string): void {
+  if (key.trim()) {
+    safeSetStorageString(STORAGE_KEYS.API_KEY, key.trim());
+  } else {
+    safeRemoveStorage(STORAGE_KEYS.API_KEY);
   }
 }
 
@@ -321,14 +331,13 @@ export function saveStoredProjects(projects: ProjectInfo[]): void {
 }
 
 export function getActiveProjectId(): string | null {
-  const storage = getStorageInstance();
-  return storage.getItem(STORAGE_KEYS.ACTIVE_PROJECT_ID) || null;
+  const val = safeGetStorageString(STORAGE_KEYS.ACTIVE_PROJECT_ID, "");
+  return val ? val : null;
 }
 
 export function setActiveProjectId(id: string | null): void {
-  const storage = getStorageInstance();
   if (id) {
-    storage.setItem(STORAGE_KEYS.ACTIVE_PROJECT_ID, id);
+    safeSetStorageString(STORAGE_KEYS.ACTIVE_PROJECT_ID, id);
   } else {
     safeRemoveStorage(STORAGE_KEYS.ACTIVE_PROJECT_ID);
   }
