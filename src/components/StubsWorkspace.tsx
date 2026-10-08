@@ -189,7 +189,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
         const id = "mermaid-svg-" + Date.now();
         const { svg } = await mermaid.render(id, res.mermaid);
         setRenderedSvg(svg);
-      } catch (renderErr) {
+      } catch (renderErr: unknown) {
         console.warn("Client-side Mermaid SVG render failed, displaying code view:", renderErr);
         setRenderedSvg("");
         setDiagramViewMode("code");

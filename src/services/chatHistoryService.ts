@@ -1,5 +1,6 @@
+import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorage, safeSetStorage } from "../utils/storage";
+import { safeGetStorage, safeSetStorage, getStorageInstance } from "../utils/storage";
 
 const CHAT_SESSIONS_PREFIX = "ai_studio_chat_sessions_v1";
 
@@ -90,12 +91,13 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
  */
 export function purgeMockSessionsFromStorage(): void {
   try {
-    // Memory rule fallback: "For iterating over storage keys, fallback to safely accessing window.localStorage directly."
-    if (typeof window !== "undefined" && window.localStorage) {
+    // Memory rule fallback: "For iterating over storage keys, fallback to safely accessing getStorageInstance() directly."
+    if (isBrowserEnvironment()) {
+      const storage = getStorageInstance();
       const keysToClean: string[] = [];
       try {
-        for (let i = 0; i < window.localStorage.length; i++) {
-          const key = window.localStorage.key(i);
+        for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i);
           if (key && key.startsWith(CHAT_SESSIONS_PREFIX)) {
             keysToClean.push(key);
           }
@@ -120,7 +122,7 @@ export function purgeMockSessionsFromStorage(): void {
 }
 
 // Initial sweep when module loads in browser
-if (typeof window !== "undefined") {
+if (isBrowserEnvironment()) {
   purgeMockSessionsFromStorage();
 }
 

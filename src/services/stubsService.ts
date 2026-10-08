@@ -115,7 +115,7 @@ export function connectStubsStream(
       try {
         const payload = JSON.parse(event.data);
         onLog(payload);
-      } catch (err) {
+      } catch (err: unknown) {
         console.warn("[stubs stream] Failed to parse SSE event:", err);
       }
     };
@@ -127,7 +127,7 @@ export function connectStubsStream(
     return () => {
       eventSource.close();
     };
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("[stubs stream] Unable to create EventSource:", err);
     return () => {};
   }

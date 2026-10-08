@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "./utils/platform";
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
@@ -9,7 +10,7 @@ import { registerSW } from 'virtual:pwa-register';
 initThemeService();
 
 // Register PWA service worker with auto-update
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+if (isBrowserEnvironment() && 'serviceWorker' in navigator) {
   registerSW({
     immediate: true,
   });

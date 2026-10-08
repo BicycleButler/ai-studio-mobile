@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -264,7 +265,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
       }
     };
     loadVoices();
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    if (isBrowserEnvironment() && "speechSynthesis" in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
   }, [isOpen, currentSpeechSettings.deviceVoiceURI]);
@@ -281,7 +282,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
       previewAudioRef.current.pause();
       previewAudioRef.current = null;
     }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    if (isBrowserEnvironment() && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
     setPreviewingVoiceId(null);
@@ -499,7 +500,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         setPreviewError(err instanceof Error ? err.message : "Error previewing voice.");
       }
     } else {
-      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
         setPreviewError("Device speech synthesis not available.");
         setPreviewingVoiceId(null);
         return;

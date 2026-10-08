@@ -163,7 +163,7 @@ export async function clearClipboardSafe(): Promise<boolean> {
       await navigator.clipboard.writeText("");
       return true;
     }
-  } catch (err) {
+  } catch (err: unknown) {
     // Clipboard write may be restricted in non-gesture or sandboxed context
     console.debug("Clipboard clear skipped or restricted:", err);
   }

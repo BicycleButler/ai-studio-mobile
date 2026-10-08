@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 import { useEffect, useState, useCallback } from "react";
 import { isCapacitor, isPWA } from "../utils/platform";
 
@@ -17,7 +18,7 @@ export function usePWAInstall() {
   const [isNativeCapacitor, setIsNativeCapacitor] = useState<boolean>(() => isCapacitor());
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!isBrowserEnvironment()) return;
 
     // Check standalone / native state
     const native = isCapacitor();

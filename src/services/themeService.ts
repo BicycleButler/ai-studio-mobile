@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 /**
  * Theme Service for Google AI Studio Mobile
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
@@ -24,7 +25,7 @@ let initialized = false;
 let mediaQueryList: MediaQueryList | null = null;
 
 export function getSystemResolvedTheme(): ResolvedTheme {
-  if (typeof window === "undefined" || !window.matchMedia) {
+  if (!isBrowserEnvironment() || !window.matchMedia) {
     return "dark"; // Default fallback
   }
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -78,7 +79,7 @@ function notifyListeners(): void {
   listeners.forEach((listener) => {
     try {
       listener(state);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error in theme listener:", err);
     }
   });
@@ -115,7 +116,7 @@ export function subscribeToTheme(listener: ThemeListener): () => void {
 }
 
 export function initThemeService(): () => void {
-  if (typeof window === "undefined") {
+  if (!isBrowserEnvironment()) {
     return () => {};
   }
 

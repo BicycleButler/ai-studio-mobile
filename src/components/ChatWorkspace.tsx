@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Send,
@@ -520,7 +521,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       activeAudioRef.current.pause();
       activeAudioRef.current = null;
     }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    if (isBrowserEnvironment() && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
       } catch {
@@ -538,7 +539,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // visualViewport scroll anchoring: dynamically re-anchor messages on mobile keyboard resize
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!isBrowserEnvironment()) return;
     const vv = window.visualViewport;
     if (!vv) return;
 
@@ -570,7 +571,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+      const isMobile = isBrowserEnvironment() && window.innerWidth < 640;
       const maxHeight = isMobile ? 72 : 112;
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, maxHeight)}px`;
     }
@@ -690,7 +691,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // Helper for on-device speech synthesis fallback
   const fallbackToDeviceSpeech = (textToSpeak: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
       setIsSpeaking(false);
       setIsBufferingAudio(false);
       return;
@@ -843,7 +844,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         };
 
         await audio.play();
-      } catch (err) {
+      } catch (err: unknown) {
         console.warn("Gemini Studio TTS failed, falling back to on-device voice:", err);
         fallbackToDeviceSpeech(contentToSpeak);
       }

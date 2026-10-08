@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 /**
  * Voice definitions and speech playback engine
  * Supports:
@@ -123,7 +124,7 @@ export function saveSpeechSettings(settings: SpeechSettings): void {
  * Retrieves and filters system voices, scoring natural/neural voices to top
  */
 export function getAvailableDeviceVoices(): DeviceVoiceOption[] {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+  if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
     return [];
   }
 
@@ -170,7 +171,7 @@ export function getAvailableDeviceVoices(): DeviceVoiceOption[] {
  * Automatically finds the highest-quality natural device voice matching the preferred URI or system
  */
 export function getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+  if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
     return null;
   }
   const voices = window.speechSynthesis.getVoices();

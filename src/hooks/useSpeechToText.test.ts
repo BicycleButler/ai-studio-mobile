@@ -1,9 +1,10 @@
+import { isBrowserEnvironment } from "../utils/platform";
 import { extractSpokenText } from "../utils/speechExtractor";
 import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 
 export function testSpeechToText(): boolean {
   // Test 1: Window without speech recognition returns safe fallback
-  const isSupportedInNode = typeof window !== "undefined" && Boolean(
+  const isSupportedInNode = isBrowserEnvironment() && Boolean(
     (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
   );
   if (isSupportedInNode !== false) {

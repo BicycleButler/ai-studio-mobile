@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 /**
  * Sentence-Pipelined Speech Queue
  * Delivers ultra-low-latency voice playback for AI streaming responses:
@@ -43,7 +44,7 @@ export class SentenceSpeechQueue {
    * Splits at sentence boundaries and immediately dispatches completed sentences to speech synthesis.
    */
   public feed(fullStreamedText: string, isStreaming = true): void {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
       return;
     }
 
@@ -106,7 +107,7 @@ export class SentenceSpeechQueue {
    * Prepares and enqueues a clean sentence utterance
    */
   private enqueueSentence(rawSentence: string): void {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (!isBrowserEnvironment() || !("speechSynthesis" in window)) return;
 
     const spokenText = extractSpokenText(rawSentence, false).trim();
     if (!spokenText || spokenText.length < 2) return;
@@ -167,7 +168,7 @@ export class SentenceSpeechQueue {
       this.pendingUtterances.push(utterance);
       window.speechSynthesis.speak(utterance);
       this.startHeartbeat();
-    } catch (err) {
+    } catch (err: unknown) {
       this.options.onError?.(err);
     }
   }
@@ -180,7 +181,7 @@ export class SentenceSpeechQueue {
     if (this.heartbeatTimer) return;
     this.heartbeatTimer = setInterval(() => {
       if (
-        typeof window !== "undefined" &&
+        isBrowserEnvironment() &&
         "speechSynthesis" in window &&
         window.speechSynthesis.speaking
       ) {
@@ -206,7 +207,7 @@ export class SentenceSpeechQueue {
     this.isSpeaking = false;
     this.isFinalized = true;
 
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    if (isBrowserEnvironment() && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
       } catch {
@@ -218,7 +219,7 @@ export class SentenceSpeechQueue {
   }
 
   public getIsSpeaking(): boolean {
-    return this.isSpeaking || (typeof window !== "undefined" && Boolean(window.speechSynthesis?.speaking));
+    return this.isSpeaking || (isBrowserEnvironment() && Boolean(window.speechSynthesis?.speaking));
   }
 
   public getQueueLength(): number {
