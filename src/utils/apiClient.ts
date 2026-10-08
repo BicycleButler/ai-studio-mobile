@@ -40,5 +40,12 @@ export async function apiFetch<T>(
     return res.json() as Promise<T>;
   }
 
-  return res.text() as Promise<unknown> as Promise<T>;
+  // Handle plain text responses safely
+  const text = await res.text();
+  if (typeof text === "string") {
+    // If T is expected to be a string (e.g. text/plain requests)
+    return text as T;
+  }
+
+  throw new BaseApiError("Unexpected response type", res.status);
 }
