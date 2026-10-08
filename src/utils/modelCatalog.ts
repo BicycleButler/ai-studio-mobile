@@ -1,5 +1,7 @@
 import { ModelInfo } from "../types";
 
+export const FALLBACK_MODEL_ID = "gemini-3.8-flash";
+
 /**
  * Curated list of fully supported, production-ready, and usable models for
  * prompt design, chat, and code generation in Google AI Studio.
@@ -147,11 +149,11 @@ export function isDeprecatedOrUnusableModel(rawId: string): boolean {
 
 /**
  * Returns a clean, sanitized model ID. If the model is deprecated or unusable,
- * falls back to "gemini-3.8-flash".
+ * falls back to FALLBACK_MODEL_ID.
  */
 export function sanitizeModelId(modelId: string | undefined): string {
   if (!modelId || isDeprecatedOrUnusableModel(modelId)) {
-    return "gemini-3.8-flash";
+    return FALLBACK_MODEL_ID;
   }
   return modelId;
 }

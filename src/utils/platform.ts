@@ -51,7 +51,7 @@ export function isCapacitor(): boolean {
  */
 export function isPWA(): boolean {
   if (!isBrowserEnvironment()) return false;
-  const isStandaloneMatch = window.matchMedia("(display-mode: standalone)").matches;
+  const isStandaloneMatch = window.matchMedia ? window.matchMedia("(display-mode: standalone)").matches : false;
   const isNavigatorStandalone =
     (window.navigator as unknown as { standalone?: boolean }).standalone === true;
   return isStandaloneMatch || isNavigatorStandalone;
