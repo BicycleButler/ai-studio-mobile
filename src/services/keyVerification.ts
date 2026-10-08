@@ -170,3 +170,16 @@ export async function clearClipboardSafe(): Promise<boolean> {
   }
   return false;
 }
+
+/**
+ * Performs a lightweight test call against Jules models endpoint to verify that the key is active and authorized.
+ */
+export async function verifyJulesApiKey(
+  apiKey: string
+): Promise<{ valid?: boolean; error?: string }> {
+  return apiFetch<{ valid?: boolean; error?: string }>("/api/jules/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apiKey }),
+  });
+}

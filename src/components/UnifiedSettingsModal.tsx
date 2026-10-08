@@ -46,6 +46,9 @@ import {
   ProjectInfo,
 } from "../types";
 import { GoogleAuthCard } from "./GoogleAuthCard";
+import { fetchAuthStatus } from "../services/auth";
+import { verifyJulesApiKey } from "../services/keyVerification";
+import { fetchTTSAudioUrl } from "../services/speechVoices";
 import { TunerBottomSheet } from "./TunerBottomSheet";
 import {
   GEMINI_VOICES,
@@ -53,14 +56,12 @@ import {
   getAvailableDeviceVoices,
   DeviceVoiceOption,
 } from "../services/speechVoices";
-import { getAuthHeaders } from "../services/auth";
 import { LibraryModal } from "./LibraryModal";
 import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
 import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
 import { useTheme } from "../hooks/useTheme";
 import { useBackNavigation } from "../hooks/useBackNavigation";
-import { apiFetch } from "../utils/apiClient";
 
 
 export type SettingsTab =
@@ -328,21 +329,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     const key = keyToTest !== undefined ? keyToTest : inputApiKey.trim();
 
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (key) {
-        headers["x-gemini-api-key"] = key;
-      }
-
-      const data = await apiFetch<{
-        valid?: boolean;
-        error?: string;
-        authSource?: string;
-      }>("/api/auth/verify", {
-        method: "POST",
-        headers,
-      });
+      const data = await fetchAuthStatus(key);
 
       if (data.valid) {
         setTestResult({
@@ -410,11 +397,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     const key = julesInputKey.trim();
 
     try {
-      const data = await apiFetch<{ valid?: boolean; error?: string }>("/api/jules/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: key }),
-      });
+      const data = await verifyJulesApiKey(key);
 
       if (data.valid) {
         setJulesTestResult({
@@ -453,18 +436,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     if (engine === "gemini") {
       setIsPreviewLoading(true);
       try {
-        const authHeaders = getAuthHeaders();
-        const data = await apiFetch<{ audioUrl: string }>("/api/tts", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeaders,
-          },
-          body: JSON.stringify({
-            text: samplePhrase,
-            voiceName,
-          }),
-        });
+        const data = await fetchTTSAudioUrl(samplePhrase, voiceName);
 
         if (!data.audioUrl) {
           throw new Error("No audio returned from Gemini TTS");

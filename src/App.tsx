@@ -79,7 +79,8 @@ import {
 } from "./services/speechVoices";
 import { AlertCircle, AlertTriangle, Key, RefreshCw, WifiOff, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
 import { OfflineIndicator } from "./components/OfflineIndicator";
-import { apiFetch } from "./utils/apiClient";
+import { fetchServerHealth } from "./services/auth";
+import { fetchModels } from "./utils/modelCatalog";
 
 
 export default function App() {
@@ -500,7 +501,7 @@ export default function App() {
 
   // Initialize & fetch server health / models
   useEffect(() => {
-    apiFetch<{ hasServerApiKey?: boolean }>("/api/health")
+    fetchServerHealth()
       .then((data) => {
         if (data.hasServerApiKey) {
           setHasServerKey(true);
@@ -516,12 +517,7 @@ export default function App() {
     });
 
     const storedKey = loadStoredApiKey();
-    const modelHeaders: Record<string, string> = {};
-    if (storedKey) {
-      modelHeaders["x-gemini-api-key"] = storedKey;
-    }
-
-    apiFetch<{ models?: ModelInfo[] }>("/api/models", { headers: modelHeaders })
+    fetchModels(storedKey)
       .then((data) => {
         if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
           const cleaned = data.models.filter((m) => !isDeprecatedOrUnusableModel(m.id));
@@ -552,11 +548,9 @@ export default function App() {
     if (user) {
       setGoogleUser(user);
       // Re-fetch live models with the authenticated Google credentials
-      const modelHeaders: Record<string, string> = {};
       const key = customApiKey || loadStoredApiKey();
-      if (key) modelHeaders["x-gemini-api-key"] = key;
 
-      apiFetch<{ models?: ModelInfo[] }>("/api/models?refresh=true", { headers: modelHeaders })
+      fetchModels(key, true)
         .then((data) => {
           if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
             const cleaned = data.models.filter((m) => !isDeprecatedOrUnusableModel(m.id));
@@ -578,9 +572,7 @@ export default function App() {
     setCustomApiKey(key);
     saveStoredApiKey(key);
     if (key.trim()) {
-      apiFetch<{ models?: ModelInfo[] }>("/api/models?refresh=true", {
-        headers: { "x-gemini-api-key": key.trim() },
-      })
+      fetchModels(key.trim(), true)
         .then((data) => {
           if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
             setModels(data.models);
@@ -692,7 +684,7 @@ export default function App() {
 
   const refreshServerAuth = async (): Promise<boolean> => {
     try {
-      const data = await apiFetch<{ hasServerApiKey?: boolean }>("/api/health");
+      const data = await fetchServerHealth();
       const hasKey = Boolean(data.hasServerApiKey);
       setHasServerKey(hasKey);
       return hasKey;
