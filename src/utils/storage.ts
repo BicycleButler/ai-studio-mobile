@@ -168,7 +168,7 @@ export function saveStoredApiKey(key: string): void {
     if (key.trim()) {
       storage.setItem(STORAGE_KEYS.API_KEY, key.trim());
     } else {
-      storage.removeItem(STORAGE_KEYS.API_KEY);
+      safeRemoveStorage(STORAGE_KEYS.API_KEY);
     }
   } catch (err: unknown) {
     console.warn("Failed to persist API key:", err);
@@ -323,7 +323,7 @@ export function setActiveProjectId(id: string | null): void {
   if (id) {
     storage.setItem(STORAGE_KEYS.ACTIVE_PROJECT_ID, id);
   } else {
-    storage.removeItem(STORAGE_KEYS.ACTIVE_PROJECT_ID);
+    safeRemoveStorage(STORAGE_KEYS.ACTIVE_PROJECT_ID);
   }
 }
 

@@ -96,7 +96,8 @@ export function purgeMockSessionsFromStorage(): void {
       const storage = getStorageInstance();
       const keysToClean: string[] = [];
       try {
-        for (let i = 0; i < storage.length; i++) {
+        const len = storage.length;
+        for (let i = 0; i < len; i++) {
           const key = storage.key(i);
           if (key && key.startsWith(CHAT_SESSIONS_PREFIX)) {
             keysToClean.push(key);
