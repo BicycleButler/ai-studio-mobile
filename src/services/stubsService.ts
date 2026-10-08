@@ -1,3 +1,4 @@
+import { apiFetch } from "../utils/apiClient";
 import {
   StubsGraphData,
   StubsImpactResult,
@@ -25,19 +26,6 @@ export interface StubsExecuteResponse {
   exitCode: number;
   stdout: string;
   stderr: string;
-}
-
-async function apiFetch<T>(
-  endpoint: string,
-  options?: RequestInit,
-  defaultErrorMessage: string = "API request failed"
-): Promise<T> {
-  const res = await fetch(endpoint, options);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || defaultErrorMessage);
-  }
-  return res.json();
 }
 
 export async function fetchGraphData(): Promise<StubsGraphData> {

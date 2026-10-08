@@ -1,3 +1,4 @@
+import { apiFetch } from "../utils/apiClient";
 import {
   JulesSession,
   JulesRepository,
@@ -72,21 +73,11 @@ export async function verifyJulesApiKey(apiKey: string): Promise<JulesVerificati
   }
 
   try {
-    const response = await fetch("/api/jules/auth/verify", {
+    const data = await apiFetch<{ valid?: boolean; error?: string; status?: string }>("/api/jules/auth/verify", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ apiKey: cleanKey }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      return {
-        valid: false,
-        error: data.error || `Verification failed with status ${response.status}`,
-      };
-    }
+    }, "Failed to verify Jules key");
 
     return {
       valid: !!data.valid,
@@ -107,14 +98,9 @@ export async function fetchJulesRepositories(apiKeyOverride?: string): Promise<J
   if (!key) return [];
 
   try {
-    const response = await fetch("/api/jules/repos", {
-      headers: {
-        "x-jules-api-key": key,
-      },
+    const data = await apiFetch<{ repositories?: JulesRepositoryItem[] }>("/api/jules/repos", {
+      headers: { "x-jules-api-key": key },
     });
-
-    if (!response.ok) return [];
-    const data = await response.json();
     if (Array.isArray(data.repositories)) {
       return data.repositories.map((repo: JulesRepositoryItem, index: number) => ({
         id: repo.id || repo.fullName || `repo-${index}`,
@@ -147,7 +133,7 @@ export async function createJulesTask(
     const settings = loadStoredJulesSettings();
     const autoApprove = params.autoApprove ?? settings.autoApprovePlans;
 
-    const response = await fetch("/api/jules/tasks", {
+    const data = await apiFetch<{ task: JulesTaskPayload }>("/api/jules/tasks", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -159,12 +145,7 @@ export async function createJulesTask(
         prompt: params.prompt,
         autoApprove,
       }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      return { task: null, error: data.error || "Failed to create Jules task." };
-    }
+    }, "Failed to create Jules task.");
 
     return { task: data.task };
   } catch (err: unknown) {
@@ -232,14 +213,13 @@ export function pollJulesTask(
 
     const runPoll = async () => {
       try {
-        const response = await fetch(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
-          headers: {
-            "x-jules-api-key": apiKey || "",
-          },
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          if (onError) onError(new Error(data.error || "Failed to poll task"));
+        let data;
+        try {
+          data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
+            headers: { "x-jules-api-key": apiKey || "" },
+          }, "Failed to poll task");
+        } catch (err: unknown) {
+          if (onError) onError(err instanceof Error ? err : new Error(String(err)));
           return;
         }
         if (!stopped && data.task) {
@@ -275,16 +255,9 @@ export function pollJulesTask(
 
   return (async () => {
     try {
-      const response = await fetch(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
-        headers: {
-          "x-jules-api-key": apiKey || "",
-        },
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        return { task: null, error: data.error || "Failed to poll Jules task." };
-      }
+      const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
+        headers: { "x-jules-api-key": apiKey || "" },
+      }, "Failed to poll Jules task.");
 
       return { task: data.task };
     } catch (err: unknown) {
@@ -332,19 +305,14 @@ export async function approveJulesPlan(
   }
 
   try {
-    const response = await fetch(`/api/jules/tasks/${encodeURIComponent(tId)}/approve`, {
+    const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(tId)}/approve`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-jules-api-key": key || "",
       },
       body: JSON.stringify({ approved }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      return { task: null, error: data.error || "Failed to approve Jules plan." };
-    }
+    }, "Failed to approve Jules plan.");
 
     return { task: data.task };
   } catch (err: unknown) {
