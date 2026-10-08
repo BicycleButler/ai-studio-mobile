@@ -79,6 +79,8 @@ import {
 } from "./services/speechVoices";
 import { AlertCircle, AlertTriangle, Key, RefreshCw, WifiOff, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+import { apiFetch } from "./utils/apiClient";
+
 
 export default function App() {
   // Phase 3: Active Project & Projects vault
@@ -498,9 +500,8 @@ export default function App() {
 
   // Initialize & fetch server health / models
   useEffect(() => {
-    fetch("/api/health")
-      .then((res) => res.json())
-      .then((data: { hasServerApiKey?: boolean }) => {
+    apiFetch<{ hasServerApiKey?: boolean }>("/api/health")
+      .then((data) => {
         if (data.hasServerApiKey) {
           setHasServerKey(true);
         }
@@ -520,12 +521,8 @@ export default function App() {
       modelHeaders["x-gemini-api-key"] = storedKey;
     }
 
-    fetch("/api/models", { headers: modelHeaders })
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json();
-      })
-      .then((data: { models?: ModelInfo[] } | null) => {
+    apiFetch<{ models?: ModelInfo[] }>("/api/models", { headers: modelHeaders })
+      .then((data) => {
         if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
           const cleaned = data.models.filter((m) => !isDeprecatedOrUnusableModel(m.id));
           if (cleaned.length > 0) {
@@ -559,12 +556,8 @@ export default function App() {
       const key = customApiKey || loadStoredApiKey();
       if (key) modelHeaders["x-gemini-api-key"] = key;
 
-      fetch("/api/models?refresh=true", { headers: modelHeaders })
-        .then((res) => {
-          if (!res.ok) return null;
-          return res.json();
-        })
-        .then((data: { models?: ModelInfo[] } | null) => {
+      apiFetch<{ models?: ModelInfo[] }>("/api/models?refresh=true", { headers: modelHeaders })
+        .then((data) => {
           if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
             const cleaned = data.models.filter((m) => !isDeprecatedOrUnusableModel(m.id));
             if (cleaned.length > 0) {
@@ -585,14 +578,10 @@ export default function App() {
     setCustomApiKey(key);
     saveStoredApiKey(key);
     if (key.trim()) {
-      fetch("/api/models?refresh=true", {
+      apiFetch<{ models?: ModelInfo[] }>("/api/models?refresh=true", {
         headers: { "x-gemini-api-key": key.trim() },
       })
-        .then((res) => {
-          if (!res.ok) return null;
-          return res.json();
-        })
-        .then((data: { models?: ModelInfo[] } | null) => {
+        .then((data) => {
           if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
             setModels(data.models);
           }
@@ -703,8 +692,7 @@ export default function App() {
 
   const refreshServerAuth = async (): Promise<boolean> => {
     try {
-      const res = await fetch("/api/health");
-      const data = (await res.json()) as { hasServerApiKey?: boolean };
+      const data = await apiFetch<{ hasServerApiKey?: boolean }>("/api/health");
       const hasKey = Boolean(data.hasServerApiKey);
       setHasServerKey(hasKey);
       return hasKey;

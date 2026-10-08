@@ -57,6 +57,8 @@ import {
   getAllTemplates,
 } from "../services/promptTemplateService";
 import { PromptTemplate } from "../types";
+import { apiFetch } from "../utils/apiClient";
+
 import {
   loadStoredJulesSessions,
   saveStoredJulesSessions,
@@ -789,7 +791,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       setIsBufferingAudio(true);
       try {
         const authHeaders = getAuthHeaders();
-        const res = await fetch("/api/tts", {
+        const data = await apiFetch<{ audioUrl: string }>("/api/tts", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -801,11 +803,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           }),
         });
 
-        if (!res.ok) {
-          throw new Error(`TTS server error HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
         if (!data.audioUrl) {
           throw new Error("No audio payload returned from Gemini TTS");
         }

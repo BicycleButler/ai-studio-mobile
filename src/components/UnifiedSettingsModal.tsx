@@ -60,6 +60,8 @@ import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
 import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
 import { useTheme } from "../hooks/useTheme";
 import { useBackNavigation } from "../hooks/useBackNavigation";
+import { apiFetch } from "../utils/apiClient";
+
 
 export type SettingsTab =
   | "account"
@@ -333,18 +335,16 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         headers["x-gemini-api-key"] = key;
       }
 
-      const res = await fetch("/api/auth/verify", {
+      const data = await apiFetch<{
+        valid?: boolean;
+        error?: string;
+        authSource?: string;
+      }>("/api/auth/verify", {
         method: "POST",
         headers,
       });
 
-      const data = (await res.json()) as {
-        valid?: boolean;
-        error?: string;
-        authSource?: string;
-      };
-
-      if (res.ok && data.valid) {
+      if (data.valid) {
         setTestResult({
           success: true,
           message:
@@ -410,14 +410,13 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     const key = julesInputKey.trim();
 
     try {
-      const res = await fetch("/api/jules/auth/verify", {
+      const data = await apiFetch<{ valid?: boolean; error?: string }>("/api/jules/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ apiKey: key }),
       });
 
-      const data = await res.json();
-      if (res.ok && data.valid) {
+      if (data.valid) {
         setJulesTestResult({
           success: true,
           message: "Verified! Your Google Jules API key is active and connected to GitHub tasks.",
@@ -455,7 +454,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
       setIsPreviewLoading(true);
       try {
         const authHeaders = getAuthHeaders();
-        const res = await fetch("/api/tts", {
+        const data = await apiFetch<{ audioUrl: string }>("/api/tts", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -467,12 +466,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           }),
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || `HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
         if (!data.audioUrl) {
           throw new Error("No audio returned from Gemini TTS");
         }

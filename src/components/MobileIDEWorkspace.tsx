@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { PromptConfig, ChatMessage, StructuredExample } from "../types";
 import { getAuthHeaders } from "../services/auth";
+import { apiFetch } from "../utils/apiClient";
+
 import {
   generateAndroidKotlinCode,
   generateTypeScriptCode,
@@ -243,7 +245,12 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       const headers = getAuthHeaders();
       headers["Content-Type"] = "application/json";
 
-      const res = await fetch("/api/generate", {
+      const data = await apiFetch<{
+        text?: string;
+        durationMs?: number;
+        error?: string;
+        usageMetadata?: { totalTokenCount?: number };
+      }>("/api/generate", {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -258,18 +265,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
         }),
       });
 
-      if (!res.ok) {
-        const errorBody = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(errorBody.error || `HTTP ${res.status}: Execution failed.`);
-      }
 
-      const data = (await res.json()) as {
-        text?: string;
-        durationMs?: number;
-        usageMetadata?: {
-          totalTokenCount?: number;
-        };
-      };
 
       const resultText = data.text || "(Empty response received from model)";
       addConsoleLog("stdout", resultText);
