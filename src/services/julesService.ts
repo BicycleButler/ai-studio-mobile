@@ -249,7 +249,7 @@ export function pollJulesTask(
             clearInterval(timer);
           }
         }
-      } catch (err) {
+      } catch (err: unknown) {
         if (onError) onError(err);
       }
     };

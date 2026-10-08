@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 import { useState, useEffect } from "react";
 
 export interface NetworkStatus {
@@ -18,7 +19,7 @@ export function useNetworkStatus(): NetworkStatus {
   const [wasOffline, setWasOffline] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!isBrowserEnvironment()) return;
 
     const handleOnline = () => {
       setIsOnline(true);

@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import {
   getAuth,
@@ -29,7 +30,7 @@ export function getFirebaseAuth(): Auth | null {
   if (firebaseAuthInstance) return firebaseAuthInstance;
 
   try {
-    if (typeof window === "undefined") {
+    if (!isBrowserEnvironment()) {
       return null;
     }
 

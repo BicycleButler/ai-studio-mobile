@@ -165,7 +165,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
       // 3. Callback and dismiss
       onSuccess(savedProject);
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to save and activate project:", err);
     } finally {
       setIsSaving(false);

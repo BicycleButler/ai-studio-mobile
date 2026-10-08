@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "../utils/platform";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // Safe Web Speech API TypeScript definitions
@@ -101,7 +102,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
   }, [options]);
 
   const getConstructor = useCallback((): SpeechRecognitionConstructor | undefined => {
-    if (typeof window === "undefined") return undefined;
+    if (!isBrowserEnvironment()) return undefined;
     const win = window as unknown as WindowWithSpeech;
     return win.SpeechRecognition || win.webkitSpeechRecognition;
   }, []);

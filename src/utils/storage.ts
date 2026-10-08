@@ -1,3 +1,4 @@
+import { isBrowserEnvironment } from "./platform";
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG } from "../data/templates";
 
@@ -100,7 +101,7 @@ const memoryFallbackInstance = new MemoryStorage();
 
 export function getStorageInstance(): Storage | MemoryStorage {
   try {
-    if (typeof window !== "undefined" && window.localStorage) {
+    if (isBrowserEnvironment() && window.localStorage) {
       // Test if storage is actually accessible (not disabled by incognito / iframe policy)
       const testKey = "__storage_test__";
       window.localStorage.setItem(testKey, "1");
@@ -422,7 +423,7 @@ export function isFlagSecureEnabled(): boolean {
 
 export function setFlagSecureEnabled(enabled: boolean): void {
   safeSetStorage(STORAGE_KEYS.FLAG_SECURE_ENABLED, enabled);
-  if (typeof window !== "undefined") {
+  if (isBrowserEnvironment()) {
     window.dispatchEvent(new CustomEvent("flag_secure_changed", { detail: enabled }));
   }
 }
