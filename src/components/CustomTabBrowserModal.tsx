@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { detectGoogleApiKey, detectJulesApiKey, maskApiKey } from "../services/keyVerification";
 import { useBackNavigation } from "../hooks/useBackNavigation";
+import { isBrowserEnvironment } from "../utils/platform";
 
 export type CredentialTargetService = "aistudio" | "jules";
 
@@ -59,7 +60,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   const checkClipboard = async () => {
     setIsCheckingClipboard(true);
     try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+      if (isBrowserEnvironment() && navigator.clipboard?.readText) {
         const text = await navigator.clipboard.readText();
         const found = isJules ? (detectJulesApiKey(text) || detectGoogleApiKey(text)) : detectGoogleApiKey(text);
         if (found && found !== activeApiKey.trim()) {

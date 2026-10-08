@@ -51,7 +51,7 @@ export function resolveTheme(mode: ThemeMode): ResolvedTheme {
 }
 
 export function applyThemeToDOM(resolved: ResolvedTheme): void {
-  if (typeof document === "undefined") return;
+  if (!isBrowserEnvironment()) return;
 
   const root = document.documentElement;
   root.setAttribute("data-theme", resolved);

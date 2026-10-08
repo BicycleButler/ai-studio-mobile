@@ -160,7 +160,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
       }
 
       // Pre-flight microphone permission check if supported
-      if (typeof navigator !== "undefined" && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
+      if (isBrowserEnvironment() && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
         navigator.mediaDevices.getUserMedia({ audio: true }).catch((permErr) => {
           console.warn("[SpeechToText] Microphone pre-flight check notice:", permErr);
         });
@@ -182,7 +182,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
         shouldKeepListeningRef.current = isContinuous;
 
         recognition.lang =
-          optionsRef.current.lang || (typeof navigator !== "undefined" ? navigator.language : "en-US");
+          optionsRef.current.lang || (isBrowserEnvironment() ? navigator.language : "en-US");
         recognition.continuous = optionsRef.current.continuous ?? true;
         recognition.interimResults = optionsRef.current.interimResults ?? true;
 
@@ -319,7 +319,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
                   if (restartClass) {
                     const nextRec = new restartClass();
                     recognitionRef.current = nextRec;
-                    nextRec.lang = optionsRef.current.lang || (typeof navigator !== "undefined" ? navigator.language : "en-US");
+                    nextRec.lang = optionsRef.current.lang || (isBrowserEnvironment() ? navigator.language : "en-US");
                     nextRec.continuous = optionsRef.current.continuous ?? true;
                     nextRec.interimResults = optionsRef.current.interimResults ?? true;
                     nextRec.onstart = () => setIsListening(true);

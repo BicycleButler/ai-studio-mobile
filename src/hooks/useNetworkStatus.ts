@@ -11,7 +11,7 @@ export interface NetworkStatus {
  */
 export function useNetworkStatus(): NetworkStatus {
   const [isOnline, setIsOnline] = useState<boolean>(() => {
-    return typeof navigator !== "undefined" && typeof navigator.onLine === "boolean"
+    return isBrowserEnvironment() && typeof navigator.onLine === "boolean"
       ? navigator.onLine
       : true;
   });

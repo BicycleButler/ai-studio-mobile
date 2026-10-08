@@ -72,14 +72,14 @@ export function detectAppRuntime(): AppRuntime {
 export function getPlatformCapabilities(): PlatformCapabilities {
   const runtime = detectAppRuntime();
   const userAgent =
-    typeof navigator !== "undefined" ? navigator.userAgent.toLowerCase() : "";
+    isBrowserEnvironment() ? navigator.userAgent.toLowerCase() : "";
   const isIOS = /iphone|ipad|ipod/.test(userAgent);
   const isAndroid = /android/.test(userAgent);
   const hasTouch =
     isBrowserEnvironment() &&
     ("ontouchstart" in window || (navigator && navigator.maxTouchPoints > 0));
   const supportsServiceWorker =
-    typeof navigator !== "undefined" && "serviceWorker" in navigator;
+    isBrowserEnvironment() && "serviceWorker" in navigator;
   const supportsInstallPrompt =
     isBrowserEnvironment() && "BeforeInstallPromptEvent" in window;
 

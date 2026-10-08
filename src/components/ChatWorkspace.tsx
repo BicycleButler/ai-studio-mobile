@@ -345,7 +345,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // Dismiss / hide the mobile soft keyboard safely across platforms
   const hideKeyboard = () => {
-    if (typeof navigator !== "undefined" && "virtualKeyboard" in navigator) {
+    if (isBrowserEnvironment() && "virtualKeyboard" in navigator) {
       try {
         (navigator as { virtualKeyboard?: { hide?: () => void } }).virtualKeyboard?.hide?.();
       } catch {
@@ -390,7 +390,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
 
       // Guard against offline or missing API key so voice state does not hang indefinitely
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (isBrowserEnvironment() && !navigator.onLine) {
         setVoiceState("listening");
         startListening(undefined, true);
         return;
