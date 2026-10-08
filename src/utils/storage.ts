@@ -64,7 +64,7 @@ export interface DraftState {
   updatedAt: number;
 }
 
-class MemoryStorage {
+export class MemoryStorage {
   private store: Map<string, string>;
   private keysCache: string[] | null = null;
 
