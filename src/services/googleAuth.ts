@@ -12,6 +12,7 @@ import {
 import firebaseConfig from "../../firebase-applet-config.json";
 import { GoogleUser } from "../types";
 import { safeGetStorage, safeSetStorage } from "../utils/storage";
+import { apiFetch } from "../utils/apiClient";
 
 const GOOGLE_USER_STORAGE_KEY = "ai_studio_google_user_v1";
 
@@ -92,22 +93,23 @@ export function saveStoredGoogleUser(user: GoogleUser | null): void {
 export async function syncGoogleUserWithBackend(
   user: Partial<GoogleUser>
 ): Promise<GoogleUser> {
-  const res = await fetch("/api/auth/google", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(user),
-  });
+  try {
+    const data = await apiFetch<{ user: GoogleUser }>("/api/auth/google", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(user),
+    }, "Failed to authenticate Google account with server.");
 
-  if (!res.ok) {
-    const errorData = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(errorData.error || "Failed to authenticate Google account with server.");
+    saveStoredGoogleUser(data.user);
+    return data.user;
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      throw err;
+    }
+    throw new Error("Failed to authenticate Google account with server.");
   }
-
-  const data = (await res.json()) as { user: GoogleUser };
-  saveStoredGoogleUser(data.user);
-  return data.user;
 }
 
 /**
@@ -266,9 +268,7 @@ export const initAuth = (
  */
 export async function fetchCurrentGoogleUser(): Promise<GoogleUser | null> {
   try {
-    const res = await fetch("/api/auth/user");
-    if (!res.ok) return null;
-    const data = (await res.json()) as { user: GoogleUser | null };
+    const data = await apiFetch<{ user: GoogleUser | null }>("/api/auth/user");
     if (data.user) {
       saveStoredGoogleUser(data.user);
       return data.user;
@@ -298,7 +298,7 @@ export async function logoutGoogleUser(): Promise<void> {
   }
   cachedAccessToken = null;
   try {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await apiFetch("/api/auth/logout", { method: "POST" });
   } catch {
     // Ignore network error on logout
   }

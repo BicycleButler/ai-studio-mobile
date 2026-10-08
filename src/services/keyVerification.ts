@@ -1,4 +1,5 @@
 import { KeyVerificationResult } from "../types";
+import { apiFetch, BaseApiError } from "../utils/apiClient";
 
 /**
  * Standard Google API keys: `AIza` followed by 35 alphanumeric/dash/underscore characters.
@@ -120,7 +121,7 @@ export async function verifyGoogleApiKey(
   }
 
   try {
-    const res = await fetch("/api/verify-key", {
+    const data = await apiFetch<KeyVerificationResult>("/api/verify-key", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -131,8 +132,7 @@ export async function verifyGoogleApiKey(
       }),
     });
 
-    const data = (await res.json()) as KeyVerificationResult;
-    if (res.ok && data.valid) {
+    if (data.valid) {
       return {
         valid: true,
         model: data.model || model,
@@ -146,7 +146,7 @@ export async function verifyGoogleApiKey(
       error: data.error || "The provided API key is inactive or unauthorized by Google AI Studio.",
     };
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Network error during key authorization check.";
+    const errorMsg = err instanceof BaseApiError ? err.message : (err instanceof Error ? err.message : "Network error during key authorization check.");
     return {
       valid: false,
       error: errorMsg,
