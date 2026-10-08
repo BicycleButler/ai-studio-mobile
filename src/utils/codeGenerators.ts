@@ -1,8 +1,18 @@
 import { PromptConfig, ChatMessage } from "../types";
 
+export function escapeStringForCode(str: string): string {
+  if (!str) return "";
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
+
 export function generatePythonCode(config: PromptConfig, messages: ChatMessage[]): string {
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-  const promptText = lastUserMsg?.text || "Hello Gemini!";
+  const promptText = escapeStringForCode(lastUserMsg?.text || "Hello Gemini!");
+  const sysInst = config.systemInstruction ? escapeStringForCode(config.systemInstruction) : "";
 
   return `import os
 from google import genai
@@ -13,9 +23,9 @@ client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 response = client.models.generate_content(
     model="${config.model}",
-    contents="${promptText.replace(/"/g, '\\"')}",
+    contents="${promptText}",
     config=types.GenerateContentConfig(
-        ${config.systemInstruction ? `system_instruction="${config.systemInstruction.replace(/"/g, '\\"')}",\n        ` : ""}temperature=${config.temperature},
+        ${sysInst ? `system_instruction="${sysInst}",\n        ` : ""}temperature=${config.temperature},
         top_p=${config.topP},
         top_k=${config.topK},
         max_output_tokens=${config.maxOutputTokens},
@@ -29,7 +39,8 @@ print(response.text)
 
 export function generateTypeScriptCode(config: PromptConfig, messages: ChatMessage[]): string {
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-  const promptText = lastUserMsg?.text || "Hello Gemini!";
+  const promptText = escapeStringForCode(lastUserMsg?.text || "Hello Gemini!");
+  const sysInst = config.systemInstruction ? escapeStringForCode(config.systemInstruction) : "";
 
   return `import { GoogleGenAI } from "@google/genai";
 
@@ -40,9 +51,9 @@ const ai = new GoogleGenAI({
 async function main() {
   const response = await ai.models.generateContent({
     model: "${config.model}",
-    contents: "${promptText.replace(/"/g, '\\"')}",
+    contents: "${promptText}",
     config: {
-      ${config.systemInstruction ? `systemInstruction: "${config.systemInstruction.replace(/"/g, '\\"')}",\n      ` : ""}temperature: ${config.temperature},
+      ${sysInst ? `systemInstruction: "${sysInst}",\n      ` : ""}temperature: ${config.temperature},
       topP: ${config.topP},
       topK: ${config.topK},
       maxOutputTokens: ${config.maxOutputTokens},
@@ -59,7 +70,8 @@ main();
 
 export function generateAndroidKotlinCode(config: PromptConfig, messages: ChatMessage[]): string {
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-  const promptText = lastUserMsg?.text || "Hello Gemini!";
+  const promptText = escapeStringForCode(lastUserMsg?.text || "Hello Gemini!");
+  const sysInst = config.systemInstruction ? escapeStringForCode(config.systemInstruction) : "";
 
   return `// In your Android app build.gradle.kts:
 // implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
@@ -82,11 +94,11 @@ fun main() {
         modelName = "${config.model}",
         apiKey = BuildConfig.GEMINI_API_KEY,
         generationConfig = config,
-        ${config.systemInstruction ? `systemInstruction = content { text("${config.systemInstruction.replace(/"/g, '\\"')}") }\n    ` : ""}
+        ${sysInst ? `systemInstruction = content { text("${sysInst}") }\n    ` : ""}
     )
 
     runBlocking {
-        val response = generativeModel.generateContent("${promptText.replace(/"/g, '\\"')}")
+        val response = generativeModel.generateContent("${promptText}")
         println(response.text)
     }
 }
@@ -95,14 +107,14 @@ fun main() {
 
 export function generateCurlCode(config: PromptConfig, messages: ChatMessage[]): string {
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-  const promptText = lastUserMsg?.text || "Hello Gemini!";
+  const promptText = escapeStringForCode(lastUserMsg?.text || "Hello Gemini!");
 
   return `curl "https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=\${GEMINI_API_KEY}" \\
   -H "Content-Type: application/json" \\
   -X POST \\
   -d '{
     "contents": [{
-      "parts": [{"text": "${promptText.replace(/"/g, '\\"')}"}]
+      "parts": [{"text": "${promptText}"}]
     }],
     "generationConfig": {
       "temperature": ${config.temperature},
