@@ -17,6 +17,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { ProjectInfo, KeyVerificationResult } from "../types";
+import { isBrowserEnvironment } from "../utils/platform";
 import {
   maskApiKey,
   verifyGoogleApiKey,
@@ -175,7 +176,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   // Immediate clipboard erasure upon dismissal without saving
   const handleDismiss = async () => {
     try {
-      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.readText) {
+      if (isBrowserEnvironment() && navigator.clipboard && navigator.clipboard.readText) {
         const text = await navigator.clipboard.readText();
         if (text && isValidGoogleApiKeyFormat(text.trim())) {
           await clearClipboardSafe();

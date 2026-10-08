@@ -1,5 +1,6 @@
 import { KeyVerificationResult } from "../types";
 import { apiFetch, BaseApiError } from "../utils/apiClient";
+import { isBrowserEnvironment } from "../utils/platform";
 
 /**
  * Standard Google API keys: `AIza` followed by 35 alphanumeric/dash/underscore characters.
@@ -159,7 +160,7 @@ export async function verifyGoogleApiKey(
  */
 export async function clearClipboardSafe(): Promise<boolean> {
   try {
-    if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    if (isBrowserEnvironment() && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       await navigator.clipboard.writeText("");
       return true;
     }

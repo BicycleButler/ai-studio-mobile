@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { detectGoogleApiKey } from "../services/keyVerification";
+import { isBrowserEnvironment } from "../utils/platform";
 
 interface UseClipboardKeySnifferOptions {
   activeApiKey?: string;
@@ -19,7 +20,7 @@ export function useClipboardKeySniffer({
 
   const inspectClipboard = useCallback(async (): Promise<string | null> => {
     if (!enabled) return null;
-    if (typeof navigator === "undefined" || !navigator.clipboard || !navigator.clipboard.readText) {
+    if (!isBrowserEnvironment() || !navigator.clipboard || !navigator.clipboard.readText) {
       return null;
     }
 
