@@ -1,3 +1,5 @@
+import { apiFetch } from "../utils/apiClient";
+import { getAuthHeaders } from "./auth";
 import { isBrowserEnvironment } from "../utils/platform";
 /**
  * Voice definitions and speech playback engine
@@ -95,6 +97,26 @@ export const DEFAULT_SPEECH_SETTINGS: SpeechSettings = {
   sentenceStreaming: true,
   voiceButtonPlacement: "footer",
 };
+
+
+
+/**
+ * Fetches the TTS audio URL for the given text and voice name.
+ */
+export async function fetchTTSAudioUrl(text: string, voiceName: string): Promise<{ audioUrl: string }> {
+  const authHeaders = getAuthHeaders();
+  return apiFetch<{ audioUrl: string }>("/api/tts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify({
+      text,
+      voiceName,
+    }),
+  });
+}
 
 export function loadSpeechSettings(): SpeechSettings {
   const fallback = inMemorySettings || DEFAULT_SPEECH_SETTINGS;

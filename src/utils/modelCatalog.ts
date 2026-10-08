@@ -1,5 +1,17 @@
 import { ModelInfo } from "../types";
 
+
+import { apiFetch } from "./apiClient";
+
+export async function fetchModels(apiKey?: string, refresh: boolean = false): Promise<{ models?: ModelInfo[] }> {
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers["x-gemini-api-key"] = apiKey;
+  }
+  const endpoint = refresh ? "/api/models?refresh=true" : "/api/models";
+  return apiFetch<{ models?: ModelInfo[] }>(endpoint, { headers });
+}
+
 export const FALLBACK_MODEL_ID = "gemini-3.8-flash";
 
 /**
