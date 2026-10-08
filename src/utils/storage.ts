@@ -66,6 +66,7 @@ export interface DraftState {
 
 class MemoryStorage {
   private store: Map<string, string>;
+  private keysCache: string[] | null = null;
 
   constructor() {
     this.store = new Map();
@@ -77,14 +78,18 @@ class MemoryStorage {
 
   setItem(key: string, value: string): void {
     this.store.set(key, value);
+    this.keysCache = null; // Invalidate cache
   }
 
   removeItem(key: string): void {
-    this.store.delete(key);
+    if (this.store.delete(key)) {
+      this.keysCache = null; // Invalidate cache
+    }
   }
 
   clear(): void {
     this.store.clear();
+    this.keysCache = null;
   }
 
   get length(): number {
@@ -92,8 +97,10 @@ class MemoryStorage {
   }
 
   key(index: number): string | null {
-    const keys = Array.from(this.store.keys());
-    return keys[index] ?? null;
+    if (this.keysCache === null) {
+      this.keysCache = Array.from(this.store.keys());
+    }
+    return this.keysCache[index] ?? null;
   }
 }
 
