@@ -8,6 +8,22 @@ export class BaseApiError extends Error {
   }
 }
 
+async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<string> {
+  let errorMessage = defaultErrorMessage;
+  try {
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      const err = await res.json();
+      errorMessage = err.error || err.message || defaultErrorMessage;
+    } else {
+      errorMessage = res.statusText || defaultErrorMessage;
+    }
+  } catch {
+    errorMessage = res.statusText || defaultErrorMessage;
+  }
+  return errorMessage;
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options?: RequestInit,
@@ -24,18 +40,7 @@ export async function apiFetch<T>(
   }
 
   if (!res.ok) {
-    let errorMessage = defaultErrorMessage;
-    try {
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const err = await res.json();
-        errorMessage = err.error || err.message || defaultErrorMessage;
-      } else {
-        errorMessage = res.statusText || defaultErrorMessage;
-      }
-    } catch {
-      errorMessage = res.statusText || defaultErrorMessage;
-    }
+    const errorMessage = await parseErrorResponse(res, defaultErrorMessage);
     throw new BaseApiError(errorMessage, res.status);
   }
 
@@ -74,18 +79,7 @@ export async function apiFetchStream(
   }
 
   if (!res.ok) {
-    let errorMessage = defaultErrorMessage;
-    try {
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const err = await res.json();
-        errorMessage = err.error || err.message || defaultErrorMessage;
-      } else {
-        errorMessage = res.statusText || defaultErrorMessage;
-      }
-    } catch {
-      errorMessage = res.statusText || defaultErrorMessage;
-    }
+    const errorMessage = await parseErrorResponse(res, defaultErrorMessage);
     throw new BaseApiError(errorMessage, res.status);
   }
 
