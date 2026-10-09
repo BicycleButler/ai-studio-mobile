@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeWindowMatchMedia } from "../utils/platform";
+import { isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListener } from "../utils/platform";
 /**
  * Theme Service for Google AI Studio Mobile
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
@@ -139,12 +139,7 @@ export function initThemeService(): () => void {
         }
       };
 
-      if (mediaQueryList.addEventListener) {
-        mediaQueryList.addEventListener("change", handleChange);
-      } else if ("addListener" in mediaQueryList) {
-        // Legacy browser fallback
-        (mediaQueryList as MediaQueryList & { addListener: (cb: () => void) => void }).addListener(handleChange);
-      }
+      safeAddMatchMediaListener(mediaQueryList, handleChange);
     }
   }
 

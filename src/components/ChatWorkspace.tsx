@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, safeAddDocumentListener } from "../utils/platform";
+import { isBrowserEnvironment, safeAddDocumentListener, safeAddVisualViewportListener } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Send,
@@ -544,17 +544,15 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // visualViewport scroll anchoring: dynamically re-anchor messages on mobile keyboard resize
   useEffect(() => {
-    if (!isBrowserEnvironment()) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
+    let previousHeight = isBrowserEnvironment() && window.visualViewport ? window.visualViewport.height : 0;
 
-    let previousHeight = vv.height;
     const handleViewportResize = () => {
+      if (!isBrowserEnvironment() || !window.visualViewport) return;
       // If viewport shrunk significantly (soft keyboard appeared) or input is focused
-      if (vv.height < previousHeight || isInputFocused) {
+      if (window.visualViewport.height < previousHeight || isInputFocused) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
       }
-      previousHeight = vv.height;
+      previousHeight = window.visualViewport.height;
     };
 
     const handleViewportScroll = () => {
@@ -567,12 +565,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     const handleResizeWrapper = () => handleViewportResize();
     const handleScrollWrapper = () => handleViewportScroll();
 
-    vv.addEventListener("resize", handleResizeWrapper);
-    vv.addEventListener("scroll", handleScrollWrapper);
+    const removeResize = safeAddVisualViewportListener("resize", handleResizeWrapper);
+    const removeScroll = safeAddVisualViewportListener("scroll", handleScrollWrapper);
 
     return () => {
-      vv.removeEventListener("resize", handleResizeWrapper);
-      vv.removeEventListener("scroll", handleScrollWrapper);
+      removeResize();
+      removeScroll();
     };
   }, [isInputFocused]);
 
