@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { safeAddEventListener } from "../utils/platform";
 
 /**
  * useBackNavigation Hook
@@ -49,10 +50,10 @@ export function useBackNavigation(
       onCloseRef.current();
     };
 
-    window.addEventListener("popstate", handlePopState);
+    const removePopState = safeAddEventListener("popstate", handlePopState);
 
     return () => {
-      window.removeEventListener("popstate", handlePopState);
+      removePopState();
 
       // If closed by UI action (X button, UI Back button, Esc) rather than popstate
       if (pushedRef.current && !isPoppedBySystemRef.current) {

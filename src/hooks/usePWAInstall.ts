@@ -1,6 +1,5 @@
-import { isBrowserEnvironment } from "../utils/platform";
 import { useEffect, useState, useCallback } from "react";
-import { isCapacitor, isPWA } from "../utils/platform";
+import { isBrowserEnvironment, getPlatformCapabilities, safeAddEventListener } from "../utils/platform";
 
 export interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -13,23 +12,23 @@ export interface BeforeInstallPromptEvent extends Event {
 
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState<boolean>(() => isPWA() || isCapacitor());
-  const [isIOS, setIsIOS] = useState<boolean>(false);
-  const [isNativeCapacitor, setIsNativeCapacitor] = useState<boolean>(() => isCapacitor());
+
+  // Use lazy init with capabilities directly
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
+    const caps = getPlatformCapabilities();
+    return caps.isNative || caps.isPWA;
+  });
+
+  const [isIOS, setIsIOS] = useState<boolean>(() => getPlatformCapabilities().isIOS);
+  const [isNativeCapacitor, setIsNativeCapacitor] = useState<boolean>(() => getPlatformCapabilities().isNative);
 
   useEffect(() => {
     if (!isBrowserEnvironment()) return;
 
-    // Check standalone / native state
-    const native = isCapacitor();
-    const pwaStandalone = isPWA();
-    setIsNativeCapacitor(native);
-    setIsInstalled(native || pwaStandalone);
-
-    // Detect iOS devices (Safari does not dispatch beforeinstallprompt)
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) && !("MSStream" in window);
-    setIsIOS(isIOSDevice);
+    const caps = getPlatformCapabilities();
+    setIsNativeCapacitor(caps.isNative);
+    setIsInstalled(caps.isNative || caps.isPWA);
+    setIsIOS(caps.isIOS);
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -41,12 +40,14 @@ export function usePWAInstall() {
       setDeferredPrompt(null);
     };
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleAppInstalled);
+    // @ts-expect-error Typescript doesn't include PWA events in standard WindowEventMap by default
+    const removePrompt = safeAddEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    // @ts-expect-error Typescript doesn't include PWA events in standard WindowEventMap by default
+    const removeInstalled = safeAddEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleAppInstalled);
+      removePrompt();
+      removeInstalled();
     };
   }, []);
 

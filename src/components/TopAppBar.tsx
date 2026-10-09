@@ -15,6 +15,7 @@ import { SettingsTab } from "./UnifiedSettingsModal";
 import { useTheme } from "../hooks/useTheme";
 import { TokenCounterVisualization } from "./TokenCounterVisualization";
 import { PWAInstallButton } from "./PWAInstallButton";
+import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 
 interface TopAppBarProps {
   promptType: PromptType;
@@ -78,11 +79,11 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("keydown", handleKeyDown);
+    const removeMouse = safeAddDocumentListener("mousedown", handleClickOutside);
+    const removeKey = safeAddEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("keydown", handleKeyDown);
+      removeMouse();
+      removeKey();
     };
   }, [isMenuOpen]);
 

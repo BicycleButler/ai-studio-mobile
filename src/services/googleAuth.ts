@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, safeAddEventListener } from "../utils/platform";
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import {
   getAuth,
@@ -328,7 +328,7 @@ export function openGoogleOAuthPopup(authUrl: string): Promise<{ token?: string;
 
     const messageHandler = (event: MessageEvent) => {
       if (event.data && event.data.type === "OAUTH_AUTH_SUCCESS") {
-        window.removeEventListener("message", messageHandler);
+        removeMessage();
         clearInterval(pollTimer);
         resolve({
           token: event.data.token,
@@ -337,12 +337,12 @@ export function openGoogleOAuthPopup(authUrl: string): Promise<{ token?: string;
       }
     };
 
-    window.addEventListener("message", messageHandler);
+    const removeMessage = safeAddEventListener("message", messageHandler);
 
     const pollTimer = setInterval(() => {
       if (popup.closed) {
         clearInterval(pollTimer);
-        window.removeEventListener("message", messageHandler);
+        removeMessage();
         reject(new Error("Authentication popup closed before completing."));
       }
     }, 800);

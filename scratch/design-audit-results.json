@@ -1,8 +1,8 @@
 {
-  "targetDir": "src",
-  "totalFiles": 71,
+  "targetDir": "src/components",
+  "totalFiles": 26,
   "filesWithViolationsCount": 0,
-  "cleanFilesCount": 71,
+  "cleanFilesCount": 26,
   "totalViolations": 0,
   "byRule": {},
   "byDir": [],

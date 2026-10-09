@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, safeAddEventListener } from "../utils/platform";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -231,8 +231,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         onClose();
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    return () => removeKey();
   }, [isOpen, onClose]);
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import { MessageSquare, Code2, Bot, Ticket, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PromptType } from "../types";
 import { useBackNavigation } from "../hooks/useBackNavigation";
+import { safeAddEventListener } from "../utils/platform";
 
 interface BottomNavBarProps {
   activeWorkspace: PromptType;
@@ -76,8 +77,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    return () => removeKey();
   }, [isOpen]);
 
   const handleSelect = (workspace: PromptType) => {

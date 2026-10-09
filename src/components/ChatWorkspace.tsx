@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, safeAddDocumentListener } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Send,
@@ -298,16 +298,20 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
     };
 
+    let removeMouse: (() => void) | null = null;
+    let removeTouch: (() => void) | null = null;
+    let removeKey: (() => void) | null = null;
+
     if (isHistoryOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
+      removeMouse = safeAddDocumentListener("mousedown", handleClickOutside);
+      removeTouch = safeAddDocumentListener("touchstart", handleClickOutside as EventListener);
+      removeKey = safeAddDocumentListener("keydown", handleKeyDown);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
+      removeMouse?.();
+      removeTouch?.();
+      removeKey?.();
     };
   }, [isHistoryOpen]);
 
@@ -559,12 +563,16 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
     };
 
-    vv.addEventListener("resize", handleViewportResize);
-    vv.addEventListener("scroll", handleViewportScroll);
+    // Safari visualViewport standard event usage
+    const handleResizeWrapper = () => handleViewportResize();
+    const handleScrollWrapper = () => handleViewportScroll();
+
+    vv.addEventListener("resize", handleResizeWrapper);
+    vv.addEventListener("scroll", handleScrollWrapper);
 
     return () => {
-      vv.removeEventListener("resize", handleViewportResize);
-      vv.removeEventListener("scroll", handleViewportScroll);
+      vv.removeEventListener("resize", handleResizeWrapper);
+      vv.removeEventListener("scroll", handleScrollWrapper);
     };
   }, [isInputFocused]);
 
