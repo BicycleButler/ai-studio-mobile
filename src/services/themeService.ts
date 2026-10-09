@@ -25,10 +25,12 @@ let initialized = false;
 let mediaQueryList: MediaQueryList | null = null;
 
 export function getSystemResolvedTheme(): ResolvedTheme {
-  if (!isBrowserEnvironment() || !window.matchMedia) {
+  if (!isBrowserEnvironment()) {
     return "dark"; // Default fallback
   }
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const win = window as typeof window & { matchMedia?: (query: string) => MediaQueryList };
+  if (!win.matchMedia) return "dark";
+  return win.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export function loadStoredThemeMode(): ThemeMode {
@@ -126,8 +128,9 @@ export function initThemeService(): () => void {
     currentResolved = resolveTheme(currentMode);
     applyThemeToDOM(currentResolved);
 
-    if (window.matchMedia) {
-      mediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
+    const win = window as typeof window & { matchMedia?: (query: string) => MediaQueryList };
+    if (win.matchMedia) {
+      mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
       const handleChange = () => {
         if (currentMode === "system") {
           currentResolved = getSystemResolvedTheme();

@@ -123,7 +123,7 @@ export function getStorageInstance(): Storage | MemoryStorage {
 }
 
 /**
- * Safe wrapper for localStorage access with quota protection
+ * Safe wrapper for storage access with quota protection
  */
 export function safeGetStorage<T>(key: string, fallback: T): T {
   try {
@@ -209,7 +209,7 @@ export function persistSavedPrompts(prompts: SavedPrompt[]): void {
       ...m,
       images: m.images?.map((img) => ({
         ...img,
-        data: "", // don't persist heavy base64 strings in localStorage
+        data: "", // don't persist heavy base64 strings in storage
       })),
     })),
   }));
