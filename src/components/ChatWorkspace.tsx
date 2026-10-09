@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, safeAddDocumentListener, safeAddVisualViewportListener } from "../utils/platform";
+import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Send,
@@ -526,9 +526,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       activeAudioRef.current.pause();
       activeAudioRef.current = null;
     }
-    if (isBrowserEnvironment() && "speechSynthesis" in window) {
+    const synth = getSafeWindowSpeechSynthesis();
+    if (synth) {
       try {
-        window.speechSynthesis.cancel();
+        synth.cancel();
       } catch {
         // Safe ignore
       }
@@ -698,19 +699,20 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // Helper for on-device speech synthesis fallback
   const fallbackToDeviceSpeech = (textToSpeak: string) => {
-    if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
+    const synth = getSafeWindowSpeechSynthesis();
+    if (!synth) {
       setIsSpeaking(false);
       setIsBufferingAudio(false);
       return;
     }
 
-    window.speechSynthesis.cancel();
+    synth.cancel();
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     activeUtteranceRef.current = utterance;
     utterance.rate = speechSettings.playbackRate;
 
     // Pick chosen device voice or best natural voice
-    const rawVoices = window.speechSynthesis.getVoices();
+    const rawVoices = synth.getVoices();
     if (speechSettings.deviceVoiceURI) {
       const matched = rawVoices.find(
         (v) => v.voiceURI === speechSettings.deviceVoiceURI
@@ -774,7 +776,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
     };
 
-    window.speechSynthesis.speak(utterance);
+    synth.speak(utterance);
   };
 
   const handleToggleSpeech = async (customText?: string) => {
@@ -915,7 +917,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   };
 
   const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
+    getSafeNavigatorClipboard()?.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };

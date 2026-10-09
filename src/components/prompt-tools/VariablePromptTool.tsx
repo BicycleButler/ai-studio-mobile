@@ -1,3 +1,4 @@
+import { getSafeNavigatorClipboard } from "../../utils/platform";
 import React, { useState, useMemo } from "react";
 import { Variable, Copy, Check, Send, PlusCircle } from "lucide-react";
 
@@ -84,7 +85,7 @@ export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsert
   }, [template, values]);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(resolvedPrompt);
+    await getSafeNavigatorClipboard()?.writeText(resolvedPrompt);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };

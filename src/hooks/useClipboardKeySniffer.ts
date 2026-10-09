@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { detectGoogleApiKey } from "../services/keyVerification";
-import { isBrowserEnvironment, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
+import { getSafeNavigatorClipboard, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 
 interface UseClipboardKeySnifferOptions {
   activeApiKey?: string;
@@ -20,13 +20,13 @@ export function useClipboardKeySniffer({
 
   const inspectClipboard = useCallback(async (): Promise<string | null> => {
     if (!enabled) return null;
-    if (!isBrowserEnvironment() || !navigator.clipboard || !navigator.clipboard.readText) {
+    if (!getSafeNavigatorClipboard()?.readText) {
       return null;
     }
 
     setIsChecking(true);
     try {
-      const text = await navigator.clipboard.readText();
+      const text = await getSafeNavigatorClipboard()?.readText() || "";
       if (!text || text === lastCheckedTextRef.current) {
         setIsChecking(false);
         return null;
