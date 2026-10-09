@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, getSafeWindowMatchMedia } from "../utils/platform";
 /**
  * Theme Service for Google AI Studio Mobile
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
@@ -28,8 +28,8 @@ export function getSystemResolvedTheme(): ResolvedTheme {
   if (!isBrowserEnvironment()) {
     return "dark"; // Default fallback
   }
-  const win = window as typeof window & { matchMedia?: (query: string) => MediaQueryList };
-  if (!win.matchMedia) return "dark";
+  const win = getSafeWindowMatchMedia();
+  if (!win || !win.matchMedia) return "dark";
   return win.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
@@ -128,8 +128,8 @@ export function initThemeService(): () => void {
     currentResolved = resolveTheme(currentMode);
     applyThemeToDOM(currentResolved);
 
-    const win = window as typeof window & { matchMedia?: (query: string) => MediaQueryList };
-    if (win.matchMedia) {
+    const win = getSafeWindowMatchMedia();
+    if (win && win.matchMedia) {
       mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
       const handleChange = () => {
         if (currentMode === "system") {

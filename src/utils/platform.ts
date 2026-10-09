@@ -16,6 +16,18 @@ export function isBrowserEnvironment(): boolean {
   return typeof window !== "undefined" && typeof document !== "undefined";
 }
 
+
+export type WindowWithMatchMedia = typeof window & { matchMedia?: (query: string) => MediaQueryList };
+export type WindowWithSpeech = typeof window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
+
+export function getSafeWindowMatchMedia(): WindowWithMatchMedia | null {
+  return isBrowserEnvironment() ? (window as WindowWithMatchMedia) : null;
+}
+
+export function getSafeWindowSpeech(): WindowWithSpeech | null {
+  return isBrowserEnvironment() ? (window as WindowWithSpeech) : null;
+}
+
 export interface PlatformCapabilities {
   runtime: AppRuntime;
   isNative: boolean;
@@ -51,8 +63,8 @@ export function isCapacitor(): boolean {
  */
 export function isPWA(): boolean {
   if (!isBrowserEnvironment()) return false;
-  const win = window as typeof window & { matchMedia?: (query: string) => MediaQueryList };
-  const isStandaloneMatch = win.matchMedia ? win.matchMedia("(display-mode: standalone)").matches : false;
+  const win = getSafeWindowMatchMedia();
+  const isStandaloneMatch = win && win.matchMedia ? win.matchMedia("(display-mode: standalone)").matches : false;
   const nav = window.navigator as typeof navigator & { standalone?: boolean };
   const isNavigatorStandalone = nav.standalone === true;
   return isStandaloneMatch || isNavigatorStandalone;

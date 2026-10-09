@@ -108,12 +108,15 @@ const memoryFallbackInstance = new MemoryStorage();
 
 export function getStorageInstance(): Storage | MemoryStorage {
   try {
-    if (isBrowserEnvironment() && window.localStorage) {
-      // Test if storage is actually accessible (not disabled by incognito / iframe policy)
-      const testKey = "__storage_test__";
-      window.localStorage.setItem(testKey, "1");
-      window.localStorage.removeItem(testKey);
-      return window.localStorage;
+    if (isBrowserEnvironment()) {
+      const win = window as typeof window & { localStorage?: Storage };
+      if (win.localStorage) {
+        // Test if storage is actually accessible (not disabled by incognito / iframe policy)
+        const testKey = "__storage_test__";
+        win.localStorage.setItem(testKey, "1");
+        win.localStorage.removeItem(testKey);
+        return win.localStorage;
+      }
     }
   } catch {
     // Fall back to in-memory store

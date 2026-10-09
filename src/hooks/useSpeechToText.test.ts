@@ -1,12 +1,12 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, getSafeWindowSpeech } from "../utils/platform";
 import { extractSpokenText } from "../utils/speechExtractor";
 import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 
 export function testSpeechToText(): boolean {
   // Test 1: Window without speech recognition returns safe fallback
+  const win = getSafeWindowSpeech();
   const isSupportedInNode = isBrowserEnvironment() && Boolean(
-    (window as typeof window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition ||
-    (window as typeof window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).webkitSpeechRecognition
+    win?.SpeechRecognition || win?.webkitSpeechRecognition
   );
   if (isSupportedInNode !== false) {
     throw new Error("Expected speech recognition to be safely falsy in Node/SSR environment");
