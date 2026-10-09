@@ -1,5 +1,5 @@
 import { GenerateRequestBody } from "../types";
-import { apiFetch } from "../utils/apiClient";
+import { apiFetch, apiFetchStream, BaseApiError } from "../utils/apiClient";
 
 
 export interface StreamCallbacks {
@@ -152,27 +152,22 @@ export async function streamGeminiContent(
   callbacks: StreamCallbacks,
   options?: StreamOptions
 ): Promise<{ text: string; durationMs: number; totalTokens: number }> {
-  const response = await fetch("/api/generate", {
-    method: "POST",
-    headers: buildHeaders(options?.apiKey),
-    signal: options?.signal,
-    body: JSON.stringify({
-      ...payload,
-      stream: true,
-    }),
-  });
-
-  if (!response.ok) {
-    let errorDetail = `Server returned status ${response.status}`;
-    try {
-      const errorJson = (await response.json()) as { error?: string };
-      if (errorJson.error) {
-        errorDetail = errorJson.error;
-      }
-    } catch {
-      // Ignore JSON parse error on response body
+  let response: Response;
+  try {
+    response = await apiFetchStream("/api/generate", {
+      method: "POST",
+      headers: buildHeaders(options?.apiKey),
+      signal: options?.signal,
+      body: JSON.stringify({
+        ...payload,
+        stream: true,
+      }),
+    });
+  } catch (err: unknown) {
+    if (err instanceof BaseApiError) {
+      throw new GeminiApiError(err.message, err.statusCode);
     }
-    throw new GeminiApiError(errorDetail, response.status);
+    throw new GeminiApiError("Streaming API request failed", 500);
   }
 
   const reader = response.body?.getReader();

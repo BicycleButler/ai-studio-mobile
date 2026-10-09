@@ -49,3 +49,29 @@ export async function apiFetch<T>(
 
   throw new BaseApiError("Unexpected response type", res.status);
 }
+
+export async function apiFetchStream(
+  endpoint: string,
+  options?: RequestInit,
+  defaultErrorMessage: string = "API request failed"
+): Promise<Response> {
+  const res = await fetch(endpoint, options);
+
+  if (!res.ok) {
+    let errorMessage = defaultErrorMessage;
+    try {
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const err = await res.json();
+        errorMessage = err.error || err.message || defaultErrorMessage;
+      } else {
+        errorMessage = res.statusText || defaultErrorMessage;
+      }
+    } catch {
+      errorMessage = res.statusText || defaultErrorMessage;
+    }
+    throw new BaseApiError(errorMessage, res.status);
+  }
+
+  return res;
+}
