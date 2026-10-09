@@ -19,6 +19,9 @@ export function isBrowserEnvironment(): boolean {
 
 export type WindowWithMatchMedia = typeof window & { matchMedia?: (query: string) => MediaQueryList };
 export type WindowWithSpeech = typeof window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
+export type WindowWithCapacitor = typeof window & { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string; } };
+export type NavigatorWithStandalone = typeof navigator & { standalone?: boolean };
+export type WindowWithLocalStorage = typeof window & { localStorage?: Storage };
 
 export function getSafeWindowMatchMedia(): WindowWithMatchMedia | null {
   return isBrowserEnvironment() ? (window as WindowWithMatchMedia) : null;
@@ -45,12 +48,7 @@ export interface PlatformCapabilities {
  */
 export function isCapacitor(): boolean {
   if (!isBrowserEnvironment()) return false;
-  const win = window as typeof window & {
-    Capacitor?: {
-      isNativePlatform?: () => boolean;
-      getPlatform?: () => string;
-    };
-  };
+  const win = window as WindowWithCapacitor;
   return Boolean(
     win.Capacitor &&
       typeof win.Capacitor.isNativePlatform === "function" &&
@@ -65,7 +63,7 @@ export function isPWA(): boolean {
   if (!isBrowserEnvironment()) return false;
   const win = getSafeWindowMatchMedia();
   const isStandaloneMatch = win && win.matchMedia ? win.matchMedia("(display-mode: standalone)").matches : false;
-  const nav = window.navigator as typeof navigator & { standalone?: boolean };
+  const nav = window.navigator as NavigatorWithStandalone;
   const isNavigatorStandalone = nav.standalone === true;
   return isStandaloneMatch || isNavigatorStandalone;
 }
