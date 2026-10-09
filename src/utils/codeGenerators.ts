@@ -9,10 +9,15 @@ export function escapeStringForCode(str: string): string {
     .replace(/\r/g, '\\r');
 }
 
-export function generatePythonCode(config: PromptConfig, messages: ChatMessage[]): string {
+export function extractPromptContext(config: PromptConfig, messages: ChatMessage[]): { promptText: string; sysInst: string } {
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
   const promptText = escapeStringForCode(lastUserMsg?.text || "Hello Gemini!");
   const sysInst = config.systemInstruction ? escapeStringForCode(config.systemInstruction) : "";
+  return { promptText, sysInst };
+}
+
+export function generatePythonCode(config: PromptConfig, messages: ChatMessage[]): string {
+  const { promptText, sysInst } = extractPromptContext(config, messages);
 
   return `import os
 from google import genai
@@ -38,9 +43,7 @@ print(response.text)
 }
 
 export function generateTypeScriptCode(config: PromptConfig, messages: ChatMessage[]): string {
-  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-  const promptText = escapeStringForCode(lastUserMsg?.text || "Hello Gemini!");
-  const sysInst = config.systemInstruction ? escapeStringForCode(config.systemInstruction) : "";
+  const { promptText, sysInst } = extractPromptContext(config, messages);
 
   return `import { GoogleGenAI } from "@google/genai";
 
@@ -69,9 +72,7 @@ main();
 }
 
 export function generateAndroidKotlinCode(config: PromptConfig, messages: ChatMessage[]): string {
-  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-  const promptText = escapeStringForCode(lastUserMsg?.text || "Hello Gemini!");
-  const sysInst = config.systemInstruction ? escapeStringForCode(config.systemInstruction) : "";
+  const { promptText, sysInst } = extractPromptContext(config, messages);
 
   return `// In your Android app build.gradle.kts:
 // implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
@@ -106,8 +107,7 @@ fun main() {
 }
 
 export function generateCurlCode(config: PromptConfig, messages: ChatMessage[]): string {
-  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-  const promptText = escapeStringForCode(lastUserMsg?.text || "Hello Gemini!");
+  const { promptText } = extractPromptContext(config, messages);
 
   return `curl "https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=\${GEMINI_API_KEY}" \\
   -H "Content-Type: application/json" \\
