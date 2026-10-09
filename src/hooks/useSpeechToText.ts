@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, getSafeWindowSpeech } from "../utils/platform";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // Safe Web Speech API TypeScript definitions
@@ -46,10 +46,7 @@ interface ISpeechRecognitionInstance {
 
 type SpeechRecognitionConstructor = new () => ISpeechRecognitionInstance;
 
-interface WindowWithSpeech {
-  SpeechRecognition?: SpeechRecognitionConstructor;
-  webkitSpeechRecognition?: SpeechRecognitionConstructor;
-}
+
 
 export interface UseSpeechToTextOptions {
   lang?: string;
@@ -103,8 +100,8 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
   const getConstructor = useCallback((): SpeechRecognitionConstructor | undefined => {
     if (!isBrowserEnvironment()) return undefined;
-    const win = window as typeof window & WindowWithSpeech;
-    return win.SpeechRecognition || win.webkitSpeechRecognition;
+    const win = getSafeWindowSpeech();
+    return (win?.SpeechRecognition || win?.webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
   }, []);
 
   const isSupported = Boolean(getConstructor());
