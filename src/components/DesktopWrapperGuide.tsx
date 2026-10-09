@@ -1,3 +1,4 @@
+import { getSafeWindow } from "../utils/platform";
 import React from "react";
 import {
   ExternalLink,
@@ -17,11 +18,11 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
   isEmbedded = false,
 }) => {
   const openDesktopAiStudio = () => {
-    window.open("https://aistudio.google.com", "_blank", "noopener,noreferrer");
+    getSafeWindow()?.open("https://aistudio.google.com", "_blank", "noopener,noreferrer");
   };
 
   const openApiKeyPage = () => {
-    window.open(
+    getSafeWindow()?.open(
       "https://aistudio.google.com/app/apikey",
       "_blank",
       "noopener,noreferrer"

@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, safeAddEventListener } from "../utils/platform";
+import { isBrowserEnvironment, safeAddEventListener, getSafeWindow } from "../utils/platform";
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import {
   getAuth,
@@ -312,10 +312,11 @@ export function openGoogleOAuthPopup(authUrl: string): Promise<{ token?: string;
   return new Promise((resolve, reject) => {
     const width = 540;
     const height = 650;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
+    const win = getSafeWindow();
+    const left = win ? win.screenX + (win.outerWidth - width) / 2 : 0;
+    const top = win ? win.screenY + (win.outerHeight - height) / 2 : 0;
 
-    const popup = window.open(
+    const popup = win?.open(
       authUrl,
       "google_oauth_popup",
       `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes`

@@ -1,3 +1,4 @@
+import { getSafeWindow } from "./utils/platform";
 import React, { useState, useEffect, useRef } from "react";
 import {
   PromptType,
@@ -528,7 +529,8 @@ export default function App() {
       })
       .catch(() => {});
 
-    if (window.innerWidth >= 1024) {
+    const win = getSafeWindow();
+    if (win && win.innerWidth >= 1024) {
       setDeviceMode("pixel");
     }
 

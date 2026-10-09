@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, WindowWithLocalStorage } from "./platform";
+import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "./platform";
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG } from "../data/templates";
 import { COMMON_MOCK_PREFIXES, MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS, MOCK_JULES_TITLE_PATTERNS, MOCK_JULES_REPO_PATTERNS } from "./mockDefinitions";
@@ -110,7 +110,8 @@ const memoryFallbackInstance = new MemoryStorage();
 export function getStorageInstance(): Storage | MemoryStorage {
   try {
     if (isBrowserEnvironment()) {
-      const win = window as WindowWithLocalStorage;
+      const win = getSafeWindow() as WindowWithLocalStorage | null;
+      if (!win) throw new Error("No window");
       if (win.localStorage) {
         // Test if storage is actually accessible (not disabled by incognito / iframe policy)
         const testKey = "__storage_test__";
@@ -457,7 +458,7 @@ export function isFlagSecureEnabled(): boolean {
 export function setFlagSecureEnabled(enabled: boolean): void {
   safeSetStorage(STORAGE_KEYS.FLAG_SECURE_ENABLED, enabled);
   if (isBrowserEnvironment()) {
-    window.dispatchEvent(new CustomEvent("flag_secure_changed", { detail: enabled }));
+    getSafeWindow()?.dispatchEvent(new CustomEvent("flag_secure_changed", { detail: enabled }));
   }
 }
 

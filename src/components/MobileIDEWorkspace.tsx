@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeNavigatorClipboard } from "../utils/platform";
+import { getSafeNavigatorClipboard, getSafeWindow } from "../utils/platform";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
@@ -198,7 +198,8 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     setIsRunning(true);
     // On small screens, open the drawer; on desktop split view
     setIsConsoleDrawerOpen(true);
-    if (isBrowserEnvironment() && window.innerWidth >= 640 && activeView === "editor") {
+    const win = getSafeWindow();
+    if (win && win.innerWidth >= 640 && activeView === "editor") {
       setActiveView("split");
     }
 
