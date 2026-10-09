@@ -459,22 +459,21 @@ export function saveStoredJulesApiKey(key: string): void {
   safeSetStorage(STORAGE_KEYS.JULES_API_KEY, encrypted);
 }
 
+const MOCK_JULES_ID_PREFIXES = ["test_", "mock_", "sample_", "dummy_"];
+const MOCK_JULES_TITLE_PATTERNS = ["mock", "test task"];
+const MOCK_JULES_REPO_PATTERNS = ["mock", "test/repo", "sample/repo"];
+
 export function isMockJulesSession(session: Partial<JulesSession>): boolean {
   if (!session) return true;
   const id = (session.id || "").toLowerCase();
   const title = (session.title || "").toLowerCase();
   const repo = (session.repository || "").toLowerCase();
-  return (
-    id.startsWith("test_") ||
-    id.startsWith("mock_") ||
-    id.startsWith("sample_") ||
-    id.startsWith("dummy_") ||
-    title.includes("mock") ||
-    title.includes("test task") ||
-    repo.includes("mock") ||
-    repo === "test/repo" ||
-    repo === "sample/repo"
-  );
+
+  if (MOCK_JULES_ID_PREFIXES.some((prefix) => id.startsWith(prefix))) return true;
+  if (MOCK_JULES_TITLE_PATTERNS.some((pattern) => title.includes(pattern))) return true;
+  if (MOCK_JULES_REPO_PATTERNS.some((pattern) => repo.includes(pattern))) return true;
+
+  return false;
 }
 
 export function loadStoredJulesSessions(): JulesSession[] {

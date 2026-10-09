@@ -19,6 +19,21 @@ export function getChatSessionsStorageKey(projectId?: string): string {
  * Mock data is strictly forbidden from appearing in user chat history,
  * even in the development environment.
  */
+const MOCK_SESSION_ID_PREFIXES = ["mock_", "dummy_", "sample_", "test_"];
+const MOCK_SESSION_EXACT_IDS = ["session_1", "session_2", "session_a", "session_b"];
+const MOCK_SESSION_TITLES = [
+  "earlier chat",
+  "later chat",
+  "untitled chat",
+  "mock chat",
+  "mock conversation",
+  "test session",
+  "sample prompt",
+  "sample test prompt",
+];
+const MOCK_MESSAGE_IDS = ["m1", "m2", "msg_1", "msg_2", "msg_3"];
+const MOCK_MESSAGE_TEXTS = ["alpha", "beta", "sample test prompt"];
+
 export function isMockChatSession(session: Partial<ChatSession>): boolean {
   if (!session) return true;
   const id = (session.id || "").trim().toLowerCase();
@@ -27,14 +42,8 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
 
   // 1. Synthetic/test/mock ID patterns
   if (
-    id === "session_1" ||
-    id === "session_2" ||
-    id === "session_a" ||
-    id === "session_b" ||
-    id.startsWith("mock_") ||
-    id.startsWith("dummy_") ||
-    id.startsWith("sample_") ||
-    id.startsWith("test_")
+    MOCK_SESSION_EXACT_IDS.includes(id) ||
+    MOCK_SESSION_ID_PREFIXES.some((prefix) => id.startsWith(prefix))
   ) {
     return true;
   }
@@ -49,16 +58,7 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
   }
 
   // 3. Known test/mock conversation titles
-  if (
-    title === "earlier chat" ||
-    title === "later chat" ||
-    title === "untitled chat" ||
-    title === "mock chat" ||
-    title === "mock conversation" ||
-    title === "test session" ||
-    title === "sample prompt" ||
-    title === "sample test prompt"
-  ) {
+  if (MOCK_SESSION_TITLES.includes(title)) {
     return true;
   }
 
@@ -67,16 +67,7 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
     const hasMockMessage = session.messages.some((m) => {
       const mid = (m.id || "").trim().toLowerCase();
       const text = (m.text || "").trim().toLowerCase();
-      return (
-        mid === "m1" ||
-        mid === "m2" ||
-        mid === "msg_1" ||
-        mid === "msg_2" ||
-        mid === "msg_3" ||
-        text === "alpha" ||
-        text === "beta" ||
-        text === "sample test prompt"
-      );
+      return MOCK_MESSAGE_IDS.includes(mid) || MOCK_MESSAGE_TEXTS.includes(text);
     });
     if (hasMockMessage) return true;
   }
