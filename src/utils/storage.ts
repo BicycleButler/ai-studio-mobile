@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "./platform";
+import { isBrowserEnvironment, WindowWithLocalStorage } from "./platform";
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG } from "../data/templates";
 
@@ -109,7 +109,7 @@ const memoryFallbackInstance = new MemoryStorage();
 export function getStorageInstance(): Storage | MemoryStorage {
   try {
     if (isBrowserEnvironment()) {
-      const win = window as typeof window & { localStorage?: Storage };
+      const win = window as WindowWithLocalStorage;
       if (win.localStorage) {
         // Test if storage is actually accessible (not disabled by incognito / iframe policy)
         const testKey = "__storage_test__";
