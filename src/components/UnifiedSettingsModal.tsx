@@ -48,7 +48,7 @@ import {
 } from "../types";
 import { GoogleAuthCard } from "./GoogleAuthCard";
 import { fetchAuthStatus } from "../services/auth";
-import { verifyJulesApiKey } from "../services/keyVerification";
+import { verifyJulesApiKey } from "../services/julesService";
 import { fetchTTSAudioUrl } from "../services/speechVoices";
 import { TunerBottomSheet } from "./TunerBottomSheet";
 import {
