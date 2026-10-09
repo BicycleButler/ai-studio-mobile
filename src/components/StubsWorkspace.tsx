@@ -1,3 +1,4 @@
+import { getSafeNavigatorClipboard } from "../utils/platform";
 import React, { useState, useEffect, useRef } from "react";
 import {
   GitBranch,
@@ -754,7 +755,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                   type="button"
                   id="stubs-copy-diagram-btn"
                   onClick={() => {
-                    navigator.clipboard.writeText(diagramMermaid);
+                    getSafeNavigatorClipboard()?.writeText(diagramMermaid);
                     setCopyDiagramToast(true);
                     setTimeout(() => setCopyDiagramToast(false), 2000);
                   }}

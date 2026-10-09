@@ -1,6 +1,7 @@
 import { isBrowserEnvironment, WindowWithLocalStorage } from "./platform";
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG } from "../data/templates";
+import { COMMON_MOCK_PREFIXES, MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS, MOCK_JULES_TITLE_PATTERNS, MOCK_JULES_REPO_PATTERNS } from "./mockDefinitions";
 
 const STORAGE_KEYS = {
   API_KEY: "ai_studio_api_key",
@@ -151,6 +152,28 @@ export function safeSetStorage<T>(key: string, value: T): boolean {
   }
 }
 
+
+/**
+ * Safely retrieves all storage keys matching a specific prefix.
+ * Complies with performance rule by loading getStorageInstance() once outside loop.
+ */
+export function safeGetStorageKeys(prefix: string): string[] {
+  const keys: string[] = [];
+  try {
+    const storage = getStorageInstance();
+    const len = storage.length;
+    for (let i = 0; i < len; i++) {
+      const key = storage.key(i);
+      if (key && key.startsWith(prefix)) {
+        keys.push(key);
+      }
+    }
+  } catch (err: unknown) {
+    console.warn("Failed to enumerate storage keys:", err);
+  }
+  return keys;
+}
+
 export function safeRemoveStorage(key: string): boolean {
   try {
     const storage = getStorageInstance();
@@ -274,16 +297,7 @@ export function loadDraftState(projectId?: string | null): DraftState {
       if (!m || typeof m !== "object") return false;
       const mid = String(m.id || "").toLowerCase();
       const text = String(m.text || "").trim().toLowerCase();
-      return !(
-        mid === "m1" ||
-        mid === "m2" ||
-        mid === "msg_1" ||
-        mid === "msg_2" ||
-        mid === "msg_3" ||
-        text === "alpha" ||
-        text === "beta" ||
-        text === "sample test prompt"
-      );
+      return !(MOCK_MESSAGE_IDS.includes(mid) || MOCK_MESSAGE_TEXTS.includes(text));
     });
     return clean.length > 0 ? clean : undefined;
   };
@@ -462,17 +476,13 @@ export function saveStoredJulesApiKey(key: string): void {
   safeSetStorage(STORAGE_KEYS.JULES_API_KEY, encrypted);
 }
 
-const MOCK_JULES_ID_PREFIXES = ["test_", "mock_", "sample_", "dummy_"];
-const MOCK_JULES_TITLE_PATTERNS = ["mock", "test task"];
-const MOCK_JULES_REPO_PATTERNS = ["mock", "test/repo", "sample/repo"];
-
 export function isMockJulesSession(session: Partial<JulesSession>): boolean {
   if (!session) return true;
   const id = (session.id || "").toLowerCase();
   const title = (session.title || "").toLowerCase();
   const repo = (session.repository || "").toLowerCase();
 
-  if (MOCK_JULES_ID_PREFIXES.some((prefix) => id.startsWith(prefix))) return true;
+  if (COMMON_MOCK_PREFIXES.some((prefix) => id.startsWith(prefix))) return true;
   if (MOCK_JULES_TITLE_PATTERNS.some((pattern) => title.includes(pattern))) return true;
   if (MOCK_JULES_REPO_PATTERNS.some((pattern) => repo.includes(pattern))) return true;
 

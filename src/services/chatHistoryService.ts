@@ -1,6 +1,7 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorage, safeSetStorage, getStorageInstance } from "../utils/storage";
+import { safeGetStorage, safeSetStorage, safeGetStorageKeys } from "../utils/storage";
+import { COMMON_MOCK_PREFIXES, MOCK_SESSION_EXACT_IDS, MOCK_SESSION_TITLES, MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS } from "../utils/mockDefinitions";
 
 const CHAT_SESSIONS_PREFIX = "ai_studio_chat_sessions_v1";
 
@@ -19,21 +20,6 @@ export function getChatSessionsStorageKey(projectId?: string): string {
  * Mock data is strictly forbidden from appearing in user chat history,
  * even in the development environment.
  */
-const MOCK_SESSION_ID_PREFIXES = ["mock_", "dummy_", "sample_", "test_"];
-const MOCK_SESSION_EXACT_IDS = ["session_1", "session_2", "session_a", "session_b"];
-const MOCK_SESSION_TITLES = [
-  "earlier chat",
-  "later chat",
-  "untitled chat",
-  "mock chat",
-  "mock conversation",
-  "test session",
-  "sample prompt",
-  "sample test prompt",
-];
-const MOCK_MESSAGE_IDS = ["m1", "m2", "msg_1", "msg_2", "msg_3"];
-const MOCK_MESSAGE_TEXTS = ["alpha", "beta", "sample test prompt"];
-
 export function isMockChatSession(session: Partial<ChatSession>): boolean {
   if (!session) return true;
   const id = (session.id || "").trim().toLowerCase();
@@ -43,7 +29,7 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
   // 1. Synthetic/test/mock ID patterns
   if (
     MOCK_SESSION_EXACT_IDS.includes(id) ||
-    MOCK_SESSION_ID_PREFIXES.some((prefix) => id.startsWith(prefix))
+    COMMON_MOCK_PREFIXES.some((prefix) => id.startsWith(prefix))
   ) {
     return true;
   }
@@ -82,21 +68,8 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
  */
 export function purgeMockSessionsFromStorage(): void {
   try {
-    // Memory rule fallback: "For iterating over storage keys, fallback to safely accessing getStorageInstance() directly."
     if (isBrowserEnvironment()) {
-      const storage = getStorageInstance();
-      const keysToClean: string[] = [];
-      try {
-        const len = storage.length;
-        for (let i = 0; i < len; i++) {
-          const key = storage.key(i);
-          if (key && key.startsWith(CHAT_SESSIONS_PREFIX)) {
-            keysToClean.push(key);
-          }
-        }
-      } catch {
-        // Ignore quota or security errors during key enumeration
-      }
+      const keysToClean = safeGetStorageKeys(CHAT_SESSIONS_PREFIX);
 
       keysToClean.forEach((key) => {
         const sessions = safeGetStorage<ChatSession[]>(key, []);
@@ -112,7 +85,6 @@ export function purgeMockSessionsFromStorage(): void {
     // Fail gracefully if storage access is restricted
   }
 }
-
 // Initial sweep when module loads in browser
 if (isBrowserEnvironment()) {
   purgeMockSessionsFromStorage();

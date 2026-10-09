@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { getSafeWindowSpeechSynthesis } from "../utils/platform";
 /**
  * Sentence-Pipelined Speech Queue
  * Delivers ultra-low-latency voice playback for AI streaming responses:
@@ -44,7 +44,8 @@ export class SentenceSpeechQueue {
    * Splits at sentence boundaries and immediately dispatches completed sentences to speech synthesis.
    */
   public feed(fullStreamedText: string, isStreaming = true): void {
-    if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
+    const synth = getSafeWindowSpeechSynthesis();
+    if (!synth) {
       return;
     }
 
@@ -107,7 +108,8 @@ export class SentenceSpeechQueue {
    * Prepares and enqueues a clean sentence utterance
    */
   private enqueueSentence(rawSentence: string): void {
-    if (!isBrowserEnvironment() || !("speechSynthesis" in window)) return;
+    const synth = getSafeWindowSpeechSynthesis();
+    if (!synth) return;
 
     const spokenText = extractSpokenText(rawSentence, false).trim();
     if (!spokenText || spokenText.length < 2) return;
@@ -166,7 +168,7 @@ export class SentenceSpeechQueue {
       };
 
       this.pendingUtterances.push(utterance);
-      window.speechSynthesis.speak(utterance);
+      synth.speak(utterance);
       this.startHeartbeat();
     } catch (err: unknown) {
       this.options.onError?.(err);
@@ -180,13 +182,10 @@ export class SentenceSpeechQueue {
   private startHeartbeat(): void {
     if (this.heartbeatTimer) return;
     this.heartbeatTimer = setInterval(() => {
-      if (
-        isBrowserEnvironment() &&
-        "speechSynthesis" in window &&
-        window.speechSynthesis.speaking
-      ) {
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
+      const synth = getSafeWindowSpeechSynthesis();
+      if (synth && synth.speaking) {
+        synth.pause();
+        synth.resume();
       }
     }, 4500);
   }
@@ -207,9 +206,10 @@ export class SentenceSpeechQueue {
     this.isSpeaking = false;
     this.isFinalized = true;
 
-    if (isBrowserEnvironment() && "speechSynthesis" in window) {
+    const synth = getSafeWindowSpeechSynthesis();
+    if (synth) {
       try {
-        window.speechSynthesis.cancel();
+        synth.cancel();
       } catch {
         // Safe ignore
       }
@@ -219,7 +219,7 @@ export class SentenceSpeechQueue {
   }
 
   public getIsSpeaking(): boolean {
-    return this.isSpeaking || (isBrowserEnvironment() && Boolean(window.speechSynthesis?.speaking));
+    return this.isSpeaking || Boolean(getSafeWindowSpeechSynthesis()?.speaking);
   }
 
   public getQueueLength(): number {

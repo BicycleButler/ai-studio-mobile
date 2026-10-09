@@ -22,6 +22,8 @@ export type WindowWithSpeech = typeof window & { SpeechRecognition?: unknown; we
 export type WindowWithCapacitor = typeof window & { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string; } };
 export type NavigatorWithStandalone = typeof navigator & { standalone?: boolean };
 export type WindowWithLocalStorage = typeof window & { localStorage?: Storage };
+export type WindowWithSpeechSynthesis = typeof window & { speechSynthesis?: SpeechSynthesis };
+export type NavigatorWithClipboard = typeof navigator & { clipboard?: Clipboard };
 
 export function getSafeWindowMatchMedia(): WindowWithMatchMedia | null {
   return isBrowserEnvironment() ? (window as WindowWithMatchMedia) : null;
@@ -30,6 +32,14 @@ export function getSafeWindowMatchMedia(): WindowWithMatchMedia | null {
 export function getSafeWindowSpeech(): WindowWithSpeech | null {
   return isBrowserEnvironment() ? (window as WindowWithSpeech) : null;
 }
+export function getSafeWindowSpeechSynthesis(): SpeechSynthesis | null {
+  return isBrowserEnvironment() && "speechSynthesis" in window ? (window as unknown as WindowWithSpeechSynthesis).speechSynthesis! : null;
+}
+
+export function getSafeNavigatorClipboard(): Clipboard | null {
+  return isBrowserEnvironment() && navigator.clipboard ? (navigator as unknown as NavigatorWithClipboard).clipboard! : null;
+}
+
 
 export interface PlatformCapabilities {
   runtime: AppRuntime;

@@ -1,4 +1,5 @@
-import { isBrowserEnvironment, safeAddEventListener } from "../utils/platform";
+import { getSafeNavigatorClipboard } from "../utils/platform";
+import { safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -268,8 +269,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
       }
     };
     loadVoices();
-    if (isBrowserEnvironment() && "speechSynthesis" in window) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+    const synth = getSafeWindowSpeechSynthesis();
+    if (synth) {
+      synth.onvoiceschanged = loadVoices;
     }
   }, [isOpen, currentSpeechSettings.deviceVoiceURI]);
 
@@ -285,8 +287,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
       previewAudioRef.current.pause();
       previewAudioRef.current = null;
     }
-    if (isBrowserEnvironment() && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
+    const synth = getSafeWindowSpeechSynthesis();
+    if (synth) {
+      synth.cancel();
     }
     setPreviewingVoiceId(null);
     setIsPreviewLoading(false);
@@ -314,7 +317,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   const handlePasteApiKey = async () => {
     try {
-      const text = await navigator.clipboard.readText();
+      const text = await getSafeNavigatorClipboard()?.readText() || "";
       if (text) {
         setInputApiKey(text.trim());
       }
@@ -382,7 +385,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   const handlePasteJulesKey = async () => {
     try {
-      const text = await navigator.clipboard.readText();
+      const text = await getSafeNavigatorClipboard()?.readText() || "";
       if (text) {
         setJulesInputKey(text.trim());
       }
@@ -465,17 +468,18 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         setPreviewError(err instanceof Error ? err.message : "Error previewing voice.");
       }
     } else {
-      if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
+      const synth = getSafeWindowSpeechSynthesis();
+      if (!synth) {
         setPreviewError("Device speech synthesis not available.");
         setPreviewingVoiceId(null);
         return;
       }
 
-      window.speechSynthesis.cancel();
+      synth.cancel();
       const utterance = new SpeechSynthesisUtterance(samplePhrase);
       utterance.rate = currentSpeechSettings.playbackRate;
 
-      const rawVoices = window.speechSynthesis.getVoices();
+      const rawVoices = synth.getVoices();
       const selectedVoice = rawVoices.find(
         (v) => v.voiceURI === currentSpeechSettings.deviceVoiceURI
       );
@@ -492,7 +496,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         setPreviewError("Error playing on-device voice.");
       };
 
-      window.speechSynthesis.speak(utterance);
+      synth.speak(utterance);
     }
   };
 

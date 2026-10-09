@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, getSafeNavigatorClipboard } from "../utils/platform";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
@@ -165,7 +165,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   };
 
   const handleCopyFile = () => {
-    navigator.clipboard.writeText(activeFile.content);
+    getSafeNavigatorClipboard()?.writeText(activeFile.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -660,7 +660,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                   type="button"
                   onClick={() => {
                     const text = consoleLogs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
-                    navigator.clipboard.writeText(text);
+                    getSafeNavigatorClipboard()?.writeText(text);
                   }}
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="Copy Console Logs"
@@ -735,7 +735,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                   type="button"
                   onClick={() => {
                     const text = consoleLogs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
-                    navigator.clipboard.writeText(text);
+                    getSafeNavigatorClipboard()?.writeText(text);
                   }}
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
                   title="Copy Console Logs"

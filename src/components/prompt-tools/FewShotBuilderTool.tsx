@@ -1,3 +1,4 @@
+import { getSafeNavigatorClipboard } from "../../utils/platform";
 import React, { useState } from "react";
 import { Plus, Trash2, Copy, Check, Sparkles, Send, RotateCcw } from "lucide-react";
 import { StructuredExample } from "../../types";
@@ -108,7 +109,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
 
   const handleCopy = async () => {
     const formatted = formatFewShotPrompt();
-    await navigator.clipboard.writeText(formatted);
+    await getSafeNavigatorClipboard()?.writeText(formatted);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };

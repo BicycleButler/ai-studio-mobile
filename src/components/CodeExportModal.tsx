@@ -1,3 +1,4 @@
+import { getSafeNavigatorClipboard } from "../utils/platform";
 import React, { useState } from "react";
 import { Copy, Check, Terminal, FileCode2, Smartphone, Globe, LucideIcon, Code2 } from "lucide-react";
 import { PromptConfig, ChatMessage } from "../types";
@@ -38,7 +39,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
   }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+    getSafeNavigatorClipboard()?.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
