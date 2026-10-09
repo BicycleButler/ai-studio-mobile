@@ -24,6 +24,17 @@ export type NavigatorWithStandalone = typeof navigator & { standalone?: boolean 
 export type WindowWithLocalStorage = typeof window & { localStorage?: Storage };
 export type WindowWithSpeechSynthesis = typeof window & { speechSynthesis?: SpeechSynthesis };
 export type NavigatorWithClipboard = typeof navigator & { clipboard?: Clipboard };
+export type WindowWithHistory = typeof window & { history?: History };
+export type WindowWithVisualViewport = typeof window & { visualViewport?: VisualViewport };
+
+export function getSafeWindow(): (typeof window) | null {
+  return isBrowserEnvironment() ? window : null;
+}
+
+export function getSafeWindowVisualViewport(): VisualViewport | null {
+  return isBrowserEnvironment() && window.visualViewport ? window.visualViewport : null;
+}
+
 
 export function getSafeWindowMatchMedia(): WindowWithMatchMedia | null {
   return isBrowserEnvironment() ? (window as WindowWithMatchMedia) : null;

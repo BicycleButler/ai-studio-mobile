@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
+import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeWindow, getSafeWindowVisualViewport } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Send,
@@ -545,15 +545,17 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // visualViewport scroll anchoring: dynamically re-anchor messages on mobile keyboard resize
   useEffect(() => {
-    let previousHeight = isBrowserEnvironment() && window.visualViewport ? window.visualViewport.height : 0;
+    const vvInit = getSafeWindowVisualViewport();
+    let previousHeight = vvInit ? vvInit.height : 0;
 
     const handleViewportResize = () => {
-      if (!isBrowserEnvironment() || !window.visualViewport) return;
+      const vv = getSafeWindowVisualViewport();
+      if (!vv) return;
       // If viewport shrunk significantly (soft keyboard appeared) or input is focused
-      if (window.visualViewport.height < previousHeight || isInputFocused) {
+      if (vv.height < previousHeight || isInputFocused) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
       }
-      previousHeight = window.visualViewport.height;
+      previousHeight = vv.height;
     };
 
     const handleViewportScroll = () => {
@@ -579,7 +581,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      const isMobile = isBrowserEnvironment() && window.innerWidth < 640;
+      const win = getSafeWindow();
+      const isMobile = win ? win.innerWidth < 640 : false;
       const maxHeight = isMobile ? 72 : 112;
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, maxHeight)}px`;
     }

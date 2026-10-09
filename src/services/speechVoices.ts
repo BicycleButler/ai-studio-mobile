@@ -1,6 +1,6 @@
 import { apiFetch } from "../utils/apiClient";
 import { getAuthHeaders } from "./auth";
-import { isBrowserEnvironment, getSafeWindowSpeechSynthesis } from "../utils/platform";
+import { getSafeWindowSpeechSynthesis } from "../utils/platform";
 /**
  * Voice definitions and speech playback engine
  * Supports:
@@ -194,10 +194,9 @@ export function getAvailableDeviceVoices(): DeviceVoiceOption[] {
  * Automatically finds the highest-quality natural device voice matching the preferred URI or system
  */
 export function getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null {
-  if (!isBrowserEnvironment() || !("speechSynthesis" in window)) {
-    return null;
-  }
-  const voices = window.speechSynthesis.getVoices();
+  const synth = getSafeWindowSpeechSynthesis();
+  if (!synth) return null;
+  const voices = synth.getVoices();
   if (!voices || voices.length === 0) return null;
 
   if (preferredURI) {
