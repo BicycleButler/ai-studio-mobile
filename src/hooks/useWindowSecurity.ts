@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
 
 interface UseWindowSecurityOptions {
@@ -20,16 +21,16 @@ export function useWindowSecurity({
   }, []);
 
   useEffect(() => {
+    // A flag_secure_changed CustomEvent is dispatched by storage.ts when the setting changes
     const handleFlagChanged = (e: Event) => {
       const customEvent = e as CustomEvent<boolean>;
       if (typeof customEvent.detail === "boolean") {
         setFlagSecureEnabledState(customEvent.detail);
       }
     };
-    window.addEventListener("flag_secure_changed", handleFlagChanged);
-    return () => {
-      window.removeEventListener("flag_secure_changed", handleFlagChanged);
-    };
+    // @ts-expect-error CustomEvent binding
+    const removeFlag = safeAddEventListener("flag_secure_changed", handleFlagChanged);
+    return () => removeFlag();
   }, []);
 
   useEffect(() => {
@@ -72,15 +73,15 @@ export function useWindowSecurity({
       }, 120);
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleWindowBlur);
-    window.addEventListener("focus", handleWindowFocus);
+    const removeVis = safeAddDocumentListener("visibilitychange", handleVisibilityChange);
+    const removeBlur = safeAddEventListener("blur", handleWindowBlur);
+    const removeFocus = safeAddEventListener("focus", handleWindowFocus);
 
     return () => {
       clearScheduledTimer();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("blur", handleWindowBlur);
-      window.removeEventListener("focus", handleWindowFocus);
+      removeVis();
+      removeBlur();
+      removeFocus();
     };
   }, [flagSecureEnabled, isSensitiveScreenActive]);
 

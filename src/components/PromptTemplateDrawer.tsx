@@ -30,6 +30,7 @@ import {
 import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
 import { useBackNavigation } from "../hooks/useBackNavigation";
+import { safeAddEventListener } from "../utils/platform";
 
 interface PromptTemplateDrawerProps {
   isOpen: boolean;
@@ -109,8 +110,8 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
         onClose();
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    return () => removeKey();
   }, [isOpen, onClose]);
 
   const [activeToolTab, setActiveToolTab] = useState<"directives" | "few-shot" | "variables">("directives");

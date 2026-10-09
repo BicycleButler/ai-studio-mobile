@@ -73,7 +73,7 @@ export function getPlatformCapabilities(): PlatformCapabilities {
   const runtime = detectAppRuntime();
   const userAgent =
     isBrowserEnvironment() ? navigator.userAgent.toLowerCase() : "";
-  const isIOS = /iphone|ipad|ipod/.test(userAgent);
+  const isIOS = /iphone|ipad|ipod/.test(userAgent) && !("MSStream" in window);
   const isAndroid = /android/.test(userAgent);
   const hasTouch =
     isBrowserEnvironment() &&
@@ -93,5 +93,46 @@ export function getPlatformCapabilities(): PlatformCapabilities {
     hasTouch,
     supportsServiceWorker,
     supportsInstallPrompt,
+  };
+}
+
+/**
+ * Safely adds an event listener to the window object, guaranteeing it only
+ * executes if the browser environment is available.
+ * Returns a teardown function for easy cleanup in React hooks.
+ */
+export function safeAddEventListener<K extends keyof WindowEventMap>(
+  type: K,
+  listener: (this: Window, ev: WindowEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions
+): () => void {
+  if (!isBrowserEnvironment()) {
+    return () => {};
+  }
+
+  window.addEventListener(type, listener, options);
+
+  return () => {
+    window.removeEventListener(type, listener, options);
+  };
+}
+
+/**
+ * Safely adds an event listener to the document object.
+ * Returns a teardown function.
+ */
+export function safeAddDocumentListener<K extends keyof DocumentEventMap>(
+  type: K,
+  listener: (this: Document, ev: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions
+): () => void {
+  if (!isBrowserEnvironment()) {
+    return () => {};
+  }
+
+  document.addEventListener(type, listener, options);
+
+  return () => {
+    document.removeEventListener(type, listener, options);
   };
 }

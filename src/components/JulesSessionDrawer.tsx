@@ -27,6 +27,7 @@ import {
 } from "../services/julesService";
 import { loadStoredJulesApiKey } from "../utils/storage";
 import { useBackNavigation } from "../hooks/useBackNavigation";
+import { safeAddEventListener } from "../utils/platform";
 
 interface JulesSessionDrawerProps {
   isOpen: boolean;
@@ -58,8 +59,8 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
         onClose();
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    return () => removeKey();
   }, [isOpen, onClose]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);

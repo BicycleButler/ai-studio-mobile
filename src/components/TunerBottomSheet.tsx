@@ -23,6 +23,7 @@ import {
   sanitizeModelId,
 } from "../utils/modelCatalog";
 import { useBackNavigation } from "../hooks/useBackNavigation";
+import { safeAddEventListener } from "../utils/platform";
 
 interface TunerBottomSheetProps {
   config: PromptConfig;
@@ -88,8 +89,8 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
         onClose();
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    return () => removeKey();
   }, [isModal, onClose]);
 
   const updateField = <K extends keyof PromptConfig>(

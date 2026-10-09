@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, safeAddEventListener } from "../utils/platform";
 import { useState, useEffect } from "react";
 
 export interface NetworkStatus {
@@ -30,12 +30,12 @@ export function useNetworkStatus(): NetworkStatus {
       setWasOffline(true);
     };
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    const removeOnline = safeAddEventListener("online", handleOnline);
+    const removeOffline = safeAddEventListener("offline", handleOffline);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      removeOnline();
+      removeOffline();
     };
   }, []);
 

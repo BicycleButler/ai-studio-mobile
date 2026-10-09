@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { detectGoogleApiKey } from "../services/keyVerification";
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 
 interface UseClipboardKeySnifferOptions {
   activeApiKey?: string;
@@ -89,12 +89,12 @@ export function useClipboardKeySniffer({
       }, 250);
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
+    const removeVis = safeAddDocumentListener("visibilitychange", handleVisibilityChange);
+    const removeFocus = safeAddEventListener("focus", handleFocus);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleFocus);
+      removeVis();
+      removeFocus();
     };
   }, [enabled, inspectClipboard]);
 
