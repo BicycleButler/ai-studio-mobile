@@ -1,4 +1,5 @@
 import { GenerateRequestBody } from "../types";
+import { apiFetch } from "../utils/apiClient";
 
 
 export interface StreamCallbacks {
@@ -10,6 +11,20 @@ export interface StreamCallbacks {
 export interface StreamOptions {
   apiKey?: string;
   signal?: AbortSignal;
+}
+
+export async function fetchGenerateContent(payload: GenerateRequestBody, options?: StreamOptions): Promise<{
+  text?: string;
+  durationMs?: number;
+  error?: string;
+  usageMetadata?: { totalTokenCount?: number };
+}> {
+  return apiFetch("/api/generate", {
+    method: "POST",
+    headers: buildHeaders(options?.apiKey),
+    signal: options?.signal,
+    body: JSON.stringify(payload),
+  });
 }
 
 /**

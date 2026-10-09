@@ -18,8 +18,6 @@ import {
   Terminal,
 } from "lucide-react";
 import { PromptConfig, ChatMessage, StructuredExample } from "../types";
-import { getAuthHeaders } from "../services/auth";
-import { apiFetch } from "../utils/apiClient";
 
 import {
   generateAndroidKotlinCode,
@@ -242,27 +240,16 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       addConsoleLog("info", `[IDE] Sending payload to Google AI Studio (/api/generate)...`);
       addConsoleLog("info", `[IDE] Target Model: ${config.model} | System: ${config.systemInstruction ? "Active" : "None"}`);
 
-      const headers = getAuthHeaders();
-      headers["Content-Type"] = "application/json";
-
-      const data = await apiFetch<{
-        text?: string;
-        durationMs?: number;
-        error?: string;
-        usageMetadata?: { totalTokenCount?: number };
-      }>("/api/generate", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: config.model,
-          messages: [{ role: "user", text: promptQuery }],
-          systemInstruction: config.systemInstruction || undefined,
-          temperature: config.temperature,
-          topP: config.topP,
-          topK: config.topK,
-          maxOutputTokens: config.maxOutputTokens,
-          stream: false,
-        }),
+      const { fetchGenerateContent } = await import("../services/geminiStreamService");
+      const data = await fetchGenerateContent({
+        model: config.model,
+        messages: [{ role: "user", text: promptQuery }],
+        systemInstruction: config.systemInstruction || undefined,
+        temperature: config.temperature,
+        topP: config.topP,
+        topK: config.topK,
+        maxOutputTokens: config.maxOutputTokens,
+        stream: false,
       });
 
 

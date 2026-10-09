@@ -79,7 +79,7 @@ export async function getGraphData(): Promise<StubsGraphData> {
 
   if (db) {
     try {
-      const nodeRows = (db.prepare("SELECT * FROM nodes ORDER BY degree DESC").all() as unknown) as NodeRow[];
+      const nodeRows = db.prepare("SELECT * FROM nodes ORDER BY degree DESC").all() as unknown as NodeRow[];
       for (const row of nodeRows) {
         let parsedExports = [];
         try {
@@ -109,7 +109,7 @@ export async function getGraphData(): Promise<StubsGraphData> {
         layers[node.layer] = (layers[node.layer] || 0) + 1;
       }
 
-      const edgeRows = (db.prepare("SELECT * FROM edges").all() as unknown) as EdgeRow[];
+      const edgeRows = db.prepare("SELECT * FROM edges").all() as unknown as EdgeRow[];
       for (const row of edgeRows) {
         edges.push({
           id: typeof row.id === "number" ? row.id : (row.id ? parseInt(String(row.id), 10) : undefined),
