@@ -210,6 +210,7 @@ export function pollJulesTask(
     const onUpdate = arg3;
     const onError = arg4;
     let stopped = false;
+    let abortController = new AbortController();
 
     const runPoll = async () => {
       try {
@@ -217,8 +218,12 @@ export function pollJulesTask(
         try {
           data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
             headers: { "x-jules-api-key": apiKey || "" },
+            signal: abortController.signal,
           }, "Failed to poll task");
         } catch (err: unknown) {
+          if (err instanceof Error && err.name === "AbortError") {
+            return;
+          }
           if (onError) onError(err instanceof Error ? err : new Error(String(err)));
           return;
         }
@@ -245,6 +250,7 @@ export function pollJulesTask(
       stop: () => {
         stopped = true;
         clearInterval(timer);
+        abortController.abort();
       },
     };
   }

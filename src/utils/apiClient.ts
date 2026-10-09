@@ -13,7 +13,15 @@ export async function apiFetch<T>(
   options?: RequestInit,
   defaultErrorMessage: string = "API request failed"
 ): Promise<T> {
-  const res = await fetch(endpoint, options);
+  let res: Response;
+  try {
+    res = await fetch(endpoint, options);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw err;
+    }
+    throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0);
+  }
 
   if (!res.ok) {
     let errorMessage = defaultErrorMessage;
@@ -55,7 +63,15 @@ export async function apiFetchStream(
   options?: RequestInit,
   defaultErrorMessage: string = "API request failed"
 ): Promise<Response> {
-  const res = await fetch(endpoint, options);
+  let res: Response;
+  try {
+    res = await fetch(endpoint, options);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw err;
+    }
+    throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0);
+  }
 
   if (!res.ok) {
     let errorMessage = defaultErrorMessage;

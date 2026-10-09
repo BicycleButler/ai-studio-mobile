@@ -73,7 +73,7 @@ server.ts                            # [MODIFY] Add /api/jules/* proxy routes
 
 ### Phase 4: Materialization & Core Implementation
 - [ ] Implement backend proxy routes in `server.ts`.
-- [ ] Implement `src/services/julesService.ts`.
+- [x] Implement `src/services/julesService.ts`.
 - [ ] Update `ApiKeyModal.tsx` and `CustomTabBrowserModal.tsx`.
 - [ ] Implement `JulesSessionDrawer.tsx`.
 - [ ] Update `ChatWorkspace.tsx` and `TopAppBar.tsx`.
