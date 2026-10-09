@@ -39,7 +39,6 @@ import {
   loadSpeechSettings,
 } from "../services/speechVoices";
 import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
-import { getAuthHeaders } from "../services/auth";
 import { SettingsTab } from "./UnifiedSettingsModal";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import {
@@ -57,7 +56,7 @@ import {
   getAllTemplates,
 } from "../services/promptTemplateService";
 import { PromptTemplate } from "../types";
-import { apiFetch } from "../utils/apiClient";
+import { fetchTTSAudioUrl } from "../services/speechVoices";
 
 import {
   loadStoredJulesSessions,
@@ -790,18 +789,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     if (speechSettings.engine === "gemini") {
       setIsBufferingAudio(true);
       try {
-        const authHeaders = getAuthHeaders();
-        const data = await apiFetch<{ audioUrl: string }>("/api/tts", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeaders,
-          },
-          body: JSON.stringify({
-            text: contentToSpeak,
-            voiceName: speechSettings.geminiVoice,
-          }),
-        });
+        const data = await fetchTTSAudioUrl(contentToSpeak, speechSettings.geminiVoice);
 
         if (!data.audioUrl) {
           throw new Error("No audio payload returned from Gemini TTS");
