@@ -24,6 +24,7 @@ export type NavigatorWithStandalone = typeof navigator & { standalone?: boolean 
 export type WindowWithLocalStorage = typeof window & { localStorage?: Storage };
 export type WindowWithSpeechSynthesis = typeof window & { speechSynthesis?: SpeechSynthesis };
 export type NavigatorWithClipboard = typeof navigator & { clipboard?: Clipboard };
+export type NavigatorWithVirtualKeyboard = typeof navigator & { virtualKeyboard?: { hide?: () => void; show?: () => void; boundingRect?: DOMRect } };
 
 export function getSafeWindowMatchMedia(): WindowWithMatchMedia | null {
   return isBrowserEnvironment() ? (window as WindowWithMatchMedia) : null;
@@ -38,6 +39,14 @@ export function getSafeWindowSpeechSynthesis(): SpeechSynthesis | null {
 
 export function getSafeNavigatorClipboard(): Clipboard | null {
   return isBrowserEnvironment() && navigator.clipboard ? (navigator as unknown as NavigatorWithClipboard).clipboard! : null;
+}
+
+export function getSafeNavigatorVirtualKeyboard(): NavigatorWithVirtualKeyboard["virtualKeyboard"] | null {
+  return isBrowserEnvironment() && "virtualKeyboard" in navigator ? (navigator as unknown as NavigatorWithVirtualKeyboard).virtualKeyboard! : null;
+}
+
+export function getSafeNavigatorOnline(): boolean {
+  return isBrowserEnvironment() && typeof navigator.onLine === "boolean" ? navigator.onLine : true;
 }
 
 

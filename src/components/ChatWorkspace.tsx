@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
+import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeNavigatorVirtualKeyboard, getSafeNavigatorOnline } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Send,
@@ -350,9 +350,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // Dismiss / hide the mobile soft keyboard safely across platforms
   const hideKeyboard = () => {
-    if (isBrowserEnvironment() && "virtualKeyboard" in navigator) {
+    const virtualKeyboard = getSafeNavigatorVirtualKeyboard();
+    if (virtualKeyboard?.hide) {
       try {
-        (navigator as { virtualKeyboard?: { hide?: () => void } }).virtualKeyboard?.hide?.();
+        virtualKeyboard.hide();
       } catch {
         // ignore
       }
@@ -395,7 +396,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
 
       // Guard against offline or missing API key so voice state does not hang indefinitely
-      if (isBrowserEnvironment() && !navigator.onLine) {
+      if (!getSafeNavigatorOnline()) {
         setVoiceState("listening");
         startListening(undefined, true);
         return;
