@@ -147,3 +147,48 @@ export function safeAddDocumentListener<K extends keyof DocumentEventMap>(
     document.removeEventListener(type, listener, options);
   };
 }
+
+/**
+ * Safely adds an event listener to the visualViewport object.
+ * Returns a teardown function.
+ */
+export function safeAddVisualViewportListener<K extends keyof VisualViewportEventMap>(
+  type: K,
+  listener: (this: VisualViewport, ev: VisualViewportEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions
+): () => void {
+  if (!isBrowserEnvironment() || !window.visualViewport) {
+    return () => {};
+  }
+
+  const vv = window.visualViewport;
+  vv.addEventListener(type, listener, options);
+
+  return () => {
+    vv.removeEventListener(type, listener, options);
+  };
+}
+
+/**
+ * Safely adds an event listener to a MediaQueryList object with legacy fallback support.
+ * Returns a teardown function.
+ */
+export function safeAddMatchMediaListener(
+  mql: MediaQueryList,
+  listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void
+): () => void {
+  if (!isBrowserEnvironment()) {
+    return () => {};
+  }
+
+  if (mql.addEventListener) {
+    mql.addEventListener("change", listener);
+    return () => mql.removeEventListener("change", listener);
+  } else if ("addListener" in mql) {
+    const legacyMql = mql as MediaQueryList & { addListener: (cb: (ev: MediaQueryListEvent) => void) => void, removeListener: (cb: (ev: MediaQueryListEvent) => void) => void };
+    legacyMql.addListener(listener);
+    return () => legacyMql.removeListener(listener);
+  }
+
+  return () => {};
+}
