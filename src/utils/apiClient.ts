@@ -40,11 +40,11 @@ async function parseErrorResponse(res: Response, defaultErrorMessage: string): P
   return { errorMessage, headers };
 }
 
-export async function apiFetch<T>(
+async function executeRequest(
   endpoint: string,
   options?: RequestInit,
   defaultErrorMessage: string = "API request failed"
-): Promise<T> {
+): Promise<Response> {
   let res: Response;
   try {
     res = await fetch(endpoint, options);
@@ -59,6 +59,16 @@ export async function apiFetch<T>(
     const { errorMessage, headers } = await parseErrorResponse(res, defaultErrorMessage);
     throw new BaseApiError(errorMessage, res.status, headers, endpoint);
   }
+
+  return res;
+}
+
+export async function apiFetch<T>(
+  endpoint: string,
+  options?: RequestInit,
+  defaultErrorMessage: string = "API request failed"
+): Promise<T> {
+  const res = await executeRequest(endpoint, options, defaultErrorMessage);
 
   if (res.status === 204) {
     return {} as T;
@@ -84,20 +94,5 @@ export async function apiFetchStream(
   options?: RequestInit,
   defaultErrorMessage: string = "API request failed"
 ): Promise<Response> {
-  let res: Response;
-  try {
-    res = await fetch(endpoint, options);
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw err;
-    }
-    throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0, undefined, endpoint);
-  }
-
-  if (!res.ok) {
-    const { errorMessage, headers } = await parseErrorResponse(res, defaultErrorMessage);
-    throw new BaseApiError(errorMessage, res.status, headers, endpoint);
-  }
-
-  return res;
+  return executeRequest(endpoint, options, defaultErrorMessage);
 }
