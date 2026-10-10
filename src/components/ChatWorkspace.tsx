@@ -1215,10 +1215,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       Active Repository
                     </span>
                     <div className="text-xs font-semibold text-foreground font-mono truncate">
-                      {activeJulesSession.repository}
+                      {activeJulesSession?.repository}
                     </div>
                     <div className="text-[11px] text-muted-foreground">
-                      Base branch: <span className="font-mono text-foreground">{activeJulesSession.branch}</span>
+                      Base branch: <span className="font-mono text-foreground">{activeJulesSession?.branch}</span>
                     </div>
                   </div>
                   {onOpenJulesSessions && (
@@ -1358,7 +1358,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     <span className="font-medium">Jules Coding Agent</span>
                     {activeJulesSession && (
                       <span className="text-[10px] text-muted-foreground font-mono">
-                        • {activeJulesSession.repository}
+                        • {activeJulesSession?.repository}
                       </span>
                     )}
                   </div>
@@ -1888,7 +1888,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     placeholder={
                       isJulesMode
                         ? activeJulesSession
-                          ? `Describe a task or fix for Jules on ${activeJulesSession.repository}...`
+                          ? `Describe a task or fix for Jules on ${activeJulesSession?.repository}...`
                           : "Select a repository to dispatch a Jules task..."
                         : "Type prompt or test instructions..."
                     }
