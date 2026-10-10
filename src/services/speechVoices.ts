@@ -8,7 +8,7 @@ import { getSafeWindowSpeechSynthesis, getSafeNavigatorLanguage } from "../utils
  * 2. Enhanced On-Device System Voices (with intelligent Natural/Neural voice prioritization)
  */
 
-import { safeGetStorage, safeSetStorage } from "../utils/storage";
+import { safeGetStorage, safeSetStorage, STORAGE_KEYS } from "../utils/storage";
 
 export interface GeminiVoiceOption {
   id: string;
@@ -83,7 +83,6 @@ export const GEMINI_VOICES: GeminiVoiceOption[] = [
   },
 ];
 
-const SETTINGS_KEY = "gemini_studio_speech_settings_v1";
 let inMemorySettings: SpeechSettings | null = null;
 
 export const DEFAULT_SPEECH_SETTINGS: SpeechSettings = {
@@ -120,7 +119,7 @@ export async function fetchTTSAudioUrl(text: string, voiceName: string): Promise
 
 export function loadSpeechSettings(): SpeechSettings {
   const fallback = inMemorySettings || DEFAULT_SPEECH_SETTINGS;
-  const parsed = safeGetStorage<Partial<SpeechSettings>>(SETTINGS_KEY, fallback);
+  const parsed = safeGetStorage<Partial<SpeechSettings>>(STORAGE_KEYS.SPEECH_SETTINGS, fallback);
 
   if (parsed === fallback) return fallback as SpeechSettings;
 
@@ -139,7 +138,7 @@ export function loadSpeechSettings(): SpeechSettings {
 
 export function saveSpeechSettings(settings: SpeechSettings): void {
   inMemorySettings = settings;
-  safeSetStorage(SETTINGS_KEY, settings);
+  safeSetStorage(STORAGE_KEYS.SPEECH_SETTINGS, settings);
 }
 
 /**

@@ -4,7 +4,7 @@ import { isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListene
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
  */
 
-import { safeGetStorage, safeSetStorage } from "../utils/storage";
+import { safeGetStorage, safeSetStorage, STORAGE_KEYS } from "../utils/storage";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -15,8 +15,6 @@ export interface ThemeState {
 }
 
 export type ThemeListener = (state: ThemeState) => void;
-
-const STORAGE_KEY = "aistudio_theme_mode";
 
 let currentMode: ThemeMode = "system";
 let currentResolved: ResolvedTheme = "dark";
@@ -34,7 +32,7 @@ export function getSystemResolvedTheme(): ResolvedTheme {
 }
 
 export function loadStoredThemeMode(): ThemeMode {
-  const stored = safeGetStorage<string>(STORAGE_KEY, "system");
+  const stored = safeGetStorage<string>(STORAGE_KEYS.THEME_MODE, "system");
   if (stored === "light" || stored === "dark" || stored === "system") {
     return stored as ThemeMode;
   }
@@ -42,7 +40,7 @@ export function loadStoredThemeMode(): ThemeMode {
 }
 
 export function persistThemeMode(mode: ThemeMode): void {
-  safeSetStorage(STORAGE_KEY, mode);
+  safeSetStorage(STORAGE_KEYS.THEME_MODE, mode);
 }
 
 export function resolveTheme(mode: ThemeMode): ResolvedTheme {
