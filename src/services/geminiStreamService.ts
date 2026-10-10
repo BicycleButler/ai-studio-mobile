@@ -1,5 +1,5 @@
 import { GenerateRequestBody } from "../types";
-import { apiFetch, apiFetchStream, BaseApiError } from "../utils/apiClient";
+import { apiFetch, apiFetchStream, BaseApiError, isAbortError } from "../utils/apiClient";
 
 
 export interface StreamCallbacks {
@@ -134,10 +134,10 @@ export function formatStreamError(err: unknown): GeminiApiError {
   if (err instanceof GeminiApiError) {
     return err;
   }
+  if (isAbortError(err)) {
+    return new GeminiApiError("Generation stopped by user.");
+  }
   if (err instanceof Error) {
-    if (err.name === "AbortError") {
-      return new GeminiApiError("Generation stopped by user.");
-    }
     return new GeminiApiError(err.message);
   }
   return new GeminiApiError("An unexpected error occurred during generation.");

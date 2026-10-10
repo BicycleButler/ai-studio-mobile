@@ -142,6 +142,18 @@ export function safeGetStorage<T>(key: string, fallback: T): T {
   }
 }
 
+/**
+ * Safely reads an array from local storage, guaranteeing an array return type.
+ */
+export function safeGetStorageArray<T>(key: string, fallback: T[] = []): T[] {
+  const raw = safeGetStorage<T[]>(key, fallback);
+  if (!Array.isArray(raw)) {
+    console.warn(`Storage key ${key} contained non-array JSON, resetting to fallback.`);
+    return fallback;
+  }
+  return raw;
+}
+
 export function safeSetStorage<T>(key: string, value: T): boolean {
   try {
     const storage = getStorageInstance();
@@ -221,11 +233,7 @@ export function saveStoredApiKey(key: string): void {
 
 // Saved Prompts Library
 export function loadSavedPrompts(): SavedPrompt[] {
-  const stored = safeGetStorage<SavedPrompt[]>(STORAGE_KEYS.SAVED_PROMPTS, []);
-  if (!stored) {
-    return [];
-  }
-  return stored;
+  return safeGetStorageArray<SavedPrompt>(STORAGE_KEYS.SAVED_PROMPTS, []);
 }
 
 export function persistSavedPrompts(prompts: SavedPrompt[]): void {
@@ -332,8 +340,7 @@ export function saveDraftState(draft: Partial<DraftState>, projectId?: string | 
 
 // Phase 2: Encrypted Project Storage & Ingestion Management
 export function loadStoredProjects(): ProjectInfo[] {
-  const raw = safeGetStorage<Array<ProjectInfo>>(STORAGE_KEYS.PROJECTS, []);
-  if (!Array.isArray(raw)) return [];
+  const raw = safeGetStorageArray<ProjectInfo>(STORAGE_KEYS.PROJECTS, []);
   return raw.map((p) => ({
     ...p,
     apiKey: decryptSecret(p.apiKey),
@@ -491,8 +498,7 @@ export function isMockJulesSession(session: Partial<JulesSession>): boolean {
 }
 
 export function loadStoredJulesSessions(): JulesSession[] {
-  const sessions = safeGetStorage<JulesSession[]>(STORAGE_KEYS.JULES_SESSIONS, []);
-  if (!Array.isArray(sessions)) return [];
+  const sessions = safeGetStorageArray<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, []);
   const clean = sessions.filter((s) => !isMockJulesSession(s));
   if (clean.length !== sessions.length) {
     safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean);

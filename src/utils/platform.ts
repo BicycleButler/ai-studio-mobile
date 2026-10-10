@@ -70,9 +70,29 @@ export interface PlatformCapabilities {
   isBrowser: boolean;
   isIOS: boolean;
   isAndroid: boolean;
+  isApplePlatform: boolean;
+  isWindowsPlatform: boolean;
   hasTouch: boolean;
   supportsServiceWorker: boolean;
   supportsInstallPrompt: boolean;
+}
+
+/**
+ * Utility to check if the current platform is an Apple environment (macOS, iOS, iPadOS).
+ */
+export function isApplePlatform(): boolean {
+  if (!isBrowserEnvironment()) return false;
+  const userAgent = navigator.userAgent.toLowerCase();
+  return /macintosh|mac os x|iphone|ipad|ipod/.test(userAgent);
+}
+
+/**
+ * Utility to check if the current platform is Windows.
+ */
+export function isWindowsPlatform(): boolean {
+  if (!isBrowserEnvironment()) return false;
+  const userAgent = navigator.userAgent.toLowerCase();
+  return /windows/.test(userAgent);
 }
 
 /**
@@ -118,6 +138,8 @@ export function getPlatformCapabilities(): PlatformCapabilities {
     isBrowserEnvironment() ? navigator.userAgent.toLowerCase() : "";
   const isIOS = /iphone|ipad|ipod/.test(userAgent) && !("MSStream" in window);
   const isAndroid = /android/.test(userAgent);
+  const isApple = isApplePlatform();
+  const isWindows = isWindowsPlatform();
   const hasTouch =
     isBrowserEnvironment() &&
     ("ontouchstart" in window || (navigator && navigator.maxTouchPoints > 0));
@@ -133,6 +155,8 @@ export function getPlatformCapabilities(): PlatformCapabilities {
     isBrowser: runtime === "browser",
     isIOS,
     isAndroid,
+    isApplePlatform: isApple,
+    isWindowsPlatform: isWindows,
     hasTouch,
     supportsServiceWorker,
     supportsInstallPrompt,
