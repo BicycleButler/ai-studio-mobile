@@ -182,7 +182,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                   </button>
                   <button
                     onClick={() => onDeletePrompt(item.id)}
-                    className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer"
+                    className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-muted/40 transition-colors cursor-pointer"
                     title="Delete prompt"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

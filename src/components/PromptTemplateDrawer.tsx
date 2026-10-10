@@ -424,7 +424,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
           <div className="flex-1 overflow-y-auto p-4 max-w-xl mx-auto w-full">
             <form onSubmit={handleSaveForm} className="space-y-4">
               {formError && (
-                <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs">
+                <div className="p-3 rounded-xl bg-muted/40 border border-destructive/30 text-destructive text-xs">
                   {formError}
                 </div>
               )}
@@ -711,7 +711,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                               <button
                                 type="button"
                                 onClick={() => setConfirmDeleteId(template.id)}
-                                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-muted/40 transition-colors cursor-pointer"
                                 title="Delete custom template"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -759,7 +759,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
 
                       {/* Delete confirmation banner */}
                       {confirmDeleteId === template.id && (
-                        <div className="mt-2 p-2 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-between gap-2 animate-in fade-in">
+                        <div className="mt-2 p-2 rounded-xl bg-muted/40 border border-destructive/20 flex items-center justify-between gap-2 animate-in fade-in">
                           <span className="text-[11px] text-destructive font-medium">
                             Delete &ldquo;{template.title}&rdquo;?
                           </span>

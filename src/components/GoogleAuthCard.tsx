@@ -128,7 +128,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               id="google-sign-out-btn"
               onClick={handleSignOut}
               disabled={isLoading}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-muted/40 border border-transparent hover:border-destructive/20 transition-colors cursor-pointer"
               title="Sign out of Google Account"
             >
               {isLoading ? (

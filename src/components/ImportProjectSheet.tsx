@@ -408,7 +408,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             {validationState === "invalid" && (
               <div
                 id="validation-state-invalid"
-                className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-start gap-2.5 validation-error-banner"
+                className="p-3 rounded-xl bg-muted/40 border border-destructive/30 text-destructive text-xs flex items-start gap-2.5 validation-error-banner"
               >
                 <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5 validation-error-icon" />
                 <div className="flex-1">
