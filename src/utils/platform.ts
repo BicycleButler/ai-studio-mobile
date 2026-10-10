@@ -27,7 +27,9 @@ export type NavigatorWithClipboard = typeof navigator & { clipboard?: Clipboard 
 export type WindowWithHistory = typeof window & { history?: History };
 export type WindowWithVisualViewport = typeof window & { visualViewport?: VisualViewport };
 
-export function getSafeWindow(): (typeof window) | null {
+export type WindowWithNavigator = typeof window & { navigator?: Navigator };
+
+export function getSafeWindow(): WindowWithNavigator | null {
   return isBrowserEnvironment() ? window : null;
 }
 
@@ -52,14 +54,16 @@ export function getSafeWindowSpeechSynthesis(): SpeechSynthesis | null {
  * Safely retrieves the user's navigator language, providing a fallback if unavailable.
  */
 export function getSafeNavigatorLanguage(fallback: string = "en-US"): string {
-  if (isBrowserEnvironment() && navigator.language) {
-    return navigator.language;
+  const win = getSafeWindow();
+  if (win && win.navigator && win.navigator.language) {
+    return win.navigator.language;
   }
   return fallback;
 }
 
 export function getSafeNavigatorClipboard(): Clipboard | null {
-  return isBrowserEnvironment() && navigator.clipboard ? (navigator as NavigatorWithClipboard).clipboard! : null;
+  const win = getSafeWindow();
+  return win && win.navigator && (win.navigator as NavigatorWithClipboard).clipboard ? (win.navigator as NavigatorWithClipboard).clipboard! : null;
 }
 
 
@@ -81,8 +85,9 @@ export interface PlatformCapabilities {
  * Utility to check if the current platform is an Apple environment (macOS, iOS, iPadOS).
  */
 export function isApplePlatform(): boolean {
-  if (!isBrowserEnvironment()) return false;
-  const userAgent = navigator.userAgent.toLowerCase();
+  const win = getSafeWindow();
+  if (!win || !win.navigator) return false;
+  const userAgent = win.navigator.userAgent.toLowerCase();
   return /macintosh|mac os x|iphone|ipad|ipod/.test(userAgent);
 }
 
@@ -90,8 +95,9 @@ export function isApplePlatform(): boolean {
  * Utility to check if the current platform is Windows.
  */
 export function isWindowsPlatform(): boolean {
-  if (!isBrowserEnvironment()) return false;
-  const userAgent = navigator.userAgent.toLowerCase();
+  const win = getSafeWindow();
+  if (!win || !win.navigator) return false;
+  const userAgent = win.navigator.userAgent.toLowerCase();
   return /windows/.test(userAgent);
 }
 
@@ -112,11 +118,11 @@ export function isCapacitor(): boolean {
  * Checks if the application is running in installed PWA standalone mode.
  */
 export function isPWA(): boolean {
-  if (!isBrowserEnvironment()) return false;
   const win = getSafeWindowMatchMedia();
-  const isStandaloneMatch = win && win.matchMedia ? win.matchMedia("(display-mode: standalone)").matches : false;
-  const nav = window.navigator as NavigatorWithStandalone;
-  const isNavigatorStandalone = nav.standalone === true;
+  if (!win) return false;
+  const isStandaloneMatch = win.matchMedia ? win.matchMedia("(display-mode: standalone)").matches : false;
+  const nav = win.navigator as NavigatorWithStandalone;
+  const isNavigatorStandalone = nav && nav.standalone === true;
   return isStandaloneMatch || isNavigatorStandalone;
 }
 
@@ -134,19 +140,23 @@ export function detectAppRuntime(): AppRuntime {
  */
 export function getPlatformCapabilities(): PlatformCapabilities {
   const runtime = detectAppRuntime();
-  const userAgent =
-    isBrowserEnvironment() ? navigator.userAgent.toLowerCase() : "";
-  const isIOS = /iphone|ipad|ipod/.test(userAgent) && !("MSStream" in window);
+  const win = getSafeWindow();
+
+  const userAgent = win && win.navigator ? win.navigator.userAgent.toLowerCase() : "";
+  const isIOS = Boolean(/iphone|ipad|ipod/.test(userAgent) && win && !("MSStream" in win));
   const isAndroid = /android/.test(userAgent);
   const isApple = isApplePlatform();
   const isWindows = isWindowsPlatform();
-  const hasTouch =
-    isBrowserEnvironment() &&
-    ("ontouchstart" in window || (navigator && navigator.maxTouchPoints > 0));
-  const supportsServiceWorker =
-    isBrowserEnvironment() && "serviceWorker" in navigator;
-  const supportsInstallPrompt =
-    isBrowserEnvironment() && "BeforeInstallPromptEvent" in window;
+  const hasTouch = Boolean(
+    win !== null &&
+      ("ontouchstart" in win || (win.navigator && win.navigator.maxTouchPoints > 0))
+  );
+  const supportsServiceWorker = Boolean(
+    win !== null && win.navigator && "serviceWorker" in win.navigator
+  );
+  const supportsInstallPrompt = Boolean(
+    win !== null && "BeforeInstallPromptEvent" in win
+  );
 
   return {
     runtime,

@@ -13,7 +13,6 @@ export interface BeforeInstallPromptEvent extends Event {
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
-  // Use lazy init with capabilities directly
   const [isInstalled, setIsInstalled] = useState<boolean>(() => {
     const caps = getPlatformCapabilities();
     return caps.isNative || caps.isPWA;
@@ -40,10 +39,8 @@ export function usePWAInstall() {
       setDeferredPrompt(null);
     };
 
-    // @ts-expect-error Typescript doesn't include PWA events in standard WindowEventMap by default
-    const removePrompt = safeAddEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    // @ts-expect-error Typescript doesn't include PWA events in standard WindowEventMap by default
-    const removeInstalled = safeAddEventListener("appinstalled", handleAppInstalled);
+    const removePrompt = safeAddEventListener("beforeinstallprompt" as keyof WindowEventMap, handleBeforeInstallPrompt as EventListener);
+    const removeInstalled = safeAddEventListener("appinstalled" as keyof WindowEventMap, handleAppInstalled as EventListener);
 
     return () => {
       removePrompt();

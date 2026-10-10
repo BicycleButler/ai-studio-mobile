@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, safeAddEventListener } from "../utils/platform";
+import { isBrowserEnvironment, safeAddEventListener, getSafeWindow } from "../utils/platform";
 import { useState, useEffect } from "react";
 
 export interface NetworkStatus {
@@ -9,10 +9,12 @@ export interface NetworkStatus {
 /**
  * Hook to track browser online/offline status with reconnection awareness
  */
+
 export function useNetworkStatus(): NetworkStatus {
   const [isOnline, setIsOnline] = useState<boolean>(() => {
-    return isBrowserEnvironment() && typeof navigator.onLine === "boolean"
-      ? navigator.onLine
+    const win = getSafeWindow();
+    return win && typeof win.navigator.onLine === "boolean"
+      ? win.navigator.onLine
       : true;
   });
 
