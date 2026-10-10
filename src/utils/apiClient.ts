@@ -1,17 +1,21 @@
 export class BaseApiError extends Error {
   public statusCode: number;
   public headers?: Record<string, string>;
+  public endpoint?: string;
 
-  constructor(message: string, statusCode: number, headers?: Record<string, string>) {
+  constructor(message: string, statusCode: number, headers?: Record<string, string>, endpoint?: string) {
     super(message);
     this.name = "BaseApiError";
     this.statusCode = statusCode;
     this.headers = headers;
+    this.endpoint = endpoint;
   }
 }
 
 export function isAbortError(err: unknown): boolean {
-  return err instanceof Error && err.name === "AbortError";
+  if (err instanceof Error && err.name === "AbortError") return true;
+  if (typeof DOMException !== "undefined" && err instanceof DOMException && err.name === "AbortError") return true;
+  return false;
 }
 
 async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string> }> {
@@ -48,12 +52,12 @@ export async function apiFetch<T>(
     if (isAbortError(err)) {
       throw err;
     }
-    throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0);
+    throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0, undefined, endpoint);
   }
 
   if (!res.ok) {
     const { errorMessage, headers } = await parseErrorResponse(res, defaultErrorMessage);
-    throw new BaseApiError(errorMessage, res.status, headers);
+    throw new BaseApiError(errorMessage, res.status, headers, endpoint);
   }
 
   if (res.status === 204) {
@@ -87,12 +91,12 @@ export async function apiFetchStream(
     if (isAbortError(err)) {
       throw err;
     }
-    throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0);
+    throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0, undefined, endpoint);
   }
 
   if (!res.ok) {
     const { errorMessage, headers } = await parseErrorResponse(res, defaultErrorMessage);
-    throw new BaseApiError(errorMessage, res.status, headers);
+    throw new BaseApiError(errorMessage, res.status, headers, endpoint);
   }
 
   return res;

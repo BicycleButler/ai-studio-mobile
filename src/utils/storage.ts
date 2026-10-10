@@ -112,24 +112,29 @@ export class MemoryStorage {
 
 const memoryFallbackInstance = new MemoryStorage();
 
+let _storageInstance: Storage | MemoryStorage | null = null;
+
 export function getStorageInstance(): Storage | MemoryStorage {
+  if (_storageInstance) return _storageInstance;
+
   try {
     if (isBrowserEnvironment()) {
       const win = getSafeWindow() as WindowWithLocalStorage | null;
-      if (!win) throw new Error("No window");
-      if (win.localStorage) {
+      if (win && win.localStorage) {
         // Test if storage is actually accessible (not disabled by incognito / iframe policy)
         const testKey = "__storage_test__";
         win.localStorage.setItem(testKey, "1");
         win.localStorage.removeItem(testKey);
-        return win.localStorage;
+        _storageInstance = win.localStorage;
+        return _storageInstance;
       }
     }
   } catch {
     // Fall back to in-memory store
   }
 
-  return memoryFallbackInstance;
+  _storageInstance = memoryFallbackInstance;
+  return _storageInstance;
 }
 
 /**
@@ -140,7 +145,13 @@ export function safeGetStorage<T>(key: string, fallback: T): T {
     const storage = getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
-    return JSON.parse(raw) as T;
+    try {
+      return JSON.parse(raw) as T;
+    } catch (parseErr) {
+      console.warn(`Storage key ${key} contained invalid JSON. Corrupted data removed.`, parseErr);
+      storage.removeItem(key);
+      return fallback;
+    }
   } catch (err: unknown) {
     console.warn(`Failed to read ${key} from storage:`, err);
     return fallback;
@@ -155,11 +166,21 @@ export function safeGetStorageArray<T>(key: string, fallback: T[] = []): T[] {
     const storage = getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (parseErr) {
+      console.warn(`Storage key ${key} contained invalid JSON array. Corrupted data removed.`, parseErr);
+      storage.removeItem(key);
+      return fallback;
+    }
+
     if (Array.isArray(parsed)) return parsed as T[];
-    console.warn(`Storage key ${key} contained non-array JSON, returning fallback.`);
+    console.warn(`Storage key ${key} contained non-array JSON. Corrupted data removed.`);
+    storage.removeItem(key);
     return fallback;
-  } catch {
+  } catch (err: unknown) {
+    console.warn(`Failed to read ${key} from storage:`, err);
     return fallback;
   }
 }
