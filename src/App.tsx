@@ -1,5 +1,5 @@
 import { getSafeWindow } from "./utils/platform";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   PromptType,
   DeviceFrameMode,
@@ -13,7 +13,7 @@ import {
   GoogleUser,
   ProjectInfo,
   ChatSession,
-  JulesSession,
+
 } from "./types";
 import {
   saveChatSession,
@@ -62,8 +62,8 @@ import {
   setActiveProjectId,
   updateStoredProject,
   deleteStoredProject,
-  isFlagSecureEnabled,
-  setFlagSecureEnabled,
+
+
 } from "./utils/storage";
 import {
   SpeechSettings,
@@ -158,7 +158,7 @@ export default function App() {
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(() => loadSavedPrompts());
 
   // 10) Security / Environment overrides
-  const [flagSecure, setFlagSecure] = useState(() => isFlagSecureEnabled());
+
 
   const [showJulesDrawer, setShowJulesDrawer] = useState(false);
   const [browserService, setBrowserService] = useState<"aistudio" | "jules">("aistudio");
@@ -167,9 +167,9 @@ export default function App() {
     julesApiKey,
     handleSaveJulesApiKey,
     activeJulesSession,
-    setActiveJulesSession,
+
     julesMessages,
-    setJulesMessages,
+
     isJulesExecuting,
     isApprovingJulesPlan,
     handleSendJulesMessage,

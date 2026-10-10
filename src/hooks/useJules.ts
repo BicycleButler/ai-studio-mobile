@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ChatMessage, JulesSession, MessageAttachment } from "../types";
 import { JulesTaskPayload } from "../services/julesService";
 import {
@@ -142,11 +142,11 @@ export function useJules() {
           )
         );
 
-        let latestAiMsg = aiMsg;
+
 
         setJulesMessages((prev) => {
-          const match = prev.find((m) => m.id === activeAiMsgId);
-          if (match) latestAiMsg = match;
+          prev.find((m) => m.id === activeAiMsgId);
+
           return prev;
         });
 

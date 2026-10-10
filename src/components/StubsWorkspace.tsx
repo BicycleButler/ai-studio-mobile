@@ -1,5 +1,5 @@
 import { getSafeNavigatorClipboard } from "../utils/platform";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   GitBranch,
   Cpu,
@@ -25,9 +25,9 @@ import {
 import mermaid from "mermaid";
 
 import {
-  StubsGraphData,
-  StubsLintViolation,
-  StubsImpactResult,
+
+
+
   JulesRepository,
 } from "../types";
 import { useStubsTerminal } from "../hooks/stubs/useStubsTerminal";
