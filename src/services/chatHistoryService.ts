@@ -1,7 +1,7 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
 import { safeGetStorage, safeSetStorage, safeGetStorageKeys, STORAGE_KEYS } from "../utils/storage";
-import { COMMON_MOCK_PREFIXES, MOCK_SESSION_EXACT_IDS, MOCK_SESSION_TITLES, MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS } from "../utils/mockDefinitions";
+import { isMockSession } from "../utils/mockDefinitions";
 
 /**
  * Returns the storage key scoped by project
@@ -19,44 +19,7 @@ export function getChatSessionsStorageKey(projectId?: string): string {
  * even in the development environment.
  */
 export function isMockChatSession(session: Partial<ChatSession>): boolean {
-  if (!session) return true;
-  const id = (session.id || "").trim().toLowerCase();
-  const title = (session.title || "").trim().toLowerCase();
-  const projectId = (session.projectId || "").trim().toLowerCase();
-
-  // 1. Synthetic/test/mock ID patterns
-  if (
-    MOCK_SESSION_EXACT_IDS.includes(id) ||
-    COMMON_MOCK_PREFIXES.some((prefix) => id.startsWith(prefix))
-  ) {
-    return true;
-  }
-
-  // 2. Project ID marked as test/mock
-  if (
-    projectId.startsWith("test_") ||
-    projectId.startsWith("mock_") ||
-    projectId.includes("sample")
-  ) {
-    return true;
-  }
-
-  // 3. Known test/mock conversation titles
-  if (MOCK_SESSION_TITLES.includes(title)) {
-    return true;
-  }
-
-  // 4. Test/mock messages payload signatures
-  if (Array.isArray(session.messages)) {
-    const hasMockMessage = session.messages.some((m) => {
-      const mid = (m.id || "").trim().toLowerCase();
-      const text = (m.text || "").trim().toLowerCase();
-      return MOCK_MESSAGE_IDS.includes(mid) || MOCK_MESSAGE_TEXTS.includes(text);
-    });
-    if (hasMockMessage) return true;
-  }
-
-  return false;
+  return isMockSession(session, "chat");
 }
 
 /**

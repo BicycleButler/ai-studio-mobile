@@ -1,10 +1,12 @@
 export class BaseApiError extends Error {
   public statusCode: number;
+  public headers?: Record<string, string>;
 
-  constructor(message: string, statusCode: number) {
+  constructor(message: string, statusCode: number, headers?: Record<string, string>) {
     super(message);
     this.name = "BaseApiError";
     this.statusCode = statusCode;
+    this.headers = headers;
   }
 }
 
@@ -12,9 +14,15 @@ export function isAbortError(err: unknown): boolean {
   return err instanceof Error && err.name === "AbortError";
 }
 
-async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<string> {
+async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string> }> {
   let errorMessage = defaultErrorMessage;
+  const headers: Record<string, string> = {};
+
   try {
+    res.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+
     const contentType = res.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const err = await res.json();
@@ -25,7 +33,7 @@ async function parseErrorResponse(res: Response, defaultErrorMessage: string): P
   } catch {
     errorMessage = res.statusText || defaultErrorMessage;
   }
-  return errorMessage;
+  return { errorMessage, headers };
 }
 
 export async function apiFetch<T>(
@@ -44,8 +52,8 @@ export async function apiFetch<T>(
   }
 
   if (!res.ok) {
-    const errorMessage = await parseErrorResponse(res, defaultErrorMessage);
-    throw new BaseApiError(errorMessage, res.status);
+    const { errorMessage, headers } = await parseErrorResponse(res, defaultErrorMessage);
+    throw new BaseApiError(errorMessage, res.status, headers);
   }
 
   if (res.status === 204) {
@@ -83,8 +91,8 @@ export async function apiFetchStream(
   }
 
   if (!res.ok) {
-    const errorMessage = await parseErrorResponse(res, defaultErrorMessage);
-    throw new BaseApiError(errorMessage, res.status);
+    const { errorMessage, headers } = await parseErrorResponse(res, defaultErrorMessage);
+    throw new BaseApiError(errorMessage, res.status, headers);
   }
 
   return res;

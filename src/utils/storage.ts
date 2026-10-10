@@ -1,7 +1,7 @@
 import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "./platform";
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG } from "../data/templates";
-import { COMMON_MOCK_PREFIXES, MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS, MOCK_JULES_TITLE_PATTERNS, MOCK_JULES_REPO_PATTERNS } from "./mockDefinitions";
+import { MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS, isMockSession } from "./mockDefinitions";
 
 export const STORAGE_KEYS = {
   API_KEY: "ai_studio_api_key",
@@ -167,6 +167,21 @@ export function safeSetStorage<T>(key: string, value: T): boolean {
   } catch (err: unknown) {
     console.warn(`Failed to write ${key} to storage (likely quota limit):`, err);
     return false;
+  }
+}
+
+/**
+ * Safely removes all storage keys that match the given prefix.
+ */
+export function safeRemoveStorageKeysWithPrefix(prefix: string): void {
+  try {
+    const keysToRemove = safeGetStorageKeys(prefix);
+    const storage = getStorageInstance();
+    for (const key of keysToRemove) {
+      storage.removeItem(key);
+    }
+  } catch (err: unknown) {
+    console.warn(`Failed to remove keys with prefix ${prefix}:`, err);
   }
 }
 
@@ -490,16 +505,7 @@ export function saveStoredJulesApiKey(key: string): void {
 }
 
 export function isMockJulesSession(session: Partial<JulesSession>): boolean {
-  if (!session) return true;
-  const id = (session.id || "").toLowerCase();
-  const title = (session.title || "").toLowerCase();
-  const repo = (session.repository || "").toLowerCase();
-
-  if (COMMON_MOCK_PREFIXES.some((prefix) => id.startsWith(prefix))) return true;
-  if (MOCK_JULES_TITLE_PATTERNS.some((pattern) => title.includes(pattern))) return true;
-  if (MOCK_JULES_REPO_PATTERNS.some((pattern) => repo.includes(pattern))) return true;
-
-  return false;
+  return isMockSession(session, "jules");
 }
 
 export function loadStoredJulesSessions(): JulesSession[] {
