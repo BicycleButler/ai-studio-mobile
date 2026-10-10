@@ -6,12 +6,14 @@ interface UseClipboardKeySnifferOptions {
   activeApiKey?: string;
   onKeyDetected?: (key: string) => void;
   enabled?: boolean;
+  detectKeyFn?: (text: string) => string | null;
 }
 
 export function useClipboardKeySniffer({
   activeApiKey = "",
   onKeyDetected,
   enabled = true,
+  detectKeyFn = detectGoogleApiKey,
 }: UseClipboardKeySnifferOptions = {}) {
   const [detectedKey, setDetectedKey] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
@@ -33,7 +35,7 @@ export function useClipboardKeySniffer({
       }
 
       lastCheckedTextRef.current = text;
-      const key = detectGoogleApiKey(text);
+      const key = detectKeyFn(text);
 
       if (key) {
         const trimmedActive = activeApiKey.trim();

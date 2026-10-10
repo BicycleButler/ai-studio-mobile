@@ -2,31 +2,36 @@ import { KeyVerificationResult } from "../types";
 import { apiFetch, BaseApiError } from "../utils/apiClient";
 import { getSafeNavigatorClipboard } from "../utils/platform";
 
+// Base string patterns for dynamic regex composition
+const BASE_STANDARD_GOOGLE_KEY = "AIza[0-9A-Za-z\\-_]{35}";
+const BASE_AISTUDIO_PROJECT_KEY = "AQ\\.[0-9A-Za-z\\-_]{10,}";
+const BASE_JULES_PREFIXED_KEY = "jules_[0-9A-Za-z\\-_]{20,}";
+
 /**
  * Standard Google API keys: `AIza` followed by 35 alphanumeric/dash/underscore characters.
  */
-export const STANDARD_GOOGLE_KEY_REGEX = /^AIza[0-9A-Za-z\-_]{35}$/;
+export const STANDARD_GOOGLE_KEY_REGEX = new RegExp(`^${BASE_STANDARD_GOOGLE_KEY}$`);
 
 /**
  * AI Studio project keys: starting with `AQ.` followed by alphanumeric/dash/underscore characters.
  */
-export const AISTUDIO_PROJECT_KEY_REGEX = /^AQ\.[0-9A-Za-z\-_]{10,}$/;
+export const AISTUDIO_PROJECT_KEY_REGEX = new RegExp(`^${BASE_AISTUDIO_PROJECT_KEY}$`);
 
 /**
  * Embedded search pattern to extract key from text or environment strings.
  */
-const EMBEDDED_KEY_REGEX = /(AIza[0-9A-Za-z\-_]{35}|AQ\.[0-9A-Za-z\-_]{10,})/;
+const EMBEDDED_KEY_REGEX = new RegExp(`(${BASE_STANDARD_GOOGLE_KEY}|${BASE_AISTUDIO_PROJECT_KEY})`);
 
 /**
  * Jules API keys: either standard Google API keys (`AIza...`), Jules prefixed keys (`jules_...`),
  * or project keys (`AQ....`).
  */
-export const JULES_KEY_REGEX = /^(AIza[0-9A-Za-z\-_]{35}|AQ\.[0-9A-Za-z\-_]{10,}|jules_[0-9A-Za-z\-_]{20,})$/;
+export const JULES_KEY_REGEX = new RegExp(`^(${BASE_STANDARD_GOOGLE_KEY}|${BASE_AISTUDIO_PROJECT_KEY}|${BASE_JULES_PREFIXED_KEY})$`);
 
 /**
  * Embedded Jules key search pattern.
  */
-const EMBEDDED_JULES_KEY_REGEX = /(AIza[0-9A-Za-z\-_]{35}|AQ\.[0-9A-Za-z\-_]{10,}|jules_[0-9A-Za-z\-_]{20,})/;
+const EMBEDDED_JULES_KEY_REGEX = new RegExp(`(${BASE_STANDARD_GOOGLE_KEY}|${BASE_AISTUDIO_PROJECT_KEY}|${BASE_JULES_PREFIXED_KEY})`);
 
 /**
  * Validates whether a raw candidate string strictly matches Jules API key specifications.

@@ -6,6 +6,27 @@ export interface CompressionOptions {
 }
 
 /**
+ * Calculates proportionally scaled dimensions ensuring neither width nor height exceeds maxDimension.
+ */
+export function calculateProportionalDimensions(width: number, height: number, maxDimension: number): { width: number; height: number } {
+  if (width <= maxDimension && height <= maxDimension) {
+    return { width, height };
+  }
+
+  if (width > height) {
+    return {
+      width: maxDimension,
+      height: Math.round((height * maxDimension) / width),
+    };
+  }
+
+  return {
+    width: Math.round((width * maxDimension) / height),
+    height: maxDimension,
+  };
+}
+
+/**
  * Resizes and compresses images client-side before sending to Gemini.
  * Prevents mobile memory exhaustion (OOM) and accelerates upload on cellular connections.
  * 1568px aligns with Gemini's high-resolution vision processing tile sizes.
@@ -23,18 +44,7 @@ export async function compressImageForGemini(
       const img = new Image();
       img.onload = () => {
         try {
-          let { width, height } = img;
-
-          // Scale down proportionally if larger than maxDimension
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = Math.round((height * maxDimension) / width);
-              width = maxDimension;
-            } else {
-              width = Math.round((width * maxDimension) / height);
-              height = maxDimension;
-            }
-          }
+          const { width, height } = calculateProportionalDimensions(img.width, img.height, maxDimension);
 
           const canvas = document.createElement("canvas");
           canvas.width = width;
