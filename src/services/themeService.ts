@@ -129,21 +129,24 @@ export function initThemeService(): () => void {
     const win = getSafeWindowMatchMedia();
     if (win && win.matchMedia) {
       mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
-      const handleChange = () => {
-        if (currentMode === "system") {
-          currentResolved = getSystemResolvedTheme();
-          applyThemeToDOM(currentResolved);
-          notifyListeners();
-        }
-      };
-
-      safeAddMatchMediaListener(mediaQueryList, handleChange);
     }
   }
 
+  // Set up the listener on every call to initThemeService to guarantee it returns a valid teardown,
+  // but only if we have a valid mediaQueryList.
+  let removeListener = () => {};
+  if (mediaQueryList) {
+    const handleChange = () => {
+      if (currentMode === "system") {
+        currentResolved = getSystemResolvedTheme();
+        applyThemeToDOM(currentResolved);
+        notifyListeners();
+      }
+    };
+    removeListener = safeAddMatchMediaListener(mediaQueryList, handleChange);
+  }
+
   return () => {
-    if (mediaQueryList) {
-      // Cleanup if teardown needed
-    }
+    removeListener();
   };
 }
