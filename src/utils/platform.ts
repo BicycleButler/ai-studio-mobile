@@ -47,6 +47,17 @@ export function getSafeWindowSpeechSynthesis(): SpeechSynthesis | null {
   return isBrowserEnvironment() && "speechSynthesis" in window ? (window as unknown as WindowWithSpeechSynthesis).speechSynthesis! : null;
 }
 
+
+/**
+ * Safely retrieves the user's navigator language, providing a fallback if unavailable.
+ */
+export function getSafeNavigatorLanguage(fallback: string = "en-US"): string {
+  if (isBrowserEnvironment() && navigator.language) {
+    return navigator.language;
+  }
+  return fallback;
+}
+
 export function getSafeNavigatorClipboard(): Clipboard | null {
   return isBrowserEnvironment() && navigator.clipboard ? (navigator as unknown as NavigatorWithClipboard).clipboard! : null;
 }

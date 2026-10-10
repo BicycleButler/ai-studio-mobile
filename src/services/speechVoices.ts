@@ -1,6 +1,6 @@
 import { apiFetch } from "../utils/apiClient";
 import { getAuthHeaders } from "./auth";
-import { getSafeWindowSpeechSynthesis } from "../utils/platform";
+import { getSafeWindowSpeechSynthesis, getSafeNavigatorLanguage } from "../utils/platform";
 /**
  * Voice definitions and speech playback engine
  * Supports:
@@ -175,7 +175,7 @@ export function getAvailableDeviceVoices(): DeviceVoiceOption[] {
   });
 
   // Sort natural voices first, then English / user language, then alphabetical
-  const userLangPrefix = (navigator.language || "en").slice(0, 2).toLowerCase();
+  const userLangPrefix = getSafeNavigatorLanguage("en").slice(0, 2).toLowerCase();
 
   return options.sort((a, b) => {
     if (a.isNatural !== b.isNatural) {
@@ -204,7 +204,7 @@ export function getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesi
     if (matched) return matched;
   }
 
-  const userLang = (navigator.language || "en").toLowerCase();
+  const userLang = getSafeNavigatorLanguage("en").toLowerCase();
   const userLangPrefix = userLang.slice(0, 2);
 
   // 1. Natural / Neural voice in user's exact language

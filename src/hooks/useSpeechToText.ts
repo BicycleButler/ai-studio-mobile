@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeWindowSpeech } from "../utils/platform";
+import { isBrowserEnvironment, getSafeWindowSpeech, getSafeNavigatorLanguage } from "../utils/platform";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // Safe Web Speech API TypeScript definitions
@@ -179,7 +179,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
         shouldKeepListeningRef.current = isContinuous;
 
         recognition.lang =
-          optionsRef.current.lang || (isBrowserEnvironment() ? navigator.language : "en-US");
+          optionsRef.current.lang || getSafeNavigatorLanguage("en-US");
         recognition.continuous = optionsRef.current.continuous ?? true;
         recognition.interimResults = optionsRef.current.interimResults ?? true;
 
@@ -316,7 +316,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
                   if (restartClass) {
                     const nextRec = new restartClass();
                     recognitionRef.current = nextRec;
-                    nextRec.lang = optionsRef.current.lang || (isBrowserEnvironment() ? navigator.language : "en-US");
+                    nextRec.lang = optionsRef.current.lang || getSafeNavigatorLanguage("en-US");
                     nextRec.continuous = optionsRef.current.continuous ?? true;
                     nextRec.interimResults = optionsRef.current.interimResults ?? true;
                     nextRec.onstart = () => setIsListening(true);
