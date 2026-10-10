@@ -1,5 +1,5 @@
 import { getSafeWindow } from "./utils/platform";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   PromptType,
   DeviceFrameMode,
@@ -40,6 +40,7 @@ import { ImportProjectSheet } from "./components/ImportProjectSheet";
 import { SecurePrivacyShield } from "./components/SecurePrivacyShield";
 import { JulesSessionDrawer } from "./components/JulesSessionDrawer";
 import { useGeminiStream } from "./hooks/useGeminiStream";
+import { useJules } from "./hooks/useJules";
 import {
   CURATED_MODELS,
   isDeprecatedOrUnusableModel,
@@ -61,18 +62,9 @@ import {
   setActiveProjectId,
   updateStoredProject,
   deleteStoredProject,
-  loadStoredJulesApiKey,
-  saveStoredJulesApiKey,
-  loadStoredJulesSessions,
-  getActiveJulesSession,
-  setActiveJulesSessionId,
-  updateStoredJulesSession,
+  isFlagSecureEnabled,
+  setFlagSecureEnabled,
 } from "./utils/storage";
-import {
-  dispatchJulesTask,
-  pollJulesTask,
-  approveJulesPlan,
-} from "./services/julesService";
 import {
   SpeechSettings,
   loadSpeechSettings,
@@ -165,253 +157,28 @@ export default function App() {
   // Library / saved prompts
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(() => loadSavedPrompts());
 
-  // Google Jules Autonomous Coding Agent state
-  const [julesApiKey, setJulesApiKey] = useState<string>(() => loadStoredJulesApiKey());
-  const [julesSessions, setJulesSessions] = useState<JulesSession[]>(() => loadStoredJulesSessions());
-  const [activeJulesSession, setActiveJulesSession] = useState<JulesSession | null>(() => getActiveJulesSession());
+  // 10) Security / Environment overrides
+  const [flagSecure, setFlagSecure] = useState(() => isFlagSecureEnabled());
+
   const [showJulesDrawer, setShowJulesDrawer] = useState(false);
-  const [isJulesExecuting, setIsJulesExecuting] = useState(false);
-  const [isApprovingJulesPlan, setIsApprovingJulesPlan] = useState(false);
-  const [julesMessages, setJulesMessages] = useState<ChatMessage[]>(() => getActiveJulesSession()?.messages || []);
   const [browserService, setBrowserService] = useState<"aistudio" | "jules">("aistudio");
-  const julesPollingRef = useRef<{ stop: () => void } | null>(null);
 
-  const handleSaveJulesApiKey = (key: string) => {
-    setJulesApiKey(key);
-    saveStoredJulesApiKey(key);
-  };
-
-  const handleStopJulesPolling = () => {
-    if (julesPollingRef.current) {
-      julesPollingRef.current.stop();
-      julesPollingRef.current = null;
-    }
-    setIsJulesExecuting(false);
-  };
-
-  const handleClearJulesMessages = () => {
-    handleStopJulesPolling();
-    setJulesMessages([]);
-    if (activeJulesSession) {
-      const updated = { ...activeJulesSession, messages: [], updatedAt: Date.now() };
-      updateStoredJulesSession(updated);
-      setActiveJulesSession(updated);
-    }
-  };
-
-  const handleSendJulesMessage = async (
-    promptText: string,
-    _attachments?: MessageAttachment[],
-    templateIds?: string[],
-    rawUserText?: string
-  ) => {
-    if (!promptText.trim()) return;
-
-    if (!julesApiKey.trim()) {
-      handleOpenSettings("account");
-      return;
-    }
-
-    let currentSession = activeJulesSession;
-    if (!currentSession) {
-      setShowJulesDrawer(true);
-      return;
-    }
-
-    const userMsg: ChatMessage = {
-      id: `usr_${Date.now()}`,
-      role: "user",
-      text: promptText,
-      timestamp: Date.now(),
-      templateIds,
-      rawUserText,
-    };
-
-    const taskModelMsgId = `jules_${Date.now()}`;
-    const initialModelMsg: ChatMessage = {
-      id: taskModelMsgId,
-      role: "model",
-      text: `Dispatching task to Jules for ${currentSession.repository}...`,
-      timestamp: Date.now(),
-      julesActivity: {
-        type: "plan",
-        taskId: "pending",
-        status: "planning",
-        title: promptText.length > 55 ? promptText.slice(0, 52) + "..." : promptText,
-        planDescription: `Jules is inspecting ${currentSession.repository} (branch: ${currentSession.branch}) and planning autonomous changes.`,
-        steps: [
-          { id: "s1", title: "Analyze workspace", description: "Cloning repository & analyzing workspace structure", status: "in_progress" },
-          { id: "s2", title: "Formulate plan", description: "Formulating code edit plan", status: "pending" },
-          { id: "s3", title: "Execute edits", description: "Executing code changes", status: "pending" },
-          { id: "s4", title: "Create Pull Request", description: "Creating Pull Request", status: "pending" },
-        ],
-      },
-    };
-
-    const updatedMessages = [...julesMessages, userMsg, initialModelMsg];
-    setJulesMessages(updatedMessages);
-
-    // Persist to session
-    const sessionWithMessages: JulesSession = {
-      ...currentSession,
-      updatedAt: Date.now(),
-      messages: updatedMessages,
-    };
-    updateStoredJulesSession(sessionWithMessages);
-    setActiveJulesSession(sessionWithMessages);
-    setJulesSessions((prev) =>
-      prev.map((s) => (s.id === sessionWithMessages.id ? sessionWithMessages : s))
-    );
-
-    setIsJulesExecuting(true);
-
-    try {
-      const dispatchedTask = await dispatchJulesTask(julesApiKey, {
-        repository: currentSession.repository,
-        prompt: promptText,
-        branch: currentSession.branch,
-        autoApprove: currentSession.autoApprovePlan,
-      });
-
-      const updatedActivityMsg: ChatMessage = {
-        ...initialModelMsg,
-        text: `Jules task created: #${dispatchedTask.id.slice(0, 8)}`,
-        julesActivity: {
-          type: "plan",
-          taskId: dispatchedTask.id,
-          status: dispatchedTask.status,
-          title: dispatchedTask.title || initialModelMsg.julesActivity?.title,
-          planDescription: dispatchedTask.planDescription,
-          steps: dispatchedTask.steps || initialModelMsg.julesActivity?.steps,
-          pullRequestUrl: dispatchedTask.pullRequestUrl,
-          pullRequestNumber: dispatchedTask.pullRequestNumber,
-          errorMessage: dispatchedTask.errorMessage,
-        },
-      };
-
-      setJulesMessages((prev) =>
-        prev.map((m) => (m.id === taskModelMsgId ? updatedActivityMsg : m))
-      );
-
-      // Start polling live proxy
-      julesPollingRef.current = pollJulesTask(
-        julesApiKey,
-        dispatchedTask.id,
-        (updatedTask) => {
-          setJulesMessages((prev) => {
-            const next = prev.map((m) => {
-              if (m.id === taskModelMsgId && m.julesActivity) {
-                return {
-                  ...m,
-                  text:
-                    updatedTask.status === "completed"
-                      ? `Task completed! Pull Request created for ${currentSession?.repository}.`
-                      : updatedTask.status === "failed"
-                      ? `Jules encountered an error while executing task.`
-                      : updatedTask.status === "awaiting_approval"
-                      ? `Plan ready. Awaiting approval to execute.`
-                      : m.text,
-                  julesActivity: {
-                    ...m.julesActivity,
-                    status: updatedTask.status,
-                    steps: updatedTask.steps || m.julesActivity.steps,
-                    planDescription: updatedTask.planDescription || m.julesActivity.planDescription,
-                    diffStats: updatedTask.diffStats || m.julesActivity.diffStats,
-                    pullRequestUrl: updatedTask.pullRequestUrl,
-                    pullRequestNumber: updatedTask.pullRequestNumber,
-                    errorMessage: updatedTask.errorMessage,
-                  },
-                };
-              }
-              return m;
-            });
-
-            if (currentSession) {
-              const updatedSess = { ...currentSession, messages: next, updatedAt: Date.now() };
-              updateStoredJulesSession(updatedSess);
-            }
-            return next;
-          });
-
-          if (updatedTask.status === "completed" || updatedTask.status === "failed") {
-            setIsJulesExecuting(false);
-          }
-        },
-        (error) => {
-          console.error("Jules polling error:", error);
-          setIsJulesExecuting(false);
-        }
-      );
-    } catch (err: unknown) {
-      setIsJulesExecuting(false);
-      const errMsg = err instanceof Error ? err.message : "Failed to dispatch Jules task";
-      setJulesMessages((prev) =>
-        prev.map((m) =>
-          m.id === taskModelMsgId
-            ? {
-                ...m,
-                error: errMsg,
-                julesActivity: m.julesActivity
-                  ? { ...m.julesActivity, status: "failed", errorMessage: errMsg }
-                  : undefined,
-              }
-            : m
-        )
-      );
-    }
-  };
-
-  const handleApproveJulesPlan = async (taskId: string) => {
-    if (!julesApiKey.trim()) return;
-    setIsApprovingJulesPlan(true);
-    try {
-      await approveJulesPlan(julesApiKey, taskId, true);
-      setJulesMessages((prev) =>
-        prev.map((m) => {
-          if (m.julesActivity && m.julesActivity.taskId === taskId) {
-            return {
-              ...m,
-              text: "Plan approved. Jules is executing changes and committing...",
-              julesActivity: {
-                ...m.julesActivity,
-                status: "executing",
-              },
-            };
-          }
-          return m;
-        })
-      );
-    } catch (err: unknown) {
-      console.error("Failed to approve plan:", err);
-    } finally {
-      setIsApprovingJulesPlan(false);
-    }
-  };
-
-  const handleRejectJulesPlan = async (taskId: string) => {
-    if (!julesApiKey.trim()) return;
-    try {
-      await approveJulesPlan(julesApiKey, taskId, false);
-      setJulesMessages((prev) =>
-        prev.map((m) => {
-          if (m.julesActivity && m.julesActivity.taskId === taskId) {
-            return {
-              ...m,
-              text: "Plan rejected by user.",
-              julesActivity: {
-                ...m.julesActivity,
-                status: "failed",
-                errorMessage: "Plan was rejected by user.",
-              },
-            };
-          }
-          return m;
-        })
-      );
-    } catch (err: unknown) {
-      console.error("Failed to reject plan:", err);
-    }
-  };
+  const {
+    julesApiKey,
+    handleSaveJulesApiKey,
+    activeJulesSession,
+    setActiveJulesSession,
+    julesMessages,
+    setJulesMessages,
+    isJulesExecuting,
+    isApprovingJulesPlan,
+    handleSendJulesMessage,
+    handleClearJulesMessages,
+    handleStopJulesPolling,
+    handleApproveJulesPlan,
+    handleRejectJulesPlan,
+    handleSelectSession: handleSelectJulesSession
+  } = useJules();
 
   // Dedicated resilient streaming hook
   const {
@@ -1128,9 +895,16 @@ export default function App() {
             onRejectJulesPlan={(taskId) => void handleRejectJulesPlan(taskId)}
             isApprovingJulesPlan={isApprovingJulesPlan}
             messages={julesMessages}
-            onSendMessage={(text, attachments, templateIds, rawUserText) =>
-              void handleSendJulesMessage(text, attachments, templateIds, rawUserText)
-            }
+            onSendMessage={async (text, attachments, templateIds, rawUserText) => {
+              if (!julesApiKey.trim()) {
+                 handleOpenSettings("account");
+                 return;
+              }
+              const result = await handleSendJulesMessage(text, attachments, templateIds, rawUserText);
+              if (result === false) {
+                 setShowJulesDrawer(true);
+              }
+            }}
             onClearMessages={handleClearJulesMessages}
             onRegenerate={() => {}}
             onStopGeneration={handleStopJulesPolling}
@@ -1150,14 +924,7 @@ export default function App() {
             onOpenSettings={handleOpenSettings}
             activeProjectId={activeProject?.id}
             currentSessionId={activeJulesSession?.id}
-            onSelectSession={(sess) => {
-              const jSession = julesSessions.find((s) => s.id === sess.id);
-              if (jSession) {
-                setActiveJulesSessionId(jSession.id);
-                setActiveJulesSession(jSession);
-                setJulesMessages(jSession.messages || []);
-              }
-            }}
+            onSelectSession={handleSelectJulesSession}
             onNewChat={() => setShowJulesDrawer(true)}
             onOpenBottomNav={() => setShowBottomNav(true)}
             isTemplateDrawerOpen={isTemplateDrawerOpen}
@@ -1267,9 +1034,7 @@ export default function App() {
         onClose={() => setShowJulesDrawer(false)}
         activeSessionId={activeJulesSession?.id || null}
         onSelectSession={(session) => {
-          setActiveJulesSessionId(session.id);
-          setActiveJulesSession(session);
-          setJulesMessages(session.messages || []);
+          handleSelectJulesSession(session);
           setShowJulesDrawer(false);
         }}
         onOpenApiKeyModal={() => {
