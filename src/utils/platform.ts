@@ -44,7 +44,7 @@ export function getSafeWindowSpeech(): WindowWithSpeech | null {
   return isBrowserEnvironment() ? (window as WindowWithSpeech) : null;
 }
 export function getSafeWindowSpeechSynthesis(): SpeechSynthesis | null {
-  return isBrowserEnvironment() && "speechSynthesis" in window ? (window as unknown as WindowWithSpeechSynthesis).speechSynthesis! : null;
+  return isBrowserEnvironment() && "speechSynthesis" in window ? (window as WindowWithSpeechSynthesis).speechSynthesis! : null;
 }
 
 
@@ -59,7 +59,7 @@ export function getSafeNavigatorLanguage(fallback: string = "en-US"): string {
 }
 
 export function getSafeNavigatorClipboard(): Clipboard | null {
-  return isBrowserEnvironment() && navigator.clipboard ? (navigator as unknown as NavigatorWithClipboard).clipboard! : null;
+  return isBrowserEnvironment() && navigator.clipboard ? (navigator as NavigatorWithClipboard).clipboard! : null;
 }
 
 
