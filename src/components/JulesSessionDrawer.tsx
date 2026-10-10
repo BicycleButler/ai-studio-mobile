@@ -157,7 +157,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
         );
       case "failed":
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-1">
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted/40 text-destructive border border-destructive/20 flex items-center gap-1">
             <AlertCircle className="w-2.5 h-2.5 text-destructive" />
             <span>Failed</span>
           </span>
@@ -257,7 +257,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
         {/* Api Key Alert if missing */}
         {!hasApiKey && (
-          <div className="m-3 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center justify-between gap-2">
+          <div className="m-3 p-3 rounded-xl bg-muted/40 border border-destructive/20 text-destructive text-xs flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-destructive" />
               <span>Jules API key required to run tasks</span>
@@ -265,7 +265,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             <button
               type="button"
               onClick={onOpenApiKeyModal}
-              className="px-2.5 py-1 rounded-lg bg-destructive/20 hover:bg-destructive/30 text-destructive text-[11px] font-semibold shrink-0 cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-muted/40 hover:bg-destructive/30 text-destructive text-[11px] font-semibold shrink-0 cursor-pointer"
             >
               Configure
             </button>

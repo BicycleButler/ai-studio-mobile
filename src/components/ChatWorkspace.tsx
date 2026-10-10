@@ -1159,7 +1159,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                             e.stopPropagation();
                             handleDeleteSession(session.id);
                           }}
-                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors shrink-0 opacity-60 group-hover:opacity-100 border-0 bg-transparent cursor-pointer"
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-muted/40 rounded-lg transition-colors shrink-0 opacity-60 group-hover:opacity-100 border-0 bg-transparent cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1476,7 +1476,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 )}
 
                 {msg.error && (
-                  <div className="mt-2 p-2 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs">
+                  <div className="mt-2 p-2 rounded-lg bg-muted/40 border border-destructive/30 text-destructive text-xs">
                     {msg.error}
                   </div>
                 )}
@@ -1552,7 +1552,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               </div>
               <button
                 onClick={() => removeAttachment(att.id)}
-                className="p-0.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive cursor-pointer"
+                className="p-0.5 rounded-full hover:bg-muted/40 text-muted-foreground hover:text-destructive cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -1586,7 +1586,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => handleRemoveTemplate(template.id)}
-                className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full hover:bg-destructive/20 text-muted-foreground hover:text-destructive cursor-pointer shrink-0 transition-colors touch-manipulation relative after:absolute after:-inset-2"
+                className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full hover:bg-muted/40 text-muted-foreground hover:text-destructive cursor-pointer shrink-0 transition-colors touch-manipulation relative after:absolute after:-inset-2"
                 title={`Dismiss #${idx + 1} ${template.title} (Dismiss to reorder)`}
                 aria-label={`Remove template ${template.title}`}
               >
@@ -1686,7 +1686,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   type="button"
                   id="chat-voice-fab-end-btn"
                   onClick={handleToggleVoiceMode}
-                  className="w-7 h-7 rounded-full bg-destructive/15 text-destructive hover:bg-destructive/25 flex items-center justify-center cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-muted/40 text-destructive hover:bg-destructive/25 flex items-center justify-center cursor-pointer"
                   title="End hands-free voice mode"
                   aria-label="End hands-free voice mode"
                 >

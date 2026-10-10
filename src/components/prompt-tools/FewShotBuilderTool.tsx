@@ -198,7 +198,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
                 <button
                   type="button"
                   onClick={() => handleRemoveExample(ex.id)}
-                  className="w-6 h-6 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-6 h-6 rounded-md hover:bg-muted/40 text-muted-foreground hover:text-destructive flex items-center justify-center transition-colors cursor-pointer"
                   title="Remove example"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

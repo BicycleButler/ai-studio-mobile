@@ -1031,7 +1031,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                     {proj.name}
                                   </h5>
                                   {(!proj.isValid || proj.status === "invalid_key" || proj.status === "attention_required") ? (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 text-[10px] font-medium flex items-center gap-1">
+                                    <span className="px-1.5 py-0.5 rounded-full bg-muted/40 text-destructive border border-destructive/30 text-[10px] font-medium flex items-center gap-1">
                                       <AlertTriangle className="w-2.5 h-2.5 text-destructive" />
                                       <span>Key Attention</span>
                                     </span>
@@ -1090,7 +1090,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                             {/* Actions on Project */}
                             <div className="flex items-center gap-1 shrink-0">
                               {isConfirmingDelete ? (
-                                <div className="flex items-center gap-1 bg-destructive/15 border border-destructive/30 p-1 rounded-lg">
+                                <div className="flex items-center gap-1 bg-muted/40 border border-destructive/30 p-1 rounded-lg">
                                   <span className="text-[10px] text-destructive font-medium px-1">
                                     Delete?
                                   </span>
@@ -1118,7 +1118,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                                   type="button"
                                   id={`btn-delete-project-${proj.id}`}
                                   onClick={() => setDeleteConfirmProjectId(proj.id)}
-                                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-muted/40 rounded-lg transition-colors cursor-pointer"
                                   title="Delete project"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1217,7 +1217,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={handleClearApiKey}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-muted/40 transition-colors cursor-pointer"
                       >
                         Remove
                       </button>
@@ -1238,7 +1238,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
                       testResult.success
                         ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
-                        : "bg-destructive/15 border-destructive/30 text-destructive"
+                        : "bg-muted/40 border-destructive/30 text-destructive"
                     }`}
                   >
                     {testResult.success ? (
@@ -1335,7 +1335,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={handleClearJulesKey}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-muted/40 transition-colors cursor-pointer"
                       >
                         Remove
                       </button>
@@ -1356,7 +1356,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
                       julesTestResult.success
                         ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
-                        : "bg-destructive/15 border-destructive/30 text-destructive"
+                        : "bg-muted/40 border-destructive/30 text-destructive"
                     }`}
                   >
                     {julesTestResult.success ? (
@@ -1800,7 +1800,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               </div>
 
               {previewError && (
-                <div className="p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-xs text-destructive">
+                <div className="p-3 rounded-xl bg-muted/40 border border-destructive/30 text-xs text-destructive">
                   {previewError}
                 </div>
               )}
