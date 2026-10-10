@@ -28,21 +28,11 @@ import {
   StubsGraphData,
   StubsLintViolation,
   StubsImpactResult,
-  StubsSidecarSpec,
   JulesRepository,
 } from "../types";
-import {
-  fetchGraphData,
-  fetchDiagram,
-  fetchImpact,
-  fetchLintResults,
-  fetchSidecarSpecs,
-  fetchSpecDetail,
-  saveSpecContent,
-  materializeSpec,
-  executeStubsCommand,
-  connectStubsStream,
-} from "../services/stubsService";
+import { useStubsTerminal } from "../hooks/stubs/useStubsTerminal";
+import { useStubsData } from "../hooks/stubs/useStubsData";
+import { useStubsSpecs } from "../hooks/stubs/useStubsSpecs";
 
 interface StubsWorkspaceProps {
   onOpenBottomNav?: () => void;
@@ -75,57 +65,71 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<string>("Active Workspace (ai-studio-mobile)");
 
-  // Data states
-  const [graphData, setGraphData] = useState<StubsGraphData | null>(null);
-  const [isLoadingGraph, setIsLoadingGraph] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDomain, setSelectedDomain] = useState<string>("all");
-  const [selectedLayer, setSelectedLayer] = useState<number | "all">("all");
-
-  // Diagram state
-  const [diagramGroupBy, setDiagramGroupBy] = useState<"domain" | "layer">("domain");
-  const [diagramMermaid, setDiagramMermaid] = useState<string>("");
-  const [diagramViewMode, setDiagramViewMode] = useState<"svg" | "code">("svg");
-  const [renderedSvg, setRenderedSvg] = useState<string>("");
-  const [isLoadingDiagram, setIsLoadingDiagram] = useState(false);
-  const [copyDiagramToast, setCopyDiagramToast] = useState(false);
-
-  // Lint state
-  const [lintViolations, setLintViolations] = useState<StubsLintViolation[]>([]);
-  const [lintPassed, setLintPassed] = useState<boolean>(true);
-  const [totalLintChecks, setTotalLintChecks] = useState<number>(0);
-  const [isLoadingLint, setIsLoadingLint] = useState(false);
-
-  // Impact state
-  const [selectedImpactTarget, setSelectedImpactTarget] = useState<string>("src/types.ts");
-  const [impactResult, setImpactResult] = useState<StubsImpactResult | null>(null);
-  const [isLoadingImpact, setIsLoadingImpact] = useState(false);
-
-  // Specs state
-  const [specs, setSpecs] = useState<StubsSidecarSpec[]>([]);
-  const [activeSpecPath, setActiveSpecPath] = useState<string>("");
-  const [specContent, setSpecContent] = useState<string>("");
-  const [isLoadingSpecs, setIsLoadingSpecs] = useState(false);
-  const [isSavingSpec, setIsSavingSpec] = useState(false);
-  const [isMaterializingSpec, setIsMaterializingSpec] = useState(false);
-  const [specActionToast, setSpecActionToast] = useState<string | null>(null);
-
-  // Live Terminal / SSE state
-  const [terminalLogs, setTerminalLogs] = useState<
-    Array<{ type: string; text: string; timestamp: number; code?: number }>
-  >([]);
-  const [isExecutingCommand, setIsExecutingCommand] = useState(false);
-  const terminalEndRef = useRef<HTMLDivElement>(null);
-
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showToast = (msg: string) => {
+  const showToast = React.useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
     }, 3500);
-  };
+  }, []);
+
+  // Diagram state
+  const [copyDiagramToast, setCopyDiagramToast] = useState(false);
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDomain, setSelectedDomain] = useState<string>("all");
+  const [selectedLayer, setSelectedLayer] = useState<number | "all">("all");
+
+  const [selectedImpactTarget, setSelectedImpactTarget] = useState<string>("src/types.ts");
+
+  const {
+    terminalLogs,
+    isExecutingCommand,
+    terminalEndRef,
+    clearLogs,
+    scrollToBottom,
+    runCommand
+  } = useStubsTerminal();
+
+  const {
+    graphData,
+    isLoadingGraph,
+    loadGraph,
+    diagramGroupBy,
+    setDiagramGroupBy,
+    diagramMermaid,
+    renderedSvg,
+    diagramViewMode,
+    setDiagramViewMode,
+    isLoadingDiagram,
+    loadDiagram,
+    lintViolations,
+    lintPassed,
+    totalLintChecks,
+    isLoadingLint,
+    loadLint,
+    impactResult,
+    isLoadingImpact,
+    loadImpact
+  } = useStubsData(showToast);
+
+  const {
+    specs,
+    activeSpecPath,
+    specContent,
+    setSpecContent,
+    isLoadingSpecs,
+    isSavingSpec,
+    isMaterializingSpec,
+    specActionToast,
+    loadSpecs,
+    selectSpec,
+    saveSpec,
+    materializeActiveSpec
+  } = useStubsSpecs(showToast, loadGraph);
 
   // Initialize Mermaid
   useEffect(() => {
@@ -153,112 +157,19 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
       .catch(() => {});
   }, []);
 
-  // Connect SSE Live Stream
-  useEffect(() => {
-    const cleanup = connectStubsStream((log) => {
-      setTerminalLogs((prev) => [...prev.slice(-200), log]);
-    });
-    return cleanup;
-  }, []);
-
   // Auto-scroll terminal
   useEffect(() => {
     if (activeTab === "terminal") {
-      terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      scrollToBottom();
     }
-  }, [terminalLogs, activeTab]);
+  }, [terminalLogs, activeTab, scrollToBottom]);
 
   // Initial Data Load
-  const loadGraph = async () => {
-    setIsLoadingGraph(true);
-    try {
-      const data = await fetchGraphData();
-      setGraphData(data);
-    } catch (err: unknown) {
-      showToast(`Failed to load graph: ${getErrorMessage(err)}`);
-    } finally {
-      setIsLoadingGraph(false);
-    }
-  };
-
-  const loadDiagram = async () => {
-    setIsLoadingDiagram(true);
-    try {
-      const res = await fetchDiagram(diagramGroupBy);
-      setDiagramMermaid(res.mermaid);
-      // Attempt client-side render
-      try {
-        const id = "mermaid-svg-" + Date.now();
-        const { svg } = await mermaid.render(id, res.mermaid);
-        setRenderedSvg(svg);
-      } catch (renderErr: unknown) {
-        console.warn("Client-side Mermaid SVG render failed, displaying code view:", renderErr);
-        setRenderedSvg("");
-        setDiagramViewMode("code");
-      }
-    } catch (err: unknown) {
-      showToast(`Failed to load diagram: ${getErrorMessage(err)}`);
-    } finally {
-      setIsLoadingDiagram(false);
-    }
-  };
-
-  const loadLint = async () => {
-    setIsLoadingLint(true);
-    try {
-      const res = await fetchLintResults();
-      setLintViolations(res.violations);
-      setLintPassed(res.passed);
-      setTotalLintChecks(res.totalChecks);
-    } catch (err: unknown) {
-      showToast(`Failed to run lint: ${getErrorMessage(err)}`);
-    } finally {
-      setIsLoadingLint(false);
-    }
-  };
-
-  const loadImpact = async (target: string) => {
-    setIsLoadingImpact(true);
-    try {
-      const res = await fetchImpact(target);
-      setImpactResult(res);
-    } catch (err: unknown) {
-      showToast(`Failed to calculate blast radius: ${getErrorMessage(err)}`);
-    } finally {
-      setIsLoadingImpact(false);
-    }
-  };
-
-  const loadSpecs = async () => {
-    setIsLoadingSpecs(true);
-    try {
-      const res = await fetchSidecarSpecs();
-      setSpecs(res.specs);
-      if (res.specs.length > 0 && !activeSpecPath) {
-        selectSpec(res.specs[0].path);
-      }
-    } catch (err: unknown) {
-      showToast(`Failed to load sidecar specs: ${getErrorMessage(err)}`);
-    } finally {
-      setIsLoadingSpecs(false);
-    }
-  };
-
-  const selectSpec = async (path: string) => {
-    setActiveSpecPath(path);
-    try {
-      const detail = await fetchSpecDetail(path);
-      setSpecContent(detail.content);
-    } catch (err: unknown) {
-      showToast(`Failed to read spec: ${getErrorMessage(err)}`);
-    }
-  };
-
   useEffect(() => {
     loadGraph();
     loadLint();
     loadSpecs();
-  }, []);
+  }, [loadGraph, loadLint, loadSpecs]);
 
   useEffect(() => {
     if (activeTab === "diagram") {
@@ -266,60 +177,23 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
     } else if (activeTab === "impact" && !impactResult) {
       loadImpact(selectedImpactTarget);
     }
-  }, [activeTab, diagramGroupBy]);
+  }, [activeTab, diagramGroupBy, loadDiagram, impactResult, loadImpact, selectedImpactTarget]);
 
   // Execute CLI Command Helper
   const handleRunCommand = async (
     command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
     args: string[] = []
   ) => {
-    setIsExecutingCommand(true);
-    showToast(`Executing 'stubs ${command}'...`);
-    try {
-      await executeStubsCommand(command, args);
-      showToast(`Command 'stubs ${command}' completed.`);
-      // Refresh relevant data
-      await loadGraph();
-      if (command === "lint-arch") await loadLint();
-      if (command === "diagram") await loadDiagram();
-    } catch (err: unknown) {
-      showToast(`Execution error: ${getErrorMessage(err)}`);
-    } finally {
-      setIsExecutingCommand(false);
-    }
-  };
-
-  // Spec Editor Save
-  const handleSaveSpec = async () => {
-    if (!activeSpecPath) return;
-    setIsSavingSpec(true);
-    try {
-      await saveSpecContent(activeSpecPath, specContent);
-      setSpecActionToast(`Saved ${activeSpecPath}`);
-      setTimeout(() => setSpecActionToast(null), 3000);
-    } catch (err: unknown) {
-      showToast(`Failed to save spec: ${getErrorMessage(err)}`);
-    } finally {
-      setIsSavingSpec(false);
-    }
-  };
-
-  // Spec Materialization
-  const handleMaterializeSpec = async () => {
-    if (!activeSpecPath) return;
-    setIsMaterializingSpec(true);
-    try {
-      const res = await materializeSpec(activeSpecPath);
-      setSpecActionToast(res.message);
-      setTimeout(() => setSpecActionToast(null), 4000);
-      showToast(res.message);
-      await loadSpecs();
-      await loadGraph();
-    } catch (err: unknown) {
-      showToast(`Materialization failed: ${getErrorMessage(err)}`);
-    } finally {
-      setIsMaterializingSpec(false);
-    }
+    runCommand(command, args, {
+      onStart: () => showToast(`Executing 'stubs ${command}'...`),
+      onSuccess: () => {
+        showToast(`Command 'stubs ${command}' completed.`);
+        loadGraph();
+        if (command === "lint-arch") loadLint();
+        if (command === "diagram") loadDiagram();
+      },
+      onError: (err) => showToast(`Execution error: ${getErrorMessage(err)}`)
+    });
   };
 
   // Filtered nodes
@@ -1151,7 +1025,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                   <button
                     type="button"
                     id="stubs-spec-save-btn"
-                    onClick={handleSaveSpec}
+                  onClick={saveSpec}
                     disabled={isSavingSpec || !activeSpecPath}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
                   >
@@ -1162,7 +1036,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                   <button
                     type="button"
                     id="stubs-spec-materialize-btn"
-                    onClick={handleMaterializeSpec}
+                  onClick={materializeActiveSpec}
                     disabled={isMaterializingSpec || !activeSpecPath}
                     className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium shadow-sm transition-colors cursor-pointer disabled:opacity-50"
                     title="Extract TypeScript code blocks and materialize into target code file"
@@ -1240,7 +1114,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setTerminalLogs([])}
+                  onClick={clearLogs}
                   className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                   title="Clear Terminal"
                 >
