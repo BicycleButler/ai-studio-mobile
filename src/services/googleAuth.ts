@@ -11,10 +11,8 @@ import {
 } from "firebase/auth";
 import firebaseConfig from "../../firebase-applet-config.json";
 import { GoogleUser } from "../types";
-import { safeGetStorage, safeSetStorage } from "../utils/storage";
+import { safeGetStorage, safeSetStorage, STORAGE_KEYS } from "../utils/storage";
 import { apiFetch } from "../utils/apiClient";
-
-const GOOGLE_USER_STORAGE_KEY = "ai_studio_google_user_v1";
 
 // In-memory token cache as required by OAuth security guidelines
 let cachedAccessToken: string | null = null;
@@ -72,7 +70,7 @@ export const getAccessToken = async (): Promise<string | null> => {
  * Loads the active Google user from local client storage
  */
 export function loadStoredGoogleUser(): GoogleUser | null {
-  return safeGetStorage<GoogleUser | null>(GOOGLE_USER_STORAGE_KEY, null);
+  return safeGetStorage<GoogleUser | null>(STORAGE_KEYS.GOOGLE_USER, null);
 }
 
 /**
@@ -84,7 +82,7 @@ export const getStoredGoogleUser = loadStoredGoogleUser;
  * Persists or clears the active Google user in client storage
  */
 export function saveStoredGoogleUser(user: GoogleUser | null): void {
-  safeSetStorage(GOOGLE_USER_STORAGE_KEY, user);
+  safeSetStorage(STORAGE_KEYS.GOOGLE_USER, user);
 }
 
 /**

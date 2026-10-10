@@ -1,5 +1,5 @@
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
-import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "../utils/storage";
+import { safeGetStorage, safeSetStorage, safeRemoveStorage, STORAGE_KEYS } from "../utils/storage";
 
 export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
   {
@@ -64,14 +64,12 @@ export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
   },
 ];
 
-const CUSTOM_TEMPLATES_STORAGE_KEY = "ai_studio_custom_prompt_templates";
-
 export function getBuiltinTemplates(): PromptTemplate[] {
   return [...BUILTIN_PROMPT_TEMPLATES];
 }
 
 export function getCustomTemplates(): PromptTemplate[] {
-  const templates = safeGetStorage<PromptTemplate[]>(CUSTOM_TEMPLATES_STORAGE_KEY, []);
+  const templates = safeGetStorage<PromptTemplate[]>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES, []);
   return Array.isArray(templates) ? templates : [];
 }
 
@@ -144,7 +142,7 @@ export function saveCustomTemplate(data: {
     existingList.push(savedTemplate);
   }
 
-  safeSetStorage(CUSTOM_TEMPLATES_STORAGE_KEY, existingList);
+  safeSetStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES, existingList);
 
   return savedTemplate;
 }
@@ -162,13 +160,13 @@ export function deleteCustomTemplate(id: string): boolean {
     return false;
   }
 
-  safeSetStorage(CUSTOM_TEMPLATES_STORAGE_KEY, filtered);
+  safeSetStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES, filtered);
 
   return true;
 }
 
 export function clearCustomTemplates(): void {
-  safeRemoveStorage(CUSTOM_TEMPLATES_STORAGE_KEY);
+  safeRemoveStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
 }
 
 /**

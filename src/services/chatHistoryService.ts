@@ -1,18 +1,16 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorage, safeSetStorage, safeGetStorageKeys } from "../utils/storage";
+import { safeGetStorage, safeSetStorage, safeGetStorageKeys, STORAGE_KEYS } from "../utils/storage";
 import { COMMON_MOCK_PREFIXES, MOCK_SESSION_EXACT_IDS, MOCK_SESSION_TITLES, MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS } from "../utils/mockDefinitions";
-
-const CHAT_SESSIONS_PREFIX = "ai_studio_chat_sessions_v1";
 
 /**
  * Returns the storage key scoped by project
  */
 export function getChatSessionsStorageKey(projectId?: string): string {
   if (projectId && projectId.trim()) {
-    return `${CHAT_SESSIONS_PREFIX}_${projectId.trim()}`;
+    return `${STORAGE_KEYS.CHAT_SESSIONS_PREFIX}_${projectId.trim()}`;
   }
-  return `${CHAT_SESSIONS_PREFIX}_default`;
+  return `${STORAGE_KEYS.CHAT_SESSIONS_PREFIX}_default`;
 }
 
 /**
@@ -69,7 +67,7 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
 export function purgeMockSessionsFromStorage(): void {
   try {
     if (isBrowserEnvironment()) {
-      const keysToClean = safeGetStorageKeys(CHAT_SESSIONS_PREFIX);
+      const keysToClean = safeGetStorageKeys(STORAGE_KEYS.CHAT_SESSIONS_PREFIX);
 
       keysToClean.forEach((key) => {
         const sessions = safeGetStorage<ChatSession[]>(key, []);
