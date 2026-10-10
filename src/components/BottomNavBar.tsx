@@ -144,7 +144,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                       key={ws.id}
                       id={`nav-workspace-${ws.id}`}
                       onClick={() => handleSelect(ws.id)}
-                      className="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-colors relative group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[48px]"
+                      className="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-colors relative group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-12"
                       title={ws.tooltip}
                       aria-label={ws.label}
                     >

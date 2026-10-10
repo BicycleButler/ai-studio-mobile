@@ -13,6 +13,25 @@ import {
   loadStoredJulesSettings,
 } from "../utils/storage";
 
+export interface JulesServiceConfig {
+  getApiKey: () => string;
+  getSettings: () => { autoApprovePlans: boolean; defaultBranch: string };
+}
+
+let defaultConfig: JulesServiceConfig = {
+  getApiKey: loadStoredJulesApiKey,
+  getSettings: loadStoredJulesSettings,
+};
+
+export function setJulesServiceConfig(config: JulesServiceConfig) {
+  defaultConfig = config;
+}
+
+function resolveApiKey(override?: string): string {
+  return override || defaultConfig.getApiKey();
+}
+
+
 export interface JulesTaskPayload {
   id: string;
   status: JulesTaskStatus;
@@ -94,7 +113,7 @@ export async function verifyJulesApiKey(apiKey: string): Promise<JulesVerificati
  * Discovers authorized repositories for the configured Jules API key
  */
 export async function fetchJulesRepositories(apiKeyOverride?: string): Promise<JulesRepository[]> {
-  const key = apiKeyOverride || loadStoredJulesApiKey();
+  const key = resolveApiKey(apiKeyOverride);
   if (!key) return [];
 
   try {
@@ -124,13 +143,13 @@ export async function fetchJulesRepositories(apiKeyOverride?: string): Promise<J
 export async function createJulesTask(
   params: CreateJulesTaskParams
 ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
-  const key = params.apiKey || loadStoredJulesApiKey();
+  const key = resolveApiKey(params.apiKey);
   if (!key) {
     return { task: null, error: "Jules API key is required. Please set it in Settings." };
   }
 
   try {
-    const settings = loadStoredJulesSettings();
+    const settings = defaultConfig.getSettings();
     const autoApprove = params.autoApprove ?? settings.autoApprovePlans;
 
     const data = await apiFetch<{ task: JulesTaskPayload }>("/api/jules/tasks", {
@@ -257,7 +276,7 @@ export function pollJulesTask(
 
   // Single-shot signature: pollJulesTask(taskId, apiKeyOverride)
   const taskId = arg1;
-  const apiKey = typeof arg2 === "string" ? arg2 : loadStoredJulesApiKey();
+  const apiKey = resolveApiKey(typeof arg2 === "string" ? arg2 : undefined);
 
   return (async () => {
     try {
@@ -306,7 +325,7 @@ export async function approveJulesPlan(
   } else {
     // approveJulesPlan(taskId)
     tId = apiKeyOrTaskId;
-    key = loadStoredJulesApiKey();
+    key = resolveApiKey();
     approved = true;
   }
 

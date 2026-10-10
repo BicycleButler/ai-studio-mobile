@@ -1,9 +1,9 @@
 # Design System Compliance Audit Report
 
-**Date:** 2026-10-10T18:26:26.864Z
-**Target Directory:** `src`
-**Total Files Audited:** 76
-**Clean Files:** 76 (100.0%)
+**Date:** 2026-10-10T19:14:58.277Z
+**Target Directory:** `src/components`
+**Total Files Audited:** 26
+**Clean Files:** 26 (100.0%)
 **Files with Violations:** 0
 **Total Violations Detected:** 0
 

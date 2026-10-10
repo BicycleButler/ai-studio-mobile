@@ -10,6 +10,10 @@ export class BaseApiError extends Error {
     this.headers = headers;
     this.endpoint = endpoint;
   }
+
+  public isRetryable(): boolean {
+    return this.statusCode === 429 || this.statusCode === 502 || this.statusCode === 503 || this.statusCode === 504 || this.statusCode === 0;
+  }
 }
 
 export function isAbortError(err: unknown): boolean {
