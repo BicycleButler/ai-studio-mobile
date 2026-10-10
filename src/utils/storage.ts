@@ -161,6 +161,20 @@ export function safeGetStorage<T>(key: string, fallback: T): T {
 /**
  * Safely reads an array from local storage, guaranteeing an array return type.
  */
+/**
+ * Extracts a deeply nested value safely without throwing, returning a fallback if missing or type mismatches.
+ */
+export function getNestedValue<T>(obj: any, path: string[], fallback: T): T {
+  let current = obj;
+  for (const key of path) {
+    if (current === null || current === undefined || typeof current !== 'object') {
+      return fallback;
+    }
+    current = current[key];
+  }
+  return current !== undefined ? (current as T) : fallback;
+}
+
 export function safeGetStorageArray<T>(key: string, fallback: T[] = []): T[] {
   try {
     const storage = getStorageInstance();
@@ -360,12 +374,16 @@ export function loadDraftState(projectId?: string | null): DraftState {
   return {
     ...fallback,
     ...stored,
-    messages: sanitizeMessages(stored.messages),
-    promptType: sanitizeType(stored.promptType),
+    messages: sanitizeMessages(getNestedValue(stored, ['messages'], undefined)),
+    promptType: sanitizeType(getNestedValue(stored, ['promptType'], 'chat')),
     config: {
       ...DEFAULT_CONFIG,
-      ...(stored.config || {}),
+      ...(getNestedValue(stored, ['config'], {})),
     },
+    chatInputText: getNestedValue(stored, ['chatInputText'], ''),
+    freeformText: getNestedValue(stored, ['freeformText'], ''),
+    structuredExamples: getNestedValue(stored, ['structuredExamples'], []),
+    updatedAt: getNestedValue(stored, ['updatedAt'], fallback.updatedAt),
   };
 }
 

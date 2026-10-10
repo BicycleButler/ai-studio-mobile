@@ -262,7 +262,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="template-drawer-back-btn"
             onClick={onClose}
-            className="p-2 -ml-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
+            className="p-2 -ml-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-11 min-h-11"
             title="Close drawer"
             aria-label="Back / Close drawer"
           >
@@ -313,7 +313,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                     type="button"
                     id="template-drawer-create-btn"
                     onClick={handleStartCreate}
-                    className="min-h-[44px] px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer touch-manipulation"
+                    className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer touch-manipulation"
                     title="Create custom template"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -324,7 +324,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                       type="button"
                       id="template-drawer-preview-toggle-btn"
                       onClick={() => setViewMode("preview")}
-                      className="min-h-[44px] px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer touch-manipulation"
+                      className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer touch-manipulation"
                       title="Preview composite message"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -336,7 +336,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode("browse")}
-                  className="min-h-[44px] px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium transition-colors cursor-pointer touch-manipulation"
+                  className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium transition-colors cursor-pointer touch-manipulation"
                 >
                   Back to list
                 </button>
@@ -348,7 +348,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="template-drawer-close-btn"
             onClick={onClose}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="w-11 h-11 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             title="Close drawer"
             aria-label="Close templates drawer"
           >
