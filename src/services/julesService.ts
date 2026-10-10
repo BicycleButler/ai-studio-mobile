@@ -1,4 +1,4 @@
-import { apiFetch } from "../utils/apiClient";
+import { apiFetch, isAbortError } from "../utils/apiClient";
 import {
   JulesSession,
   JulesRepository,
@@ -221,7 +221,7 @@ export function pollJulesTask(
             signal: abortController.signal,
           }, "Failed to poll task");
         } catch (err: unknown) {
-          if (err instanceof Error && err.name === "AbortError") {
+          if (isAbortError(err)) {
             return;
           }
           if (onError) onError(err instanceof Error ? err : new Error(String(err)));

@@ -8,6 +8,10 @@ export class BaseApiError extends Error {
   }
 }
 
+export function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === "AbortError";
+}
+
 async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<string> {
   let errorMessage = defaultErrorMessage;
   try {
@@ -33,7 +37,7 @@ export async function apiFetch<T>(
   try {
     res = await fetch(endpoint, options);
   } catch (err: unknown) {
-    if (err instanceof Error && err.name === "AbortError") {
+    if (isAbortError(err)) {
       throw err;
     }
     throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0);
@@ -72,7 +76,7 @@ export async function apiFetchStream(
   try {
     res = await fetch(endpoint, options);
   } catch (err: unknown) {
-    if (err instanceof Error && err.name === "AbortError") {
+    if (isAbortError(err)) {
       throw err;
     }
     throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0);
