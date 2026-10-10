@@ -151,12 +151,17 @@ export function safeGetStorage<T>(key: string, fallback: T): T {
  * Safely reads an array from local storage, guaranteeing an array return type.
  */
 export function safeGetStorageArray<T>(key: string, fallback: T[] = []): T[] {
-  const raw = safeGetStorage<T[]>(key, fallback);
-  if (!Array.isArray(raw)) {
-    console.warn(`Storage key ${key} contained non-array JSON, resetting to fallback.`);
+  try {
+    const storage = getStorageInstance();
+    const raw = storage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as T[];
+    console.warn(`Storage key ${key} contained non-array JSON, returning fallback.`);
+    return fallback;
+  } catch {
     return fallback;
   }
-  return raw;
 }
 
 export function safeSetStorage<T>(key: string, value: T): boolean {
