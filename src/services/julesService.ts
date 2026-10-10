@@ -1,4 +1,5 @@
-import { apiFetch, isAbortError } from "../utils/apiClient";
+import { apiFetch } from "../utils/apiClient";
+import { startPolling } from "../utils/polling";
 import {
   JulesSession,
   JulesRepository,
@@ -6,31 +7,6 @@ import {
   JulesExecutionStep,
   JulesPullRequest,
 } from "../types";
-import {
-  loadStoredJulesApiKey,
-  loadStoredJulesSessions,
-  saveStoredJulesSessions,
-  loadStoredJulesSettings,
-} from "../utils/storage";
-
-export interface JulesServiceConfig {
-  getApiKey: () => string;
-  getSettings: () => { autoApprovePlans: boolean; defaultBranch: string };
-}
-
-let defaultConfig: JulesServiceConfig = {
-  getApiKey: loadStoredJulesApiKey,
-  getSettings: loadStoredJulesSettings,
-};
-
-export function setJulesServiceConfig(config: JulesServiceConfig) {
-  defaultConfig = config;
-}
-
-function resolveApiKey(override?: string): string {
-  return override || defaultConfig.getApiKey();
-}
-
 
 export interface JulesTaskPayload {
   id: string;
@@ -57,6 +33,33 @@ export interface JulesTaskPayload {
   errorMessage?: string;
   [key: string]: unknown;
 }
+
+import {
+  loadStoredJulesApiKey,
+  loadStoredJulesSessions,
+  saveStoredJulesSessions,
+  loadStoredJulesSettings,
+} from "../utils/storage";
+
+export interface JulesServiceConfig {
+  getApiKey: () => string;
+  getSettings: () => { autoApprovePlans: boolean; defaultBranch: string };
+}
+
+let defaultConfig: JulesServiceConfig = {
+  getApiKey: loadStoredJulesApiKey,
+  getSettings: loadStoredJulesSettings,
+};
+
+export function setJulesServiceConfig(config: JulesServiceConfig) {
+  defaultConfig = config;
+}
+
+function resolveApiKey(override?: string): string {
+  return override || defaultConfig.getApiKey();
+}
+
+
 
 export interface JulesRepositoryItem {
   id?: string;
@@ -228,50 +231,31 @@ export function pollJulesTask(
     const taskId = arg2;
     const onUpdate = arg3;
     const onError = arg4;
-    let stopped = false;
-    let abortController = new AbortController();
 
-    const runPoll = async () => {
-      try {
-        let data;
-        try {
-          data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
+    const poller = startPolling<{ task: JulesTaskPayload }>(
+      (signal) =>
+        apiFetch<{ task: JulesTaskPayload }>(
+          `/api/jules/tasks/${encodeURIComponent(taskId)}`,
+          {
             headers: { "x-jules-api-key": apiKey || "" },
-            signal: abortController.signal,
-          }, "Failed to poll task");
-        } catch (err: unknown) {
-          if (isAbortError(err)) {
-            return;
-          }
+            signal,
+          },
+          "Failed to poll task"
+        ),
+      {
+        intervalMs,
+        onUpdate: (data) => {
+          if (data.task) onUpdate(data.task);
+        },
+        onError: (err) => {
           if (onError) onError(err instanceof Error ? err : new Error(String(err)));
-          return;
-        }
-        if (!stopped && data.task) {
-          onUpdate(data.task);
-          if (data.task.status === "completed" || data.task.status === "failed") {
-            stopped = true;
-            clearInterval(timer);
-          }
-        }
-      } catch (err: unknown) {
-        if (onError) onError(err);
+        },
+        isComplete: (data) =>
+          !!data.task && (data.task.status === "completed" || data.task.status === "failed"),
       }
-    };
+    );
 
-    void runPoll();
-    const timer = setInterval(() => {
-      if (!stopped) {
-        void runPoll();
-      }
-    }, intervalMs);
-
-    return {
-      stop: () => {
-        stopped = true;
-        clearInterval(timer);
-        abortController.abort();
-      },
-    };
+    return { stop: poller.stop };
   }
 
   // Single-shot signature: pollJulesTask(taskId, apiKeyOverride)

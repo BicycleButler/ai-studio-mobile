@@ -164,13 +164,13 @@ export function safeGetStorage<T>(key: string, fallback: T): T {
 /**
  * Extracts a deeply nested value safely without throwing, returning a fallback if missing or type mismatches.
  */
-export function getNestedValue<T>(obj: any, path: string[], fallback: T): T {
+export function getNestedValue<T>(obj: unknown, path: string[], fallback: T): T {
   let current = obj;
   for (const key of path) {
     if (current === null || current === undefined || typeof current !== 'object') {
       return fallback;
     }
-    current = current[key];
+    current = (current as Record<string, unknown>)[key];
   }
   return current !== undefined ? (current as T) : fallback;
 }
@@ -362,10 +362,11 @@ export function loadDraftState(projectId?: string | null): DraftState {
 
   const sanitizeMessages = (msgs: unknown): ChatMessage[] | undefined => {
     if (!Array.isArray(msgs)) return undefined;
-    const clean = msgs.filter((m) => {
+    const clean = msgs.filter((m: unknown) => {
       if (!m || typeof m !== "object") return false;
-      const mid = String(m.id || "").toLowerCase();
-      const text = String(m.text || "").trim().toLowerCase();
+      const mObj = m as Record<string, unknown>;
+      const mid = String(mObj.id || "").toLowerCase();
+      const text = String(mObj.text || "").trim().toLowerCase();
       return !(MOCK_MESSAGE_IDS.includes(mid) || MOCK_MESSAGE_TEXTS.includes(text));
     });
     return clean.length > 0 ? clean : undefined;

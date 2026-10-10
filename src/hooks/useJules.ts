@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ChatMessage, JulesSession, JulesTaskPayload, MessageAttachment } from "../types";
+import { ChatMessage, JulesSession, MessageAttachment } from "../types";
+import { JulesTaskPayload } from "../services/julesService";
 import {
   loadStoredJulesApiKey,
   saveStoredJulesApiKey,
@@ -81,7 +82,7 @@ export function useJules() {
         julesActivity: {
           type: "plan",
           status: "queued",
-          text: `Dispatching task to Jules for ${currentSession.repository}...`,
+          title: `Dispatching task to Jules for ${currentSession.repository}...`,
         },
       };
 
@@ -134,7 +135,7 @@ export function useJules() {
                     ...m.julesActivity!,
                     taskId: dispatchedTask.id,
                     status: "planning",
-                    text: `Jules task created: #${dispatchedTask.id.slice(0, 8)}`,
+                    title: `Jules task created: #${dispatchedTask.id.slice(0, 8)}`,
                   },
                 }
               : m
@@ -231,7 +232,7 @@ export function useJules() {
                   julesActivity: {
                     ...m.julesActivity,
                     status: "executing",
-                    text: "Plan approved. Jules is executing changes and committing...",
+                    title: "Plan approved. Jules is executing changes and committing...",
                     requiresApproval: false,
                   },
                 }
@@ -267,7 +268,7 @@ export function useJules() {
                   julesActivity: {
                     ...m.julesActivity,
                     status: "failed",
-                    text: "Plan rejected. Task aborted.",
+                    title: "Plan rejected. Task aborted.",
                     requiresApproval: false,
                   },
                 }
