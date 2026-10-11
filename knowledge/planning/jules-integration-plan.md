@@ -9,7 +9,7 @@ tags:
   - jules
   - agent
 phase: grill
-status: in_progress
+status: completed
 version: 1
 status_flag: clean
 initiative: jules-integration
@@ -72,12 +72,12 @@ server.ts                            # [MODIFY] Add /api/jules/* proxy routes
 - [x] Finalize updated schemas in `src/types.ts`.
 
 ### Phase 4: Materialization & Core Implementation
-- [ ] Implement backend proxy routes in `server.ts`.
+- [x] Implement backend proxy routes in `server.ts`.
 - [x] Implement `src/services/julesService.ts`.
-- [ ] Update `ApiKeyModal.tsx` and `CustomTabBrowserModal.tsx`.
-- [ ] Implement `JulesSessionDrawer.tsx`.
-- [ ] Update `ChatWorkspace.tsx` and `TopAppBar.tsx`.
+- [x] Update `ApiKeyModal.tsx` and `CustomTabBrowserModal.tsx`.
+- [x] Implement `JulesSessionDrawer.tsx`.
+- [x] Update `ChatWorkspace.tsx` and `TopAppBar.tsx`.
 
 ### Phase 5: Sanding, Testing & Verification
-- [ ] Unit tests for Jules key verification and service methods.
-- [ ] Validate compilation and linting.
+- [x] Unit tests for Jules key verification and service methods.
+- [x] Validate compilation and linting.

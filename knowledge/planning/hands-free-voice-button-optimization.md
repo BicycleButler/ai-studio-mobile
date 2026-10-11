@@ -9,7 +9,7 @@ tags:
   - touch-ergonomics
   - adr-compliance
 phase: materialization
-status: in_progress
+status: completed
 version: 2
 status_flag: clean
 initiative: hands-free-voice-button

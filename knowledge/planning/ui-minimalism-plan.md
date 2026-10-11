@@ -9,7 +9,7 @@ tags:
   - adr-compliance
   - ui
 phase: grill
-status: in_progress
+status: completed
 version: 1
 status_flag: clean
 initiative: ui-minimalism
