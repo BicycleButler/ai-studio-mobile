@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { ChatMessage, JulesSession, MessageAttachment } from "../types";
 import { JulesTaskPayload } from "../services/julesService";
 import {
@@ -144,12 +144,6 @@ export function useJules() {
 
 
 
-        setJulesMessages((prev) => {
-          prev.find((m) => m.id === activeAiMsgId);
-
-          return prev;
-        });
-
         julesPollingRef.current = pollJulesTask(
           julesApiKey,
           dispatchedTask.id,
@@ -184,9 +178,16 @@ export function useJules() {
             });
 
             if (currentSession) {
-              const updatedSess = { ...currentSession, status: taskUpdate.status, updatedAt: Date.now() };
-              updateStoredJulesSession(updatedSess);
-              setActiveJulesSession(updatedSess);
+              setActiveJulesSession((prevSession) => {
+                if (prevSession && prevSession.id === currentSession.id) {
+                  return {
+                    ...prevSession,
+                    status: taskUpdate.status,
+                    updatedAt: Date.now(),
+                  };
+                }
+                return prevSession;
+              });
             }
 
             if (taskUpdate.status === "completed" || taskUpdate.status === "failed") {
@@ -223,7 +224,7 @@ export function useJules() {
     async (taskId: string) => {
       setIsApprovingJulesPlan(true);
       try {
-        await approveJulesPlan(julesApiKey, taskId, true);
+        await approveJulesPlan(taskId, true, julesApiKey);
         setJulesMessages((prev) =>
           prev.map((m) =>
             m.julesActivity?.taskId === taskId
@@ -258,7 +259,7 @@ export function useJules() {
   const handleRejectJulesPlan = useCallback(
     async (taskId: string) => {
       try {
-        await approveJulesPlan(julesApiKey, taskId, false);
+        await approveJulesPlan(taskId, false, julesApiKey);
         setJulesMessages((prev) =>
           prev.map((m) =>
             m.julesActivity?.taskId === taskId
@@ -290,6 +291,17 @@ export function useJules() {
       setJulesMessages(jSession.messages || []);
     }
   }, [julesSessions]);
+
+  // Sync julesMessages and activeJulesSession to storage
+  useEffect(() => {
+    if (activeJulesSession) {
+      const updatedSess = { ...activeJulesSession, messages: julesMessages, updatedAt: Date.now() };
+      updateStoredJulesSession(updatedSess);
+      setJulesSessions((prevSessions) =>
+        prevSessions.map((s) => (s.id === updatedSess.id ? updatedSess : s))
+      );
+    }
+  }, [julesMessages, activeJulesSession]);
 
   return {
     julesApiKey,
