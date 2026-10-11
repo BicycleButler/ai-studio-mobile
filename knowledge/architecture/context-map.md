@@ -32,9 +32,8 @@ flowchart TB
     TopNav["TopAppBar / BottomNavBar"]
     AppRoot["App.tsx Coordinator"]
     Chat["ChatWorkspace"]
-    Freeform["FreeformWorkspace"]
-    Structured["StructuredWorkspace"]
     MobileIDE["MobileIDEWorkspace"]
+    Stubs["StubsWorkspace"]
     Modals["Settings, Modals & Sheets"]
   end
 
@@ -61,12 +60,12 @@ flowchart TB
 
   %% Relationships
   AppRoot --> TopNav
-  AppRoot --> Chat & Freeform & Structured & MobileIDE
+  AppRoot --> Chat & MobileIDE & Stubs
   AppRoot --> Modals
   AppRoot --> GoogleAuth
   AppRoot --> StorageUtil
 
-  Chat & Freeform & Structured --> StreamHook
+  Chat --> StreamHook
   StreamHook --> StreamService
   StreamService --> GenAISDK
 

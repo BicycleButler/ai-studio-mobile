@@ -15,7 +15,7 @@ tags:
 [← Back to Root Context Map](../context-map.md)
 
 ## Domain Overview & Responsibilities
-The **Workspaces & UI** domain constitutes the interactive prompt engineering environment for mobile devices, offering four prompt modes: **Chat**, **Freeform**, **Structured**, and **Mobile IDE**.
+The **Workspaces & UI** domain constitutes the interactive prompt engineering environment for mobile devices, offering four prompt modes: **Chat**, **Mobile IDE**, **Jules**, and **Stubs**.
 
 ### Key Invariants:
 1. **Responsive Mobile Shell**: Supports Android frame simulations, bottom navigation, and top action bars.
@@ -28,8 +28,7 @@ The **Workspaces & UI** domain constitutes the interactive prompt engineering en
 | :--- | :--- | :--- |
 | [`src/App.tsx`](../../src/App.tsx) | Central coordinator component binding state, workspaces, and navigation | Workspaces, Services, Hooks |
 | [`src/components/ChatWorkspace.tsx`](../../src/components/ChatWorkspace.tsx) | Multi-turn conversational chat UI with streaming and markdown rendering | `useGeminiStream`, `storage.ts`, `speechVoices.ts` |
-| [`src/components/FreeformWorkspace.tsx`](../../src/components/FreeformWorkspace.tsx) | Unconstrained prompt scratchpad with token counter and insertion tools | `TokenCounterVisualization`, `useSpeechToText` |
-| [`src/components/StructuredWorkspace.tsx`](../../src/components/StructuredWorkspace.tsx) | Few-shot table-based input/output pair prompt builder | `types.ts` |
+| [`src/components/StubsWorkspace.tsx`](../../src/components/StubsWorkspace.tsx) | Architecture-as-Code PWM Portal | `types.ts` |
 | [`src/components/MobileIDEWorkspace.tsx`](../../src/components/MobileIDEWorkspace.tsx) | Code generation and preview environment with export capabilities | `codeGenerators.ts`, `CodeExportModal` |
 | [`src/components/MobileIDE.test.ts`](../../src/components/MobileIDE.test.ts) | Unit tests for mobile IDE mode resolution and code generator triggers | `MobileIDEWorkspace.tsx` |
 | [`src/components/TopAppBar.tsx`](../../src/components/TopAppBar.tsx) | App header with model picker, project indicator, and modal triggers | `types.ts`, `lucide-react` |
@@ -51,8 +50,7 @@ flowchart TD
   TopAppBar[TopAppBar] --> App
   BottomNavBar[BottomNavBar] --> App
   App --> Chat[ChatWorkspace]
-  App --> Freeform[FreeformWorkspace]
-  App --> Structured[StructuredWorkspace]
+  App --> Stubs[StubsWorkspace]
   App --> MobileIDE[MobileIDEWorkspace]
   App --> Tuner[TunerBottomSheet]
   App --> Settings[UnifiedSettingsModal]
