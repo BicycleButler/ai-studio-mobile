@@ -70,7 +70,7 @@ export interface DraftState {
   updatedAt: number;
 }
 
-export class MemoryStorage {
+export class MemoryStorage implements Storage {
   private store: Map<string, string>;
   private keysCache: string[] | null = null;
 
@@ -112,9 +112,9 @@ export class MemoryStorage {
 
 const memoryFallbackInstance = new MemoryStorage();
 
-let _storageInstance: Storage | MemoryStorage | null = null;
+let _storageInstance: Storage | null = null;
 
-export function getStorageInstance(): Storage | MemoryStorage {
+export function getStorageInstance(): Storage {
   if (_storageInstance) return _storageInstance;
 
   try {
@@ -168,6 +168,9 @@ export function getNestedValue<T>(obj: unknown, path: string[], fallback: T): T 
   let current = obj;
   for (const key of path) {
     if (current === null || current === undefined || typeof current !== 'object') {
+      return fallback;
+    }
+    if (!(key in current)) {
       return fallback;
     }
     current = (current as Record<string, unknown>)[key];
