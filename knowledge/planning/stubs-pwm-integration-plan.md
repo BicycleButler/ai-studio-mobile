@@ -11,7 +11,7 @@ tags:
   - github
   - architecture
 phase: grill
-status: in_progress
+status: completed
 version: 1
 status_flag: clean
 initiative: stubs-pwm-integration

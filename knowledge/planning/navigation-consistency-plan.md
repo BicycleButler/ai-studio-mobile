@@ -12,7 +12,7 @@ tags:
   - adr-0045
   - adr-0035
 phase: grill
-status: in_progress
+status: completed
 version: 1
 status_flag: clean
 initiative: navigation-consistency
