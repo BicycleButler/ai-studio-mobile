@@ -11,6 +11,10 @@ export class BaseApiError extends Error {
     this.endpoint = endpoint;
   }
 
+  static fromResponse(message: string, statusCode: number, headers?: Record<string, string>, endpoint?: string): BaseApiError {
+    return new BaseApiError(message, statusCode, headers, endpoint);
+  }
+
   public isRetryable(): boolean {
     return this.statusCode === 429 || this.statusCode === 502 || this.statusCode === 503 || this.statusCode === 504 || this.statusCode === 0;
   }
@@ -22,7 +26,7 @@ export function isAbortError(err: unknown): boolean {
   return false;
 }
 
-async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string> }> {
+export async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string> }> {
   let errorMessage = defaultErrorMessage;
   const headers: Record<string, string> = {};
 
@@ -56,15 +60,27 @@ async function executeRequest(
     if (isAbortError(err)) {
       throw err;
     }
-    throw new BaseApiError(err instanceof Error ? err.message : defaultErrorMessage, 0, undefined, endpoint);
+    throw BaseApiError.fromResponse(err instanceof Error ? err.message : defaultErrorMessage, 0, undefined, endpoint);
   }
 
   if (!res.ok) {
     const { errorMessage, headers } = await parseErrorResponse(res, defaultErrorMessage);
-    throw new BaseApiError(errorMessage, res.status, headers, endpoint);
+    throw BaseApiError.fromResponse(errorMessage, res.status, headers, endpoint);
   }
 
   return res;
+}
+
+export type Interceptor = (url: string, options: RequestInit) => Promise<[string, RequestInit]>;
+
+let interceptors: Interceptor[] = [];
+
+export function addInterceptor(interceptor: Interceptor) {
+    interceptors.push(interceptor);
+}
+
+export function clearInterceptors() {
+    interceptors = [];
 }
 
 export async function apiFetch<T>(
@@ -72,7 +88,16 @@ export async function apiFetch<T>(
   options?: RequestInit,
   defaultErrorMessage: string = "API request failed"
 ): Promise<T> {
-  const res = await executeRequest(endpoint, options, defaultErrorMessage);
+  let url = endpoint;
+  let fetchOptions = options || {};
+
+  for (const interceptor of interceptors) {
+      const [newUrl, newOptions] = await interceptor(url, fetchOptions);
+      url = newUrl;
+      fetchOptions = newOptions;
+  }
+
+  const res = await executeRequest(url, fetchOptions, defaultErrorMessage);
 
   if (res.status === 204) {
     return {} as T;
