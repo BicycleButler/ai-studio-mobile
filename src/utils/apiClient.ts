@@ -27,20 +27,21 @@ export function isAbortError(err: unknown): boolean {
 }
 
 export async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string> }> {
-  let errorMessage = defaultErrorMessage;
   const headers: Record<string, string> = {};
+  res.headers.forEach((value, key) => {
+    headers[key] = value;
+  });
+
+  let errorMessage = defaultErrorMessage;
 
   try {
-    res.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-
     const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
+    if (contentType?.includes("application/json")) {
       const err = await res.json();
-      errorMessage = err.error || err.message || defaultErrorMessage;
+      errorMessage = err.error || err.message || res.statusText || defaultErrorMessage;
     } else {
-      errorMessage = res.statusText || defaultErrorMessage;
+      const text = await res.text();
+      errorMessage = text || res.statusText || defaultErrorMessage;
     }
   } catch {
     errorMessage = res.statusText || defaultErrorMessage;
