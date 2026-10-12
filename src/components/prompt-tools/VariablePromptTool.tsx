@@ -112,7 +112,7 @@ export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsert
 
         {/* Quick Presets */}
         <div className="flex flex-wrap gap-1.5 pt-1">
-          <span className="text-[10px] uppercase font-mono text-muted-foreground tracking-wider self-center mr-1">
+          <span className="text-[10px] uppercase font-mono text-muted-foreground tracking-wider self-center me-1">
             Presets:
           </span>
           {PRESETS.map((preset) => (

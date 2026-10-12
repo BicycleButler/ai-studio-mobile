@@ -105,7 +105,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
           />
 
           {/* Bottom-Up Drawer */}
-          <div className="fixed bottom-0 left-0 right-0 z-60 flex justify-center pointer-events-none">
+          <div className="fixed bottom-0 start-0 end-0 z-60 flex justify-center pointer-events-none">
             <motion.nav
               key="android-bottom-nav"
               id="android-bottom-nav"

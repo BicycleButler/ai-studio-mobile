@@ -144,7 +144,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
           <div className="flex-1 min-w-0 flex items-center justify-center">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-card border border-border max-w-full truncate">
               <Lock className="w-3 h-3 text-primary shrink-0" />
-              <div className="flex flex-col min-w-0 text-left">
+              <div className="flex flex-col min-w-0 text-start">
                 <span className="text-[10px] font-semibold text-foreground truncate leading-tight">
                   {isJules ? "Google Jules Agent" : "Google AI Studio"}
                 </span>

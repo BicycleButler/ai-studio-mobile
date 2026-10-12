@@ -102,7 +102,7 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
       </div>
 
       <div className="bg-card border border-border rounded-xl p-4 shadow-xs relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none -mr-4 -mt-4" />
+        <div className="absolute top-0 end-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none -me-4 -mt-4" />
         <div className="flex items-start gap-3 relative z-10">
           <div className="p-2 bg-primary/10 rounded-lg shrink-0">
             <Smartphone className="w-5 h-5 text-primary" />
@@ -174,7 +174,7 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
       </div>
 
       <div className="bg-card border border-border rounded-xl p-4 shadow-xs relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4" />
+        <div className="absolute top-0 end-0 w-32 h-32 bg-purple-500/5 rounded-bl-full pointer-events-none -me-4 -mt-4" />
         <div className="flex items-start gap-3 relative z-10">
           <div className="p-2 bg-purple-500/10 rounded-lg shrink-0">
             <Bot className="w-5 h-5 text-purple-500" />

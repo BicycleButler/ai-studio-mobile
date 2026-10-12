@@ -231,7 +231,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                 key={m.id}
                 type="button"
                 onClick={() => updateField("model", m.id)}
-                className={`text-left p-3 rounded-xl border transition relative cursor-pointer group ${
+                className={`text-start p-3 rounded-xl border transition relative cursor-pointer group ${
                   isSelected
                     ? "bg-primary/10 border-primary ring-1 ring-primary/30 text-foreground"
                     : "bg-card border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:border-muted-foreground/30"
@@ -586,7 +586,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                       type="button"
                       id="tuner-modal-back-btn"
                       onClick={onClose}
-                      className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       title="Close drawer"
                       aria-label="Back / Close drawer"
                     >

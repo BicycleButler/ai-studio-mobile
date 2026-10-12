@@ -154,7 +154,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               >
                 <div
                   onClick={() => onLoadPrompt(item)}
-                  className="flex-1 cursor-pointer min-w-0 pr-2"
+                  className="flex-1 cursor-pointer min-w-0 pe-2"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-semibold text-foreground truncate">

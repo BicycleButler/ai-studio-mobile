@@ -103,7 +103,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
                   )}
                 </div>
                 {/* Google G mini-badge */}
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-card flex items-center justify-center shadow-sm p-0.5 border border-border">
+                <div className="absolute -bottom-1 -end-1 w-5 h-5 rounded-full bg-card flex items-center justify-center shadow-sm p-0.5 border border-border">
                   <GoogleIcon className="w-3.5 h-3.5" />
                 </div>
               </div>
