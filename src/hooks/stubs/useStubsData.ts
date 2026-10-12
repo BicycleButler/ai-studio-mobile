@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   StubsGraphData,
   StubsLintViolation,
@@ -9,6 +9,7 @@ import {
   fetchDiagram,
   fetchImpact,
   fetchLintResults,
+  connectStubsStream,
 } from "../../services/stubsService";
 import mermaid from "mermaid";
 
@@ -97,6 +98,19 @@ export function useStubsData(showToast: (msg: string) => void) {
       setIsLoadingImpact(false);
     }
   }, [showToast]);
+
+  // Establish SSE connection to listen for graph invalidation
+  useEffect(() => {
+    const cleanup = connectStubsStream((log) => {
+      // Whenever `stubs scan` completes, or a "graph_updated" signal is detected, reload graph
+      if (log.type === "exit" && log.text.includes("code 0") && log.code === 0) {
+        // If a command like 'stubs scan' successfully exited, proactive refresh the graph data.
+        // We will just fetch it directly. We could be more granular but this guarantees sync.
+        loadGraph();
+      }
+    });
+    return cleanup;
+  }, [loadGraph]);
 
   return {
     // Graph
