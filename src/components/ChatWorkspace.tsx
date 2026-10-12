@@ -998,7 +998,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden bg-background relative">
       {/* Floating Action Controls on Right Side of Screen (Stacked vertically, borderless & transparent) */}
-      <div className="absolute top-3 right-3 z-30 flex flex-col items-center gap-1.5 pointer-events-auto">
+      <div className="absolute top-3 end-3 z-30 flex flex-col items-center gap-1.5 pointer-events-auto">
         {/* Jules Task / Session Switcher (Jules mode only) */}
         {isJulesMode && onOpenJulesSessions && (
           <button
@@ -1042,7 +1042,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           {!isHistoryOpen && (
             <div
               role="tooltip"
-              className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover/95 backdrop-blur-sm border border-border text-foreground text-[11px] font-medium rounded-lg whitespace-nowrap shadow-md pointer-events-none opacity-0 group-hover/newchat:opacity-100 transition-opacity duration-150 z-20"
+              className="absolute end-full me-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover/95 backdrop-blur-sm border border-border text-foreground text-[11px] font-medium rounded-lg whitespace-nowrap shadow-md pointer-events-none opacity-0 group-hover/newchat:opacity-100 transition-opacity duration-150 z-20"
             >
               {isJulesMode ? "New task or history" : "New chat or history"}
             </div>
@@ -1055,17 +1055,17 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               id="chat-window-history-popover"
               role="dialog"
               aria-label={isJulesMode ? "New task and history menu" : "New chat and history menu"}
-              className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover/98 border border-border shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
+              className="absolute end-0 top-full mt-2 z-50 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover/98 border border-border shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
             >
               {/* Arrow Indicator pointing up to Plus button */}
-              <div className="absolute -top-1.5 right-3 w-3 h-3 rotate-45 bg-popover border-t border-l border-border pointer-events-none" />
+              <div className="absolute -top-1.5 end-3 w-3 h-3 rotate-45 bg-popover border-t border-s border-border pointer-events-none" />
 
               {/* 1. Primary Action: Start New Chat */}
               <button
                 type="button"
                 id="chat-popover-new-chat-btn"
                 onClick={handleStartNewChat}
-                className="w-full p-3 flex items-center gap-3 text-left text-xs font-semibold text-foreground hover:bg-muted/70 active:bg-muted transition-colors group border-0 bg-transparent cursor-pointer"
+                className="w-full p-3 flex items-center gap-3 text-start text-xs font-semibold text-foreground hover:bg-muted/70 active:bg-muted transition-colors group border-0 bg-transparent cursor-pointer"
               >
                 <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
                   <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -1117,7 +1117,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                         <button
                           type="button"
                           onClick={() => handleSelectSession(session)}
-                          className="flex-1 min-w-0 text-left flex items-start gap-2.5 border-0 bg-transparent cursor-pointer p-0"
+                          className="flex-1 min-w-0 text-start flex items-start gap-2.5 border-0 bg-transparent cursor-pointer p-0"
                         >
                           <div className="mt-0.5 shrink-0">
                             <MessageSquare
@@ -1209,7 +1209,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               </p>
 
               {activeJulesSession ? (
-                <div className="w-full mb-3.5 p-3 rounded-xl bg-muted/40 border border-border text-left flex items-center justify-between">
+                <div className="w-full mb-3.5 p-3 rounded-xl bg-muted/40 border border-border text-start flex items-center justify-between">
                   <div className="min-w-0">
                     <span className="text-[10px] uppercase font-mono tracking-wider text-primary">
                       Active Repository
@@ -1232,7 +1232,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card border border-border text-left shadow-sm">
+                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card border border-border text-start shadow-sm">
                   <div className="flex items-center gap-2 mb-1.5">
                     <FolderGit2 className="w-4 h-4 text-primary" />
                     <span className="font-semibold text-xs text-foreground">
@@ -1255,15 +1255,15 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 gap-2 w-full text-left">
+              <div className="grid grid-cols-1 gap-2 w-full text-start">
                 {julesStarterChips.map((chip, idx) => (
                   <button
                     key={idx}
                     onClick={() => onSendMessage(chip)}
-                    className="p-2.5 rounded-xl bg-card hover:bg-muted border border-border text-xs text-muted-foreground hover:text-foreground transition-colors text-left flex items-center justify-between group cursor-pointer"
+                    className="p-2.5 rounded-xl bg-card hover:bg-muted border border-border text-xs text-muted-foreground hover:text-foreground transition-colors text-start flex items-center justify-between group cursor-pointer"
                   >
                     <span className="truncate">{chip}</span>
-                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity ms-2 shrink-0">
                       →
                     </span>
                   </button>
@@ -1281,7 +1281,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
               {/* Authentication prompt card if not authenticated */}
               {!hasApiKey ? (
-                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card border border-border text-left shadow-sm">
+                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card border border-border text-start shadow-sm">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-5 h-5 rounded-full bg-card flex items-center justify-center p-0.5 shrink-0 border border-border">
                       <GoogleIcon className="w-full h-full" />
@@ -1305,7 +1305,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   )}
                 </div>
               ) : googleUser ? (
-                <div className="w-full mb-3 p-2.5 rounded-xl bg-card border border-border flex items-center justify-between gap-2 text-left">
+                <div className="w-full mb-3 p-2.5 rounded-xl bg-card border border-border flex items-center justify-between gap-2 text-start">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] uppercase font-mono tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">
                       Live
@@ -1324,15 +1324,15 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-1 gap-2 w-full text-left">
+              <div className="grid grid-cols-1 gap-2 w-full text-start">
                 {starterChips.map((chip, idx) => (
                   <button
                     key={idx}
                     onClick={() => onSendMessage(chip)}
-                    className="p-2.5 rounded-xl bg-card hover:bg-muted border border-border text-xs text-muted-foreground hover:text-foreground transition-colors text-left flex items-center justify-between group cursor-pointer"
+                    className="p-2.5 rounded-xl bg-card hover:bg-muted border border-border text-xs text-muted-foreground hover:text-foreground transition-colors text-start flex items-center justify-between group cursor-pointer"
                   >
                     <span className="truncate">{chip}</span>
-                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity ms-2 shrink-0">
                       →
                     </span>
                   </button>
@@ -1421,10 +1421,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     />
                   </div>
                 ) : msg.role === "model" ? (
-                  <div className="prose dark:prose-invert prose-xs sm:prose-sm max-w-none break-words [&>pre]:bg-muted [&>pre]:p-3 [&>pre]:rounded-xl [&>pre]:border [&>pre]:border-border [&>pre]:overflow-x-auto [&>code]:text-primary [&>code]:bg-muted [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4">
+                  <div className="prose dark:prose-invert prose-xs sm:prose-sm max-w-none break-words [&>pre]:bg-muted [&>pre]:p-3 [&>pre]:rounded-xl [&>pre]:border [&>pre]:border-border [&>pre]:overflow-x-auto [&>code]:text-primary [&>code]:bg-muted [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>ul]:list-disc [&>ul]:ps-4 [&>ol]:list-decimal [&>ol]:ps-4">
                     <Markdown>{msg.text || (msg.isStreaming ? "Thinking..." : "")}</Markdown>
                     {msg.isStreaming && (
-                      <span className="inline-block w-1.5 h-3.5 bg-primary ml-1 animate-pulse align-middle" />
+                      <span className="inline-block w-1.5 h-3.5 bg-primary ms-1 animate-pulse align-middle" />
                     )}
                   </div>
                 ) : (
@@ -1567,7 +1567,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           id="chat-selected-templates-tray"
           className="px-3 py-1.5 bg-card border-t border-border flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0"
         >
-          <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mr-1 shrink-0">
+          <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground me-1 shrink-0">
             <Layers className="w-3 h-3 text-primary" />
             <span className="hidden xs:inline">Directives:</span>
           </div>
@@ -1622,7 +1622,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
       {/* Optional Floating Action Button (FAB) placement when configured in settings */}
       {speechSettings.voiceButtonPlacement === "fab" && (
-        <div className="absolute bottom-24 right-4 z-30 pointer-events-auto">
+        <div className="absolute bottom-24 end-4 z-30 pointer-events-auto">
           <AnimatePresence mode="wait" initial={false}>
             {!isVoiceModeActive ? (
               <motion.div
@@ -1654,7 +1654,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
-                className="flex items-center gap-2 bg-card border border-primary/50 shadow-xl rounded-full p-1.5 pl-3 text-xs animate-in fade-in duration-[945ms]"
+                className="flex items-center gap-2 bg-card border border-primary/50 shadow-xl rounded-full p-1.5 ps-3 text-xs animate-in fade-in duration-[945ms]"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-medium text-primary uppercase tracking-widest animate-pulse">●</span>
@@ -2037,7 +2037,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       }
                     }}
                     className={`flex-1 ${
-                      speechSettings.voiceButtonPlacement === "fab" ? "w-full" : "w-1/2 border-r border-border"
+                      speechSettings.voiceButtonPlacement === "fab" ? "w-full" : "w-1/2 border-e border-border"
                     } h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition duration-[945ms] ease-in-out select-none group touch-manipulation`}
                     title="Tap to type message (expands full width)"
                     aria-label="Tap to open chat text input"

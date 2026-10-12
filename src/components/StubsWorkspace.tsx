@@ -236,7 +236,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
             <Cpu className="w-3.5 h-3.5" />
             <span>Graph & Nodes</span>
             {graphData && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/30 font-mono">
+              <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/30 font-mono">
                 {graphData.nodes.length}
               </span>
             )}
@@ -269,11 +269,11 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
           <ShieldCheck className="w-3.5 h-3.5" />
           <span>Architectural Lint</span>
           {lintViolations.length > 0 ? (
-            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-rose-950 text-rose-300 font-mono font-bold">
+            <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-rose-950 text-rose-300 font-mono font-bold">
               {lintViolations.length}
             </span>
           ) : (
-            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 font-mono">
+            <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 font-mono">
               0
             </span>
           )}
@@ -305,7 +305,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
         >
           <FileCode2 className="w-3.5 h-3.5" />
           <span>Sidecar Specs</span>
-          <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/30 font-mono">
+          <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/30 font-mono">
             {specs.length}
           </span>
         </button>
@@ -418,14 +418,14 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
             {/* Filter & Search Bar */}
             <div className="p-3 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
               <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-3.5 h-3.5 text-muted-foreground absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   id="stubs-node-search-input"
                   type="text"
                   placeholder="Filter nodes by name or filepath (e.g. types.ts, ChatWorkspace)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-muted/50 border border-input text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                  className="w-full ps-9 pe-3 py-1.5 rounded-lg bg-muted/50 border border-input text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                 />
               </div>
 
@@ -917,7 +917,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                             setSelectedImpactTarget(c);
                             loadImpact(c);
                           }}
-                          className="text-[10px] text-primary hover:underline ml-1 shrink-0"
+                          className="text-[10px] text-primary hover:underline ms-1 shrink-0"
                         >
                           inspect
                         </button>
@@ -979,7 +979,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                       id={`spec-item-${spec.filename.replace(/[^a-zA-Z0-9]/g, "-")}`}
                       onClick={() => selectSpec(spec.path)}
                       className={`p-2.5 transition-colors cursor-pointer flex flex-col gap-1 ${
-                        isSelected ? "bg-primary/15 border-l-2 border-primary" : "hover:bg-muted/40"
+                        isSelected ? "bg-primary/15 border-s-2 border-primary" : "hover:bg-muted/40"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -1132,7 +1132,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                     <div className="w-2.5 h-2.5 rounded-full border border-slate-700 bg-slate-800" />
                     <div className="w-2.5 h-2.5 rounded-full border border-slate-700 bg-slate-800" />
                   </div>
-                  <span className="text-[11px] text-slate-300 ml-2">stubs-cli-stream — zsh</span>
+                  <span className="text-[11px] text-slate-300 ms-2">stubs-cli-stream — zsh</span>
                 </div>
                 <span className="text-[10px] text-slate-500">Node v22 • SQLite .stubs/graph.sqlite</span>
               </div>

@@ -582,7 +582,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <div className="flex-1 flex min-h-0 overflow-hidden relative">
               {/* Line Numbers Gutter */}
               <div
-                className="w-10 py-2.5 select-none text-right pr-2.5 font-mono text-[11px] text-muted-foreground bg-muted/50 border-r border-border overflow-hidden leading-5 shrink-0"
+                className="w-10 py-2.5 select-none text-end pe-2.5 font-mono text-[11px] text-muted-foreground bg-muted/50 border-e border-border overflow-hidden leading-5 shrink-0"
                 aria-hidden="true"
               >
                 {lines.map((_, idx) => (

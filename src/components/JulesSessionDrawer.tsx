@@ -203,7 +203,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 1.26, ease: [0.32, 0.72, 0, 1] }}
-            className="relative ml-auto w-full max-w-md h-full bg-card border-l border-border shadow-2xl flex flex-col z-10 text-foreground"
+            className="relative ms-auto w-full max-w-md h-full bg-card border-s border-border shadow-2xl flex flex-col z-10 text-foreground"
           >
         {/* Drawer Header */}
         <div className="p-4 border-b border-border bg-muted/40 flex items-center justify-between">
@@ -212,7 +212,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               type="button"
               id="jules-drawer-back-btn"
               onClick={onClose}
-              className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
+              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
               title="Close drawer"
               aria-label="Back / Close drawer"
             >
@@ -339,13 +339,13 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               <div className="space-y-1">
                 <label className="text-[11px] text-muted-foreground">Base Branch</label>
                 <div className="relative flex items-center">
-                  <GitBranch className="w-3 h-3 text-muted-foreground absolute left-2.5" />
+                  <GitBranch className="w-3 h-3 text-muted-foreground absolute start-2.5" />
                   <input
                     type="text"
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
                     placeholder="main"
-                    className="w-full bg-background border border-border rounded-lg pl-7 pr-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-primary"
+                    className="w-full bg-background border border-border rounded-lg ps-7 pe-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                   />
                 </div>
               </div>
@@ -375,13 +375,13 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
         {/* Search Bar */}
         <div className="p-3 border-b border-border bg-muted/20">
           <div className="relative flex items-center">
-            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3" />
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute start-3" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Filter tasks or repositories..."
-              className="w-full bg-background border border-border rounded-xl pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              className="w-full bg-background border border-border rounded-xl ps-8 pe-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
             />
           </div>
         </div>

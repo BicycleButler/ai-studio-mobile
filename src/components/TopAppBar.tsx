@@ -116,7 +116,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           >
             <Layers className="w-4 h-4 text-primary" />
             {selectedTemplateCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-mono font-bold flex items-center justify-center shadow-xs">
+              <span className="absolute top-1.5 end-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-mono font-bold flex items-center justify-center shadow-xs">
                 {selectedTemplateCount}
               </span>
             )}
@@ -149,7 +149,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           >
             <MoreVertical className="w-4 h-4" />
             {!hasApiKey && (
-              <span className="absolute top-1.5 right-1.5 px-1 py-0.2 rounded text-[8px] font-mono text-muted-foreground bg-muted/80 border border-border/40">
+              <span className="absolute top-1.5 end-1.5 px-1 py-0.2 rounded text-[8px] font-mono text-muted-foreground bg-muted/80 border border-border/40">
                 !
               </span>
             )}
@@ -167,7 +167,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 transition={{ duration: 0.135, ease: "easeOut" }}
-                className="absolute right-0 top-full mt-2 w-56 sm:w-64 rounded-xl bg-popover text-popover-foreground border border-border shadow-md p-1.5 z-40 origin-top-right"
+                className="absolute end-0 top-full mt-2 w-56 sm:w-64 rounded-xl bg-popover text-popover-foreground border border-border shadow-md p-1.5 z-40 origin-top-end"
               >
                 <div className="flex flex-col gap-0.5">
                 {/* Option 1: Profile (Takes user to Auth) */}
@@ -179,7 +179,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     setIsMenuOpen(false);
                     onOpenSettings("account");
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <User className="w-4 h-4" />
@@ -203,7 +203,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     setIsMenuOpen(false);
                     onOpenSettings("display");
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                     {resolvedTheme === "dark" ? (
@@ -231,7 +231,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     setIsMenuOpen(false);
                     onOpenSettings("settings");
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                     <Sliders className="w-4 h-4" />
@@ -255,7 +255,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     setIsMenuOpen(false);
                     onOpenParameters();
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                     <Layers className="w-4 h-4" />
@@ -280,7 +280,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                       setIsMenuOpen(false);
                       onOpenJulesSessions();
                     }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                       <FolderGit2 className="w-4 h-4" />

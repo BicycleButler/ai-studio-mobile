@@ -148,7 +148,7 @@ export function TabTrigger({
       )}
       {isActive && (
         <div
-          className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          className="absolute bottom-0 start-0 end-0 h-[2px] bg-primary rounded-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
         />
       )}
     </button>

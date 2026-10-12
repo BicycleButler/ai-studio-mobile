@@ -225,7 +225,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               type="button"
               id="import-sheet-back-btn"
               onClick={() => void handleDismiss()}
-              className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
+              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
               title="Close sheet"
               aria-label="Back / Close sheet"
             >
@@ -306,9 +306,9 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                 onChange={handleKeyChange}
                 placeholder="AIzaSy... or AQ...."
                 required
-                className="w-full bg-background border border-border rounded-xl pl-3 pr-20 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-mono"
+                className="w-full bg-background border border-border rounded-xl ps-3 pe-20 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-mono"
               />
-              <div className="absolute right-1.5 flex items-center gap-1">
+              <div className="absolute end-1.5 flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setShowRawKey(!showRawKey)}
@@ -360,7 +360,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                 id="project-default-model-select"
                 value={selectedModel}
                 onChange={handleModelChange}
-                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-xs text-foreground appearance-none focus:outline-none focus:border-primary transition-colors pr-8 cursor-pointer"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-xs text-foreground appearance-none focus:outline-none focus:border-primary transition-colors pe-8 cursor-pointer"
               >
                 {availableModels
                   .filter((m) => !isDeprecatedOrUnusableModel(m.id))
@@ -370,7 +370,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                     </option>
                   ))}
               </select>
-              <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground absolute right-3 top-3 pointer-events-none" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground absolute end-3 top-3 pointer-events-none" />
             </div>
           </div>
 

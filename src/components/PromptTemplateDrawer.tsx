@@ -262,7 +262,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="template-drawer-back-btn"
             onClick={onClose}
-            className="p-2 -ml-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-11 min-h-11"
+            className="p-2 -ms-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-11 min-h-11"
             title="Close drawer"
             aria-label="Back / Close drawer"
           >
@@ -589,20 +589,20 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             <div className="p-3 bg-card border-b border-border space-y-2 shrink-0">
               {/* Search input */}
               <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search className="w-3.5 h-3.5 absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   id="template-search-input"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search templates by title or keywords..."
-                  className="w-full pl-8 pr-8 py-1.5 rounded-xl bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="w-full ps-8 pe-8 py-1.5 rounded-xl bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="absolute end-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                   >
                     <X className="w-3 h-3" />
                   </button>

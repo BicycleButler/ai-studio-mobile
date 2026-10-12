@@ -616,7 +616,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 stopPreview();
                 onClose();
               }}
-              className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               title="Close drawer"
               aria-label="Back / Close drawer"
             >
@@ -710,7 +710,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             <div className="relative flex items-center justify-center">
               <User className="w-4 h-4" />
               {!hasAnyAuth && (
-                <span className="absolute -top-1 -right-2 text-[10px] font-mono text-destructive font-bold" title="Authentication needed">
+                <span className="absolute -top-1 -end-2 text-[10px] font-mono text-destructive font-bold" title="Authentication needed">
                   !
                 </span>
               )}
@@ -1171,9 +1171,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     value={inputApiKey}
                     onChange={(e) => setInputApiKey(e.target.value)}
                     placeholder="AIzaSy..."
-                    className="w-full text-xs font-mono bg-muted/50 border border-input rounded-xl px-3.5 py-2.5 pr-24 text-foreground placeholder:text-subtle-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                    className="w-full text-xs font-mono bg-muted/50 border border-input rounded-xl px-3.5 py-2.5 pe-24 text-foreground placeholder:text-subtle-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                   />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <div className="absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button
                       type="button"
                       onClick={handlePasteApiKey}
@@ -1289,9 +1289,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     value={julesInputKey}
                     onChange={(e) => setJulesInputKey(e.target.value)}
                     placeholder="Enter Google Jules API Key..."
-                    className="w-full text-xs font-mono bg-muted/50 border border-input rounded-xl px-3.5 py-2.5 pr-24 text-foreground placeholder:text-subtle-foreground focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                    className="w-full text-xs font-mono bg-muted/50 border border-input rounded-xl px-3.5 py-2.5 pe-24 text-foreground placeholder:text-subtle-foreground focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                   />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <div className="absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button
                       type="button"
                       onClick={handlePasteJulesKey}
@@ -1419,7 +1419,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     type="button"
                     id="settings-engine-gemini"
                     onClick={() => handleSelectAudioEngine("gemini")}
-                    className={`p-3.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                    className={`p-3.5 rounded-xl border text-start transition-colors cursor-pointer ${
                       currentSpeechSettings.engine === "gemini"
                         ? "bg-primary/20 border-primary ring-1 ring-primary"
                         : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -1445,7 +1445,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     type="button"
                     id="settings-engine-device"
                     onClick={() => handleSelectAudioEngine("device")}
-                    className={`p-3.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                    className={`p-3.5 rounded-xl border text-start transition-colors cursor-pointer ${
                       currentSpeechSettings.engine === "device"
                         ? "bg-primary/20 border-primary ring-1 ring-primary"
                         : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -1557,7 +1557,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                     Device Voices ({deviceVoices.length} installed)
                   </label>
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pe-1">
                     {deviceVoices.slice(0, 12).map((v) => {
                       const isSelected =
                         currentSpeechSettings.deviceVoiceURI === v.voiceURI;
@@ -1573,7 +1573,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                               : "bg-card border-border hover:border-primary/50 hover:bg-muted"
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          <div className="flex items-center gap-2.5 min-w-0 pe-2">
                             <Radio
                               className={`w-3.5 h-3.5 shrink-0 ${
                                 isSelected
@@ -1648,7 +1648,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
                 {/* Hands-free Conversational Voice Mode Toggle */}
                 <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
-                  <div className="space-y-0.5 pr-2">
+                  <div className="space-y-0.5 pe-2">
                     <div className="text-xs font-semibold text-foreground">
                       Hands-Free Continuous Voice
                     </div>
@@ -1675,7 +1675,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
                 {/* Sentence Pipelining (Instant streaming audio) */}
                 <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
-                  <div className="space-y-0.5 pr-2">
+                  <div className="space-y-0.5 pe-2">
                     <div className="text-xs font-semibold text-foreground">
                       Sentence Pipelining (Ultra-Low TTFA)
                     </div>
@@ -1702,7 +1702,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
                 {/* Auto-Read Responses Toggle */}
                 <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
-                  <div className="space-y-0.5 pr-2">
+                  <div className="space-y-0.5 pe-2">
                     <div className="text-xs font-semibold text-foreground">
                       Auto-Read Responses
                     </div>
@@ -1764,7 +1764,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       type="button"
                       id="settings-voice-style-footer"
                       onClick={() => handleSelectVoiceButtonPlacement("footer")}
-                      className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-start transition-colors cursor-pointer ${
                         currentSpeechSettings.voiceButtonPlacement !== "fab"
                           ? "bg-primary/15 border-primary ring-1 ring-primary/40"
                           : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -1782,7 +1782,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                       type="button"
                       id="settings-voice-style-fab"
                       onClick={() => handleSelectVoiceButtonPlacement("fab")}
-                      className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-start transition-colors cursor-pointer ${
                         currentSpeechSettings.voiceButtonPlacement === "fab"
                           ? "bg-primary/15 border-primary ring-1 ring-primary/40"
                           : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -1819,7 +1819,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setThemeMode("light")}
-                    className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
+                    className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
                       themeMode === "light"
                         ? "bg-primary/20 border-primary ring-1 ring-primary"
                         : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -1844,7 +1844,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setThemeMode("dark")}
-                    className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
+                    className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
                       themeMode === "dark"
                         ? "bg-primary/20 border-primary ring-1 ring-primary"
                         : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -1869,7 +1869,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setThemeMode("system")}
-                    className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
+                    className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
                       themeMode === "system"
                         ? "bg-primary/20 border-primary ring-1 ring-primary"
                         : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -1901,7 +1901,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectDeviceMode("responsive")}
-                    className={`p-4 rounded-xl border text-left transition-colors cursor-pointer ${
+                    className={`p-4 rounded-xl border text-start transition-colors cursor-pointer ${
                       deviceMode === "responsive"
                         ? "bg-primary/20 border-primary ring-1 ring-primary"
                         : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -1926,7 +1926,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectDeviceMode("pixel")}
-                    className={`p-4 rounded-xl border text-left transition-colors cursor-pointer ${
+                    className={`p-4 rounded-xl border text-start transition-colors cursor-pointer ${
                       deviceMode === "pixel"
                         ? "bg-primary/20 border-primary ring-1 ring-primary"
                         : "bg-card border-border hover:border-primary/50 hover:bg-muted"
