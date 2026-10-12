@@ -25,6 +25,7 @@ import {
   generatePythonCode,
   generateCurlCode,
 } from "../utils/codeGenerators";
+import { fetchGenerateContent } from "../services/geminiStreamService";
 
 interface MobileIDEWorkspaceProps {
   config: PromptConfig;
@@ -241,7 +242,6 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       addConsoleLog("info", `[IDE] Sending payload to Google AI Studio (/api/generate)...`);
       addConsoleLog("info", `[IDE] Target Model: ${config.model} | System: ${config.systemInstruction ? "Active" : "None"}`);
 
-      const { fetchGenerateContent } = await import("../services/geminiStreamService");
       const data = await fetchGenerateContent({
         model: config.model,
         messages: [{ role: "user", text: promptQuery }],
