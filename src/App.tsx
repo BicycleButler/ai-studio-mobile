@@ -89,6 +89,7 @@ export default function App() {
     handleSelectChatSession,
     handleRenameProject,
     handleDeleteProject,
+    handleBulkDeleteProjects,
     refreshServerAuth,
     handleLoadPrompt,
     handleSaveCurrentPrompt,
@@ -661,6 +662,7 @@ export default function App() {
         onSelectProject={(p) => handleProjectActivated(p, stopStream)}
         onRenameProject={handleRenameProject}
         onDeleteProject={(id) => handleDeleteProject(id, stopStream)}
+        onBulkDeleteProjects={(ids) => handleBulkDeleteProjects(ids, stopStream)}
       />
 
       {/* Phase 2: In-App AI Studio Launcher & Jules Settings (Chrome Custom Tab style) */}
