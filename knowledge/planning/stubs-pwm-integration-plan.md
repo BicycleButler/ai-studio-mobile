@@ -10,8 +10,8 @@ tags:
   - pwm
   - github
   - architecture
-phase: grill
-status: completed
+phase: complete
+status: complete
 version: 1
 status_flag: clean
 initiative: stubs-pwm-integration

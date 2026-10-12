@@ -8,8 +8,8 @@ tags:
   - voice-mode
   - touch-ergonomics
   - adr-compliance
-phase: materialization
-status: completed
+phase: complete
+status: complete
 version: 2
 status_flag: clean
 initiative: hands-free-voice-button

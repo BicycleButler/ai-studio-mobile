@@ -8,8 +8,8 @@ tags:
   - minimalism
   - adr-compliance
   - ui
-phase: grill
-status: completed
+phase: complete
+status: complete
 version: 1
 status_flag: clean
 initiative: ui-minimalism

@@ -11,8 +11,8 @@ tags:
   - adr-0043
   - adr-0045
   - adr-0035
-phase: grill
-status: completed
+phase: complete
+status: complete
 version: 1
 status_flag: clean
 initiative: navigation-consistency
