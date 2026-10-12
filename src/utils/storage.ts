@@ -556,18 +556,44 @@ export function isMockJulesSession(session: Partial<JulesSession>): boolean {
   return isMockSession(session, "jules");
 }
 
+let _cachedJulesSessions: JulesSession[] = [];
+
 export function loadStoredJulesSessions(): JulesSession[] {
-  const sessions = safeGetStorageArray<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, []);
+  // Try to load from local storage first to prevent blocking react rendering
+  const sessions = safeGetStorageArray<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, _cachedJulesSessions);
   const clean = sessions.filter((s) => !isMockJulesSession(s));
-  if (clean.length !== sessions.length) {
-    safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean);
-  }
   return clean;
+}
+
+export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
+  try {
+    const res = await fetch("/api/jules/sessions");
+    if (res.ok) {
+      const data = await res.json();
+      const clean = Array.isArray(data) ? data.filter((s) => !isMockJulesSession(s)) : [];
+      _cachedJulesSessions = clean;
+      safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean); // Update local cache
+      return clean;
+    }
+  } catch (e) {
+    console.error("Failed to fetch Jules sessions from server", e);
+  }
+  return loadStoredJulesSessions();
 }
 
 export function saveStoredJulesSessions(sessions: JulesSession[]): void {
   const clean = Array.isArray(sessions) ? sessions.filter((s) => !isMockJulesSession(s)) : [];
-  safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean);
+  _cachedJulesSessions = clean;
+  safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean); // Update local cache
+
+  // Async sync to server
+  fetch("/api/jules/sessions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(clean),
+  }).catch((e) => console.error("Failed to save Jules sessions to server", e));
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {

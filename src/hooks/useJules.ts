@@ -5,6 +5,7 @@ import {
   loadStoredJulesApiKey,
   saveStoredJulesApiKey,
   loadStoredJulesSessions,
+  fetchJulesSessionsFromServer,
   getActiveJulesSession,
   setActiveJulesSessionId,
   updateStoredJulesSession,
@@ -24,6 +25,17 @@ export function useJules() {
   const [julesMessages, setJulesMessages] = useState<ChatMessage[]>(() => getActiveJulesSession()?.messages || []);
 
   const julesPollingRef = useRef<{ stop: () => void } | null>(null);
+
+  useEffect(() => {
+    fetchJulesSessionsFromServer().then((sessions) => {
+      setJulesSessions(sessions);
+      const activeSession = getActiveJulesSession();
+      setActiveJulesSession(activeSession);
+      if (activeSession) {
+        setJulesMessages(activeSession.messages || []);
+      }
+    });
+  }, []);
 
   const handleSaveJulesApiKey = useCallback((key: string) => {
     setJulesApiKey(key);

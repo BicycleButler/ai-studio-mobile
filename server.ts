@@ -30,6 +30,32 @@ import {
 dotenv.config();
 
 const app = express();
+
+const JULES_SESSIONS_FILE = path.join(process.cwd(), ".stubs", "jules_sessions.json");
+
+function readJulesSessions(): unknown[] {
+  try {
+    if (fs.existsSync(JULES_SESSIONS_FILE)) {
+      const data = fs.readFileSync(JULES_SESSIONS_FILE, "utf-8");
+      return JSON.parse(data) as unknown[];
+    }
+  } catch (e) {
+    console.error("Failed to read Jules sessions:", e);
+  }
+  return [];
+}
+
+function writeJulesSessions(sessions: unknown[]): void {
+  try {
+    const dir = path.dirname(JULES_SESSIONS_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(JULES_SESSIONS_FILE, JSON.stringify(sessions, null, 2), "utf-8");
+  } catch (e) {
+    console.error("Failed to write Jules sessions:", e);
+  }
+}
 const PORT = 3000;
 
 app.use(express.json({ limit: "25mb" }));
@@ -830,6 +856,23 @@ app.post("/api/tts", async (req: Request, res: Response): Promise<void> => {
 // ============================================================================
 // Google Jules Agent API Gateway (/api/jules/*)
 // ============================================================================
+
+// Jules Sessions Storage API
+
+app.get("/api/jules/sessions", (req: Request, res: Response): void => {
+  const sessions = readJulesSessions();
+  res.json(sessions);
+});
+
+app.post("/api/jules/sessions", (req: Request, res: Response): void => {
+  const sessions = req.body;
+  if (!Array.isArray(sessions)) {
+    res.status(400).json({ error: "Invalid payload, expected array" });
+    return;
+  }
+  writeJulesSessions(sessions);
+  res.json({ success: true });
+});
 
 interface ServerJulesTask {
   id: string;
