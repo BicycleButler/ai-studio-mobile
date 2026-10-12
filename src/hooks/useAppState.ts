@@ -263,6 +263,25 @@ export function useAppState() {
     }
   };
 
+  const handleBulkDeleteProjects = (ids: string[], onStopStream?: () => void) => {
+    ids.forEach((id) => {
+      deleteStoredProject(id);
+    });
+    const updated = loadStoredProjects();
+    setProjects(updated);
+
+    if (activeProject && ids.includes(activeProject.id)) {
+      if (updated.length > 0) {
+        handleProjectActivated(updated[0], onStopStream);
+      } else {
+        setActiveProject(null);
+        setCustomApiKey("");
+        saveStoredApiKey("");
+        setMessages([]);
+      }
+    }
+  };
+
   const refreshServerAuth = async (): Promise<boolean> => {
     try {
       const data = await fetchServerHealth();
@@ -467,6 +486,7 @@ export function useAppState() {
     handleSelectChatSession,
     handleRenameProject,
     handleDeleteProject,
+    handleBulkDeleteProjects,
     refreshServerAuth,
     handleLoadPrompt,
     handleSaveCurrentPrompt,

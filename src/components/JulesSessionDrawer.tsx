@@ -66,6 +66,12 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     return () => removeKey();
   }, [isOpen, onClose]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Clear selection on filter change (ADR 0047 Option A)
+  useEffect(() => {
+    setSelectedSessionIds(new Set());
+    setLastSelectedId(null);
+  }, [searchQuery]);
   const [isCreating, setIsCreating] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
 
@@ -629,7 +635,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               initial={{ opacity: 0, y: 20, x: "-50%" }}
               animate={{ opacity: 1, y: 0, x: "-50%" }}
               exit={{ opacity: 0, y: 20, x: "-50%" }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] shadow-lg bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
+              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[60] shadow-lg bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
             >
               <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-full whitespace-nowrap">
                 {selectedSessionIds.size} Selected

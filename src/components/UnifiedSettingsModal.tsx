@@ -1,6 +1,6 @@
 import { getSafeNavigatorClipboard } from "../utils/platform";
 import { safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X,
@@ -23,7 +23,7 @@ import {
   Compass,
   Trash2,
   Edit2,
-  FolderPlus,
+  FolderPlus, CheckSquare, MinusSquare,
   Folder,
   CheckCircle2,
   Lock,
@@ -107,6 +107,7 @@ interface UnifiedSettingsModalProps {
   onSelectProject?: (project: ProjectInfo) => void;
   onRenameProject?: (id: string, newName: string) => void;
   onDeleteProject?: (id: string) => void;
+  onBulkDeleteProjects?: (ids: string[]) => void;
 
   // Audio / Speech
   speechSettings: SpeechSettings;
@@ -155,6 +156,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onSelectProject,
   onRenameProject,
   onDeleteProject,
+  onBulkDeleteProjects,
   speechSettings,
   onSaveSpeechSettings,
   onOpenParameters: _onOpenParameters,
@@ -217,6 +219,65 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingProjectName, setEditingProjectName] = useState("");
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
+
+  // Batch Selection State
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
+  const [lastSelectedProjectId, setLastSelectedProjectId] = useState<string | null>(null);
+  const [showBulkDeleteProjectsConfirm, setShowBulkDeleteProjectsConfirm] = useState(false);
+
+  const toggleProjectSelection = useCallback(
+    (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
+      e.stopPropagation();
+      setSelectedProjectIds((prev) => {
+        const next = new Set(prev);
+        if (e.shiftKey && lastSelectedProjectId) {
+          const lastIndex = projects.findIndex((p) => p.id === lastSelectedProjectId);
+          if (lastIndex !== -1) {
+            const start = Math.min(index, lastIndex);
+            const end = Math.max(index, lastIndex);
+            for (let j = start; j <= end; j++) {
+              next.add(projects[j].id);
+            }
+            return next;
+          }
+        }
+
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
+      setLastSelectedProjectId(id);
+    },
+    [lastSelectedProjectId, projects]
+  );
+
+  const toggleSelectAllProjects = () => {
+    if (selectedProjectIds.size === projects.length && projects.length > 0) {
+      setSelectedProjectIds(new Set());
+    } else {
+      setSelectedProjectIds(new Set(projects.map((p) => p.id)));
+    }
+  };
+
+  const clearProjectSelection = useCallback(() => {
+    setSelectedProjectIds(new Set());
+    setLastSelectedProjectId(null);
+  }, []);
+
+  const handleBulkDeleteProjects = () => {
+    if (onBulkDeleteProjects) {
+      onBulkDeleteProjects(Array.from(selectedProjectIds));
+    } else {
+      Array.from(selectedProjectIds).forEach((id) => {
+        if (onDeleteProject) onDeleteProject(id);
+      });
+    }
+    clearProjectSelection();
+    setShowBulkDeleteProjectsConfirm(false);
+  };
   const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
 
   // Enable device/browser back navigation to dismiss drawer smoothly
@@ -931,10 +992,36 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                     <div className="p-1.5 rounded-lg bg-primary/15 border border-primary/30 text-primary">
                       <Folder className="w-4 h-4" />
                     </div>
-                    <div>
-                      <h4 className="text-xs font-semibold text-foreground">
-                        Workspace Projects ({projects.length})
-                      </h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-xs font-semibold text-foreground">
+                          Workspace Projects ({projects.length})
+                        </h4>
+                        {projects.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={toggleSelectAllProjects}
+                            className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            {selectedProjectIds.size === projects.length ? (
+                              <>
+                                <CheckSquare className="w-3.5 h-3.5" />
+                                Deselect All
+                              </>
+                            ) : selectedProjectIds.size > 0 ? (
+                              <>
+                                <MinusSquare className="w-3.5 h-3.5" />
+                                Select All
+                              </>
+                            ) : (
+                              <>
+                                <Square className="w-3.5 h-3.5" />
+                                Select All
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                       <p className="text-[11px] text-muted-foreground">
                         Manage registered AI Studio projects and switch credentials.
                       </p>
@@ -956,6 +1043,13 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   )}
                 </div>
 
+                {/* Dataset Scope Banner (ADR 0047) */}
+                {selectedProjectIds.size === projects.length && projects.length > 0 && (
+                  <div className="text-[11px] text-muted-foreground bg-primary/5 px-2 py-1 mb-2 rounded border border-primary/20">
+                    All {projects.length} items on this page are selected.
+                  </div>
+                )}
+
                 {/* Projects List */}
                 {projects.length === 0 ? (
                   <div className="p-3 text-center rounded-xl bg-muted border border-border text-xs text-muted-foreground space-y-1">
@@ -966,8 +1060,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {projects.map((proj) => {
+                    {projects.map((proj, index) => {
                       const isActive = activeProject?.id === proj.id;
+                      const isSelected = selectedProjectIds.has(proj.id);
                       const isEditing = editingProjectId === proj.id;
                       const isConfirmingDelete = deleteConfirmProjectId === proj.id;
                       const maskedKey = proj.apiKey
@@ -978,13 +1073,27 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                         <div
                           key={proj.id}
                           id={`settings-project-card-${proj.id}`}
-                          className={`p-3 rounded-xl border transition-colors ${
-                            isActive
-                              ? "bg-primary/15 border-primary shadow-sm"
-                              : "bg-card border-border hover:border-primary/50"
+                          className={`p-3 rounded-xl border transition-colors flex items-center justify-between ${
+                            isSelected
+                              ? "bg-primary/5 border-primary/30"
+                              : isActive
+                                ? "bg-primary/15 border-primary shadow-sm"
+                                : "bg-card border-border hover:border-primary/50"
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => toggleProjectSelection(proj.id, e, index)}
+                            className="mr-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                            aria-label={`Select project ${proj.name}`}
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="w-4 h-4 text-primary" />
+                            ) : (
+                              <Square className="w-4 h-4" />
+                            )}
+                          </button>
+                          <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
                             <div className="flex-1 min-w-0">
                               {isEditing ? (
                                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -1607,6 +1716,83 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                               <Volume2 className="w-3 h-3 text-primary" />
                             )}
                           </button>
+      {/* Floating Batch Action Bar for Projects */}
+      <AnimatePresence>
+        {selectedProjectIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 20, x: "-50%" }}
+            className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] shadow-xl bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
+          >
+            <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-full whitespace-nowrap">
+              {selectedProjectIds.size} Selected
+            </span>
+            <div className="h-4 w-px bg-border/60" />
+
+            <button
+              type="button"
+              onClick={() => setShowBulkDeleteProjectsConfirm(true)}
+              className="px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </button>
+
+            <button
+              type="button"
+              onClick={clearProjectSelection}
+              className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:bg-muted rounded-full transition-colors cursor-pointer"
+              aria-label="Clear selection"
+              title="Deselect all (Esc)"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Delete Projects Confirmation Modal */}
+      <AnimatePresence>
+        {showBulkDeleteProjectsConfirm && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-card border border-border rounded-xl shadow-xl overflow-hidden"
+            >
+              <div className="p-4 border-b border-border">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Delete {selectedProjectIds.size} selected {selectedProjectIds.size === 1 ? 'project' : 'projects'}?
+                </h3>
+              </div>
+              <div className="p-4 text-sm text-muted-foreground space-y-4">
+                <p>
+                  This action cannot be undone. This will permanently remove the selected projects from your workspace.
+                </p>
+              </div>
+              <div className="p-4 bg-muted/40 border-t border-border flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkDeleteProjectsConfirm(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteProjects}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors cursor-pointer shadow-sm"
+                >
+                  Delete {selectedProjectIds.size} {selectedProjectIds.size === 1 ? 'Project' : 'Projects'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
                         </div>
                       );
                     })}
