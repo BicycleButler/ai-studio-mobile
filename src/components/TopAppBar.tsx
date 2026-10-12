@@ -88,7 +88,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   }, [isMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-background/95 backdrop-blur-md border-b border-border px-3 sm:px-4 flex items-center justify-between gap-2.5 transition-colors">
+    <header className="sticky top-0 z-30 h-16 bg-background/95 backdrop-blur-md border-b border-border px-3 sm:px-4 flex items-center justify-between gap-2.5 transition-colors shrink-0">
       {/* Left Zone: Borderless Token Count Display & Tuning Trigger (ADR 0037 / ADR 0039) */}
       <div className="flex items-center min-w-0">
         <TokenCounterVisualization
