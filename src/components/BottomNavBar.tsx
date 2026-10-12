@@ -17,7 +17,6 @@ interface WorkspaceItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   tooltip: string;
-  badge?: string;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
