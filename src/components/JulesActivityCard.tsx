@@ -32,7 +32,7 @@ export const JulesActivityCard: React.FC<JulesActivityCardProps> = ({
   const [isStepsOpen, setIsStepsOpen] = useState(true);
   const [isDiffOpen, setIsDiffOpen] = useState(false);
 
-  const getStatusBadge = () => {
+  const getStatusIndicator = () => {
     switch (activity.status) {
       case "planning":
         return (
@@ -94,7 +94,7 @@ export const JulesActivityCard: React.FC<JulesActivityCardProps> = ({
           </div>
         </div>
 
-        <div className="shrink-0">{getStatusBadge()}</div>
+        <div className="shrink-0">{getStatusIndicator()}</div>
       </div>
 
       {/* Plan Description */}

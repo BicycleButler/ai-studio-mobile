@@ -478,7 +478,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
         {/* Bulk Action Selection Header */}
         {filteredSessions.length > 0 && (
-          <div className="px-4 py-2 border-b border-border bg-muted/40 flex items-center justify-between text-xs">
+          <div className="px-4 py-2 border-b border-border bg-muted/40 flex flex-col gap-2 text-xs">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -500,6 +500,12 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                   : "Select all on this page"}
               </span>
             </div>
+            {/* Dataset Scope Banner (ADR 0047) */}
+            {selectedSessionIds.size === filteredSessions.length && filteredSessions.length > 0 && (
+              <div className="text-[11px] text-muted-foreground bg-primary/5 px-2 py-1 rounded border border-primary/20">
+                All {filteredSessions.length} items on this page are selected.
+              </div>
+            )}
           </div>
         )}
 
@@ -623,7 +629,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               initial={{ opacity: 0, y: 20, x: "-50%" }}
               animate={{ opacity: 1, y: 0, x: "-50%" }}
               exit={{ opacity: 0, y: 20, x: "-50%" }}
-              className="fixed bottom-6 left-1/2 z-50 shadow-lg bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] shadow-lg bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
             >
               <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-full whitespace-nowrap">
                 {selectedSessionIds.size} Selected
