@@ -197,6 +197,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     }
   }, [isOpen, initialTab]);
 
+
+
   // Account, Keys & Project state
   const [inputApiKey, setInputApiKey] = useState(customApiKey);
   const [showKeyText, setShowKeyText] = useState(false);
@@ -224,6 +226,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
   const [lastSelectedProjectId, setLastSelectedProjectId] = useState<string | null>(null);
   const [showBulkDeleteProjectsConfirm, setShowBulkDeleteProjectsConfirm] = useState(false);
+  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
 
   const toggleProjectSelection = useCallback(
     (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
@@ -254,18 +257,23 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     [lastSelectedProjectId, projects]
   );
 
-  const toggleSelectAllProjects = () => {
+  const toggleSelectAllProjects = useCallback(() => {
     if (selectedProjectIds.size === projects.length && projects.length > 0) {
       setSelectedProjectIds(new Set());
     } else {
       setSelectedProjectIds(new Set(projects.map((p) => p.id)));
     }
-  };
+  }, [selectedProjectIds.size, projects]);
 
   const clearProjectSelection = useCallback(() => {
     setSelectedProjectIds(new Set());
     setLastSelectedProjectId(null);
   }, []);
+
+  // Clear project selection when switching tabs (ADR 0047)
+  useEffect(() => {
+    clearProjectSelection();
+  }, [activeTab, clearProjectSelection]);
 
   const handleBulkDeleteProjects = () => {
     if (onBulkDeleteProjects) {
@@ -277,6 +285,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     }
     clearProjectSelection();
     setShowBulkDeleteProjectsConfirm(false);
+    setBulkDeleteConfirmationText("");
   };
   const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
 
@@ -286,18 +295,31 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     onClose();
   }, "settings-drawer");
 
-  // Keyboard Escape listener
+  // Keyboard shortcuts and Escape listener
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        stopPreview();
-        onClose();
+        if (showBulkDeleteProjectsConfirm) {
+           setShowBulkDeleteProjectsConfirm(false);
+           setBulkDeleteConfirmationText("");
+        } else if (selectedProjectIds.size > 0 && activeTab === "account") {
+          clearProjectSelection();
+        } else {
+          stopPreview();
+          onClose();
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "a" && activeTab === "account") {
+        if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          toggleSelectAllProjects();
+        }
       }
     };
     const removeKey = safeAddEventListener("keydown", handleKeyDown);
     return () => removeKey();
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, activeTab, selectedProjectIds.size, clearProjectSelection, toggleSelectAllProjects, showBulkDeleteProjectsConfirm]);
 
   useEffect(() => {
     setInputApiKey(customApiKey);
@@ -1786,7 +1808,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={handleBulkDeleteProjects}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors cursor-pointer shadow-sm"
+                  disabled={selectedProjectIds.size > 100 && bulkDeleteConfirmationText !== selectedProjectIds.size.toString()}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed text-destructive-foreground transition-colors cursor-pointer shadow-sm"
                 >
                   Delete {selectedProjectIds.size} {selectedProjectIds.size === 1 ? 'Project' : 'Projects'}
                 </button>
