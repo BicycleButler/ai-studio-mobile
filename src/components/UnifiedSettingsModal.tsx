@@ -123,6 +123,7 @@ interface UnifiedSettingsModalProps {
   onLoadPrompt?: (prompt: SavedPrompt) => void;
   onSaveCurrentPrompt?: (title: string) => void;
   onDeletePrompt?: (id: string) => void;
+  onBulkDeletePrompts?: (ids: string[]) => void;
 
   // Export
   messages?: ChatMessage[];
@@ -164,6 +165,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onLoadPrompt,
   onSaveCurrentPrompt,
   onDeletePrompt,
+  onBulkDeletePrompts,
   messages = [],
   deviceMode,
   onSelectDeviceMode,
@@ -2039,6 +2041,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 }}
                 onSaveCurrentPrompt={onSaveCurrentPrompt || (() => {})}
                 onDeletePrompt={onDeletePrompt || (() => {})}
+                onBulkDeletePrompts={onBulkDeletePrompts}
                 isEmbedded={true}
               />
             </div>

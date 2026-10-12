@@ -92,7 +92,8 @@ export default function App() {
     refreshServerAuth,
     handleLoadPrompt,
     handleSaveCurrentPrompt,
-    handleDeleteSavedPrompt
+    handleDeleteSavedPrompt,
+    handleBulkDeleteSavedPrompts
   } = useAppState();
 
   const {
@@ -645,6 +646,7 @@ export default function App() {
         }}
         onSaveCurrentPrompt={handleSaveCurrentPrompt}
         onDeletePrompt={handleDeleteSavedPrompt}
+        onBulkDeletePrompts={handleBulkDeleteSavedPrompts}
         messages={messages}
         deviceMode={deviceMode}
         onSelectDeviceMode={setDeviceMode}
