@@ -54,17 +54,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   // Enable device/browser back navigation to dismiss drawer smoothly
   useBackNavigation(isOpen, onClose, "jules-sessions-drawer");
 
-  // Keyboard Escape listener
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    const removeKey = safeAddEventListener("keydown", handleKeyDown);
-    return () => removeKey();
-  }, [isOpen, onClose]);
+
   const [searchQuery, setSearchQuery] = useState("");
 
   // Clear selection on filter change (ADR 0047 Option A)
@@ -84,6 +74,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
 
   const refreshSessions = () => {
     const list = getStoredJulesSessions();
@@ -172,13 +163,13 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     [lastSelectedId]
   );
 
-  const toggleSelectAll = (filteredList: JulesSession[]) => {
+  const toggleSelectAll = useCallback((filteredList: JulesSession[]) => {
     if (selectedSessionIds.size === filteredList.length && filteredList.length > 0) {
       setSelectedSessionIds(new Set());
     } else {
       setSelectedSessionIds(new Set(filteredList.map((s) => s.id)));
     }
-  };
+  }, [selectedSessionIds.size]);
 
   const clearSelection = useCallback(() => {
     setSelectedSessionIds(new Set());
@@ -191,6 +182,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     });
     clearSelection();
     setShowBulkDeleteConfirm(false);
+    setBulkDeleteConfirmationText("");
     refreshSessions();
   };
 
@@ -199,8 +191,15 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedSessionIds.size > 0) {
-        clearSelection();
+      if (e.key === "Escape") {
+        if (showBulkDeleteConfirm) {
+          setShowBulkDeleteConfirm(false);
+          setBulkDeleteConfirmationText("");
+        } else if (selectedSessionIds.size > 0) {
+          clearSelection();
+        } else {
+          onClose();
+        }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "a" && !isCreating) {
         // Prevent default browser select all
@@ -209,7 +208,8 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
           const filtered = searchQuery
             ? sessions.filter((s) =>
                 s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                s.repository.toLowerCase().includes(searchQuery.toLowerCase())
+                s.repository.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (s.branch && s.branch.toLowerCase().includes(searchQuery.toLowerCase()))
               )
             : sessions;
           toggleSelectAll(filtered);
@@ -219,7 +219,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, selectedSessionIds.size, isCreating, sessions, searchQuery, clearSelection]);
+  }, [isOpen, selectedSessionIds.size, isCreating, sessions, searchQuery, clearSelection, onClose, toggleSelectAll, showBulkDeleteConfirm]);
 
   const getStatusBadge = (status: JulesTaskStatus) => {
     switch (status) {
@@ -695,7 +695,8 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                   <button
                     type="button"
                     onClick={handleBulkDelete}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors cursor-pointer shadow-sm"
+                    disabled={selectedSessionIds.size > 100 && bulkDeleteConfirmationText !== selectedSessionIds.size.toString()}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed text-destructive-foreground transition-colors cursor-pointer shadow-sm"
                   >
                     Delete {selectedSessionIds.size} {selectedSessionIds.size === 1 ? 'Session' : 'Sessions'}
                   </button>

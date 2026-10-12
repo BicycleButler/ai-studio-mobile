@@ -42,6 +42,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [selectedPromptIds, setSelectedPromptIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
 
   const toggleSelection = useCallback(
     (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
@@ -72,13 +73,13 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     [lastSelectedId, savedPrompts]
   );
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = useCallback(() => {
     if (selectedPromptIds.size === savedPrompts.length && savedPrompts.length > 0) {
       setSelectedPromptIds(new Set());
     } else {
       setSelectedPromptIds(new Set(savedPrompts.map((p) => p.id)));
     }
-  };
+  }, [selectedPromptIds.size, savedPrompts]);
 
   const clearSelection = useCallback(() => {
     setSelectedPromptIds(new Set());
@@ -96,13 +97,19 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     }
     clearSelection();
     setShowBulkDeleteConfirm(false);
+    setBulkDeleteConfirmationText("");
   };
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedPromptIds.size > 0) {
-        clearSelection();
+      if (e.key === "Escape") {
+         if (showBulkDeleteConfirm) {
+            setShowBulkDeleteConfirm(false);
+            setBulkDeleteConfirmationText("");
+         } else if (selectedPromptIds.size > 0) {
+            clearSelection();
+         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "a") {
         if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
@@ -114,7 +121,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedPromptIds.size, clearSelection, savedPrompts, toggleSelectAll]);
+  }, [selectedPromptIds.size, clearSelection, savedPrompts, toggleSelectAll, showBulkDeleteConfirm]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -387,6 +394,20 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 <p>
                   This action cannot be undone. This will permanently delete the selected saved prompts from your local storage.
                 </p>
+                {selectedPromptIds.size > 100 && (
+                  <div className="mt-4">
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Type the exact quantity ({selectedPromptIds.size}) to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={bulkDeleteConfirmationText}
+                      onChange={(e) => setBulkDeleteConfirmationText(e.target.value)}
+                      className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder={selectedPromptIds.size.toString()}
+                    />
+                  </div>
+                )}
               </div>
               <div className="p-4 bg-muted/40 border-t border-border flex items-center justify-end gap-2">
                 <button
@@ -399,7 +420,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 <button
                   type="button"
                   onClick={handleBulkDelete}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors cursor-pointer shadow-sm"
+                  disabled={selectedPromptIds.size > 100 && bulkDeleteConfirmationText !== selectedPromptIds.size.toString()}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed text-destructive-foreground transition-colors cursor-pointer shadow-sm"
                 >
                   Delete {selectedPromptIds.size} {selectedPromptIds.size === 1 ? 'Prompt' : 'Prompts'}
                 </button>
