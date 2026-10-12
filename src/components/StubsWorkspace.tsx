@@ -33,7 +33,7 @@ import {
 import { useStubsTerminal } from "../hooks/stubs/useStubsTerminal";
 import { useStubsData } from "../hooks/stubs/useStubsData";
 import { useStubsSpecs } from "../hooks/stubs/useStubsSpecs";
-import { fetchJulesRepositories, dispatchJulesTask } from "../services/julesService";
+import { fetchJulesRepositories } from "../services/julesService";
 
 interface StubsWorkspaceProps {
   onOpenBottomNav?: () => void;
