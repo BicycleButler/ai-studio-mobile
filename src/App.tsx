@@ -622,6 +622,8 @@ export default function App() {
 
   return (
     <AndroidFrame mode={deviceMode}>
+      <OfflineIndicator />
+
       {/* FLAG_SECURE Privacy Shield to obscure sensitive snapshots in App Switcher */}
       <SecurePrivacyShield isActive={isShieldActive} />
 
@@ -1054,8 +1056,6 @@ export default function App() {
         availableModels={models.map((m) => ({ id: m.id, name: m.name }))}
       />
 
-      {/* Progressive Web App Network & Offline Mode Banner Indicator */}
-      <OfflineIndicator />
     </AndroidFrame>
   );
 }
