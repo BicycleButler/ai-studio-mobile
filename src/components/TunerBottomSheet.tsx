@@ -252,13 +252,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                       {m.name}
                     </span>
                   </div>
-                  <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0 ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground font-semibold"
-                        : "bg-muted text-muted-foreground group-hover:text-foreground"
-                    }`}
-                  >
+                  <span className="text-[9px] font-medium text-muted-foreground/70 shrink-0 uppercase tracking-wider">
                     {m.badge}
                   </span>
                 </div>
