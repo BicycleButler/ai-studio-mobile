@@ -252,9 +252,6 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                       {m.name}
                     </span>
                   </div>
-                  <span className="text-[9px] font-medium text-muted-foreground/70 shrink-0 uppercase tracking-wider">
-                    {m.badge}
-                  </span>
                 </div>
 
                 <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2 leading-relaxed">

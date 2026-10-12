@@ -774,7 +774,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                             <button
                               type="button"
                               onClick={() => handleDelete(template.id)}
-                              className="px-2 py-0.5 rounded text-[11px] bg-destructive text-destructive-foreground font-semibold cursor-pointer"
+                              className="px-2 py-0.5 rounded text-[11px] bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground font-semibold cursor-pointer transition-colors"
                             >
                               Delete
                             </button>

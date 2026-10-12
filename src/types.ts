@@ -166,7 +166,6 @@ export interface ModelInfo {
   id: string;
   name: string;
   category: string;
-  badge: string;
   description: string;
   contextWindow: string;
   supportsVision: boolean;
