@@ -1938,7 +1938,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                             type="button"
                             id="chat-stop-btn"
                             onClick={onStopGeneration}
-                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
+                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-muted/40 hover:bg-destructive/90 text-muted-foreground hover:text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
                             title="Stop generation"
                             aria-label="Stop generation"
                           >
@@ -1986,7 +1986,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                           type="button"
                           id="chat-stop-btn"
                           onClick={onStopGeneration}
-                          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-muted/40 hover:bg-destructive/90 text-muted-foreground hover:text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
                           title="Stop generation"
                           aria-label="Stop generation"
                         >

@@ -44,7 +44,7 @@ type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal
 
 const LAYER_LABELS: Record<number, { title: string; color: string }> = {
   0: { title: "Layer 0: Core Types", color: "border-sky-500/40 text-sky-400 bg-sky-950/30" },
-  1: { title: "Layer 1: Low-Level Storage", color: "border-emerald-500/40 text-emerald-400 bg-emerald-950/30" },
+  1: { title: "Layer 1: Low-Level Storage", color: "border-border/40 text-muted-foreground bg-muted/30" },
   2: { title: "Layer 2: Domain Services", color: "border-indigo-500/40 text-indigo-400 bg-indigo-950/30" },
   3: { title: "Layer 3: UI Components", color: "border-amber-500/40 text-amber-400 bg-amber-950/30" },
   4: { title: "Layer 4: Workspaces", color: "border-purple-500/40 text-purple-400 bg-purple-950/30" },
@@ -273,7 +273,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
               {lintViolations.length}
             </span>
           ) : (
-            <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 font-mono">
+            <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-muted/40 text-muted-foreground font-mono">
               0
             </span>
           )}
@@ -524,7 +524,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                         {/* Centrality & Impact Action */}
                         <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
                           <div className="flex items-center gap-2 text-xs font-mono">
-                            <span className="text-emerald-400" title="Fan-in (incoming callers)">
+                            <span className="text-muted-foreground" title="Fan-in (incoming callers)">
                               In: {node.fanIn}
                             </span>
                             <span className="text-muted-foreground">•</span>
@@ -637,7 +637,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                   title="Copy Mermaid code to clipboard"
                 >
                   {copyDiagramToast ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-foreground" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
@@ -685,15 +685,15 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
             <div
               className={`p-4 rounded-xl border flex items-start justify-between gap-3 ${
                 lintPassed
-                  ? "bg-emerald-950/20 border-emerald-500/40 text-emerald-300"
-                  : "bg-rose-950/20 border-rose-500/40 text-rose-300"
+                  ? "bg-muted/40 border-border/40 text-muted-foreground"
+                  : "bg-muted/40 border-border/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
               }`}
             >
               <div className="flex items-start gap-3">
                 {lintPassed ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
                 ) : (
-                  <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                 )}
                 <div>
                   <h3 className="text-sm font-bold text-foreground">
@@ -729,32 +729,32 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border/50">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                     <span className="text-foreground font-medium">
                       Rule 1: Circular Dependency Cycle Ban
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-emerald-400">0 Cycles (Acyclic)</span>
+                  <span className="text-[11px] font-mono text-muted-foreground">0 Cycles (Acyclic)</span>
                 </div>
 
                 <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border/50">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                     <span className="text-foreground font-medium">
                       Rule 2: Layer 0 Core Inversion Ban
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-emerald-400">Strict Layer Hierarchy</span>
+                  <span className="text-[11px] font-mono text-muted-foreground">Strict Layer Hierarchy</span>
                 </div>
 
                 <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border/50">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                     <span className="text-foreground font-medium">
                       Rule 3: Utility Isolation (Layer 1 cannot import Workspaces Layer 4)
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-emerald-400">Enforced</span>
+                  <span className="text-[11px] font-mono text-muted-foreground">Enforced</span>
                 </div>
               </div>
             </div>
@@ -846,8 +846,8 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                               : impactResult.riskScore === "HIGH"
                               ? "text-amber-400"
                               : impactResult.riskScore === "MODERATE"
-                              ? "text-sky-400"
-                              : "text-emerald-400"
+                              ? "text-muted-foreground"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {impactResult.riskScore}
@@ -986,7 +986,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                         <span className="text-xs font-semibold text-foreground font-mono truncate">
                           {spec.filename}
                         </span>
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-muted/40 text-muted-foreground border border-border/40">
                           {spec.status}
                         </span>
                       </div>
@@ -996,7 +996,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                           <span>Target:</span>
                           <span className="truncate">{spec.targetCodeFile}</span>
                           {spec.targetExists && (
-                            <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                            <Check className="w-3 h-3 text-muted-foreground shrink-0" />
                           )}
                         </div>
                       )}
@@ -1015,7 +1015,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                     {activeSpecPath || "Select a spec"}
                   </span>
                   {specActionToast && (
-                    <span className="text-[11px] font-medium text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/40">
+                    <span className="text-[11px] font-medium text-muted-foreground bg-muted/40 px-2 py-0.5 rounded border border-border/40">
                       {specActionToast}
                     </span>
                   )}
@@ -1155,7 +1155,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                         <span className="text-rose-400">{log.text}</span>
                       )}
                       {log.type === "exit" && (
-                        <span className="text-emerald-400 font-bold">{log.text}</span>
+                        <span className="text-muted-foreground font-bold">{log.text}</span>
                       )}
                       {log.type === "connect" && (
                         <span className="text-slate-500">[{log.text}]</span>

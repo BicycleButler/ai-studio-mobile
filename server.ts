@@ -456,7 +456,6 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
       id: string;
       name: string;
       category: string;
-      badge: string;
       description: string;
       contextWindow: string;
       supportsVision: boolean;
@@ -480,17 +479,13 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
         const curated = CURATED_MODELS.find((cm) => cm.id === id);
 
         let category = curated?.category || "General";
-        let badge = curated?.badge || "Multimodal";
         if (!curated) {
           if (id.includes("flash-lite")) {
             category = "High Speed";
-            badge = "Ultra Low Latency";
           } else if (id.includes("flash")) {
             category = "Recommended";
-            badge = "Fast & Multimodal";
           } else if (id.includes("pro")) {
             category = "Complex Reasoning";
-            badge = "High Intelligence";
           }
         }
 
@@ -498,7 +493,6 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
           id,
           name: curated?.name || m.displayName || id,
           category,
-          badge,
           description: curated?.description || m.description || `Google AI Studio ${id} model.`,
           contextWindow: ctx,
           supportsVision: true,
