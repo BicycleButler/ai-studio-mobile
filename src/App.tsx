@@ -26,7 +26,7 @@ import {
   updateStoredProject,
 } from "./utils/storage";
 import { saveSpeechSettings } from "./services/speechVoices";
-import { AlertCircle, AlertTriangle, Key, RefreshCw, WifiOff, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
+import { AlertCircle, AlertTriangle, Key, RefreshCw, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
 
@@ -404,19 +404,6 @@ export default function App() {
             <Key className="w-3 h-3" />
             <span>Connect</span>
           </button>
-        </div>
-      )}
-
-      {/* Offline Status Banner */}
-      {!isOnline && (
-        <div className="bg-muted border-b border-border px-3 py-2 text-xs text-muted-foreground flex items-center justify-between gap-2 shrink-0 animate-pulse">
-          <div className="flex items-center gap-2">
-            <WifiOff className="w-4 h-4 text-muted-foreground shrink-0" />
-            <span>You are currently offline. Prompts will resume when network is restored.</span>
-          </div>
-          <span className="px-2 py-0.5 rounded bg-card text-muted-foreground border border-border font-mono text-[10px]">
-            OFFLINE
-          </span>
         </div>
       )}
 
