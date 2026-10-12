@@ -308,6 +308,13 @@ export function useAppState() {
     persistSavedPrompts(updated);
   };
 
+  const handleBulkDeleteSavedPrompts = (ids: string[]) => {
+    const idSet = new Set(ids);
+    const updated = savedPrompts.filter((p) => !idSet.has(p.id));
+    setSavedPrompts(updated);
+    persistSavedPrompts(updated);
+  };
+
   // Effects
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -463,6 +470,7 @@ export function useAppState() {
     refreshServerAuth,
     handleLoadPrompt,
     handleSaveCurrentPrompt,
-    handleDeleteSavedPrompt
+    handleDeleteSavedPrompt,
+    handleBulkDeleteSavedPrompts
   };
 }
