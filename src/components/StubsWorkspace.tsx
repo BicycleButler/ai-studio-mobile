@@ -33,6 +33,7 @@ import {
 import { useStubsTerminal } from "../hooks/stubs/useStubsTerminal";
 import { useStubsData } from "../hooks/stubs/useStubsData";
 import { useStubsSpecs } from "../hooks/stubs/useStubsSpecs";
+import { fetchJulesRepositories, dispatchJulesTask } from "../services/julesService";
 
 interface StubsWorkspaceProps {
   onOpenBottomNav?: () => void;
@@ -147,8 +148,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
 
   // Fetch Jules Repositories for top switcher
   useEffect(() => {
-    import("../services/julesService")
-      .then(({ fetchJulesRepositories }) => fetchJulesRepositories())
+    fetchJulesRepositories()
       .then((repos) => {
         if (Array.isArray(repos)) {
           setRepositories(repos);
