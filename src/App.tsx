@@ -1,38 +1,15 @@
-import { getSafeWindow } from "./utils/platform";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
-  PromptType,
-  DeviceFrameMode,
-  PromptConfig,
   ChatMessage,
-  StructuredExample,
-  SavedPrompt,
-  ModelInfo,
   MessageAttachment,
   IncomingMessage,
-  GoogleUser,
-  ProjectInfo,
-  ChatSession,
-
 } from "./types";
-import {
-  saveChatSession,
-  generateSessionTitle,
-  purgeMockSessionsFromStorage,
-} from "./services/chatHistoryService";
-import {
-  getStoredGoogleUser,
-  fetchServerCurrentUser,
-  initiateGoogleLogin,
-  logoutGoogleUser,
-  initAuth,
-} from "./services/googleAuth";
 import { TopAppBar } from "./components/TopAppBar";
 import { ChatWorkspace } from "./components/ChatWorkspace";
 import { MobileIDEWorkspace } from "./components/MobileIDEWorkspace";
 import { StubsWorkspace } from "./components/StubsWorkspace";
 import { TunerBottomSheet } from "./components/TunerBottomSheet";
-import { UnifiedSettingsModal, SettingsTab } from "./components/UnifiedSettingsModal";
+import { UnifiedSettingsModal } from "./components/UnifiedSettingsModal";
 import { AndroidFrame } from "./components/AndroidFrame";
 import { BottomNavBar } from "./components/BottomNavBar";
 import { CustomTabBrowserModal } from "./components/CustomTabBrowserModal";
@@ -41,135 +18,88 @@ import { SecurePrivacyShield } from "./components/SecurePrivacyShield";
 import { JulesSessionDrawer } from "./components/JulesSessionDrawer";
 import { useGeminiStream } from "./hooks/useGeminiStream";
 import { useJules } from "./hooks/useJules";
-import {
-  CURATED_MODELS,
-  isDeprecatedOrUnusableModel,
-  sanitizeModelId,
-} from "./utils/modelCatalog";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
 import { useWindowSecurity } from "./hooks/useWindowSecurity";
 import { maskApiKey, clearClipboardSafe } from "./services/keyVerification";
 import {
-  loadStoredApiKey,
-  saveStoredApiKey,
-  loadSavedPrompts,
-  persistSavedPrompts,
-  loadDraftState,
-  saveDraftState,
-  getActiveProject,
-  loadStoredProjects,
-  setActiveProjectId,
   updateStoredProject,
-  deleteStoredProject,
-
-
 } from "./utils/storage";
-import {
-  SpeechSettings,
-  loadSpeechSettings,
-  saveSpeechSettings,
-} from "./services/speechVoices";
+import { saveSpeechSettings } from "./services/speechVoices";
 import { AlertCircle, AlertTriangle, Key, RefreshCw, WifiOff, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
 import { OfflineIndicator } from "./components/OfflineIndicator";
-import { fetchServerHealth } from "./services/auth";
-import { fetchModels } from "./utils/modelCatalog";
-
+import { useAppState } from "./hooks/useAppState";
 
 export default function App() {
-  // Phase 3: Active Project & Projects vault
-  const [projects, setProjects] = useState<ProjectInfo[]>(() => loadStoredProjects());
-  const [activeProject, setActiveProject] = useState<ProjectInfo | null>(() => getActiveProject());
-
-  // Load project-scoped draft state for crash/reload recovery
-  const initialDraft = loadDraftState(activeProject?.id);
-
-  // Navigation & Mode states
-  const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
-  const [deviceMode, setDeviceMode] = useState<DeviceFrameMode>("responsive");
-  const [showBottomNav, setShowBottomNav] = useState(false);
-  const [showTunerSheet, setShowTunerSheet] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("account");
-  const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() =>
-    loadSpeechSettings()
-  );
-
-  // In-App Browser / Import states
-  const [showCustomTabBrowser, setShowCustomTabBrowser] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [candidateClipboardKey, setCandidateClipboardKey] = useState<string>("");
-  const [clipboardToastKey, setClipboardToastKey] = useState<string | null>(null);
-
-  // Prompt Templates State (Global to header & chat)
-  const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
-
-  const handleToggleTemplate = (templateId: string) => {
-    setSelectedTemplateIds((prev) =>
-      prev.includes(templateId)
-        ? prev.filter((id) => id !== templateId)
-        : [...prev, templateId]
-    );
-  };
-
-  const handleRemoveTemplate = (templateId: string) => {
-    setSelectedTemplateIds((prev) => prev.filter((id) => id !== templateId));
-  };
-
-  const handleClearAllTemplates = () => {
-    setSelectedTemplateIds([]);
-  };
-
-  const handleOpenSettings = (tab: SettingsTab = "account") => {
-    setSettingsTab(tab);
-    setShowSettingsModal(true);
-  };
-
-  // Models & Server Key state
-  const [models, setModels] = useState<ModelInfo[]>(CURATED_MODELS);
-  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => getStoredGoogleUser());
-  const [hasServerKey, setHasServerKey] = useState(false);
-  const [customApiKey, setCustomApiKey] = useState<string>(() => loadStoredApiKey());
-  const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
-
-  // Prompt Configuration state - ensure model is never deprecated/unusable
-  const [config, setConfig] = useState<PromptConfig>(() => ({
-    ...initialDraft.config,
-    model: sanitizeModelId(initialDraft.config?.model),
-  }));
-
-  // Chat state & active session tracking
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${Date.now()}`);
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (initialDraft.messages && initialDraft.messages.length > 0) {
-      return initialDraft.messages;
-    }
-    return [];
-  });
-
-  // Mobile IDE compatibility state
-  const [freeformText] = useState(initialDraft.freeformText);
-  const [structuredExamples] = useState<StructuredExample[]>(
-    initialDraft.structuredExamples
-  );
-
-  // Library / saved prompts
-  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(() => loadSavedPrompts());
-
-  // 10) Security / Environment overrides
-
-
-  const [showJulesDrawer, setShowJulesDrawer] = useState(false);
-  const [browserService, setBrowserService] = useState<"aistudio" | "jules">("aistudio");
+  const {
+    projects,
+    setProjects,
+    activeProject,
+    setActiveProject,
+    promptType,
+    setPromptType,
+    deviceMode,
+    setDeviceMode,
+    showBottomNav,
+    setShowBottomNav,
+    showTunerSheet,
+    setShowTunerSheet,
+    showSettingsModal,
+    setShowSettingsModal,
+    settingsTab,
+    speechSettings,
+    setSpeechSettings,
+    showCustomTabBrowser,
+    setShowCustomTabBrowser,
+    showImportModal,
+    setShowImportModal,
+    candidateClipboardKey,
+    setCandidateClipboardKey,
+    clipboardToastKey,
+    setClipboardToastKey,
+    isTemplateDrawerOpen,
+    setIsTemplateDrawerOpen,
+    selectedTemplateIds,
+    models,
+    googleUser,
+    hasServerKey,
+    customApiKey,
+    hasApiKey,
+    config,
+    setConfig,
+    currentSessionId,
+    messages,
+    setMessages,
+    freeformText,
+    structuredExamples,
+    savedPrompts,
+    showJulesDrawer,
+    setShowJulesDrawer,
+    browserService,
+    setBrowserService,
+    handleToggleTemplate,
+    handleRemoveTemplate,
+    handleClearAllTemplates,
+    handleOpenSettings,
+    handleGoogleLogin,
+    handleGoogleLogout,
+    handleSaveApiKey,
+    handleProjectActivated,
+    handleStartNewChat,
+    handleSelectChatSession,
+    handleRenameProject,
+    handleDeleteProject,
+    refreshServerAuth,
+    handleLoadPrompt,
+    handleSaveCurrentPrompt,
+    handleDeleteSavedPrompt
+  } = useAppState();
 
   const {
     julesApiKey,
     handleSaveJulesApiKey,
     activeJulesSession,
-
     julesMessages,
-
     isJulesExecuting,
     isApprovingJulesPlan,
     handleSendJulesMessage,
@@ -208,7 +138,7 @@ export default function App() {
                 }
               : null
           );
-          setProjects(loadStoredProjects());
+          setProjects(projects.map(p => p.id === activeProject.id ? { ...p, isValid: false, status: "invalid_key", statusMessage: "Key expired or revoked" } : p));
         }
       }
     },
@@ -222,226 +152,6 @@ export default function App() {
     isSensitiveScreenActive: showSettingsModal || showImportModal,
   });
 
-  // Debounced auto-save draft to protect against Android tab suspension (LMK)
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      saveDraftState(
-        {
-          promptType,
-          config,
-          freeformText,
-          structuredExamples,
-          messages,
-        },
-        activeProject?.id
-      );
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, [promptType, config, freeformText, structuredExamples, messages, activeProject?.id]);
-
-  // Continuous debounced auto-archiving of active conversation into history
-  useEffect(() => {
-    if (messages && messages.length > 0 && currentSessionId) {
-      const hasMeaningfulContent = messages.some(
-        (m) => m.text.trim().length > 0 || (m.images && m.images.length > 0)
-      );
-      if (hasMeaningfulContent) {
-        saveChatSession(
-          {
-            id: currentSessionId,
-            title: generateSessionTitle(messages),
-            messages,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            model: config.model,
-            projectId: activeProject?.id,
-          },
-          activeProject?.id
-        );
-      }
-    }
-  }, [messages, currentSessionId, activeProject?.id, config.model]);
-
-  // Ensure persistent storage has zero mock data on application boot
-  useEffect(() => {
-    purgeMockSessionsFromStorage();
-  }, []);
-
-  // Initialize & fetch server health / models
-  useEffect(() => {
-    fetchServerHealth()
-      .then((data) => {
-        if (data.hasServerApiKey) {
-          setHasServerKey(true);
-        }
-      })
-      .catch(() => {});
-
-    // Check server session for current Google user
-    fetchServerCurrentUser().then((user: GoogleUser | null) => {
-      if (user) {
-        setGoogleUser(user);
-      }
-    });
-
-    const storedKey = loadStoredApiKey();
-    fetchModels(storedKey)
-      .then((data) => {
-        if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-          const cleaned = data.models.filter((m) => !isDeprecatedOrUnusableModel(m.id));
-          if (cleaned.length > 0) {
-            setModels(cleaned);
-          }
-        }
-      })
-      .catch(() => {});
-
-    const win = getSafeWindow();
-    if (win && win.innerWidth >= 1024) {
-      setDeviceMode("pixel");
-    }
-
-    const unsubscribeAuth = initAuth((user) => {
-      if (user) {
-        setGoogleUser(user);
-      }
-    });
-
-    return () => {
-      unsubscribeAuth();
-    };
-  }, []);
-
-  const handleGoogleLogin = async (email?: string, name?: string) => {
-    const user = await initiateGoogleLogin(email, name);
-    if (user) {
-      setGoogleUser(user);
-      // Re-fetch live models with the authenticated Google credentials
-      const key = customApiKey || loadStoredApiKey();
-
-      fetchModels(key, true)
-        .then((data) => {
-          if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-            const cleaned = data.models.filter((m) => !isDeprecatedOrUnusableModel(m.id));
-            if (cleaned.length > 0) {
-              setModels(cleaned);
-            }
-          }
-        })
-        .catch(() => {});
-    }
-  };
-
-  const handleGoogleLogout = async () => {
-    await logoutGoogleUser();
-    setGoogleUser(null);
-  };
-
-  const handleSaveApiKey = (key: string) => {
-    setCustomApiKey(key);
-    saveStoredApiKey(key);
-    if (key.trim()) {
-      fetchModels(key.trim(), true)
-        .then((data) => {
-          if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-            setModels(data.models);
-          }
-        })
-        .catch(() => {});
-    }
-  };
-
-  // Phase 3: Project switching, scope isolation & lifecycle wiring
-  const handleProjectActivated = (project: ProjectInfo) => {
-    // 1. Cancel any active stream to prevent state pollution
-    if (isGenerating) {
-      stopStream();
-    }
-
-    // 2. Persist current draft under outgoing active project
-    saveDraftState(
-      {
-        promptType,
-        config,
-        freeformText,
-        structuredExamples,
-        messages,
-      },
-      activeProject?.id
-    );
-
-    // 3. Mark new project active in storage & local state
-    setActiveProjectId(project.id);
-    setActiveProject(project);
-    setCustomApiKey(project.apiKey);
-    saveStoredApiKey(project.apiKey);
-
-    // 4. Load incoming project's scoped draft state
-    const targetDraft = loadDraftState(project.id);
-    setPromptType(targetDraft.promptType);
-    setConfig({
-      ...targetDraft.config,
-      ...(project.defaultModel ? { model: project.defaultModel } : {}),
-    });
-    if (targetDraft.messages && targetDraft.messages.length > 0) {
-      setMessages(targetDraft.messages);
-    } else {
-      setMessages([]);
-    }
-
-    // 5. Synchronize project list & clear transient toasts
-    setProjects(loadStoredProjects());
-    setCandidateClipboardKey("");
-    setClipboardToastKey(null);
-    setCurrentSessionId(`sess_${Date.now()}`);
-  };
-
-  const handleStartNewChat = () => {
-    if (isGenerating) {
-      stopStream();
-    }
-    const newSessionId = `sess_${Date.now()}`;
-    setCurrentSessionId(newSessionId);
-    setMessages([]);
-  };
-
-  const handleSelectChatSession = (session: ChatSession) => {
-    if (isGenerating) {
-      stopStream();
-    }
-    setCurrentSessionId(session.id);
-    setMessages(session.messages || []);
-    if (session.model) {
-      setConfig((prev) => ({ ...prev, model: session.model! }));
-    }
-  };
-
-  const handleRenameProject = (id: string, newName: string) => {
-    updateStoredProject(id, { name: newName });
-    const updated = loadStoredProjects();
-    setProjects(updated);
-    if (activeProject?.id === id) {
-      setActiveProject((prev) => (prev ? { ...prev, name: newName } : null));
-    }
-  };
-
-  const handleDeleteProject = (id: string) => {
-    deleteStoredProject(id);
-    const updated = loadStoredProjects();
-    setProjects(updated);
-    if (activeProject?.id === id) {
-      if (updated.length > 0) {
-        handleProjectActivated(updated[0]);
-      } else {
-        setActiveProject(null);
-        setCustomApiKey("");
-        saveStoredApiKey("");
-        // Clean wipe to starter state
-        setMessages([]);
-      }
-    }
-  };
-
   // Phase 2: Background resume clipboard inspection and sniffing
   useClipboardKeySniffer({
     activeApiKey: customApiKey,
@@ -450,17 +160,6 @@ export default function App() {
       setClipboardToastKey(detectedKey);
     },
   });
-
-  const refreshServerAuth = async (): Promise<boolean> => {
-    try {
-      const data = await fetchServerHealth();
-      const hasKey = Boolean(data.hasServerApiKey);
-      setHasServerKey(hasKey);
-      return hasKey;
-    } catch {
-      return false;
-    }
-  };
 
   // Chat: Send Message
   const handleSendMessage = async (
@@ -569,43 +268,6 @@ export default function App() {
     void handleSendMessage(lastUser.text, lastUser.images);
   };
 
-  // Load a prompt template or saved item
-  const handleLoadPrompt = (prompt: SavedPrompt) => {
-    const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
-    const targetType: PromptType = validPromptTypes.includes(prompt.type as PromptType)
-      ? (prompt.type as PromptType)
-      : "chat";
-    setPromptType(targetType);
-    setConfig(prompt.config);
-    if (prompt.messages && prompt.messages.length > 0) {
-      setMessages(prompt.messages);
-    }
-  };
-
-  // Save current prompt
-  const handleSaveCurrentPrompt = (title: string) => {
-    const newSaved: SavedPrompt = {
-      id: `saved-${Date.now()}`,
-      title,
-      type: promptType,
-      config: { ...config },
-      messages: [...messages],
-      updatedAt: Date.now(),
-      projectId: activeProject?.id,
-    };
-
-    const updated = [newSaved, ...savedPrompts];
-    setSavedPrompts(updated);
-    persistSavedPrompts(updated);
-  };
-
-  // Delete saved prompt
-  const handleDeleteSavedPrompt = (id: string) => {
-    const updated = savedPrompts.filter((p) => p.id !== id);
-    setSavedPrompts(updated);
-    persistSavedPrompts(updated);
-  };
-
   const totalTokensEstimate = (() => {
     const sysTokens = Math.round((config.systemInstruction?.length || 0) / 4);
     if (promptType === "chat" || promptType === "jules") {
@@ -660,7 +322,7 @@ export default function App() {
         activeProjectName={activeProject?.name}
         activeProject={activeProject}
         projects={projects}
-        onSelectProject={handleProjectActivated}
+        onSelectProject={(p) => handleProjectActivated(p, stopStream)}
         activeJulesSession={activeJulesSession}
         onOpenJulesSessions={() => setShowJulesDrawer(true)}
         onOpenPromptTemplates={() => {
@@ -843,7 +505,7 @@ export default function App() {
           <ChatWorkspace
             messages={messages}
             onSendMessage={(text, atts, tplIds, rawText) => void handleSendMessage(text, atts, tplIds, rawText)}
-            onClearMessages={handleStartNewChat}
+            onClearMessages={() => handleStartNewChat(stopStream)}
             onRegenerate={handleRegenerate}
             onStopGeneration={stopStream}
             isGenerating={isGenerating}
@@ -862,8 +524,8 @@ export default function App() {
             onOpenSettings={handleOpenSettings}
             activeProjectId={activeProject?.id}
             currentSessionId={currentSessionId}
-            onSelectSession={handleSelectChatSession}
-            onNewChat={handleStartNewChat}
+            onSelectSession={(s) => handleSelectChatSession(s, stopStream)}
+            onNewChat={() => handleStartNewChat(stopStream)}
             onOpenBottomNav={() => setShowBottomNav(true)}
             isTemplateDrawerOpen={isTemplateDrawerOpen}
             onOpenTemplateDrawer={() => setIsTemplateDrawerOpen(true)}
@@ -1007,9 +669,9 @@ export default function App() {
         activeProjectName={activeProject?.name}
         projects={projects}
         activeProject={activeProject}
-        onSelectProject={handleProjectActivated}
+        onSelectProject={(p) => handleProjectActivated(p, stopStream)}
         onRenameProject={handleRenameProject}
-        onDeleteProject={handleDeleteProject}
+        onDeleteProject={(id) => handleDeleteProject(id, stopStream)}
       />
 
       {/* Phase 2: In-App AI Studio Launcher & Jules Settings (Chrome Custom Tab style) */}
@@ -1052,7 +714,7 @@ export default function App() {
           setCandidateClipboardKey("");
         }}
         initialKey={candidateClipboardKey}
-        onSuccess={handleProjectActivated}
+        onSuccess={(p) => handleProjectActivated(p, stopStream)}
         availableModels={models.map((m) => ({ id: m.id, name: m.name }))}
       />
 
