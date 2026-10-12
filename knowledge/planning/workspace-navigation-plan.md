@@ -9,7 +9,7 @@ tags:
   - minimalism
   - adr-0045
 phase: complete
-status: completed
+status: complete
 version: 3
 status_flag: clean
 initiative: workspace-navigation

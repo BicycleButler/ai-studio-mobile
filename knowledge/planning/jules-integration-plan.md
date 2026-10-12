@@ -8,8 +8,8 @@ tags:
   - initiative
   - jules
   - agent
-phase: grill
-status: completed
+phase: complete
+status: complete
 version: 1
 status_flag: clean
 initiative: jules-integration
