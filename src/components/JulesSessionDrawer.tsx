@@ -129,43 +129,43 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     switch (status) {
       case "planning":
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-foreground border border-border flex items-center gap-1">
-            <RefreshCw className="w-2.5 h-2.5 animate-spin text-primary" />
+          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+            <RefreshCw className="w-3 h-3 animate-spin" />
             <span>Planning</span>
           </span>
         );
       case "awaiting_approval":
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-foreground border border-border flex items-center gap-1">
-            <AlertCircle className="w-2.5 h-2.5 text-primary" />
+          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
             <span>Needs Review</span>
           </span>
         );
       case "executing":
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-            <PlayCircle className="w-2.5 h-2.5 animate-spin text-primary" />
+          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+            <PlayCircle className="w-3 h-3 animate-spin" />
             <span>Coding</span>
           </span>
         );
       case "completed":
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-foreground border border-border flex items-center gap-1">
-            <CheckCircle2 className="w-2.5 h-2.5 text-primary" />
+          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" />
             <span>Completed</span>
           </span>
         );
       case "failed":
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted/40 text-destructive border border-destructive/20 flex items-center gap-1">
-            <AlertCircle className="w-2.5 h-2.5 text-destructive" />
+          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
             <span>Failed</span>
           </span>
         );
       default:
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground border border-border">
-            Idle
+          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+            <span>Idle</span>
           </span>
         );
     }
