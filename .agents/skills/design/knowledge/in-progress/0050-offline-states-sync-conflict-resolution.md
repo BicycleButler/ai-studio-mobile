@@ -1,7 +1,7 @@
 ---
 title: "ADR 0050: Offline States, Syncing & Concurrent Conflict Resolution"
 type: "adr"
-status: "in-progress"
+status: "complete"
 description: "TODO Draft proposal: Visual indicators for network disruption, offline mutation queues, background sync banners, and conflict resolution diff modals."
 date: "2026-08-20"
 ---
