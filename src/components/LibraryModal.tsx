@@ -222,35 +222,38 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
       {/* 2. User Saved Prompts */}
       <div className="space-y-2 pt-2">
-        <div className="flex items-center justify-between px-1">
+        <div className="flex items-center justify-between px-1 mb-2">
           <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             My Saved Prompts ({savedPrompts.length})
           </div>
-          {savedPrompts.length > 0 && (
-            <button
-              type="button"
-              onClick={toggleSelectAll}
-              className="text-[11px] font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer flex items-center gap-1"
-            >
-              {selectedPromptIds.size === savedPrompts.length ? (
-                <>
-                  <CheckSquare className="w-3.5 h-3.5" />
-                  Deselect All
-                </>
-              ) : selectedPromptIds.size > 0 ? (
-                <>
-                  <MinusSquare className="w-3.5 h-3.5" />
-                  Select All
-                </>
-              ) : (
-                <>
-                  <Square className="w-3.5 h-3.5" />
-                  Select All
-                </>
-              )}
-            </button>
-          )}
         </div>
+
+        {/* Bulk Action Selection Header */}
+        {savedPrompts.length > 0 && (
+          <div className="px-2 py-2 border-b border-border bg-muted/40 flex flex-col gap-2 text-xs mb-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
+                aria-label="Select all prompts on this page"
+              >
+                {selectedPromptIds.size === savedPrompts.length ? (
+                  <CheckSquare className="w-4 h-4 text-primary" />
+                ) : selectedPromptIds.size > 0 ? (
+                  <MinusSquare className="w-4 h-4 text-primary" />
+                ) : (
+                  <Square className="w-4 h-4" />
+                )}
+              </button>
+              <span className="text-muted-foreground font-medium">
+                {selectedPromptIds.size > 0
+                  ? `${selectedPromptIds.size} selected`
+                  : "Select all on this page"}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Dataset Scope Banner (ADR 0047) */}
         {selectedPromptIds.size === savedPrompts.length && savedPrompts.length > 0 && (
