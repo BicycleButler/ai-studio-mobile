@@ -30,6 +30,11 @@ The **Workspaces & UI** domain constitutes the interactive prompt engineering en
 | [`src/components/ChatWorkspace.tsx`](../../src/components/ChatWorkspace.tsx) | Multi-turn conversational chat UI with streaming and markdown rendering | `useGeminiStream`, `storage.ts`, `speechVoices.ts` |
 | [`src/components/StubsWorkspace.tsx`](../../src/components/StubsWorkspace.tsx) | Architecture-as-Code PWM Portal | `types.ts` |
 | [`src/components/MobileIDEWorkspace.tsx`](../../src/components/MobileIDEWorkspace.tsx) | Code generation and preview environment with export capabilities | `codeGenerators.ts`, `CodeExportModal` |
+| [`src/components/JulesSessionDrawer.tsx`](../../src/components/JulesSessionDrawer.tsx) | Dedicated Jules session and task management slide-over drawer | `types.ts`, `useJules.ts` |
+| [`src/components/PromptTemplateDrawer.tsx`](../../src/components/PromptTemplateDrawer.tsx) | Bottom sheet for inserting templates, composing variables, and few-shot examples | `data/templates.ts`, `promptTemplateService.ts` |
+| [`src/components/JulesActivityCard.tsx`](../../src/components/JulesActivityCard.tsx) | Interactive structured activity cards for Jules plan and diff rendering | `lucide-react`, `types.ts` |
+| [`src/components/prompt-tools/FewShotBuilderTool.tsx`](../../src/components/prompt-tools/FewShotBuilderTool.tsx) | Tooling for building structured few-shot prompt examples | `types.ts` |
+| [`src/components/prompt-tools/VariablePromptTool.tsx`](../../src/components/prompt-tools/VariablePromptTool.tsx) | Tooling for mustache-style prompt variables | `types.ts` |
 | [`src/components/MobileIDE.test.ts`](../../src/components/MobileIDE.test.ts) | Unit tests for mobile IDE mode resolution and code generator triggers | `MobileIDEWorkspace.tsx` |
 | [`src/components/TopAppBar.tsx`](../../src/components/TopAppBar.tsx) | App header with model picker, project indicator, and modal triggers | `types.ts`, `lucide-react` |
 | [`src/components/BottomNavBar.tsx`](../../src/components/BottomNavBar.tsx) | Mobile bottom bar navigation between workspaces | `types.ts` |
@@ -41,6 +46,9 @@ The **Workspaces & UI** domain constitutes the interactive prompt engineering en
 | [`src/components/LibraryModal.tsx`](../../src/components/LibraryModal.tsx) | Prompt library browser for saving, organizing, and loading prompts | `data/templates.ts`, `storage.ts` |
 | [`src/components/RightDrawerMenu.tsx`](../../src/components/RightDrawerMenu.tsx) | Slide-over drawer offering quick actions, doc links, and settings access | `UnifiedSettingsModal.tsx` |
 | [`src/components/SecurePrivacyShield.tsx`](../../src/components/SecurePrivacyShield.tsx) | Privacy and network security banner reassuring user of local data safety | `lucide-react` |
+| [`src/hooks/useBackNavigation.ts`](../../src/hooks/useBackNavigation.ts) | React hook intercepting android back button presses | `react` |
+| [`src/hooks/useNetworkStatus.ts`](../../src/hooks/useNetworkStatus.ts) | PWA reactive network status hook | `react` |
+| [`src/hooks/usePWAInstall.ts`](../../src/hooks/usePWAInstall.ts) | PWA 'beforeinstallprompt' hook | `react` |
 
 ## Domain Architecture & Flow
 
@@ -52,6 +60,7 @@ flowchart TD
   App --> Chat[ChatWorkspace]
   App --> Stubs[StubsWorkspace]
   App --> MobileIDE[MobileIDEWorkspace]
+  App --> JulesSessionDrawer[JulesSessionDrawer]
   App --> Tuner[TunerBottomSheet]
   App --> Settings[UnifiedSettingsModal]
 ```

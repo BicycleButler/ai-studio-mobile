@@ -18,6 +18,8 @@ tags:
 | :--- | :--- | :--- |
 | **Auth & Identity** | Google OAuth 2.0, API key persistence, validation against GenAI API | [Auth Domain Map](domains/auth-domain-map.md) |
 | **Workspaces & UI** | Chat, Freeform, Structured, and Mobile IDE prompt interfaces, navigation, settings | [Workspaces Domain Map](domains/workspaces-domain-map.md) |
+| **Stubs Architecture Portal** | Interactive dependency graph and Stubs CLI API integration | [Stubs Domain Map](domains/stubs-domain-map.md) |
+| **Jules Agent Environment** | Autonomous coding agent session execution and PR review UI | [Jules Domain Map](domains/jules-domain-map.md) |
 | **Gemini Engine & Streaming** | `@google/genai` SDK streaming engine, speech-to-text, audio voices, image compression | [Gemini Engine Domain Map](domains/gemini-engine-domain-map.md) |
 | **Storage, Schemas & Utilities** | LocalStorage state, Zod schemas, starter templates, multi-language code export | [Storage & Schemas Domain Map](domains/data-storage-domain-map.md) |
 
@@ -33,8 +35,7 @@ flowchart TB
     AppRoot["App.tsx Coordinator"]
     Chat["ChatWorkspace"]
     MobileIDE["MobileIDEWorkspace"]
-    Stubs["StubsWorkspace"]
-    Modals["Settings, Modals & Sheets"]
+      Modals["Settings, Modals & Sheets"]
   end
 
   subgraph Auth_Domain ["Auth & Identity Domain"]
@@ -51,6 +52,16 @@ flowchart TB
     GenAISDK["@google/genai SDK"]
   end
 
+  subgraph Stubs_Domain ["Stubs Architecture Portal Domain"]
+    StubsService["services/stubsService.ts"]
+    StubsData["hooks/useStubsData.ts"]
+  end
+
+  subgraph Jules_Domain ["Jules Agent Environment Domain"]
+    JulesService["services/julesService.ts"]
+    JulesData["hooks/useJules.ts"]
+  end
+
   subgraph Storage_Domain ["Storage & Utilities Domain"]
     StorageUtil["utils/storage.ts"]
     ValidationSchema["schemas/validation.ts"]
@@ -60,7 +71,8 @@ flowchart TB
 
   %% Relationships
   AppRoot --> TopNav
-  AppRoot --> Chat & MobileIDE & Stubs
+  AppRoot --> Chat & MobileIDE & StubsWorkspace
+  AppRoot --> JulesSessionDrawer
   AppRoot --> Modals
   AppRoot --> GoogleAuth
   AppRoot --> StorageUtil
@@ -77,6 +89,10 @@ flowchart TB
   KeyVerify --> StorageUtil
 
   MobileIDE --> CodeGenerators
+  StubsWorkspace --> StubsData
+  StubsData --> StubsService
+  JulesSessionDrawer --> JulesData
+  JulesData --> JulesService
   StorageUtil --> ValidationSchema
   Modals --> TemplatesData
 ```

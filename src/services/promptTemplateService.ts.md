@@ -1,7 +1,7 @@
 ---
 title: Prompt Template Service & Compose Architecture
 type: service-spec
-status: proposed
+status: materialized
 target_code_file: src/services/promptTemplateService.ts
 version: 1.0.0
 tags:
@@ -23,11 +23,11 @@ Enables:
 5. Concatenating ordered prompt templates ahead of manual user input into a unified prompt payload for the Gemini model.
 
 ## 2. Design Tree & Frontier Status
-- [ ] Frontier Decision 1: Prompt Template Data Model & Seed Persistence -> Option A (Union of immutable starter seeds with editable user templates in local storage)
-- [ ] Frontier Decision 2: Input Dock Tray & Selection Representation -> Option A (Horizontal compact tray above input with re-orderable / dismissible chips)
-- [ ] Frontier Decision 3: Template Discovery & Authoring Surface -> Option A (Unified modal/sheet with tabbed filtering, preview, and drafting form)
-- [ ] Frontier Decision 4: Multi-Template Message Concatenation Protocol -> Option A (Double-newline delimited sequential concatenation: `T1 + \n\n + T2 + \n\n + UserText`)
-- [ ] Frontier Decision 5: Chat Bubble Display & Provenance Tracking -> Option A (Persist template IDs in message metadata, showing template chips above user query in conversation)
+- [x] Frontier Decision 1: Prompt Template Data Model & Seed Persistence -> Option A (Union of immutable starter seeds with editable user templates in local storage)
+- [x] Frontier Decision 2: Input Dock Tray & Selection Representation -> Option A (Horizontal compact tray above input with re-orderable / dismissible chips)
+- [x] Frontier Decision 3: Template Discovery & Authoring Surface -> Option A (Unified modal/sheet with tabbed filtering, preview, and drafting form)
+- [x] Frontier Decision 4: Multi-Template Message Concatenation Protocol -> Option A (Double-newline delimited sequential concatenation: `T1 + \n\n + T2 + \n\n + UserText`)
+- [x] Frontier Decision 5: Chat Bubble Display & Provenance Tracking -> Option A (Persist template IDs in message metadata, showing template chips above user query in conversation)
 
 ## 3. Data Interface Contract
 

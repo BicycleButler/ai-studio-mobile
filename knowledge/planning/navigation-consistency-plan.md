@@ -32,12 +32,12 @@ The application currently exhibits significant navigational fragmentation and vi
 
 ```
 Navigation Consistency & Redundancy Elimination
-├── 1. Primary Navigation Paradigm [FRONTIER: Q1]
+├── 1. Primary Navigation Paradigm [SETTLED]
 │   ├── Option A: Persistent Docked Bottom Bar across ALL workspaces (ADR 0045 Sticky Footer)
 │   └── Option B: Unified TopAppBar Workspace Tabs / Segmented Switcher + deprecate bottom drawer
 ├── 2. Header Architecture & Double Header Elimination [SETTLED: Minimalist Single TopAppBar]
 │   └── Implemented: Left zone hosts borderless token counter (tapping tunes parameters); Right zone hosts workspace switcher and persistent overflow popover (Profile -> Auth, Theme, Workspaces, Settings).
-├── 3. Chat & Jules Session/Action Control Standard [FRONTIER: Q3]
+├── 3. Chat & Jules Session/Action Control Standard [SETTLED]
 │   ├── Option A: Anchor actions (New, History, Templates) into standard single-row section toolbar (ADR 0039)
 │   └── Option B: Move secondary workspace actions into unified TopAppBar right-zone overflow
 ├── 4. Redundant Drawer & Quick Access Elimination [SETTLED]

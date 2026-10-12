@@ -38,6 +38,7 @@ Architectural Decision Records governing visual design, interaction patterns, an
 - [0039 - Page Toolbar & Section Header Standards](0039-toolbar-header-standards.md) — 52px single-row toolbar, icon-only borderless buttons (200–300ms tooltip tier), zone division, filter consolidation
 - [0040 - Split Pane Detail Cards Dynamic Layout](0040-split-pane-detail-cards.md) — Dynamic CSS Grid Inspector Pane layout, priority rankings by entity
 - [0028 - Theming & Dark Mode](0028-theming-dark-mode.md) — Theme token contract, z-index lightness hierarchy (4%–6% dark gap), system preference
+- [0046 - Tabs, Segmented Controls & Secondary Navigation Standards](0046-tabs-segmented-controls-navigation.md) — WAI-ARIA tablists, animated indicator, Segmented Control tracking pill, wrap/overflow scroll
 - [0045 - Mobile Sticky Footer & FAB Architecture](0045-mobile-sticky-footer-and-fab-patterns.md) — App-wide interaction paradigm consistency, 1–3 slot layout contract, safe-area scroll buffers.
 
 ## Components
@@ -74,4 +75,4 @@ Architectural Decision Records governing visual design, interaction patterns, an
 
 ---
 
-> **Corpus:** 26 active ADRs (0015–0043, excluding deprecated 0016, merged 0027→0041, merged 0038→0022).
+> **Corpus:** 27 active ADRs (0015–0043, excluding deprecated 0016, merged 0027→0041, merged 0038→0022).

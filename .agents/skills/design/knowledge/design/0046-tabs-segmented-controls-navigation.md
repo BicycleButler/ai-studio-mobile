@@ -1,17 +1,12 @@
 ---
 title: "ADR 0046: Tabs, Segmented Controls & Secondary Navigation Standards"
 type: "adr"
-status: "in-progress"
-description: "TODO Draft proposal: Interaction standards for tabs, segmented controls, active indicators, tablist keyboard navigation, and responsive overflow."
+status: "active"
+description: "Interaction standards for tabs, segmented controls, active indicators, tablist keyboard navigation, and responsive overflow."
 date: "2026-08-20"
 ---
 
 # ADR 0046: Tabs, Segmented Controls & Secondary Navigation Standards
-
-> [!NOTE]
-> **TODO / RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
-
----
 
 ## Context
 
@@ -95,10 +90,3 @@ Currently, applications inconsistently mix underline tabs, button pill groups, f
 1. **No Multi-Row Tab Wrapping:** Tabs must never wrap to multiple vertical lines; wrapping causes severe visual clutter and layout jumping.
 2. **No Colored Pill Badges on Tabs:** Never embed `<Badge>` or colored status dots inside tab triggers.
 3. **No Unstyled Tab Transitions:** Tab content panel switching should use a subtle opacity fade (150ms `ease-out`) to prevent jarring content flashes.
-
----
-
-## Open Questions for Discussion
-
-- Should tab panel heights be locked to the tallest panel, or animate height dynamically during tab transitions?
-- Should tabs update URL query parameters (`?tab=activity`) by default for all top-level entity views?
