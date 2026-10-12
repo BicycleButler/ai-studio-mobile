@@ -109,7 +109,7 @@ npx tsx scripts/remediate-deterministic-fallbacks-and-a11y.ts [optional-target-d
 npx tsx scripts/remediate-design-violations.ts
 
 # 6. Verify Design ADR Integrity & Links
-node scripts/verify-design-adrs.mjs
-python3 scripts/ci/validate_frontmatter.py .
-python3 scripts/ci/validate_links.py .
+npx tsx .agents/skills/design/scripts/verify-design-adrs.ts
+npx tsx .agents/skills/design/scripts/ci/validate-frontmatter.ts .agents/skills/design
+npx tsx .agents/skills/design/scripts/ci/validate-links.ts .agents/skills/design
 ```
