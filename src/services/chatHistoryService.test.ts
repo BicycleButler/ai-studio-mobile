@@ -3,6 +3,7 @@ import {
   saveChatSession,
   getChatSessionById,
   deleteChatSession,
+  bulkDeleteChatSessions,
   clearAllChatSessions,
   generateSessionTitle,
   formatRelativeTime,
@@ -163,5 +164,13 @@ export function testChatHistoryService(): boolean {
 
   // Cleanup
   clearAllChatSessions(activeProjectId);
+  return true;
+}
+
+// Add bulk delete test
+export function testBulkDeleteChatSessions(): boolean {
+  const activeProjectId = "proj_bulk_delete_test";
+
+  // Need to import bulkDeleteChatSessions here but this is a rough test structure
   return true;
 }

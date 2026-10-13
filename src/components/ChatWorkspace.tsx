@@ -7,6 +7,8 @@ import {
   X,
   Copy,
   Check,
+  CheckSquare,
+  MinusSquare,
   RotateCcw,
   Trash2,
   Loader2,
@@ -44,6 +46,7 @@ import { useSpeechToText } from "../hooks/useSpeechToText";
 import {
   getChatSessions,
   deleteChatSession,
+  bulkDeleteChatSessions,
   formatRelativeTime,
   isMockChatSession,
 } from "../services/chatHistoryService";
@@ -151,6 +154,76 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const [selectedHistoryIds, setSelectedHistoryIds] = useState<Set<string>>(new Set());
+  const [lastSelectedHistoryId, setLastSelectedHistoryId] = useState<string | null>(null);
+  const [showBulkDeleteHistoryConfirm, setShowBulkDeleteHistoryConfirm] = useState(false);
+  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
+
+  const toggleHistorySelection = useCallback((id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
+    e.stopPropagation();
+    setSelectedHistoryIds((prev) => {
+      const next = new Set(prev);
+      if (e.shiftKey && lastSelectedHistoryId) {
+        const lastIndex = validHistorySessions.findIndex((p) => p.id === lastSelectedHistoryId);
+        if (lastIndex !== -1) {
+          const start = Math.min(index, lastIndex);
+          const end = Math.max(index, lastIndex);
+          for (let i = start; i <= end; i++) {
+            next.add(validHistorySessions[i].id);
+          }
+          return next;
+        }
+      }
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    setLastSelectedHistoryId(id);
+  }, [lastSelectedHistoryId, validHistorySessions]);
+
+  const toggleSelectAllHistory = useCallback(() => {
+    if (selectedHistoryIds.size === validHistorySessions.length && validHistorySessions.length > 0) {
+      setSelectedHistoryIds(new Set());
+    } else {
+      setSelectedHistoryIds(new Set(validHistorySessions.map((s) => s.id)));
+    }
+  }, [selectedHistoryIds.size, validHistorySessions]);
+
+  const clearHistorySelection = useCallback(() => {
+    setSelectedHistoryIds(new Set());
+    setLastSelectedHistoryId(null);
+  }, []);
+
+  // Clear selection on popover close
+  useEffect(() => {
+    if (!isHistoryOpen) {
+      clearHistorySelection();
+    }
+  }, [isHistoryOpen, clearHistorySelection]);
+
+  const handleBulkDeleteHistory = () => {
+    bulkDeleteChatSessions(Array.from(selectedHistoryIds), activeProjectId);
+
+    // Check if current session was deleted
+    if (selectedHistoryIds.has(currentSessionId)) {
+      if (onNewChat) {
+        onNewChat();
+      }
+    }
+
+    const updated = getChatSessions(activeProjectId);
+    setHistorySessions(updated);
+
+    clearHistorySelection();
+    setShowBulkDeleteHistoryConfirm(false);
+    setBulkDeleteConfirmationText("");
+  };
+
   const [historySessions, setHistorySessions] = useState<ChatSession[]>(() => {
     if (isJulesMode) {
       return loadStoredJulesSessions().map((js) => ({
@@ -1094,6 +1167,41 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 </span>
               </div>
 
+
+              {/* Bulk Action Selection Header */}
+              {validHistorySessions.length > 0 && (
+                <div className="px-2 py-2 border-b border-border bg-muted/40 flex flex-col gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAllHistory}
+                      className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
+                      aria-label="Select all chats on this page"
+                    >
+                      {selectedHistoryIds.size === validHistorySessions.length ? (
+                        <CheckSquare className="w-4 h-4 text-primary" />
+                      ) : selectedHistoryIds.size > 0 ? (
+                        <MinusSquare className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </button>
+                    <span className="text-muted-foreground font-medium">
+                      {selectedHistoryIds.size > 0
+                        ? `${selectedHistoryIds.size} selected`
+                        : "Select all on this page"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Dataset Scope Banner (ADR 0047) */}
+              {selectedHistoryIds.size === validHistorySessions.length && validHistorySessions.length > 0 && (
+                <div className="text-[11px] text-muted-foreground bg-primary/5 px-2 py-1 mx-2 mt-2 rounded border border-primary/20">
+                  All {validHistorySessions.length} items on this page are selected.
+                </div>
+              )}
+
               {/* 3. Historical Chats Scrollable List */}
               <div className="max-h-60 sm:max-h-72 overflow-y-auto divide-y divide-border/60 overscroll-contain">
                 {validHistorySessions.length === 0 ? (
@@ -1105,20 +1213,35 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     </p>
                   </div>
                 ) : (
-                  validHistorySessions.map((session) => {
+                  validHistorySessions.map((session, index) => {
                     const isActive = session.id === currentSessionId;
+                    const isSelected = selectedHistoryIds.has(session.id);
                     return (
                       <div
                         key={session.id}
                         className={`flex items-center justify-between gap-2 p-2.5 transition-colors group ${
-                          isActive ? "bg-primary/10 hover:bg-primary/15" : "hover:bg-muted/70"
+                          isActive ? "bg-primary/10 hover:bg-primary/15" :
+                          isSelected ? "bg-primary/5" : "hover:bg-muted/70"
                         }`}
                       >
+                        <button
+                          type="button"
+                          onClick={(e) => toggleHistorySelection(session.id, e, index)}
+                          className="me-1 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-0"
+                          aria-label={`Select chat ${session.title}`}
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-primary" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleSelectSession(session)}
                           className="flex-1 min-w-0 text-start flex items-start gap-2.5 border-0 bg-transparent cursor-pointer p-0"
                         >
+
                           <div className="mt-0.5 shrink-0">
                             <MessageSquare
                               className={`w-3.5 h-3.5 ${
@@ -1170,6 +1293,99 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               </div>
             </div>
           )}
+
+        {/* Floating Batch Action Bar for History */}
+        <AnimatePresence>
+          {selectedHistoryIds.size > 0 && isHistoryOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, x: "-50%" }}
+              animate={{ opacity: 1, y: 0, x: "-50%" }}
+              exit={{ opacity: 0, y: 20, x: "-50%" }}
+              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[60] shadow-lg bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
+            >
+              <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-full whitespace-nowrap">
+                {selectedHistoryIds.size} Selected
+              </span>
+              <div className="h-4 w-px bg-border/60" />
+
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteHistoryConfirm(true)}
+                className="px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </button>
+
+              <button
+                type="button"
+                onClick={clearHistorySelection}
+                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:bg-muted rounded-full transition-colors cursor-pointer"
+                aria-label="Clear selection"
+                title="Deselect all (Esc)"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bulk Delete History Confirmation Modal */}
+        <AnimatePresence>
+          {showBulkDeleteHistoryConfirm && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-sm bg-card border border-border rounded-xl shadow-xl overflow-hidden"
+              >
+                <div className="p-4 border-b border-border">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Delete {selectedHistoryIds.size} selected {selectedHistoryIds.size === 1 ? 'chat' : 'chats'}?
+                  </h3>
+                </div>
+                <div className="p-4 text-sm text-muted-foreground space-y-4">
+                  <p>
+                    This action cannot be undone. This will permanently delete the selected chats from your history.
+                  </p>
+                  {selectedHistoryIds.size > 100 && (
+                    <div className="mt-4">
+                      <label className="block text-xs font-medium text-foreground mb-1">
+                        Type the exact quantity ({selectedHistoryIds.size}) to confirm:
+                      </label>
+                      <input
+                        type="text"
+                        value={bulkDeleteConfirmationText}
+                        onChange={(e) => setBulkDeleteConfirmationText(e.target.value)}
+                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder={selectedHistoryIds.size.toString()}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 bg-muted/40 border-t border-border flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkDeleteHistoryConfirm(false)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkDeleteHistory}
+                    disabled={selectedHistoryIds.size > 100 && bulkDeleteConfirmationText !== selectedHistoryIds.size.toString()}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed text-destructive-foreground transition-colors cursor-pointer shadow-sm"
+                  >
+                    Delete {selectedHistoryIds.size} {selectedHistoryIds.size === 1 ? 'Chat' : 'Chats'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         </div>
       </div>
 

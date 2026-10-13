@@ -198,3 +198,17 @@ export function formatRelativeTime(timestamp: number): string {
   const d = new Date(timestamp);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+
+/**
+ * Deletes multiple chat sessions by ID (Batch Productivity ADR 0047)
+ */
+export function bulkDeleteChatSessions(sessionIds: string[], projectId?: string): boolean {
+  if (!sessionIds || sessionIds.length === 0) return false;
+  const key = getChatSessionsStorageKey(projectId);
+  const sessions = getChatSessions(projectId);
+  const idSet = new Set(sessionIds);
+  const filtered = sessions.filter((s) => !idSet.has(s.id));
+  if (filtered.length === sessions.length) return false;
+  safeSetStorage(key, filtered);
+  return true;
+}
