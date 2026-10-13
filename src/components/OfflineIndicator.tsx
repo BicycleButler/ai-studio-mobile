@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { WifiOff, Loader2, Check } from "lucide-react";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
+import { processOfflineMutations } from "../utils/offlineService";
 
 export const OfflineIndicator: React.FC = () => {
   const { isOnline, wasOffline } = useNetworkStatus();
@@ -9,6 +10,9 @@ export const OfflineIndicator: React.FC = () => {
   useEffect(() => {
     if (isOnline && wasOffline) {
       setReconnectState("reconnecting");
+
+      // Process offline queue asynchronously
+      processOfflineMutations().catch(console.error);
 
       // Simulate sync time before showing success
       const syncTimer = setTimeout(() => {
