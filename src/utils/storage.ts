@@ -2,6 +2,7 @@ import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "./p
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG } from "../data/templates";
 import { MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS, isMockSession } from "./mockDefinitions";
+import { enqueueOfflineMutation } from "./offlineService";
 
 export const STORAGE_KEYS = {
   API_KEY: "ai_studio_api_key",
@@ -587,13 +588,22 @@ export function saveStoredJulesSessions(sessions: JulesSession[]): void {
   safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean); // Update local cache
 
   // Async sync to server
-  fetch("/api/jules/sessions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(clean),
-  }).catch((e) => console.error("Failed to save Jules sessions to server", e));
+  if (isBrowserEnvironment()) {
+    const win = getSafeWindow();
+    const isOnline = win && typeof win.navigator.onLine === "boolean" ? win.navigator.onLine : true;
+
+    if (isOnline) {
+      fetch("/api/jules/sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(clean),
+      }).catch((e) => console.error("Failed to save Jules sessions to server", e));
+    } else {
+      enqueueOfflineMutation("jules_sessions", clean);
+    }
+  }
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {
