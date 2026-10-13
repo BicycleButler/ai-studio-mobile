@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { DatasetScopeBanner } from "./DatasetScopeBanner";
+import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
 import {
   X,
   Plus,
@@ -496,11 +498,10 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               </span>
             </div>
             {/* Dataset Scope Banner (ADR 0047) */}
-            {selectedSessionIds.size === filteredSessions.length && filteredSessions.length > 0 && (
-              <div className="text-[11px] text-muted-foreground bg-primary/5 px-2 py-1 rounded border border-primary/20">
-                All {filteredSessions.length} items on this page are selected.
-              </div>
-            )}
+            <DatasetScopeBanner
+              selectedCount={selectedSessionIds.size}
+              totalCount={filteredSessions.length}
+            />
           </div>
         )}
 

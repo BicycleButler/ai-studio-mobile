@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import Markdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
+import { DatasetScopeBanner } from "./DatasetScopeBanner";
+import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
 import {
   ChatMessage,
   MessageAttachment,
@@ -1196,11 +1198,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               )}
 
               {/* Dataset Scope Banner (ADR 0047) */}
-              {selectedHistoryIds.size === validHistorySessions.length && validHistorySessions.length > 0 && (
-                <div className="text-[11px] text-muted-foreground bg-primary/5 px-2 py-1 mx-2 mt-2 rounded border border-primary/20">
-                  All {validHistorySessions.length} items on this page are selected.
-                </div>
-              )}
+              <DatasetScopeBanner
+                selectedCount={selectedHistoryIds.size}
+                totalCount={validHistorySessions.length}
+                className="mx-2 mt-2"
+              />
 
               {/* 3. Historical Chats Scrollable List */}
               <div className="max-h-60 sm:max-h-72 overflow-y-auto divide-y divide-border/60 overscroll-contain">
@@ -1295,40 +1297,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           )}
 
         {/* Floating Batch Action Bar for History */}
-        <AnimatePresence>
-          {selectedHistoryIds.size > 0 && isHistoryOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, x: "-50%" }}
-              animate={{ opacity: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, y: 20, x: "-50%" }}
-              className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[60] shadow-lg bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
-            >
-              <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-full whitespace-nowrap">
-                {selectedHistoryIds.size} Selected
-              </span>
-              <div className="h-4 w-px bg-border/60" />
-
-              <button
-                type="button"
-                onClick={() => setShowBulkDeleteHistoryConfirm(true)}
-                className="px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Delete
-              </button>
-
-              <button
-                type="button"
-                onClick={clearHistorySelection}
-                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:bg-muted rounded-full transition-colors cursor-pointer"
-                aria-label="Clear selection"
-                title="Deselect all (Esc)"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <FloatingBatchActionBar
+          isVisible={selectedHistoryIds.size > 0 && isHistoryOpen}
+          selectedCount={selectedHistoryIds.size}
+          onDelete={() => setShowBulkDeleteHistoryConfirm(true)}
+          onClearSelection={clearHistorySelection}
+        />
 
         {/* Bulk Delete History Confirmation Modal */}
         <AnimatePresence>

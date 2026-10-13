@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { DatasetScopeBanner } from "./DatasetScopeBanner";
+import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
 import {
   FolderHeart,
   Trash2,
@@ -263,11 +265,10 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
         )}
 
         {/* Dataset Scope Banner (ADR 0047) */}
-        {selectedPromptIds.size === savedPrompts.length && savedPrompts.length > 0 && (
-          <div className="text-[11px] text-muted-foreground bg-primary/5 px-2 py-1 rounded border border-primary/20">
-            All {savedPrompts.length} items on this page are selected.
-          </div>
-        )}
+        <DatasetScopeBanner
+          selectedCount={selectedPromptIds.size}
+          totalCount={savedPrompts.length}
+        />
 
         {savedPrompts.length === 0 ? (
           <div className="p-6 rounded-xl bg-card border border-dashed border-border text-center text-xs text-muted-foreground">
@@ -340,40 +341,12 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       </div>
 
       {/* Floating Batch Action Bar */}
-      <AnimatePresence>
-        {selectedPromptIds.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: 20, x: "-50%" }}
-            className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[60] shadow-lg bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
-          >
-            <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-full whitespace-nowrap">
-              {selectedPromptIds.size} Selected
-            </span>
-            <div className="h-4 w-px bg-border/60" />
-
-            <button
-              type="button"
-              onClick={() => setShowBulkDeleteConfirm(true)}
-              className="px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete
-            </button>
-
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:bg-muted rounded-full transition-colors cursor-pointer"
-              aria-label="Clear selection"
-              title="Deselect all (Esc)"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <FloatingBatchActionBar
+        isVisible={selectedPromptIds.size > 0}
+        selectedCount={selectedPromptIds.size}
+        onDelete={() => setShowBulkDeleteConfirm(true)}
+        onClearSelection={clearSelection}
+      />
 
       {/* Bulk Delete Confirmation Modal */}
       <AnimatePresence>

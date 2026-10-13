@@ -2,6 +2,8 @@ import { getSafeNavigatorClipboard } from "../utils/platform";
 import { safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { DatasetScopeBanner } from "./DatasetScopeBanner";
+import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
 import {
   X,
   Volume2,
@@ -1069,11 +1071,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                 )}
 
                 {/* Dataset Scope Banner (ADR 0047) */}
-                {selectedProjectIds.size === projects.length && projects.length > 0 && (
-                  <div className="text-[11px] text-muted-foreground bg-primary/5 px-2 py-1 mb-2 rounded border border-primary/20">
-                    All {projects.length} items on this page are selected.
-                  </div>
-                )}
+                <DatasetScopeBanner
+                  selectedCount={selectedProjectIds.size}
+                  totalCount={projects.length}
+                  className="mb-2"
+                />
 
                 {/* Projects List */}
                 {projects.length === 0 ? (
@@ -1742,40 +1744,13 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                             )}
                           </button>
       {/* Floating Batch Action Bar for Projects */}
-      <AnimatePresence>
-        {selectedProjectIds.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: 20, x: "-50%" }}
-            className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] shadow-xl bg-background/95 backdrop-blur-md border border-border/60 rounded-full px-4 py-2 flex items-center gap-3"
-          >
-            <span className="text-xs font-semibold px-2 py-1 bg-muted rounded-full whitespace-nowrap">
-              {selectedProjectIds.size} Selected
-            </span>
-            <div className="h-4 w-px bg-border/60" />
-
-            <button
-              type="button"
-              onClick={() => setShowBulkDeleteProjectsConfirm(true)}
-              className="px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete
-            </button>
-
-            <button
-              type="button"
-              onClick={clearProjectSelection}
-              className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:bg-muted rounded-full transition-colors cursor-pointer"
-              aria-label="Clear selection"
-              title="Deselect all (Esc)"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <FloatingBatchActionBar
+        isVisible={selectedProjectIds.size > 0}
+        selectedCount={selectedProjectIds.size}
+        onDelete={() => setShowBulkDeleteProjectsConfirm(true)}
+        onClearSelection={clearProjectSelection}
+        className="!z-[100] !shadow-xl"
+      />
 
       {/* Bulk Delete Projects Confirmation Modal */}
       <AnimatePresence>
