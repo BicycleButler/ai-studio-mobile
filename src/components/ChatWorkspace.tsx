@@ -1,5 +1,5 @@
 import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeWindow, getSafeWindowVisualViewport } from "../utils/platform";
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo , useCallback} from "react";
 import {
   Send,
   Square,
@@ -162,6 +162,24 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [showBulkDeleteHistoryConfirm, setShowBulkDeleteHistoryConfirm] = useState(false);
   const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
 
+  const [historySessions, setHistorySessions] = useState<ChatSession[]>(() => {
+    if (isJulesMode) {
+      return loadStoredJulesSessions().map((js) => ({
+        id: js.id,
+        title: js.title || js.repository,
+        messages: js.messages || [],
+        createdAt: js.createdAt,
+        updatedAt: js.updatedAt,
+        model: "Jules Agent",
+      }));
+    }
+    return getChatSessions(activeProjectId);
+  });
+
+  const validHistorySessions = useMemo(() => {
+    return historySessions.filter((s) => !isMockChatSession(s));
+  }, [historySessions]);
+
   const toggleHistorySelection = useCallback((id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
     e.stopPropagation();
     setSelectedHistoryIds((prev) => {
@@ -209,10 +227,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   }, [isHistoryOpen, clearHistorySelection]);
 
   const handleBulkDeleteHistory = () => {
-    bulkDeleteChatSessions(Array.from(selectedHistoryIds), activeProjectId);
+    bulkDeleteChatSessions(Array.from(selectedHistoryIds), activeProjectId || "");
 
     // Check if current session was deleted
-    if (selectedHistoryIds.has(currentSessionId)) {
+    if (selectedHistoryIds.has(currentSessionId!)) {
       if (onNewChat) {
         onNewChat();
       }
@@ -226,26 +244,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     setBulkDeleteConfirmationText("");
   };
 
-  const [historySessions, setHistorySessions] = useState<ChatSession[]>(() => {
-    if (isJulesMode) {
-      return loadStoredJulesSessions().map((js) => ({
-        id: js.id,
-        title: js.title || js.repository,
-        messages: js.messages || [],
-        createdAt: js.createdAt,
-        updatedAt: js.updatedAt,
-        model: "Jules Agent",
-      }));
-    }
-    return getChatSessions(activeProjectId);
-  });
   const historyPopoverRef = useRef<HTMLDivElement>(null);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
 
   // Filter out any mock/test sessions to ensure purely authentic history
-  const validHistorySessions = useMemo(() => {
-    return historySessions.filter((s) => !isMockChatSession(s));
-  }, [historySessions]);
 
   // Prompt Templates State (Strict FIFO selection order)
   const [internalSelectedTemplateIds, setInternalSelectedTemplateIds] = useState<string[]>([]);
