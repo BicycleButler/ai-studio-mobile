@@ -695,6 +695,15 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             </div>
           )}
         </AnimatePresence>
+
+        {/* Floating Batch Action Bar for Sessions */}
+        <FloatingBatchActionBar
+          isVisible={selectedSessionIds.size > 0}
+          selectedCount={selectedSessionIds.size}
+          onDelete={() => setShowBulkDeleteConfirm(true)}
+          onClearSelection={clearSelection}
+        />
+
         {/* Drawer Footer */}
         <div className="p-3 border-t border-border bg-muted/40 flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5 text-muted-foreground">
