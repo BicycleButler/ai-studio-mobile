@@ -218,8 +218,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                   <Layers className="w-3 h-3 text-muted-foreground" />
                   <span>{tmpl.config.model}</span>
                 </div>
-                <span className="text-primary flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                  Load Template <ArrowRight className="w-3 h-3" />
+                <span className="text-primary flex items-center gap-0.5 group-hover:translate-x-0.5 group-hover:rtl:-translate-x-0.5 transition-transform">
+                  Load Template <ArrowRight className="rtl:rotate-180 w-3 h-3" />
                 </span>
               </div>
             </div>
@@ -288,7 +288,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 <button
                   type="button"
                   onClick={(e) => toggleSelection(item.id, e, index)}
-                  className="mr-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="me-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
                   aria-label={`Select prompt ${item.title}`}
                 >
                   {isSelected ? (

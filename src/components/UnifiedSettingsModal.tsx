@@ -705,7 +705,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               title="Close drawer"
               aria-label="Back / Close drawer"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="rtl:rotate-180 w-5 h-5" />
               <span className="text-xs font-semibold sm:inline hidden">Back</span>
             </button>
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1109,7 +1109,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                           <button
                             type="button"
                             onClick={(e) => toggleProjectSelection(proj.id, e, index)}
-                            className="mr-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                            className="me-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
                             aria-label={`Select project ${proj.name}`}
                           >
                             {isSelected ? (

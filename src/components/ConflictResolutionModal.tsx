@@ -41,7 +41,7 @@ export const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = (
           </h2>
           <button
             onClick={onCancel}
-            className="p-2 -mr-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+            className="p-2 -me-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -63,7 +63,7 @@ export const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = (
                 {Object.keys(localData).map((key) => (
                   <div key={key} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0 last:pb-0">
                     <span className="text-muted-foreground capitalize">{key}:</span>
-                    <span className="font-medium max-w-[60%] truncate text-right" title={String(localData[key])}>
+                    <span className="font-medium max-w-[60%] truncate text-end" title={String(localData[key])}>
                       {String(localData[key])}
                     </span>
                   </div>
@@ -80,7 +80,7 @@ export const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = (
                 {Object.keys(remoteData).map((key) => (
                   <div key={key} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0 last:pb-0">
                     <span className="text-muted-foreground capitalize">{key}:</span>
-                    <span className="font-medium max-w-[60%] truncate text-right" title={String(remoteData[key])}>
+                    <span className="font-medium max-w-[60%] truncate text-end" title={String(remoteData[key])}>
                       {String(remoteData[key])}
                     </span>
                   </div>

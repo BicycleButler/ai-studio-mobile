@@ -137,7 +137,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
             title="Back / Close"
             aria-label="Back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="rtl:rotate-180 w-5 h-5" />
           </button>
 
           {/* Center Address and Identity bar */}
@@ -249,7 +249,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                 className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-1 shrink-0 transition-colors shadow-sm cursor-pointer"
               >
                 <span>Import Key</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
               </button>
             </div>
           )}
