@@ -31,6 +31,7 @@ import {
 import { loadStoredJulesApiKey } from "../utils/storage";
 import { safeAddEventListener } from "../utils/platform";
 import { useBackNavigation } from "../hooks/useBackNavigation";
+import { Combobox } from "./Combobox";
 
 interface JulesSessionDrawerProps {
   isOpen: boolean;
@@ -388,48 +389,36 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               </button>
             </div>
 
-            {repositories.length > 0 ? (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] text-muted-foreground">Target Repository</label>
-                  {loadingRepos && (
-                    <RefreshCw className="w-3 h-3 text-primary animate-spin" />
-                  )}
-                </div>
-                <select
-                  value={selectedRepo}
-                  onChange={(e) => {
-                    setSelectedRepo(e.target.value);
-                    const found = repositories.find((r) => r.fullName === e.target.value);
-                    if (found) setBranch(found.defaultBranch || "main");
-                  }}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
-                >
-                  {repositories.map((repo) => (
-                    <option key={repo.id} value={repo.fullName}>
-                      {repo.fullName} ({repo.defaultBranch})
-                    </option>
-                  ))}
-                  <option value="">Other / Enter custom repo...</option>
-                </select>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-muted-foreground">Target Repository</label>
               </div>
-            ) : null}
-
-            {(!selectedRepo || repositories.length === 0) && (
-              <div className="space-y-1">
-                <label className="text-[11px] text-muted-foreground">
-                  Repository Name (e.g. owner/repo)
-                </label>
-                <input
-                  type="text"
-                  value={customRepo}
-                  onChange={(e) => setCustomRepo(e.target.value)}
-                  placeholder="github-user/repository"
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-mono"
-                  required={!selectedRepo}
-                />
-              </div>
-            )}
+              <Combobox
+                options={repositories.map(r => ({
+                  id: r.fullName,
+                  label: r.fullName,
+                  subLabel: `Default branch: ${r.defaultBranch || 'main'}`
+                }))}
+                value={selectedRepo}
+                onChange={(val) => {
+                  setSelectedRepo(val);
+                  setCustomRepo(val);
+                  const found = repositories.find((r) => r.fullName === val);
+                  if (found) setBranch(found.defaultBranch || "main");
+                }}
+                placeholder="Search or enter repository (owner/repo)..."
+                isLoading={loadingRepos}
+                emptyText="No repositories found."
+                onCreateNew={(query) => {
+                  setSelectedRepo(query);
+                  setCustomRepo(query);
+                  if (!repositories.find((r) => r.fullName === query)) {
+                     const [owner, name] = query.split("/");
+                     setRepositories((prev) => [...prev, { id: query, fullName: query, defaultBranch: "main", owner: owner || "custom", name: name || query, isPrivate: true }]);
+                  }
+                }}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
