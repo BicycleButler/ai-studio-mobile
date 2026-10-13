@@ -1,37 +1,78 @@
 import React, { useState, useEffect } from "react";
 import { WifiOff, Loader2, Check } from "lucide-react";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
-import { processOfflineMutations } from "../utils/offlineService";
+import { processOfflineMutations, ConflictData, OfflineMutation, removeOfflineMutation, enqueueOfflineMutation } from "../utils/offlineService";
+import { ConflictResolutionModal } from "./ConflictResolutionModal";
+import { get } from "idb-keyval";
 
 export const OfflineIndicator: React.FC = () => {
   const { isOnline, wasOffline } = useNetworkStatus();
-  const [reconnectState, setReconnectState] = useState<"idle" | "reconnecting" | "success">("idle");
+  const [reconnectState, setReconnectState] = useState<"idle" | "reconnecting" | "success" | "conflict">("idle");
+  const [pendingQueueLength, setPendingQueueLength] = useState(0);
+  const [conflictData, setConflictData] = useState<ConflictData | null>(null);
+
+  useEffect(() => {
+    // Check pending queue length
+    const checkQueue = async () => {
+      const queue = (await get<OfflineMutation[]>("ai_studio_offline_mutations")) || [];
+      setPendingQueueLength(queue.length);
+    };
+    checkQueue();
+  }, [isOnline]);
 
   useEffect(() => {
     if (isOnline && wasOffline) {
       setReconnectState("reconnecting");
 
-      // Process offline queue asynchronously
-      processOfflineMutations().catch(console.error);
+      const processQueue = async () => {
+        const { conflicts } = await processOfflineMutations();
+        if (conflicts.length > 0) {
+           setConflictData(conflicts[0]); // Handle first conflict for simplicity
+           setReconnectState("conflict");
+        } else {
+           setReconnectState("success");
+           setTimeout(() => setReconnectState("idle"), 3000);
+        }
+      };
 
-      // Simulate sync time before showing success
-      const syncTimer = setTimeout(() => {
-        setReconnectState("success");
-
-        // Dismiss success message after 3 seconds as per ADR 0050
-        const dismissTimer = setTimeout(() => {
-          setReconnectState("idle");
-        }, 3000);
-
-        return () => clearTimeout(dismissTimer);
-      }, 1000); // 1s sync simulation
-
-      return () => clearTimeout(syncTimer);
+      processQueue();
     }
-    return undefined;
   }, [isOnline, wasOffline]);
 
-  // Use sticky position instead of fixed to prevent overlaying the TopAppBar
+  const handleResolveConflict = async (action: 'keep' | 'overwrite') => {
+     if (conflictData) {
+       await removeOfflineMutation(conflictData.id);
+       if (action === 'overwrite') {
+          // Re-enqueue without version check to force overwrite (or a special flag if backend supports it).
+          // For now, we simulate overwrite by re-enqueueing the local payload.
+          await enqueueOfflineMutation(conflictData.type, conflictData.localData, undefined);
+          const { conflicts } = await processOfflineMutations();
+          if (conflicts.length > 0) {
+             setConflictData(conflicts[0]);
+             return;
+          }
+       }
+     }
+
+     setConflictData(null);
+
+     const queue = (await get<OfflineMutation[]>("ai_studio_offline_mutations")) || [];
+     if (queue.length > 0) {
+        // More conflicts or remaining items
+        const { conflicts } = await processOfflineMutations();
+        if (conflicts.length > 0) {
+           setConflictData(conflicts[0]);
+           setReconnectState("conflict");
+        } else {
+           setReconnectState("success");
+           setTimeout(() => setReconnectState("idle"), 3000);
+        }
+     } else {
+        setReconnectState("success");
+        setTimeout(() => setReconnectState("idle"), 3000);
+     }
+  };
+
   if (!isOnline) {
     return (
       <div
@@ -42,7 +83,7 @@ export const OfflineIndicator: React.FC = () => {
       >
         <div className="flex items-center gap-2">
           <WifiOff className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>You are offline. Working in read/cache mode.</span>
+          <span>You are offline. {pendingQueueLength > 0 ? `${pendingQueueLength} changes queued.` : 'Working in read/cache mode.'}</span>
         </div>
       </div>
     );
@@ -80,5 +121,16 @@ export const OfflineIndicator: React.FC = () => {
     );
   }
 
-  return null;
+  return (
+    <>
+      <ConflictResolutionModal
+        isOpen={reconnectState === "conflict" && conflictData !== null}
+        onCancel={() => handleResolveConflict('keep')}
+        onKeepRemote={() => handleResolveConflict('keep')}
+        onOverwriteRemote={() => handleResolveConflict('overwrite')}
+        localData={(conflictData?.localData as Record<string, unknown>) || {}}
+        remoteData={(conflictData?.remoteData as Record<string, unknown>) || {}}
+      />
+    </>
+  );
 };

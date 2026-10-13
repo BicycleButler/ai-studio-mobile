@@ -601,7 +601,7 @@ export function saveStoredJulesSessions(sessions: JulesSession[]): void {
         body: JSON.stringify(clean),
       }).catch((e) => console.error("Failed to save Jules sessions to server", e));
     } else {
-      enqueueOfflineMutation("jules_sessions", clean);
+      enqueueOfflineMutation("jules_sessions", clean).catch(console.error);
     }
   }
 }
