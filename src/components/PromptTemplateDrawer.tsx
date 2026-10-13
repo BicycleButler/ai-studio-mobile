@@ -266,7 +266,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             title="Close drawer"
             aria-label="Back / Close drawer"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="rtl:rotate-180 w-5 h-5" />
             <span className="text-xs font-semibold sm:inline hidden">Back</span>
           </button>
           <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -825,7 +825,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
               className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
             >
               <span>Done</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
             </button>
           </div>
         </div>

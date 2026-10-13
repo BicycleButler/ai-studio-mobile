@@ -229,7 +229,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               title="Close sheet"
               aria-label="Back / Close sheet"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="rtl:rotate-180 w-5 h-5" />
               <span className="text-xs font-semibold sm:inline hidden">Back</span>
             </button>
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary shrink-0">

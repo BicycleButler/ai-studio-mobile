@@ -29,8 +29,8 @@ import {
   getStoredJulesSessions,
 } from "../services/julesService";
 import { loadStoredJulesApiKey } from "../utils/storage";
-import { useBackNavigation } from "../hooks/useBackNavigation";
 import { safeAddEventListener } from "../utils/platform";
+import { useBackNavigation } from "../hooks/useBackNavigation";
 
 interface JulesSessionDrawerProps {
   isOpen: boolean;
@@ -217,8 +217,8 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    return () => removeKey();
   }, [isOpen, selectedSessionIds.size, isCreating, sessions, searchQuery, clearSelection, onClose, toggleSelectAll, showBulkDeleteConfirm]);
 
   const getStatusBadge = (status: JulesTaskStatus) => {
@@ -312,7 +312,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               title="Close drawer"
               aria-label="Back / Close drawer"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="rtl:rotate-180 w-5 h-5" />
               <span className="text-xs font-semibold sm:inline hidden">Back</span>
             </button>
             <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">

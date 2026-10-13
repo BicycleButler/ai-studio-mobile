@@ -1078,7 +1078,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     {isJulesMode ? "Create a clean task workspace" : "Fresh conversation & clean context"}
                   </div>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition" />
+                <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:rtl:-translate-x-0.5 transition" />
               </button>
 
               <div className="border-t border-border" />
@@ -1249,7 +1249,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       className="w-full py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-sm active:scale-95 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <span>Choose Repository & Task</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -1300,7 +1300,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       className="w-full py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-sm active:scale-95 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <span>Connect Google Account</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>

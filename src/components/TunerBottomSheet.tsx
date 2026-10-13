@@ -581,7 +581,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                       title="Close drawer"
                       aria-label="Back / Close drawer"
                     >
-                      <ArrowLeft className="w-5 h-5" />
+                      <ArrowLeft className="rtl:rotate-180 w-5 h-5" />
                       <span className="text-xs font-semibold sm:inline hidden">Back</span>
                     </button>
                   )}
