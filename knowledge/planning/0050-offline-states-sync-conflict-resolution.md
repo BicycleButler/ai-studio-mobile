@@ -2,14 +2,11 @@
 title: "ADR 0050: Offline States, Syncing & Concurrent Conflict Resolution"
 type: "adr"
 status: "complete"
-description: "TODO Draft proposal: Visual indicators for network disruption, offline mutation queues, background sync banners, and conflict resolution diff modals."
+description: "Standards for visual indicators for network disruption, offline mutation queues, background sync banners, and conflict resolution diff modals."
 date: "2026-08-20"
 ---
 
 # ADR 0050: Offline States, Syncing & Concurrent Conflict Resolution
-
-> [!NOTE]
-> **TODO / RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
 
 ---
 
@@ -91,8 +88,3 @@ When a user submits a change to a record that was modified remotely by another u
 3. **No Uninformative Error Messages:** Never display `"Network Error"`; specify `"Offline — your edits are saved locally and will sync when reconnected"`.
 
 ---
-
-## Open Questions for Discussion
-
-- Should field-level 3-way merging (accepting some local fields and some remote fields) be supported in the resolution modal?
-- Should offline caching use IndexedDB automatically for all table entity stores?
