@@ -1,3 +1,4 @@
+import { describe, test } from 'vitest';
 import {
   DEFAULT_SPEECH_SETTINGS,
   loadSpeechSettings,
@@ -5,7 +6,8 @@ import {
   SpeechSettings,
 } from "./speechVoices";
 
-export function testSpeechSettingsSuite(): boolean {
+describe('testSpeechSettingsSuite', () => {
+  test('main', () => {
   // Test 1: Defaults
   if (DEFAULT_SPEECH_SETTINGS.voiceButtonPlacement !== "footer") {
     throw new Error(
@@ -36,5 +38,6 @@ export function testSpeechSettingsSuite(): boolean {
   // Restore defaults
   saveSpeechSettings(DEFAULT_SPEECH_SETTINGS);
 
-  return true;
-}
+
+  });
+});

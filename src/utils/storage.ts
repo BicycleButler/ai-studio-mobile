@@ -484,6 +484,10 @@ export class StorageCollection<T extends { id: string }> {
     return filtered;
   }
 
+  clear(): void {
+    this.save([]);
+  }
+
   upsert(item: T, prepend = false): T {
     const items = this.load();
     const index = items.findIndex((i) => i.id === item.id);
@@ -720,4 +724,16 @@ export function updateStoredJulesSession(session: JulesSession): JulesSession {
   return updated;
 }
 
+export function deleteStoredJulesSession(id: string): void {
+  julesSessionsCollection.delete(id);
+  saveStoredJulesSessions(julesSessionsCollection.load());
+}
+
+export function bulkDeleteStoredJulesSessions(ids: string[]): void {
+  const items = julesSessionsCollection.load();
+  const idSet = new Set(ids);
+  const filtered = items.filter(i => !idSet.has(i.id));
+  julesSessionsCollection.save(filtered);
+  saveStoredJulesSessions(julesSessionsCollection.load());
+}
 

@@ -1,5 +1,5 @@
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
-import { safeGetStorage, safeSetStorage, safeRemoveStorage, STORAGE_KEYS } from "../utils/storage";
+import { safeRemoveStorage, STORAGE_KEYS, StorageCollection } from "../utils/storage";
 
 export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
   {
@@ -68,9 +68,10 @@ export function getBuiltinTemplates(): PromptTemplate[] {
   return [...BUILTIN_PROMPT_TEMPLATES];
 }
 
+const customTemplatesCollection = new StorageCollection<PromptTemplate>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
+
 export function getCustomTemplates(): PromptTemplate[] {
-  const templates = safeGetStorage<PromptTemplate[]>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES, []);
-  return Array.isArray(templates) ? templates : [];
+  return customTemplatesCollection.load();
 }
 
 export function getAllTemplates(): PromptTemplate[] {
@@ -97,52 +98,24 @@ export function saveCustomTemplate(data: {
     throw new Error("Template content is required");
   }
 
-  const existingList = getCustomTemplates();
   const now = Date.now();
+  const id = data.id || `custom_tpl_${now}_${Math.random().toString(36).substring(2, 7)}`;
 
-  let savedTemplate: PromptTemplate;
+  // Find if it exists to preserve createdAt
+  const existing = customTemplatesCollection.load().find((t) => t.id === id);
 
-  if (data.id) {
-    const index = existingList.findIndex((t) => t.id === data.id);
-    if (index >= 0) {
-      savedTemplate = {
-        ...existingList[index],
-        title: data.title.trim(),
-        description: data.description?.trim(),
-        content: data.content.trim(),
-        category: data.category || "custom",
-        updatedAt: now,
-      };
-      existingList[index] = savedTemplate;
-    } else {
-      savedTemplate = {
-        id: data.id,
-        title: data.title.trim(),
-        description: data.description?.trim(),
-        content: data.content.trim(),
-        category: data.category || "custom",
-        isBuiltin: false,
-        createdAt: now,
-        updatedAt: now,
-      };
-      existingList.push(savedTemplate);
-    }
-  } else {
-    const id = `custom_tpl_${now}_${Math.random().toString(36).substring(2, 7)}`;
-    savedTemplate = {
-      id,
-      title: data.title.trim(),
-      description: data.description?.trim(),
-      content: data.content.trim(),
-      category: data.category || "custom",
-      isBuiltin: false,
-      createdAt: now,
-      updatedAt: now,
-    };
-    existingList.push(savedTemplate);
-  }
+  const savedTemplate: PromptTemplate = {
+    id,
+    title: data.title.trim(),
+    description: data.description?.trim(),
+    content: data.content.trim(),
+    category: data.category || "custom",
+    isBuiltin: false,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+  };
 
-  safeSetStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES, existingList);
+  customTemplatesCollection.upsert(savedTemplate, false);
 
   return savedTemplate;
 }
@@ -153,22 +126,17 @@ export function deleteCustomTemplate(id: string): boolean {
     return false;
   }
 
-  const existingList = getCustomTemplates();
-  const filtered = existingList.filter((t) => t.id !== id);
+  const itemsBefore = customTemplatesCollection.load().length;
+  customTemplatesCollection.delete(id);
+  const itemsAfter = customTemplatesCollection.load().length;
 
-  if (filtered.length === existingList.length) {
-    return false;
-  }
-
-  safeSetStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES, filtered);
-
-  return true;
+  return itemsAfter !== itemsBefore;
 }
 
 export function bulkDeleteCustomTemplates(ids: string[]): boolean {
   if (!ids || ids.length === 0) return false;
 
-  const existingList = getCustomTemplates();
+  const existingList = customTemplatesCollection.load();
   const idSet = new Set(ids);
 
   // Filter out the ids, but ensure built-ins aren't magically in here anyway
@@ -178,7 +146,7 @@ export function bulkDeleteCustomTemplates(ids: string[]): boolean {
     return false;
   }
 
-  safeSetStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES, filtered);
+  customTemplatesCollection.save(filtered);
 
   return true;
 }
