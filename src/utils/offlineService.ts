@@ -43,6 +43,15 @@ export async function removeOfflineMutation(id: string) {
   await set(OFFLINE_QUEUE_KEY, newQueue);
 }
 
+export async function getOfflineQueueLength(): Promise<number> {
+  const queue = (await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY)) || [];
+  return queue.length;
+}
+
+export async function clearOfflineMutations(): Promise<void> {
+  await set(OFFLINE_QUEUE_KEY, []);
+}
+
 export async function processOfflineMutations(): Promise<{
   success: boolean;
   conflicts: ConflictData[];

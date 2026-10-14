@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { WifiOff, Loader2, Check } from "lucide-react";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
-import { processOfflineMutations, ConflictData, OfflineMutation, removeOfflineMutation, enqueueOfflineMutation } from "../utils/offlineService";
+import {
+  processOfflineMutations,
+  ConflictData,
+  removeOfflineMutation,
+  enqueueOfflineMutation,
+  getOfflineQueueLength
+} from "../utils/offlineService";
 import { ConflictResolutionModal } from "./ConflictResolutionModal";
-import { get } from "idb-keyval";
 
 export const OfflineIndicator: React.FC = () => {
   const { isOnline, wasOffline } = useNetworkStatus();
@@ -14,8 +19,8 @@ export const OfflineIndicator: React.FC = () => {
   useEffect(() => {
     // Check pending queue length
     const checkQueue = async () => {
-      const queue = (await get<OfflineMutation[]>("ai_studio_offline_mutations")) || [];
-      setPendingQueueLength(queue.length);
+      const length = await getOfflineQueueLength();
+      setPendingQueueLength(length);
     };
     checkQueue();
   }, [isOnline]);
@@ -56,8 +61,8 @@ export const OfflineIndicator: React.FC = () => {
 
      setConflictData(null);
 
-     const queue = (await get<OfflineMutation[]>("ai_studio_offline_mutations")) || [];
-     if (queue.length > 0) {
+     const queueLength = await getOfflineQueueLength();
+     if (queueLength > 0) {
         // More conflicts or remaining items
         const { conflicts } = await processOfflineMutations();
         if (conflicts.length > 0) {
