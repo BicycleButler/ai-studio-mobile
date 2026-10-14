@@ -87,9 +87,20 @@ export function clearInterceptors() {
 export async function apiFetch<T>(
   endpoint: string,
   options?: RequestInit,
-  defaultErrorMessage: string = "API request failed"
+  defaultErrorMessage: string = "API request failed",
+  queryParams?: Record<string, string | number | boolean>
 ): Promise<T> {
   let url = endpoint;
+
+  if (queryParams && Object.keys(queryParams).length > 0) {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(queryParams)) {
+      searchParams.append(key, String(value));
+    }
+    const separator = url.includes('?') ? '&' : '?';
+    url = `${url}${separator}${searchParams.toString()}`;
+  }
+
   let fetchOptions = options || {};
 
   for (const interceptor of interceptors) {
@@ -122,7 +133,19 @@ export async function apiFetch<T>(
 export async function apiFetchStream(
   endpoint: string,
   options?: RequestInit,
-  defaultErrorMessage: string = "API request failed"
+  defaultErrorMessage: string = "API request failed",
+  queryParams?: Record<string, string | number | boolean>
 ): Promise<Response> {
-  return executeRequest(endpoint, options, defaultErrorMessage);
+  let url = endpoint;
+
+  if (queryParams && Object.keys(queryParams).length > 0) {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(queryParams)) {
+      searchParams.append(key, String(value));
+    }
+    const separator = url.includes('?') ? '&' : '?';
+    url = `${url}${separator}${searchParams.toString()}`;
+  }
+
+  return executeRequest(url, options, defaultErrorMessage);
 }
