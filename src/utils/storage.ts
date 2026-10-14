@@ -5,18 +5,34 @@ import { isMockSession } from "./mockDefinitions";
 import { enqueueOfflineMutation } from "./offlineService";
 
 /**
- * Utility to consistently filter out mock data arrays (messages, sessions, etc)
+ * Generic Utility: Filter out Mock or Synthetic data from entity collections.
+ * Leverages mapping functions for different entity shapes to check via `isMockSession`.
  */
-export function cleanMockData<T extends { id?: string; title?: string; text?: string }>(items: T[], type: "chat" | "jules" = "chat"): T[] {
+export interface EntityMapper {
+  id?: string;
+  title?: string;
+  repository?: string;
+  messages?: unknown[];
+}
+
+export function cleanMockData<T>(
+  items: T[],
+  type: "chat" | "jules" = "chat",
+  mapFn?: (item: T) => EntityMapper
+): T[] {
   if (!Array.isArray(items)) return [];
   return items.filter((item) => {
     if (!item || typeof item !== "object") return false;
-    // Map text to title for messages
-    const mapped = {
-      id: String(item.id || ""),
-      title: String(item.title || item.text || "")
+
+    // Default mapping logic tries to pluck common fields
+    const defaultMapped: EntityMapper = mapFn ? mapFn(item) : {
+      id: String((item as any).id || ""),
+      title: String((item as any).title || (item as any).text || ""),
+      repository: (item as any).repository,
+      messages: (item as any).messages,
     };
-    return !isMockSession(mapped, type);
+
+    return !isMockSession(defaultMapped, type);
   });
 }
 
@@ -457,8 +473,12 @@ export class StorageCollection<T extends { id: string }> {
   }
 
   save(items: T[]): void {
-    const toStore = this.transformIn ? items.map(this.transformIn) : items;
-    safeSetStorage(this.key, toStore);
+    try {
+      const toStore = this.transformIn ? items.map(this.transformIn) : items;
+      safeSetStorage(this.key, toStore);
+    } catch (err) {
+      console.error(`StorageCollection[${this.key}]: unhandled error during save`, err);
+    }
   }
 
   update(id: string, updates: Partial<Omit<T, "id">>): T | null {
@@ -495,7 +515,7 @@ export class StorageCollection<T extends { id: string }> {
     const updated = {
       ...item,
       updatedAt: Date.now(),
-    };
+    } as T;
 
     if (index >= 0) {
       items[index] = updated;

@@ -307,13 +307,19 @@ export function useJules() {
   // Sync julesMessages and activeJulesSession to storage
   useEffect(() => {
     if (activeJulesSession) {
-      const updatedSess = { ...activeJulesSession, messages: julesMessages, updatedAt: Date.now() };
-      updateStoredJulesSession(updatedSess);
-      setJulesSessions((prevSessions) =>
-        prevSessions.map((s) => (s.id === updatedSess.id ? updatedSess : s))
-      );
+      const hasMessagesChanged = activeJulesSession.messages !== julesMessages;
+      if (hasMessagesChanged) {
+        const updatedSess = { ...activeJulesSession, messages: julesMessages, updatedAt: Date.now() };
+        updateStoredJulesSession(updatedSess);
+
+        setActiveJulesSession(updatedSess);
+
+        setJulesSessions((prevSessions) =>
+          prevSessions.map((s) => (s.id === updatedSess.id ? updatedSess : s))
+        );
+      }
     }
-  }, [julesMessages, activeJulesSession]);
+  }, [julesMessages, activeJulesSession, setActiveJulesSession, setJulesSessions]);
 
   return {
     julesApiKey,
