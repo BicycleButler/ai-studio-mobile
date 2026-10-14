@@ -6,6 +6,7 @@ function getChatCollection(projectId?: string): StorageCollection<ChatSession> {
   const key = getChatSessionsStorageKey(projectId);
   return new StorageCollection<ChatSession>(key, {
     validate: (s) => !isMockChatSession(s as Partial<ChatSession>),
+    maxItems: 100,
   });
 }
 
@@ -122,12 +123,6 @@ export function saveChatSession(session: ChatSession, projectId?: string): void 
   };
 
   collection.upsert(updatedSession, true);
-
-  // Cap at 100 historical sessions
-  const updatedList = collection.load();
-  if (updatedList.length > 100) {
-    collection.save(updatedList.slice(0, 100));
-  }
 }
 
 /**
@@ -183,10 +178,7 @@ export function formatRelativeTime(timestamp: number): string {
 export function bulkDeleteChatSessions(sessionIds: string[], projectId?: string): boolean {
   if (!sessionIds || sessionIds.length === 0) return false;
   const collection = getChatCollection(projectId);
-  const idSet = new Set(sessionIds);
-  const items = collection.load();
-  const filtered = items.filter((s) => !idSet.has(s.id));
-  if (filtered.length === items.length) return false;
-  collection.save(filtered);
-  return true;
+  const itemsBefore = collection.load().length;
+  const filtered = collection.bulkDelete(sessionIds);
+  return filtered.length !== itemsBefore;
 }

@@ -448,6 +448,7 @@ export class StorageCollection<T extends { id: string }> {
   private transformIn?: (item: T) => T;
   private transformOut?: (item: T) => T;
   private validate?: (item: unknown) => boolean;
+  private maxItems?: number;
 
   constructor(
     key: string,
@@ -455,12 +456,14 @@ export class StorageCollection<T extends { id: string }> {
       transformIn?: (item: T) => T;
       transformOut?: (item: T) => T;
       validate?: (item: unknown) => boolean;
+      maxItems?: number;
     }
   ) {
     this.key = key;
     this.transformIn = options?.transformIn;
     this.transformOut = options?.transformOut;
     this.validate = options?.validate;
+    this.maxItems = options?.maxItems;
   }
 
   load(): T[] {
@@ -475,6 +478,9 @@ export class StorageCollection<T extends { id: string }> {
 
   save(items: T[]): void {
     try {
+      if (this.maxItems !== undefined && items.length > this.maxItems) {
+        items = items.slice(0, this.maxItems);
+      }
       const toStore = this.transformIn ? items.map(this.transformIn) : items;
       safeSetStorage(this.key, toStore);
     } catch (err) {
@@ -496,6 +502,17 @@ export class StorageCollection<T extends { id: string }> {
     items[index] = updated;
     this.save(items);
     return updated;
+  }
+
+  bulkDelete(ids: string[]): T[] {
+    if (!ids || ids.length === 0) return this.load();
+    const items = this.load();
+    const idSet = new Set(ids);
+    const filtered = items.filter((item) => !idSet.has(item.id));
+    if (filtered.length !== items.length) {
+      this.save(filtered);
+    }
+    return filtered;
   }
 
   delete(id: string): T[] {
@@ -751,10 +768,7 @@ export function deleteStoredJulesSession(id: string): void {
 }
 
 export function bulkDeleteStoredJulesSessions(ids: string[]): void {
-  const items = julesSessionsCollection.load();
-  const idSet = new Set(ids);
-  const filtered = items.filter(i => !idSet.has(i.id));
-  julesSessionsCollection.save(filtered);
+  julesSessionsCollection.bulkDelete(ids);
   saveStoredJulesSessions(julesSessionsCollection.load());
 }
 
