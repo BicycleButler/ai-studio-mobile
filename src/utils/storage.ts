@@ -421,21 +421,106 @@ export function saveDraftState(draft: Partial<DraftState>, projectId?: string | 
   }
 }
 
+
+// ---------------------------------------------------------------------------
+// Generic Collection Abstraction
+// ---------------------------------------------------------------------------
+
+export class StorageCollection<T extends { id: string }> {
+  private key: string;
+  private transformIn?: (item: T) => T;
+  private transformOut?: (item: T) => T;
+  private validate?: (item: unknown) => boolean;
+
+  constructor(
+    key: string,
+    options?: {
+      transformIn?: (item: T) => T;
+      transformOut?: (item: T) => T;
+      validate?: (item: unknown) => boolean;
+    }
+  ) {
+    this.key = key;
+    this.transformIn = options?.transformIn;
+    this.transformOut = options?.transformOut;
+    this.validate = options?.validate;
+  }
+
+  load(): T[] {
+    const raw = safeGetStorageArray<T>(this.key, []);
+    let filtered = raw;
+    if (this.validate) {
+      filtered = raw.filter((item) => this.validate!(item));
+    }
+    const result = this.transformOut ? filtered.map(this.transformOut) : filtered;
+    return result;
+  }
+
+  save(items: T[]): void {
+    const toStore = this.transformIn ? items.map(this.transformIn) : items;
+    safeSetStorage(this.key, toStore);
+  }
+
+  update(id: string, updates: Partial<Omit<T, "id">>): T | null {
+    const items = this.load();
+    const index = items.findIndex((item) => item.id === id);
+    if (index === -1) return null;
+
+    const updated = {
+      ...items[index],
+      ...updates,
+      updatedAt: Date.now(),
+    } as T;
+
+    items[index] = updated;
+    this.save(items);
+    return updated;
+  }
+
+  delete(id: string): T[] {
+    const items = this.load();
+    const filtered = items.filter((item) => item.id !== id);
+    this.save(filtered);
+    return filtered;
+  }
+
+  upsert(item: T, prepend = false): T {
+    const items = this.load();
+    const index = items.findIndex((i) => i.id === item.id);
+
+    const updated = {
+      ...item,
+      updatedAt: Date.now(),
+    };
+
+    if (index >= 0) {
+      items[index] = updated;
+    } else {
+      if (prepend) {
+        items.unshift(updated);
+      } else {
+        items.push(updated);
+      }
+    }
+
+    this.save(items);
+    return updated;
+  }
+}
+
 // Phase 2: Encrypted Project Storage & Ingestion Management
+
+const projectsCollection = new StorageCollection<ProjectInfo>(STORAGE_KEYS.PROJECTS, {
+  transformIn: (p) => ({ ...p, apiKey: encryptSecret(p.apiKey) }),
+  transformOut: (p) => ({ ...p, apiKey: decryptSecret(p.apiKey) }),
+});
+
 export function loadStoredProjects(): ProjectInfo[] {
-  const raw = safeGetStorageArray<ProjectInfo>(STORAGE_KEYS.PROJECTS, []);
-  return raw.map((p) => ({
-    ...p,
-    apiKey: decryptSecret(p.apiKey),
-  }));
+  return projectsCollection.load();
 }
 
 export function saveStoredProjects(projects: ProjectInfo[]): void {
-  const encrypted = projects.map((p) => ({
-    ...p,
-    apiKey: encryptSecret(p.apiKey),
-  }));
-  safeSetStorage(STORAGE_KEYS.PROJECTS, encrypted);
+  projectsCollection.save(projects);
 }
 
 export function getActiveProjectId(): string | null {
@@ -465,44 +550,31 @@ export function getActiveProject(): ProjectInfo | null {
 export function saveAndActivateProject(
   projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
 ): ProjectInfo {
-  const projects = loadStoredProjects();
   const now = Date.now();
-  const existingIdx = projectData.id ? projects.findIndex((p) => p.id === projectData.id) : -1;
+  const id = projectData.id || `proj_${now}_${Math.random().toString(36).slice(2, 7)}`;
 
-  let savedProject: ProjectInfo;
-  if (existingIdx >= 0) {
-    savedProject = {
-      ...projects[existingIdx],
-      ...projectData,
-      updatedAt: now,
-    };
-    projects[existingIdx] = savedProject;
-  } else {
-    savedProject = {
-      id: projectData.id || `proj_${now}_${Math.random().toString(36).slice(2, 7)}`,
-      name: projectData.name.trim() || `AI Studio Project ${projects.length + 1}`,
-      apiKey: projectData.apiKey.trim(),
-      defaultModel: projectData.defaultModel || "gemini-2.5-flash",
-      createdAt: now,
-      updatedAt: now,
-      lastVerifiedAt: projectData.lastVerifiedAt || now,
-      isValid: projectData.isValid ?? true,
-    };
-    projects.push(savedProject);
-  }
+  const savedProject = {
+    ...projectData,
+    id,
+    name: projectData.name.trim() || `AI Studio Project ${projectsCollection.load().length + 1}`,
+    apiKey: projectData.apiKey.trim(),
+    defaultModel: projectData.defaultModel || "gemini-2.5-flash",
+    createdAt: now,
+    updatedAt: now,
+    lastVerifiedAt: projectData.lastVerifiedAt || now,
+    isValid: projectData.isValid ?? true,
+  } as ProjectInfo;
 
-  saveStoredProjects(projects);
+  projectsCollection.upsert(savedProject, false);
   setActiveProjectId(savedProject.id);
-  // Also synchronize with raw custom key storage so all runtime endpoints use this active key
   saveStoredApiKey(savedProject.apiKey);
 
   return savedProject;
 }
 
+
 export function deleteStoredProject(id: string): void {
-  const projects = loadStoredProjects();
-  const filtered = projects.filter((p) => p.id !== id);
-  saveStoredProjects(filtered);
+  const filtered = projectsCollection.delete(id);
   const activeId = getActiveProjectId();
   if (activeId === id) {
     if (filtered.length > 0) {
@@ -519,25 +591,13 @@ export function updateStoredProject(
   id: string,
   updates: Partial<Omit<ProjectInfo, "id" | "createdAt">>
 ): ProjectInfo | null {
-  const projects = loadStoredProjects();
-  const index = projects.findIndex((p) => p.id === id);
-  if (index === -1) return null;
-
-  const updated: ProjectInfo = {
-    ...projects[index],
-    ...updates,
-    updatedAt: Date.now(),
-  };
-  projects[index] = updated;
-  saveStoredProjects(projects);
+  const updated = projectsCollection.update(id, updates);
+  if (!updated) return null;
 
   const activeId = getActiveProjectId();
-  if (activeId === id) {
-    if (updates.apiKey) {
-      saveStoredApiKey(updates.apiKey);
-    }
+  if (activeId === id && updates.apiKey) {
+    saveStoredApiKey(updates.apiKey);
   }
-
   return updated;
 }
 
@@ -571,35 +631,19 @@ export function isMockJulesSession(session: Partial<JulesSession>): boolean {
   return isMockSession(session, "jules");
 }
 
-let _cachedJulesSessions: JulesSession[] = [];
+
+
+const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, {
+  validate: (s) => !isMockJulesSession(s as Partial<JulesSession>)
+});
 
 export function loadStoredJulesSessions(): JulesSession[] {
-  // Try to load from local storage first to prevent blocking react rendering
-  const sessions = safeGetStorageArray<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, _cachedJulesSessions);
-  const clean = cleanMockData(sessions, "jules");
-  return clean;
-}
-
-export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
-  try {
-    const res = await fetch("/api/jules/sessions");
-    if (res.ok) {
-      const data = await res.json();
-      const clean = Array.isArray(data) ? cleanMockData(data, "jules") : [];
-      _cachedJulesSessions = clean;
-      safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean); // Update local cache
-      return clean;
-    }
-  } catch (e) {
-    console.error("Failed to fetch Jules sessions from server", e);
-  }
-  return loadStoredJulesSessions();
+  return julesSessionsCollection.load();
 }
 
 export function saveStoredJulesSessions(sessions: JulesSession[]): void {
-  const clean = Array.isArray(sessions) ? cleanMockData(sessions, "jules") : [];
-  _cachedJulesSessions = clean;
-  safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean); // Update local cache
+  julesSessionsCollection.save(sessions);
+  const clean = julesSessionsCollection.load();
 
   // Async sync to server
   if (isBrowserEnvironment()) {
@@ -618,6 +662,21 @@ export function saveStoredJulesSessions(sessions: JulesSession[]): void {
       enqueueOfflineMutation("jules_sessions", clean).catch(console.error);
     }
   }
+}
+
+export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
+  try {
+    const res = await fetch("/api/jules/sessions");
+    if (res.ok) {
+      const data = await res.json();
+      const clean = Array.isArray(data) ? cleanMockData(data, "jules") : [];
+      julesSessionsCollection.save(clean);
+      return clean;
+    }
+  } catch (e) {
+    console.error("Failed to fetch Jules sessions from server", e);
+  }
+  return loadStoredJulesSessions();
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {
@@ -653,20 +712,11 @@ export function getActiveJulesSession(): JulesSession | null {
 }
 
 export function updateStoredJulesSession(session: JulesSession): JulesSession {
-  const sessions = loadStoredJulesSessions();
-  const index = sessions.findIndex((s) => s.id === session.id);
-  const updated: JulesSession = {
-    ...session,
-    updatedAt: Date.now(),
-  };
+  const updated = julesSessionsCollection.upsert(session, true);
 
-  if (index >= 0) {
-    sessions[index] = updated;
-  } else {
-    sessions.unshift(updated);
-  }
+  // Trigger save side effects (like async sync to server)
+  saveStoredJulesSessions(julesSessionsCollection.load());
 
-  saveStoredJulesSessions(sessions);
   return updated;
 }
 

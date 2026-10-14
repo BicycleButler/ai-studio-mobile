@@ -1,6 +1,14 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorage, safeSetStorage, safeGetStorageKeys, STORAGE_KEYS } from "../utils/storage";
+import { safeGetStorage, safeSetStorage, safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
+
+function getChatCollection(projectId?: string): StorageCollection<ChatSession> {
+  const key = getChatSessionsStorageKey(projectId);
+  return new StorageCollection<ChatSession>(key, {
+    validate: (s) => !isMockChatSession(s as Partial<ChatSession>),
+  });
+}
+
 import { isMockSession } from "../utils/mockDefinitions";
 
 /**
@@ -86,19 +94,7 @@ export function generateSessionTitle(messages: ChatMessage[]): string {
  * Enforces strict filtering to guarantee zero mock data is returned.
  */
 export function getChatSessions(projectId?: string): ChatSession[] {
-  const key = getChatSessionsStorageKey(projectId);
-  const sessions = safeGetStorage<ChatSession[]>(key, []);
-  if (!Array.isArray(sessions)) return [];
-
-  // Exclude any mock or synthetic sessions
-  const cleanSessions = sessions.filter((s) => !isMockChatSession(s));
-
-  // If mock data was detected and stripped, update storage to keep it permanently clean
-  if (cleanSessions.length !== sessions.length) {
-    safeSetStorage(key, cleanSessions);
-  }
-
-  return cleanSessions.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return getChatCollection(projectId).load().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 
 /**
@@ -106,15 +102,9 @@ export function getChatSessions(projectId?: string): ChatSession[] {
  * Strictly blocks saving any mock or synthetic data.
  */
 export function saveChatSession(session: ChatSession, projectId?: string): void {
-  if (!session || !session.id) return;
+  if (!session.id || !session.messages || isMockChatSession(session)) return;
 
-  // Never persist mock sessions, even in development
-  if (isMockChatSession(session)) {
-    return;
-  }
-
-  const key = getChatSessionsStorageKey(projectId);
-  const existing = getChatSessions(projectId);
+  const collection = getChatCollection(projectId);
   const sanitizedMessages = sanitizeMessagesForHistory(session.messages || []);
 
   const title =
@@ -131,22 +121,13 @@ export function saveChatSession(session: ChatSession, projectId?: string): void 
     createdAt: session.createdAt || Date.now(),
   };
 
-  const existingIndex = existing.findIndex((s) => s.id === session.id);
-  let updatedList: ChatSession[];
+  collection.upsert(updatedSession, true);
 
-  if (existingIndex >= 0) {
-    updatedList = [...existing];
-    updatedList[existingIndex] = updatedSession;
-  } else {
-    updatedList = [updatedSession, ...existing];
-  }
-
-  // Keep a reasonable cap (e.g. up to 100 historical sessions)
+  // Cap at 100 historical sessions
+  const updatedList = collection.load();
   if (updatedList.length > 100) {
-    updatedList = updatedList.slice(0, 100);
+    collection.save(updatedList.slice(0, 100));
   }
-
-  safeSetStorage(key, updatedList);
 }
 
 /**
@@ -161,20 +142,17 @@ export function getChatSessionById(sessionId: string, projectId?: string): ChatS
  * Deletes an individual chat session by ID
  */
 export function deleteChatSession(sessionId: string, projectId?: string): boolean {
-  const key = getChatSessionsStorageKey(projectId);
-  const sessions = getChatSessions(projectId);
-  const filtered = sessions.filter((s) => s.id !== sessionId);
-  if (filtered.length === sessions.length) return false;
-  safeSetStorage(key, filtered);
-  return true;
+  const collection = getChatCollection(projectId);
+  const beforeLength = collection.load().length;
+  const after = collection.delete(sessionId);
+  return after.length !== beforeLength;
 }
 
 /**
  * Clears all chat sessions for a project
  */
 export function clearAllChatSessions(projectId?: string): void {
-  const key = getChatSessionsStorageKey(projectId);
-  safeSetStorage(key, []);
+  getChatCollection(projectId).save([]);
 }
 
 /**
@@ -204,11 +182,11 @@ export function formatRelativeTime(timestamp: number): string {
  */
 export function bulkDeleteChatSessions(sessionIds: string[], projectId?: string): boolean {
   if (!sessionIds || sessionIds.length === 0) return false;
-  const key = getChatSessionsStorageKey(projectId);
-  const sessions = getChatSessions(projectId);
+  const collection = getChatCollection(projectId);
   const idSet = new Set(sessionIds);
-  const filtered = sessions.filter((s) => !idSet.has(s.id));
-  if (filtered.length === sessions.length) return false;
-  safeSetStorage(key, filtered);
+  const items = collection.load();
+  const filtered = items.filter((s) => !idSet.has(s.id));
+  if (filtered.length === items.length) return false;
+  collection.save(filtered);
   return true;
 }
