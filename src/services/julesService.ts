@@ -47,20 +47,35 @@ export interface JulesServiceConfig {
   getSettings: () => { autoApprovePlans: boolean; defaultBranch: string };
 }
 
-let defaultConfig: JulesServiceConfig = {
+export class JulesClient {
+  private config: JulesServiceConfig;
+
+  constructor(config: JulesServiceConfig) {
+    this.config = config;
+  }
+
+  public setConfig(config: JulesServiceConfig) {
+    this.config = config;
+  }
+
+  public resolveApiKey(override?: string): string {
+    return override || this.config.getApiKey();
+  }
+
+  public getSettings(): { autoApprovePlans: boolean; defaultBranch: string } {
+    return this.config.getSettings();
+  }
+}
+
+// Default singleton instance for backward compatibility
+const defaultJulesClient = new JulesClient({
   getApiKey: loadStoredJulesApiKey,
   getSettings: loadStoredJulesSettings,
-};
+});
 
 export function setJulesServiceConfig(config: JulesServiceConfig) {
-  defaultConfig = config;
+  defaultJulesClient.setConfig(config);
 }
-
-function resolveApiKey(override?: string): string {
-  return override || defaultConfig.getApiKey();
-}
-
-
 
 export interface JulesRepositoryItem {
   id?: string;
@@ -117,7 +132,7 @@ export async function verifyJulesApiKey(apiKey: string): Promise<JulesVerificati
  * Discovers authorized repositories for the configured Jules API key
  */
 export async function fetchJulesRepositories(apiKeyOverride?: string): Promise<JulesRepository[]> {
-  const key = resolveApiKey(apiKeyOverride);
+  const key = defaultJulesClient.resolveApiKey(apiKeyOverride);
   if (!key) return [];
 
   try {
@@ -147,13 +162,13 @@ export async function fetchJulesRepositories(apiKeyOverride?: string): Promise<J
 export async function createJulesTask(
   params: CreateJulesTaskParams
 ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
-  const key = resolveApiKey(params.apiKey);
+  const key = defaultJulesClient.resolveApiKey(params.apiKey);
   if (!key) {
     return { task: null, error: "Jules API key is required. Please set it in Settings." };
   }
 
   try {
-    const settings = defaultConfig.getSettings();
+    const settings = defaultJulesClient.getSettings();
     const autoApprove = params.autoApprove ?? settings.autoApprovePlans;
 
     const data = await apiFetch<{ task: JulesTaskPayload }>("/api/jules/tasks", {
@@ -247,7 +262,7 @@ export async function fetchJulesTask(
   taskId: string,
   apiKeyOverride?: string
 ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
-  const apiKey = resolveApiKey(apiKeyOverride);
+  const apiKey = defaultJulesClient.resolveApiKey(apiKeyOverride);
 
   try {
     const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
@@ -271,7 +286,7 @@ export async function approveJulesPlan(
   approved: boolean = true,
   apiKeyOverride?: string
 ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
-  const key = resolveApiKey(apiKeyOverride);
+  const key = defaultJulesClient.resolveApiKey(apiKeyOverride);
 
   try {
     const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}/approve`, {
