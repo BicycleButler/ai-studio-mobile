@@ -29,6 +29,9 @@ import { saveSpeechSettings } from "./services/speechVoices";
 import { AlertCircle, AlertTriangle, Key, RefreshCw, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
+import { initializeSyncHandlers } from "./utils/syncRegistry";
+
+initializeSyncHandlers();
 
 export default function App() {
   const {

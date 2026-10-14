@@ -15,7 +15,15 @@ export interface ConflictData {
   id: string;
 }
 
+export type SyncHandler = (mutation: OfflineMutation) => Promise<{ success: boolean; conflict?: ConflictData }>;
+
 export const OFFLINE_QUEUE_KEY = "ai_studio_offline_mutations";
+
+const syncRegistry: Record<string, SyncHandler> = {};
+
+export function registerSyncHandler(type: string, handler: SyncHandler) {
+  syncRegistry[type] = handler;
+}
 
 export async function enqueueOfflineMutation(type: string, payload: unknown, version?: number) {
   const queue = (await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY)) || [];
@@ -49,44 +57,12 @@ export async function processOfflineMutations(): Promise<{
   for (const mutation of queue) {
     let success = false;
     try {
-      if (mutation.type === "jules_sessions") {
-        const res = await fetch("/api/jules/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(mutation.payload),
-        });
-        if (res.ok) {
-          success = true;
-        } else if (res.status === 409) {
-          const data = await res.json();
-          conflicts.push({ type: mutation.type, localData: mutation.payload, remoteData: data.remote, id: mutation.id });
-          success = false;
-        }
-      } else if (mutation.type === "saved_prompts") {
-        const res = await fetch("/api/prompts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompts: mutation.payload }),
-        });
-        if (res.ok) {
-          success = true;
-        } else if (res.status === 409) {
-          const data = await res.json();
-          conflicts.push({ type: mutation.type, localData: mutation.payload, remoteData: data.remote, id: mutation.id });
-          success = false;
-        }
-      } else if (mutation.type === "projects") {
-        const res = await fetch("/api/projects", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projects: mutation.payload }),
-        });
-        if (res.ok) {
-          success = true;
-        } else if (res.status === 409) {
-          const data = await res.json();
-          conflicts.push({ type: mutation.type, localData: mutation.payload, remoteData: data.remote, id: mutation.id });
-          success = false;
+      const handler = syncRegistry[mutation.type];
+      if (handler) {
+        const result = await handler(mutation);
+        success = result.success;
+        if (result.conflict) {
+          conflicts.push(result.conflict);
         }
       } else {
         // Unknown type, discard it
