@@ -1,5 +1,6 @@
 import { GenerateRequestBody } from "../types";
 import { apiFetch, apiFetchStream, BaseApiError, isAbortError } from "../utils/apiClient";
+import { SSEStreamParser } from "../utils/sseParser";
 
 
 export interface StreamCallbacks {
@@ -176,10 +177,47 @@ export async function streamGeminiContent(
   }
 
   const decoder = new TextDecoder();
-  let buffer = "";
   let accumulatedText = "";
   let durationMs = 0;
   let totalTokens = 0;
+
+  // We define a helper that processes the JSON payload from the SSE message
+  const handleData = (dataStr: string) => {
+    try {
+      const parsed = JSON.parse(dataStr) as {
+        text?: string;
+        error?: string;
+        done?: boolean;
+        durationMs?: number;
+        usageMetadata?: { totalTokenCount?: number };
+      };
+
+      if (parsed.error) {
+        throw new GeminiApiError(parsed.error);
+      }
+
+      if (parsed.text) {
+        accumulatedText += parsed.text;
+        callbacks.onChunk(accumulatedText);
+      }
+
+      if (parsed.done) {
+        durationMs = parsed.durationMs ?? durationMs;
+        if (parsed.usageMetadata?.totalTokenCount) {
+          totalTokens = parsed.usageMetadata.totalTokenCount;
+        }
+      }
+    } catch (parseErr: unknown) {
+      if (parseErr instanceof GeminiApiError) {
+        throw parseErr;
+      }
+      // Ignore JSON parse errors for incomplete/malformed chunks
+    }
+  };
+
+  const sseParser = new SSEStreamParser((eventName, dataStr) => {
+    handleData(dataStr);
+  });
 
   try {
     while (true) {
@@ -187,78 +225,11 @@ export async function streamGeminiContent(
       if (done) break;
 
       // Decode with stream: true to retain multibyte character boundary state
-      buffer += decoder.decode(value, { stream: true });
-
-      // Split lines and keep the remaining partial fragment in buffer
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const rawLine of lines) {
-        const line = rawLine.trim();
-        if (!line || !line.startsWith("data: ")) continue;
-
-        const dataStr = line.slice(6).trim();
-        if (!dataStr) continue;
-
-        try {
-          const parsed = JSON.parse(dataStr) as {
-            text?: string;
-            error?: string;
-            done?: boolean;
-            durationMs?: number;
-            usageMetadata?: { totalTokenCount?: number };
-          };
-
-          if (parsed.error) {
-            throw new GeminiApiError(parsed.error);
-          }
-
-          if (parsed.text) {
-            accumulatedText += parsed.text;
-            callbacks.onChunk(accumulatedText);
-          }
-
-          if (parsed.done) {
-            durationMs = parsed.durationMs ?? 0;
-            if (parsed.usageMetadata?.totalTokenCount) {
-              totalTokens = parsed.usageMetadata.totalTokenCount;
-            }
-          }
-        } catch (parseErr: unknown) {
-          if (parseErr instanceof GeminiApiError) {
-            throw parseErr;
-          }
-          // Ignore incomplete/malformed chunks and continue stream reading
-        }
-      }
+      const chunk = decoder.decode(value, { stream: true });
+      sseParser.processChunk(chunk);
     }
 
-    // Flush any remaining buffer text
-    if (buffer.trim().startsWith("data: ")) {
-      try {
-        const dataStr = buffer.trim().slice(6).trim();
-        const parsed = JSON.parse(dataStr) as {
-          text?: string;
-          error?: string;
-          done?: boolean;
-          durationMs?: number;
-          usageMetadata?: { totalTokenCount?: number };
-        };
-        if (parsed.error) throw new GeminiApiError(parsed.error);
-        if (parsed.text) {
-          accumulatedText += parsed.text;
-          callbacks.onChunk(accumulatedText);
-        }
-        if (parsed.done) {
-          durationMs = parsed.durationMs ?? durationMs;
-          if (parsed.usageMetadata?.totalTokenCount) {
-            totalTokens = parsed.usageMetadata.totalTokenCount;
-          }
-        }
-      } catch (flushErr: unknown) {
-        if (flushErr instanceof GeminiApiError) throw flushErr;
-      }
-    }
+    sseParser.flush();
 
     if (!totalTokens && accumulatedText.length > 0) {
       totalTokens = Math.max(1, Math.round(accumulatedText.length / 4));

@@ -1,10 +1,200 @@
 {
   "targetDir": "src",
-  "totalFiles": 90,
-  "filesWithViolationsCount": 0,
+  "totalFiles": 91,
+  "filesWithViolationsCount": 1,
   "cleanFilesCount": 90,
-  "totalViolations": 0,
-  "byRule": {},
-  "byDir": [],
-  "violations": []
+  "totalViolations": 10,
+  "byRule": {
+    "Semantic Color at Rest": 10
+  },
+  "byDir": [
+    {
+      "domain": "components/StubsWorkspace.tsx",
+      "violationCount": 10,
+      "violations": [
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 49,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "3: { title: \"Layer 3: UI Components\", color: \"border-warning/40 text-warning bg-warning/10\" },",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 52,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "6: { title: \"Layer 6: Server Infrastructure\", color: \"border-destructive/40 text-destructive bg-destructive/10\" },",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 765,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<span className=\"text-xs font-bold text-destructive uppercase tracking-tight\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 772,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "className=\"p-3 rounded-lg bg-destructive/10 border border-rose-500/30 text-xs flex flex-col gap-1\"",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 775,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<span className=\"font-mono font-bold text-destructive uppercase text-[10px]\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 845,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "? \"text-destructive\"",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 847,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "? \"text-warning\"",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 875,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<span className=\"text-xl font-bold font-mono text-destructive my-1\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 887,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<span className=\"text-xl font-bold font-mono text-warning my-1\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/StubsWorkspace.tsx",
+          "line": 1155,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<span className=\"text-destructive\">{log.text}</span>",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        }
+      ]
+    }
+  ],
+  "violations": [
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 49,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "3: { title: \"Layer 3: UI Components\", color: \"border-warning/40 text-warning bg-warning/10\" },",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 52,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "6: { title: \"Layer 6: Server Infrastructure\", color: \"border-destructive/40 text-destructive bg-destructive/10\" },",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 765,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<span className=\"text-xs font-bold text-destructive uppercase tracking-tight\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 772,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "className=\"p-3 rounded-lg bg-destructive/10 border border-rose-500/30 text-xs flex flex-col gap-1\"",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 775,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<span className=\"font-mono font-bold text-destructive uppercase text-[10px]\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 845,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "? \"text-destructive\"",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 847,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "? \"text-warning\"",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 875,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<span className=\"text-xl font-bold font-mono text-destructive my-1\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 887,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<span className=\"text-xl font-bold font-mono text-warning my-1\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StubsWorkspace.tsx",
+      "line": 1155,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<span className=\"text-destructive\">{log.text}</span>",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    }
+  ]
 }
