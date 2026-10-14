@@ -46,10 +46,10 @@ const LAYER_LABELS: Record<number, { title: string; color: string }> = {
   0: { title: "Layer 0: Core Types", color: "border-sky-500/40 text-sky-400 bg-sky-950/30" },
   1: { title: "Layer 1: Low-Level Storage", color: "border-border/40 text-muted-foreground bg-muted/30" },
   2: { title: "Layer 2: Domain Services", color: "border-indigo-500/40 text-indigo-400 bg-indigo-950/30" },
-  3: { title: "Layer 3: UI Components", color: "border-amber-500/40 text-amber-400 bg-amber-950/30" },
+  3: { title: "Layer 3: UI Components", color: "border-warning/40 text-warning bg-warning/10" },
   4: { title: "Layer 4: Workspaces", color: "border-purple-500/40 text-purple-400 bg-purple-950/30" },
   5: { title: "Layer 5: App Scaffold", color: "border-pink-500/40 text-pink-400 bg-pink-950/30" },
-  6: { title: "Layer 6: Server Infrastructure", color: "border-rose-500/40 text-rose-400 bg-rose-950/30" },
+  6: { title: "Layer 6: Server Infrastructure", color: "border-destructive/40 text-destructive bg-destructive/10" },
 };
 
 function getErrorMessage(err: unknown): string {
@@ -762,17 +762,17 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
             {/* Violations List */}
             {lintViolations.length > 0 && (
               <div className="p-4 rounded-xl bg-card border border-rose-500/30 space-y-2.5">
-                <span className="text-xs font-bold text-rose-400 uppercase tracking-tight">
+                <span className="text-xs font-bold text-destructive uppercase tracking-tight">
                   Violation Details ({lintViolations.length})
                 </span>
                 <div className="space-y-2">
                   {lintViolations.map((v, i) => (
                     <div
                       key={i}
-                      className="p-3 rounded-lg bg-rose-950/30 border border-rose-500/30 text-xs flex flex-col gap-1"
+                      className="p-3 rounded-lg bg-destructive/10 border border-rose-500/30 text-xs flex flex-col gap-1"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-rose-400 uppercase text-[10px]">
+                        <span className="font-mono font-bold text-destructive uppercase text-[10px]">
                           {v.rule}
                         </span>
                         <span className="px-1.5 py-0.2 rounded text-[10px] bg-rose-900/60 text-rose-200">
@@ -842,9 +842,9 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                         <span
                           className={`text-lg font-bold font-mono ${
                             impactResult.riskScore === "CRITICAL"
-                              ? "text-rose-400"
+                              ? "text-destructive"
                               : impactResult.riskScore === "HIGH"
-                              ? "text-amber-400"
+                              ? "text-warning"
                               : impactResult.riskScore === "MODERATE"
                               ? "text-muted-foreground"
                               : "text-muted-foreground"
@@ -872,7 +872,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
                       Direct Upstream Callers (Fan-in)
                     </span>
-                    <span className="text-2xl font-bold font-mono text-rose-400 my-1">
+                    <span className="text-xl font-bold font-mono text-destructive my-1">
                       {impactResult.fanIn}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
@@ -884,7 +884,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
                       Transitive Blast Callers
                     </span>
-                    <span className="text-2xl font-bold font-mono text-amber-400 my-1">
+                    <span className="text-xl font-bold font-mono text-warning my-1">
                       {impactResult.transitiveCallers?.length || 0}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
@@ -1152,7 +1152,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
                         <span className="text-slate-200">{log.text}</span>
                       )}
                       {log.type === "stderr" && (
-                        <span className="text-rose-400">{log.text}</span>
+                        <span className="text-destructive">{log.text}</span>
                       )}
                       {log.type === "exit" && (
                         <span className="text-muted-foreground font-bold">{log.text}</span>

@@ -1867,7 +1867,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     type="button"
                     id="chat-voice-fab-interrupt-btn"
                     onClick={handleInterrupt}
-                    className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1 rounded-full bg-warning/15 text-warning  hover:bg-warning/25 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                     title="Interrupt assistant speech"
                   >
                     <Square className="w-3 h-3 fill-current" />
@@ -1992,7 +1992,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                         e.stopPropagation();
                         handleInterrupt();
                       }}
-                      className="h-11 min-h-[44px] px-3.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 text-xs font-semibold flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
+                      className="h-11 min-h-[44px] px-3.5 rounded-xl bg-warning/15 text-warning  hover:bg-warning/25 text-xs font-semibold flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
                       title="Interrupt assistant speech"
                       aria-label="Interrupt assistant speech"
                     >

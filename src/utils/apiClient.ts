@@ -2,17 +2,19 @@ export class BaseApiError extends Error {
   public statusCode: number;
   public headers?: Record<string, string>;
   public endpoint?: string;
+  public rawData?: unknown;
 
-  constructor(message: string, statusCode: number, headers?: Record<string, string>, endpoint?: string) {
+  constructor(message: string, statusCode: number, headers?: Record<string, string>, endpoint?: string, rawData?: unknown) {
     super(message);
     this.name = "BaseApiError";
     this.statusCode = statusCode;
     this.headers = headers;
     this.endpoint = endpoint;
+    this.rawData = rawData;
   }
 
-  static fromResponse(message: string, statusCode: number, headers?: Record<string, string>, endpoint?: string): BaseApiError {
-    return new BaseApiError(message, statusCode, headers, endpoint);
+  static fromResponse(message: string, statusCode: number, headers?: Record<string, string>, endpoint?: string, rawData?: unknown): BaseApiError {
+    return new BaseApiError(message, statusCode, headers, endpoint, rawData);
   }
 
   public isRetryable(): boolean {
@@ -28,27 +30,30 @@ export function isAbortError(err: unknown): boolean {
 
 export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
 
-export async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string> }> {
+export async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string>; rawData?: unknown }> {
   const headers: Record<string, string> = {};
   res.headers.forEach((value, key) => {
     headers[key] = value;
   });
 
   let errorMessage = defaultErrorMessage;
+  let rawData: unknown;
 
   try {
     const contentType = res.headers.get("content-type");
     if (contentType?.includes("application/json")) {
       const err = await res.json();
+      rawData = err;
       errorMessage = err.error || err.message || res.statusText || defaultErrorMessage;
     } else {
       const text = await res.text();
+      rawData = text;
       errorMessage = text || res.statusText || defaultErrorMessage;
     }
   } catch {
     errorMessage = res.statusText || defaultErrorMessage;
   }
-  return { errorMessage, headers };
+  return { errorMessage, headers, rawData };
 }
 
 async function executeRequest(
@@ -67,8 +72,8 @@ async function executeRequest(
   }
 
   if (!res.ok) {
-    const { errorMessage, headers } = await parseErrorResponse(res, defaultErrorMessage);
-    throw BaseApiError.fromResponse(errorMessage, res.status, headers, endpoint);
+    const { errorMessage, headers, rawData } = await parseErrorResponse(res, defaultErrorMessage);
+    throw BaseApiError.fromResponse(errorMessage, res.status, headers, endpoint, rawData);
   }
 
   return res;
