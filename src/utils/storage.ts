@@ -1,8 +1,24 @@
 import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "./platform";
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG } from "../data/templates";
-import { MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS, isMockSession } from "./mockDefinitions";
+import { isMockSession } from "./mockDefinitions";
 import { enqueueOfflineMutation } from "./offlineService";
+
+/**
+ * Utility to consistently filter out mock data arrays (messages, sessions, etc)
+ */
+export function cleanMockData<T extends { id?: string; title?: string; text?: string }>(items: T[], type: "chat" | "jules" = "chat"): T[] {
+  if (!Array.isArray(items)) return [];
+  return items.filter((item) => {
+    if (!item || typeof item !== "object") return false;
+    // Map text to title for messages
+    const mapped = {
+      id: String(item.id || ""),
+      title: String(item.title || item.text || "")
+    };
+    return !isMockSession(mapped, type);
+  });
+}
 
 export const STORAGE_KEYS = {
   API_KEY: "ai_studio_api_key",
@@ -366,13 +382,7 @@ export function loadDraftState(projectId?: string | null): DraftState {
 
   const sanitizeMessages = (msgs: unknown): ChatMessage[] | undefined => {
     if (!Array.isArray(msgs)) return undefined;
-    const clean = msgs.filter((m: unknown) => {
-      if (!m || typeof m !== "object") return false;
-      const mObj = m as Record<string, unknown>;
-      const mid = String(mObj.id || "").toLowerCase();
-      const text = String(mObj.text || "").trim().toLowerCase();
-      return !(MOCK_MESSAGE_IDS.includes(mid) || MOCK_MESSAGE_TEXTS.includes(text));
-    });
+    const clean = cleanMockData(msgs as ChatMessage[], "chat");
     return clean.length > 0 ? clean : undefined;
   };
 
@@ -562,7 +572,7 @@ let _cachedJulesSessions: JulesSession[] = [];
 export function loadStoredJulesSessions(): JulesSession[] {
   // Try to load from local storage first to prevent blocking react rendering
   const sessions = safeGetStorageArray<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, _cachedJulesSessions);
-  const clean = sessions.filter((s) => !isMockJulesSession(s));
+  const clean = cleanMockData(sessions, "jules");
   return clean;
 }
 
@@ -571,7 +581,7 @@ export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
     const res = await fetch("/api/jules/sessions");
     if (res.ok) {
       const data = await res.json();
-      const clean = Array.isArray(data) ? data.filter((s) => !isMockJulesSession(s)) : [];
+      const clean = Array.isArray(data) ? cleanMockData(data, "jules") : [];
       _cachedJulesSessions = clean;
       safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean); // Update local cache
       return clean;
@@ -583,7 +593,7 @@ export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
 }
 
 export function saveStoredJulesSessions(sessions: JulesSession[]): void {
-  const clean = Array.isArray(sessions) ? sessions.filter((s) => !isMockJulesSession(s)) : [];
+  const clean = Array.isArray(sessions) ? cleanMockData(sessions, "jules") : [];
   _cachedJulesSessions = clean;
   safeSetStorage(STORAGE_KEYS.JULES_SESSIONS, clean); // Update local cache
 

@@ -33,28 +33,22 @@ const testMockPayload: any = {
   dynamicProperty: "test-property-allowed-in-test-files",
 };
 
-export function testGenerators(): boolean {
-  if (!testMockPayload) return false;
+import { describe, test, expect } from 'vitest';
 
-  const kotlin = generateAndroidKotlinCode(mockConfig, mockMessages);
-  if (!kotlin.includes("com.google.ai.client.generativeai")) {
-    throw new Error("Kotlin code missing generativeai import");
-  }
+describe('codeGenerators', () => {
+  test('testGenerators', () => {
+    expect(testMockPayload).toBeTruthy();
 
-  const python = generatePythonCode(mockConfig, mockMessages);
-  if (!python.includes("from google import genai")) {
-    throw new Error("Python code missing google.genai import");
-  }
+    const kotlin = generateAndroidKotlinCode(mockConfig, mockMessages);
+    expect(kotlin).toContain("com.google.ai.client.generativeai");
 
-  const ts = generateTypeScriptCode(mockConfig, mockMessages);
-  if (!ts.includes("@google/genai")) {
-    throw new Error("TypeScript code missing @google/genai import");
-  }
+    const python = generatePythonCode(mockConfig, mockMessages);
+    expect(python).toContain("from google import genai");
 
-  const curl = generateCurlCode(mockConfig, mockMessages);
-  if (!curl.includes("generativelanguage.googleapis.com")) {
-    throw new Error("cURL command missing endpoint URL");
-  }
+    const ts = generateTypeScriptCode(mockConfig, mockMessages);
+    expect(ts).toContain("@google/genai");
 
-  return true;
-}
+    const curl = generateCurlCode(mockConfig, mockMessages);
+    expect(curl).toContain("generativelanguage.googleapis.com");
+  });
+});
