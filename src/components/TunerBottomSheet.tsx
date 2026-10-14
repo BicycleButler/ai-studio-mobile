@@ -24,6 +24,7 @@ import {
 } from "../utils/modelCatalog";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 import { safeAddEventListener } from "../utils/platform";
+import { Drawer } from "./ui/Drawer.tsx";
 
 interface TunerBottomSheetProps {
   config: PromptConfig;
@@ -542,126 +543,44 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
 
   if (isModal) {
     return (
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            key="tuner-drawer-overlay"
-            id="tuner-drawer-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.89, ease: "easeOut" }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            onClick={(e) => {
-              if (e.target === e.currentTarget && onClose) {
-                onClose();
-              }
-            }}
-          >
-            <motion.div
-              key="tuner-drawer-dialog"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Models and Parameters drawer"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ duration: 1.89, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground"
+      <Drawer
+        isOpen={isOpen || false}
+        onClose={onClose || (() => {})}
+        title="Models & Parameters"
+        drawerId="tuner-bottom-sheet"
+        className="!h-[85vh] !p-0"
+      >
+        <div className="flex flex-col h-full overflow-hidden relative">
+          {/* Header Action (Reset button) - Title and Close are handled by Drawer */}
+          <div className="absolute top-3 end-12 z-10 flex items-center gap-2">
+            {/* Global Reset Button in Header */}
+            <button
+              type="button"
+              id="tuner-modal-reset-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                const el = e.currentTarget;
+                el.classList.add("rotate-180");
+                setTimeout(() => el.classList.remove("rotate-180"), 500);
+                handleResetDefaults();
+              }}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors transition-transform duration-500 cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-background group"
+              title="Reset to recommended defaults"
             >
-              {/* Top Drawer Header with Back button */}
-              <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-background/95 backdrop-blur-md shrink-0 select-none">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  {onClose && (
-                    <button
-                      type="button"
-                      id="tuner-modal-back-btn"
-                      onClick={onClose}
-                      className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      title="Close drawer"
-                      aria-label="Back / Close drawer"
-                    >
-                      <ArrowLeft className="rtl:rotate-180 w-5 h-5" />
-                      <span className="text-xs font-semibold sm:inline hidden">Back</span>
-                    </button>
-                  )}
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <Layers className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="text-sm sm:text-base font-semibold text-foreground tracking-tight truncate">
-                        Models & Parameters
-                      </h2>
-                      <p className="text-[11px] text-muted-foreground hidden sm:block truncate">
-                        Select Gemini models and customize temperature, output tokens & schema
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <RotateCcw className="w-4 h-4 transition-transform group-hover:-rotate-90 duration-300" />
+            </button>
+          </div>
 
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleResetDefaults}
-                    className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    title="Reset parameters to defaults"
-                    aria-label="Reset parameters to defaults"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium sm:inline hidden">Reset</span>
-                  </button>
-                  {onClose && (
-                    <button
-                      type="button"
-                      id="tuner-modal-close-btn"
-                      onClick={onClose}
-                      className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      title="Close drawer"
-                      aria-label="Close drawer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Drawer Body */}
-              <div className="flex-1 overflow-y-auto w-full p-4 sm:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto">
-                {bodyFields}
-              </div>
-
-              {/* Drawer Footer */}
-              <div className="px-4 sm:px-6 py-3 border-t border-border bg-background/95 backdrop-blur-md shrink-0">
-                <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
-                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded border border-primary/30 bg-primary/20 text-primary font-semibold shrink-0">
-                      Active Model
-                    </span>
-                    <span className="truncate font-medium text-foreground">
-                      {selectedModelInfo?.name || config.model}
-                    </span>
-                  </div>
-
-                  {onClose && (
-                    <button
-                      type="button"
-                      id="tuner-done-btn"
-                      onClick={onClose}
-                      className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    >
-                      Done
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 pb-safe space-y-8 relative">
+            {bodyFields}
+          </div>
+        </div>
+      </Drawer>
     );
   }
 
+  // Desktop or embedded layout
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background p-3.5 space-y-4">
       {/* Header for embedded mode */}
