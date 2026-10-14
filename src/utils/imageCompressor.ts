@@ -31,6 +31,16 @@ export function calculateProportionalDimensions(width: number, height: number, m
  * Prevents mobile memory exhaustion (OOM) and accelerates upload on cellular connections.
  * 1568px aligns with Gemini's high-resolution vision processing tile sizes.
  */
+/**
+ * Detects if the browser supports WEBP image generation via canvas.
+ */
+function isWebPSupported(): boolean {
+  if (typeof document === "undefined") return false;
+  const canvas = document.createElement("canvas");
+  if (!canvas.toDataURL) return false;
+  return canvas.toDataURL("image/webp").indexOf("data:image/webp") === 0;
+}
+
 export async function compressImageForGemini(
   file: File,
   options: CompressionOptions = {}
@@ -60,8 +70,13 @@ export async function compressImageForGemini(
           ctx.imageSmoothingQuality = "high";
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Always compress to image/jpeg unless png with transparency is required
-          const targetMime = file.type === "image/png" ? "image/png" : "image/jpeg";
+          // Compress to WEBP if supported for better compression, otherwise JPEG, unless PNG is requested
+          let targetMime = "image/jpeg";
+          if (file.type === "image/png") {
+            targetMime = "image/png";
+          } else if (isWebPSupported()) {
+            targetMime = "image/webp";
+          }
           const dataUrl = canvas.toDataURL(targetMime, quality);
           const base64Data = dataUrl.split(",")[1] || "";
           const sizeKb = Math.round((base64Data.length * 3) / 4 / 1024);

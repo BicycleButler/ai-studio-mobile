@@ -25,44 +25,94 @@ export function registerSyncHandler(type: string, handler: SyncHandler) {
   syncRegistry[type] = handler;
 }
 
-export async function enqueueOfflineMutation(type: string, payload: unknown, version?: number) {
-  const queue = (await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY)) || [];
-  queue.push({
-    type,
-    payload,
-    timestamp: Date.now(),
-    id: Math.random().toString(36).substring(2, 9),
-    version,
-  });
-  await set(OFFLINE_QUEUE_KEY, queue);
+// Ensure serialized enqueues so we don't drop mutations due to race conditions.
+let queueLock: Promise<void> = Promise.resolve();
+
+async function safeGetQueue(): Promise<OfflineMutation[]> {
+  try {
+    return (await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY)) || [];
+  } catch (err) {
+    console.warn("Failed to read offline queue from IndexedDB", err);
+    return [];
+  }
 }
 
-export async function removeOfflineMutation(id: string) {
-  const queue = (await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY)) || [];
-  const newQueue = queue.filter(m => m.id !== id);
-  await set(OFFLINE_QUEUE_KEY, newQueue);
+async function safeSetQueue(queue: OfflineMutation[]): Promise<void> {
+  try {
+    await set(OFFLINE_QUEUE_KEY, queue);
+  } catch (err) {
+    console.warn("Failed to write offline queue to IndexedDB", err);
+  }
+}
+
+export async function enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {
+  const op = queueLock.then(async () => {
+    const queue = await safeGetQueue();
+    queue.push({
+      type,
+      payload,
+      timestamp: Date.now(),
+      id: Math.random().toString(36).substring(2, 9),
+      version,
+    });
+    await safeSetQueue(queue);
+  }).catch(err => {
+    console.error("Enqueue failed", err);
+  });
+  queueLock = op;
+  return op;
+}
+
+export async function removeOfflineMutation(id: string): Promise<void> {
+  const op = queueLock.then(async () => {
+    const queue = await safeGetQueue();
+    const newQueue = queue.filter((m) => m.id !== id);
+    await safeSetQueue(newQueue);
+  }).catch(err => {
+    console.error("Remove failed", err);
+  });
+  queueLock = op;
+  return op;
 }
 
 export async function getOfflineQueueLength(): Promise<number> {
-  const queue = (await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY)) || [];
+  const queue = await safeGetQueue();
   return queue.length;
 }
 
 export async function clearOfflineMutations(): Promise<void> {
-  await set(OFFLINE_QUEUE_KEY, []);
+  const op = queueLock.then(async () => {
+    await safeSetQueue([]);
+  }).catch(err => {
+    console.error("Clear failed", err);
+  });
+  queueLock = op;
+  return op;
 }
 
 export async function processOfflineMutations(): Promise<{
   success: boolean;
   conflicts: ConflictData[];
 }> {
-  const queue = (await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY)) || [];
-  if (queue.length === 0) return { success: true, conflicts: [] };
+  // Read queue safely within lock
+  let queue: OfflineMutation[] = [];
+  const readOp = queueLock.then(async () => {
+    queue = await safeGetQueue();
+  }).catch(err => {
+    console.error("Queue read failed", err);
+  });
+  queueLock = readOp;
+  await readOp;
+
+  if (queue.length === 0) {
+    return { success: true, conflicts: [] };
+  }
 
   const remainingQueue: OfflineMutation[] = [];
   const conflicts: ConflictData[] = [];
   let processSuccess = true;
 
+  // Perform slow sync operations OUTSIDE the lock
   for (const mutation of queue) {
     let success = false;
     try {
@@ -87,6 +137,29 @@ export async function processOfflineMutations(): Promise<{
     }
   }
 
-  await set(OFFLINE_QUEUE_KEY, remainingQueue);
+  // Write updated queue safely within lock
+  // We must re-read the queue and only filter out the ones we successfully processed.
+  // Otherwise we will overwrite mutations that were added while we were syncing outside the lock!
+  const writeOp = queueLock.then(async () => {
+    const currentQueue = await safeGetQueue();
+    // keep mutations that are in currentQueue but were NOT successfully processed.
+    // Which means: keep mutations that are EITHER not in the original queue we tried to process,
+    // OR they are in the original queue but they failed (are in remainingQueue).
+
+    // An easier way: remove the mutations from currentQueue that we successfully processed.
+    const successfulIds = new Set(
+      queue
+        .filter(m => !remainingQueue.some(rm => rm.id === m.id))
+        .map(m => m.id)
+    );
+
+    const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
+    await safeSetQueue(finalQueue);
+  }).catch(err => {
+    console.error("Queue write failed", err);
+  });
+  queueLock = writeOp;
+  await writeOp;
+
   return { success: processSuccess, conflicts };
 }

@@ -12,6 +12,7 @@ export function startPolling<T>(
   const { intervalMs = 2500, onUpdate, onError, isComplete } = options;
   let stopped = false;
   let abortController = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
   const runPoll = async () => {
     if (stopped) return;
@@ -38,12 +39,14 @@ export function startPolling<T>(
     }
   };
 
-  let timer = setTimeout(runPoll, 0); // start immediately
+  timer = setTimeout(runPoll, 0); // start immediately
 
   return {
     stop: () => {
       stopped = true;
-      clearTimeout(timer);
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
       abortController.abort();
     },
   };

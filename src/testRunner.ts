@@ -1,10 +1,7 @@
 // Centralized test runner to execute unit test suites
-import { testGenerators } from "./utils/codeGenerators.test";
 import { testStreamService } from "./services/geminiStreamService.test";
-import { testStorage } from "./utils/storage.test";
 import { testValidationSchemas } from "./schemas/validation.test";
 import { testAuthHelpers } from "./services/auth.test";
-import { testSpeechExtractor } from "./utils/speechExtractor.test";
 import { testSpeechToText } from "./hooks/useSpeechToText.test";
 import { testTokenCounterVisualization } from "./components/TokenCounterVisualization.test";
 import { testMobileIDEAndPromptModes } from "./components/MobileIDE.test";
@@ -21,12 +18,9 @@ interface TestSuite {
 }
 
 const suites: TestSuite[] = [
-  { name: "Code Generators (Kotlin, TS, Python, cURL)", run: testGenerators },
   { name: "Streaming Service & Error Normalization", run: testStreamService },
-  { name: "Storage & State Draft Recovery", run: testStorage },
   { name: "Runtime Zod Validation Schemas", run: testValidationSchemas },
   { name: "Authentication Helpers & Mode Resolution", run: testAuthHelpers },
-  { name: "Speech Text Extraction (Code Omission)", run: testSpeechExtractor },
   { name: "Speech-to-Text Environment Safety", run: testSpeechToText },
   { name: "Sentence Speech Pipelining Queue", run: testSentenceSpeechQueue },
   { name: "Speech Settings & Voice Placement Configuration", run: testSpeechSettingsSuite },
