@@ -30,6 +30,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxRef = useRef<HTMLDivElement>(null);
@@ -37,11 +38,18 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const selectedOption = options.find((o) => o.id === value);
   const displayValue = isOpen ? query : selectedOption ? selectedOption.label : value;
 
-  // Debounced search logic could be external, but for filtering local options:
+  // Debounced search logic (ADR 0048 compliance)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [query]);
+
   const filteredOptions = options.filter(
     (o) =>
-      o.label.toLowerCase().includes(query.toLowerCase()) ||
-      o.subLabel?.toLowerCase().includes(query.toLowerCase())
+      o.label.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+      o.subLabel?.toLowerCase().includes(debouncedQuery.toLowerCase())
   );
 
   useEffect(() => {
@@ -56,9 +64,10 @@ export const Combobox: React.FC<ComboboxProps> = ({
 
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  // When debounced query changes, reset the highlighted index
   useEffect(() => {
     setHighlightedIndex(-1);
-  }, [query, isOpen]);
+  }, [debouncedQuery, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -74,7 +83,20 @@ export const Combobox: React.FC<ComboboxProps> = ({
       return;
     }
 
-    const itemsCount = filteredOptions.length + (onCreateNew && query ? 1 : 0);
+    // Force flush the query if the user presses enter before the debounce finishes
+    let activeQuery = debouncedQuery;
+    let activeFilteredOptions = filteredOptions;
+    if (e.key === "Enter" && query !== debouncedQuery) {
+      activeQuery = query;
+      setDebouncedQuery(query);
+      activeFilteredOptions = options.filter(
+        (o) =>
+          o.label.toLowerCase().includes(query.toLowerCase()) ||
+          o.subLabel?.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+
+    const itemsCount = activeFilteredOptions.length + (onCreateNew && activeQuery ? 1 : 0);
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -92,14 +114,14 @@ export const Combobox: React.FC<ComboboxProps> = ({
       });
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
-        onChange(filteredOptions[highlightedIndex].id);
+      if (highlightedIndex >= 0 && highlightedIndex < activeFilteredOptions.length) {
+        onChange(activeFilteredOptions[highlightedIndex].id);
         setIsOpen(false);
-      } else if (onCreateNew && query && highlightedIndex === filteredOptions.length) {
-        onCreateNew(query);
+      } else if (onCreateNew && activeQuery && highlightedIndex === activeFilteredOptions.length) {
+        onCreateNew(activeQuery);
         setIsOpen(false);
-      } else if (onCreateNew && query && highlightedIndex === -1 && filteredOptions.length === 0) {
-        onCreateNew(query);
+      } else if (onCreateNew && activeQuery && highlightedIndex === -1 && activeFilteredOptions.length === 0) {
+        onCreateNew(activeQuery);
         setIsOpen(false);
       }
     } else if (e.key === "Escape") {
@@ -181,7 +203,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
             id="combobox-listbox"
             ref={listboxRef}
           >
-            {slicedOptions.length === 0 && !isLoading && (!onCreateNew || !query) ? (
+            {slicedOptions.length === 0 && !isLoading && (!onCreateNew || !debouncedQuery) ? (
               <div className="p-3 text-xs text-muted-foreground text-center">
                 {emptyText}
               </div>
@@ -219,19 +241,19 @@ export const Combobox: React.FC<ComboboxProps> = ({
                </div>
             )}
 
-            {onCreateNew && query && !options.some(o => o.id === query) && (
+            {onCreateNew && debouncedQuery && !options.some(o => o.id === debouncedQuery) && (
               <div
                 role="option"
                 aria-selected={false}
                 onClick={() => {
-                  onCreateNew(query);
+                  onCreateNew(debouncedQuery);
                   setIsOpen(false);
                 }}
                 className={`flex items-center px-3 py-2 text-xs cursor-pointer text-primary font-medium transition-colors border-t border-border/40 ${
                   highlightedIndex === slicedOptions.length ? "bg-muted" : "hover:bg-muted/50"
                 }`}
               >
-                <span className="truncate">+ Create "{query}"</span>
+                <span className="truncate">+ Create "{debouncedQuery}"</span>
               </div>
             )}
           </motion.div>
