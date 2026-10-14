@@ -16,7 +16,7 @@ export class BaseApiError extends Error {
   }
 
   public isRetryable(): boolean {
-    return this.statusCode === 429 || this.statusCode === 502 || this.statusCode === 503 || this.statusCode === 504 || this.statusCode === 0;
+    return RETRYABLE_STATUS_CODES.has(this.statusCode);
   }
 }
 
@@ -25,6 +25,8 @@ export function isAbortError(err: unknown): boolean {
   if (typeof DOMException !== "undefined" && err instanceof DOMException && err.name === "AbortError") return true;
   return false;
 }
+
+export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
 
 export async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string> }> {
   const headers: Record<string, string> = {};

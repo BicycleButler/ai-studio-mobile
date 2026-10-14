@@ -1,3 +1,4 @@
+import { describe, test } from 'vitest';
 import { PromptConfig, ChatMessage, PromptType } from "../types";
 import {
   generateAndroidKotlinCode,
@@ -12,7 +13,8 @@ function assert(condition: boolean, message: string) {
   }
 }
 
-export function testMobileIDEAndPromptModes(): boolean {
+describe('testMobileIDEAndPromptModes', () => {
+  test('main', () => {
   // Test 1: Validate PromptType union values
   const validModes: PromptType[] = ["chat", "code", "jules", "stubs"];
   assert(validModes.includes("code"), "PromptType must support 'code'");
@@ -57,5 +59,6 @@ export function testMobileIDEAndPromptModes(): boolean {
   assert(curlCode.includes("curl \"https://generativelanguage.googleapis.com"), "cURL should have correct endpoint");
   assert(curlCode.includes("gemini-3.8-flash:generateContent"), "cURL should target configured model");
 
-  return true;
-}
+
+  });
+});

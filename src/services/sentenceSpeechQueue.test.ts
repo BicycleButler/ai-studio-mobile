@@ -1,7 +1,9 @@
+import { describe, test } from 'vitest';
 import { SentenceSpeechQueue } from "./sentenceSpeechQueue";
 import { DEFAULT_SPEECH_SETTINGS } from "./speechVoices";
 
-export function testSentenceSpeechQueue(): boolean {
+describe('testSentenceSpeechQueue', () => {
+  test('main', () => {
   console.log("Testing SentenceSpeechQueue...");
 
   // 1. Static sentence extraction verification during streaming
@@ -41,5 +43,6 @@ export function testSentenceSpeechQueue(): boolean {
   }
 
   console.log("SentenceSpeechQueue tests passed!");
-  return true;
-}
+
+  });
+});

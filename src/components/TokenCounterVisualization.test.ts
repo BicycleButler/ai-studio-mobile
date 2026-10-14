@@ -1,6 +1,8 @@
+import { describe, test } from 'vitest';
 import { formatTokenNumber } from "./TokenCounterVisualization";
 
-export function testTokenCounterVisualization(): boolean {
+describe('testTokenCounterVisualization', () => {
+  test('main', () => {
   // Test 1: Number formatting for small numbers
   if (formatTokenNumber(0) !== "0") {
     throw new Error(`Expected formatTokenNumber(0) to be "0", got "${formatTokenNumber(0)}"`);
@@ -25,5 +27,6 @@ export function testTokenCounterVisualization(): boolean {
     throw new Error(`Expected formatTokenNumber(2500000) to be "2.5M", got "${formatTokenNumber(2500000)}"`);
   }
 
-  return true;
-}
+
+  });
+});

@@ -1,8 +1,10 @@
+import { describe, test } from 'vitest';
 import { parseGoogleJwtPayload } from "./googleAuth";
 
 // Test suite for authentication helpers & header builders
 
-export function testAuthHelpers(): boolean {
+describe('testAuthHelpers', () => {
+  test('main', () => {
   // Test 1: Headers creation with custom API key
   const customKey = "AIzaSyTestKey1234567890";
   const headersWithKey: Record<string, string> = {
@@ -67,5 +69,6 @@ export function testAuthHelpers(): boolean {
     throw new Error("Expected invalid token to return null");
   }
 
-  return true;
-}
+
+  });
+});

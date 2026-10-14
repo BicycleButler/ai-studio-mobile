@@ -1,3 +1,4 @@
+import { describe, test } from 'vitest';
 import {
   getChatSessions,
   saveChatSession,
@@ -13,7 +14,8 @@ import {
 } from "./chatHistoryService";
 import { ChatSession, ChatMessage } from "../types";
 
-export function testChatHistoryService(): boolean {
+describe('testChatHistoryService', () => {
+  test('main', () => {
   const activeProjectId = "proj_mobile_arch_101";
 
   // 1. Verify mock data detection and strict rejection
@@ -164,13 +166,16 @@ export function testChatHistoryService(): boolean {
 
   // Cleanup
   clearAllChatSessions(activeProjectId);
-  return true;
-}
+
+  });
+});
 
 // Add bulk delete test
-export function testBulkDeleteChatSessions(): boolean {
+describe('testBulkDeleteChatSessions', () => {
+  test('main', () => {
 
 
   // Need to import bulkDeleteChatSessions here but this is a rough test structure
-  return true;
-}
+
+  });
+});

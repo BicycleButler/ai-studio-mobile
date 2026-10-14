@@ -1,3 +1,4 @@
+import { describe, test } from 'vitest';
 import {
   getBuiltinTemplates,
   getAllTemplates,
@@ -9,7 +10,8 @@ import {
   BUILTIN_PROMPT_TEMPLATES,
 } from "./promptTemplateService";
 
-export function testPromptTemplateService(): boolean {
+describe('testPromptTemplateService', () => {
+  test('main', () => {
   clearCustomTemplates();
 
   // Test 1: Built-in Starter Templates
@@ -120,5 +122,6 @@ export function testPromptTemplateService(): boolean {
   }
 
   clearCustomTemplates();
-  return true;
-}
+
+  });
+});

@@ -1,8 +1,10 @@
+import { describe, test } from 'vitest';
 import { isBrowserEnvironment, getSafeWindowSpeech } from "../utils/platform";
 import { extractSpokenText } from "../utils/speechExtractor";
 import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 
-export function testSpeechToText(): boolean {
+describe('testSpeechToText', () => {
+  test('main', () => {
   // Test 1: Window without speech recognition returns safe fallback
   const win = getSafeWindowSpeech();
   const isSupportedInNode = isBrowserEnvironment() && Boolean(
@@ -67,6 +69,7 @@ export function testSpeechToText(): boolean {
     throw new Error(`Expected 2 sentences but got ${sentences.length}: ${JSON.stringify(sentences)}`);
   }
 
-  return true;
-}
+
+  });
+});
 

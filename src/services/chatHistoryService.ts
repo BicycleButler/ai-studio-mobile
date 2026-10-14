@@ -152,7 +152,7 @@ export function deleteChatSession(sessionId: string, projectId?: string): boolea
  * Clears all chat sessions for a project
  */
 export function clearAllChatSessions(projectId?: string): void {
-  getChatCollection(projectId).save([]);
+  getChatCollection(projectId).clear();
 }
 
 /**

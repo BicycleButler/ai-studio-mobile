@@ -7,6 +7,14 @@ import {
   JulesExecutionStep,
   JulesPullRequest,
 } from "../types";
+import {
+  loadStoredJulesApiKey,
+  loadStoredJulesSessions,
+  loadStoredJulesSettings,
+  updateStoredJulesSession,
+  deleteStoredJulesSession,
+  bulkDeleteStoredJulesSessions,
+} from "../utils/storage";
 
 export interface JulesTaskPayload {
   id: string;
@@ -33,13 +41,6 @@ export interface JulesTaskPayload {
   errorMessage?: string;
   [key: string]: unknown;
 }
-
-import {
-  loadStoredJulesApiKey,
-  loadStoredJulesSessions,
-  saveStoredJulesSessions,
-  loadStoredJulesSettings,
-} from "../utils/storage";
 
 export interface JulesServiceConfig {
   getApiKey: () => string;
@@ -299,30 +300,16 @@ export function getStoredJulesSessions(): JulesSession[] {
 }
 
 export function saveJulesSession(session: JulesSession): void {
-  const sessions = loadStoredJulesSessions();
-  const existingIdx = sessions.findIndex((s) => s.id === session.id);
-  let updated: JulesSession[];
-  if (existingIdx >= 0) {
-    updated = [...sessions];
-    updated[existingIdx] = { ...session, updatedAt: Date.now() };
-  } else {
-    updated = [session, ...sessions];
-  }
-  saveStoredJulesSessions(updated);
+  updateStoredJulesSession(session);
 }
 
 export function deleteJulesSession(sessionId: string): void {
-  const sessions = loadStoredJulesSessions();
-  const updated = sessions.filter((s) => s.id !== sessionId);
-  saveStoredJulesSessions(updated);
+  deleteStoredJulesSession(sessionId);
 }
 
 export function bulkDeleteJulesSessions(sessionIds: string[]): void {
   if (!sessionIds || sessionIds.length === 0) return;
-  const sessions = loadStoredJulesSessions();
-  const idSet = new Set(sessionIds);
-  const updated = sessions.filter((s) => !idSet.has(s.id));
-  saveStoredJulesSessions(updated);
+  bulkDeleteStoredJulesSessions(sessionIds);
 }
 
 export function createNewJulesSession(

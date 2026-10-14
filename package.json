@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit && eslint .",
-    "test": "tsx src/testRunner.ts",
+    "test": "vitest run",
     "stubs": "node .agents/skills/stubs/dist/cli.cjs"
   },
   "dependencies": {

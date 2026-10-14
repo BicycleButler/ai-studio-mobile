@@ -1,3 +1,4 @@
+import { describe, test } from 'vitest';
 import {
   setThemeMode,
   toggleTheme,
@@ -7,7 +8,8 @@ import {
   resolveTheme,
 } from "./themeService";
 
-export function testThemeService(): boolean {
+describe('testThemeService', () => {
+  test('main', () => {
   // Test resolveTheme
   if (resolveTheme("light") !== "light") {
     throw new Error("Expected resolveTheme('light') to return 'light'");
@@ -50,5 +52,6 @@ export function testThemeService(): boolean {
   // Reset to dark or system for test consistency
   setThemeMode("dark");
 
-  return true;
-}
+
+  });
+});

@@ -1,10 +1,12 @@
+import { describe, test } from 'vitest';
 import {
   GenerateRequestSchema,
   CountTokensRequestSchema,
   formatZodError,
 } from "./validation";
 
-export function testValidationSchemas(): boolean {
+describe('testValidationSchemas', () => {
+  test('main', () => {
   // 1. Valid generate request
   const validPayload = {
     model: "gemini-3.8-flash",
@@ -50,5 +52,6 @@ export function testValidationSchemas(): boolean {
     throw new Error("Valid count tokens payload failed schema");
   }
 
-  return true;
-}
+
+  });
+});

@@ -1,3 +1,4 @@
+import { describe, test } from 'vitest';
 // Unit tests for geminiStreamService and error formatting
 import {
   GeminiApiError,
@@ -5,7 +6,8 @@ import {
   formatStreamError,
 } from "./geminiStreamService";
 
-export function testStreamService(): boolean {
+describe('testStreamService', () => {
+  test('main', () => {
   // 1. Test buildHeaders
   const defaultHeaders = buildHeaders();
   if (defaultHeaders["Content-Type"] !== "application/json") {
@@ -44,5 +46,6 @@ export function testStreamService(): boolean {
     throw new Error("Expected abort error to format friendly message");
   }
 
-  return true;
-}
+
+  });
+});

@@ -1,3 +1,4 @@
+import { describe, test } from 'vitest';
 import {
   STANDARD_GOOGLE_KEY_REGEX,
   AISTUDIO_PROJECT_KEY_REGEX,
@@ -20,7 +21,8 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-export function testKeyVerificationSubsystem(): boolean {
+describe('testKeyVerificationSubsystem', () => {
+  test('main', () => {
   // Test 1: Standard Google API Key pattern validation (AIza + 35 characters = 39 chars total)
   const validStandardKey = "AIzaSyD" + "A".repeat(32); // 4 + 35 = 39 chars
   assert(validStandardKey.length === 39, "Standard key must be 39 chars long");
@@ -96,5 +98,6 @@ export function testKeyVerificationSubsystem(): boolean {
   // Cleanup test project
   deleteStoredProject(testProject.id);
 
-  return true;
-}
+
+  });
+});
