@@ -1,7 +1,7 @@
 ---
 title: "ADR 0047: Batch Selection & Bulk Data Operations"
 type: "adr"
-status: "complete"
+status: complete
 description: "TODO Draft proposal: Standards for multi-row selection, floating batch action bars, bulk edits, batch deletion, and select-all datasets."
 date: "2026-08-20"
 ---
