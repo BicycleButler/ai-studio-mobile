@@ -136,19 +136,11 @@ export function deleteCustomTemplate(id: string): boolean {
 export function bulkDeleteCustomTemplates(ids: string[]): boolean {
   if (!ids || ids.length === 0) return false;
 
-  const existingList = customTemplatesCollection.load();
-  const idSet = new Set(ids);
+  const itemsBefore = customTemplatesCollection.load().length;
+  // Built-ins shouldn't be in this collection anyway
+  const filtered = customTemplatesCollection.bulkDelete(ids);
 
-  // Filter out the ids, but ensure built-ins aren't magically in here anyway
-  const filtered = existingList.filter((t) => !idSet.has(t.id));
-
-  if (filtered.length === existingList.length) {
-    return false;
-  }
-
-  customTemplatesCollection.save(filtered);
-
-  return true;
+  return filtered.length !== itemsBefore;
 }
 
 export function clearCustomTemplates(): void {
