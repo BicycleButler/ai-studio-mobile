@@ -165,6 +165,24 @@ export function deleteCustomTemplate(id: string): boolean {
   return true;
 }
 
+export function bulkDeleteCustomTemplates(ids: string[]): boolean {
+  if (!ids || ids.length === 0) return false;
+
+  const existingList = getCustomTemplates();
+  const idSet = new Set(ids);
+
+  // Filter out the ids, but ensure built-ins aren't magically in here anyway
+  const filtered = existingList.filter((t) => !idSet.has(t.id));
+
+  if (filtered.length === existingList.length) {
+    return false;
+  }
+
+  safeSetStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES, filtered);
+
+  return true;
+}
+
 export function clearCustomTemplates(): void {
   safeRemoveStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
 }

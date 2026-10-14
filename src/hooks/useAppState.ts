@@ -16,6 +16,7 @@ import {
   generateSessionTitle,
   purgeMockSessionsFromStorage,
 } from "../services/chatHistoryService";
+import { bulkDeleteCustomTemplates } from "../services/promptTemplateService";
 import {
   getStoredGoogleUser,
   fetchServerCurrentUser,
@@ -332,6 +333,7 @@ export function useAppState() {
     const updated = savedPrompts.filter((p) => !idSet.has(p.id));
     setSavedPrompts(updated);
     persistSavedPrompts(updated);
+    bulkDeleteCustomTemplates(ids);
   };
 
   // Effects
