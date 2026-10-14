@@ -13,7 +13,7 @@ import {
   CheckSquare,
   Square,
   MinusSquare,
-  X,
+
 } from "lucide-react";
 import { SavedPrompt } from "../types";
 import { STARTER_TEMPLATES } from "../data/templates";
