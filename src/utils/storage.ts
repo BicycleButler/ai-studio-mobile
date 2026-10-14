@@ -25,11 +25,12 @@ export function cleanMockData<T>(
     if (!item || typeof item !== "object") return false;
 
     // Default mapping logic tries to pluck common fields
+    const rec = item as Record<string, unknown>;
     const defaultMapped: EntityMapper = mapFn ? mapFn(item) : {
-      id: String((item as any).id || ""),
-      title: String((item as any).title || (item as any).text || ""),
-      repository: (item as any).repository,
-      messages: (item as any).messages,
+      id: String(rec.id || ""),
+      title: String(rec.title || rec.text || ""),
+      repository: typeof rec.repository === "string" ? rec.repository : undefined,
+      messages: Array.isArray(rec.messages) ? rec.messages : undefined,
     };
 
     return !isMockSession(defaultMapped, type);
