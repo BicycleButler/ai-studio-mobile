@@ -298,7 +298,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     } else if (symbol === "( )") {
       insertion = "()";
       cursorOffset = 1;
-    } else if (symbol === "[ ]") {
+    } else if (symbol === "[]") {
       insertion = "[]";
       cursorOffset = 1;
     } else if (symbol === '""') {
@@ -365,7 +365,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     { label: "Tab", insert: "Tab" },
     { label: "{ }", insert: "{ }" },
     { label: "( )", insert: "( )" },
-    { label: "[ ]", insert: "[ ]" },
+    { label: "[]", insert: "[]" },
     { label: '""', insert: '""' },
     { label: "''", insert: "''" },
     { label: ";", insert: ";" },
