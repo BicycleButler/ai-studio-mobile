@@ -12,7 +12,7 @@ import {
 } from "../utils/storage";
 import {
   dispatchJulesTask,
-  pollJulesTask,
+  subscribeToJulesTask,
   approveJulesPlan,
 } from "../services/julesService";
 
@@ -156,7 +156,7 @@ export function useJules() {
 
 
 
-        julesPollingRef.current = pollJulesTask(
+        julesPollingRef.current = subscribeToJulesTask(
           julesApiKey,
           dispatchedTask.id,
           (taskUpdate: JulesTaskPayload) => {

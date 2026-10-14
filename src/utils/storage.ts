@@ -154,6 +154,28 @@ export function getStorageInstance(): Storage {
   return _storageInstance;
 }
 
+function safeParseStorageItem<T>(
+  key: string,
+  raw: string,
+  fallback: T,
+  storage: Storage,
+  isArrayExpected = false
+): T {
+  try {
+    const parsed = JSON.parse(raw);
+    if (isArrayExpected && !Array.isArray(parsed)) {
+      console.warn(`Storage key ${key} contained non-array JSON. Corrupted data removed.`);
+      storage.removeItem(key);
+      return fallback;
+    }
+    return parsed as T;
+  } catch (parseErr) {
+    console.warn(`Storage key ${key} contained invalid JSON. Corrupted data removed.`, parseErr);
+    storage.removeItem(key);
+    return fallback;
+  }
+}
+
 /**
  * Safe wrapper for storage access with quota protection
  */
@@ -162,22 +184,13 @@ export function safeGetStorage<T>(key: string, fallback: T): T {
     const storage = getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
-    try {
-      return JSON.parse(raw) as T;
-    } catch (parseErr) {
-      console.warn(`Storage key ${key} contained invalid JSON. Corrupted data removed.`, parseErr);
-      storage.removeItem(key);
-      return fallback;
-    }
+    return safeParseStorageItem(key, raw, fallback, storage, false);
   } catch (err: unknown) {
     console.warn(`Failed to read ${key} from storage:`, err);
     return fallback;
   }
 }
 
-/**
- * Safely reads an array from local storage, guaranteeing an array return type.
- */
 /**
  * Extracts a deeply nested value safely without throwing, returning a fallback if missing or type mismatches.
  */
@@ -195,24 +208,15 @@ export function getNestedValue<T>(obj: unknown, path: string[], fallback: T): T 
   return current !== undefined ? (current as T) : fallback;
 }
 
+/**
+ * Safely reads an array from local storage, guaranteeing an array return type.
+ */
 export function safeGetStorageArray<T>(key: string, fallback: T[] = []): T[] {
   try {
     const storage = getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (parseErr) {
-      console.warn(`Storage key ${key} contained invalid JSON array. Corrupted data removed.`, parseErr);
-      storage.removeItem(key);
-      return fallback;
-    }
-
-    if (Array.isArray(parsed)) return parsed as T[];
-    console.warn(`Storage key ${key} contained non-array JSON. Corrupted data removed.`);
-    storage.removeItem(key);
-    return fallback;
+    return safeParseStorageItem(key, raw, fallback, storage, true) as T[];
   } catch (err: unknown) {
     console.warn(`Failed to read ${key} from storage:`, err);
     return fallback;
