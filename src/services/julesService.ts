@@ -333,6 +333,14 @@ export function deleteJulesSession(sessionId: string): void {
   saveStoredJulesSessions(updated);
 }
 
+export function bulkDeleteJulesSessions(sessionIds: string[]): void {
+  if (!sessionIds || sessionIds.length === 0) return;
+  const sessions = loadStoredJulesSessions();
+  const idSet = new Set(sessionIds);
+  const updated = sessions.filter((s) => !idSet.has(s.id));
+  saveStoredJulesSessions(updated);
+}
+
 export function createNewJulesSession(
   repository: string,
   branch: string = "main",

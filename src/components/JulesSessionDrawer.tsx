@@ -28,6 +28,7 @@ import {
   fetchJulesRepositories,
   createNewJulesSession,
   deleteJulesSession,
+  bulkDeleteJulesSessions,
   getStoredJulesSessions,
 } from "../services/julesService";
 import { loadStoredJulesApiKey } from "../utils/storage";
@@ -180,9 +181,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   }, []);
 
   const handleBulkDelete = () => {
-    Array.from(selectedSessionIds).forEach((id) => {
-      deleteJulesSession(id);
-    });
+    bulkDeleteJulesSessions(Array.from(selectedSessionIds));
     clearSelection();
     setShowBulkDeleteConfirm(false);
     setBulkDeleteConfirmationText("");
