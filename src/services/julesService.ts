@@ -204,78 +204,62 @@ export async function dispatchJulesTask(
 }
 
 /**
- * Polls the real-time execution progress of a Jules task.
- * Supports both polling subscription with interval or single-shot promise.
+ * Subscribes to real-time execution progress of a Jules task.
  */
-export function pollJulesTask(
+export function subscribeToJulesTask(
   apiKey: string,
   taskId: string,
   onUpdate: (task: JulesTaskPayload) => void,
   onError?: (error: unknown) => void,
-  intervalMs?: number
-): { stop: () => void };
-export function pollJulesTask(
+  intervalMs: number = 2500
+): { stop: () => void } {
+  const poller = startPolling<{ task: JulesTaskPayload }>(
+    (signal) =>
+      apiFetch<{ task: JulesTaskPayload }>(
+        `/api/jules/tasks/${encodeURIComponent(taskId)}`,
+        {
+          headers: { "x-jules-api-key": apiKey || "" },
+          signal,
+        },
+        "Failed to poll task"
+      ),
+    {
+      intervalMs,
+      onUpdate: (data) => {
+        if (data.task) onUpdate(data.task);
+      },
+      onError: (err) => {
+        if (onError) onError(err instanceof Error ? err : new Error(String(err)));
+      },
+      isComplete: (data) =>
+        !!data.task && (data.task.status === "completed" || data.task.status === "failed"),
+    }
+  );
+
+  return { stop: poller.stop };
+}
+
+/**
+ * Fetches a single-shot update for a Jules task.
+ */
+export async function fetchJulesTask(
   taskId: string,
   apiKeyOverride?: string
-): Promise<{ task: JulesTaskPayload | null; error?: string }>;
-export function pollJulesTask(
-  arg1: string,
-  arg2?: string | ((task: JulesTaskPayload) => void),
-  arg3?: (task: JulesTaskPayload) => void,
-  arg4?: (error: unknown) => void,
-  intervalMs = 2500
-): { stop: () => void } | Promise<{ task: JulesTaskPayload | null; error?: string }> {
-  // If called with (apiKey, taskId, onUpdate, onError, intervalMs)
-  if (typeof arg2 === "string" && typeof arg3 === "function") {
-    const apiKey = arg1;
-    const taskId = arg2;
-    const onUpdate = arg3;
-    const onError = arg4;
+): Promise<{ task: JulesTaskPayload | null; error?: string }> {
+  const apiKey = resolveApiKey(apiKeyOverride);
 
-    const poller = startPolling<{ task: JulesTaskPayload }>(
-      (signal) =>
-        apiFetch<{ task: JulesTaskPayload }>(
-          `/api/jules/tasks/${encodeURIComponent(taskId)}`,
-          {
-            headers: { "x-jules-api-key": apiKey || "" },
-            signal,
-          },
-          "Failed to poll task"
-        ),
-      {
-        intervalMs,
-        onUpdate: (data) => {
-          if (data.task) onUpdate(data.task);
-        },
-        onError: (err) => {
-          if (onError) onError(err instanceof Error ? err : new Error(String(err)));
-        },
-        isComplete: (data) =>
-          !!data.task && (data.task.status === "completed" || data.task.status === "failed"),
-      }
-    );
+  try {
+    const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
+      headers: { "x-jules-api-key": apiKey || "" },
+    }, "Failed to fetch Jules task.");
 
-    return { stop: poller.stop };
+    return { task: data.task };
+  } catch (err: unknown) {
+    return {
+      task: null,
+      error: err instanceof Error ? err.message : "Fetching task failed.",
+    };
   }
-
-  // Single-shot signature: pollJulesTask(taskId, apiKeyOverride)
-  const taskId = arg1;
-  const apiKey = resolveApiKey(typeof arg2 === "string" ? arg2 : undefined);
-
-  return (async () => {
-    try {
-      const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
-        headers: { "x-jules-api-key": apiKey || "" },
-      }, "Failed to poll Jules task.");
-
-      return { task: data.task };
-    } catch (err: unknown) {
-      return {
-        task: null,
-        error: err instanceof Error ? err.message : "Polling failed.",
-      };
-    }
-  })();
 }
 
 /**

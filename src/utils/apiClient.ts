@@ -96,21 +96,30 @@ function buildUrlWithParams(endpoint: string, queryParams?: Record<string, strin
   return `${endpoint}${separator}${searchParams.toString()}`;
 }
 
+async function prepareRequest(
+  endpoint: string,
+  options?: RequestInit,
+  queryParams?: Record<string, string | number | boolean>
+): Promise<{ url: string; fetchOptions: RequestInit }> {
+  let url = buildUrlWithParams(endpoint, queryParams);
+  let fetchOptions = options || {};
+
+  for (const interceptor of interceptors) {
+    const [newUrl, newOptions] = await interceptor(url, fetchOptions);
+    url = newUrl;
+    fetchOptions = newOptions;
+  }
+
+  return { url, fetchOptions };
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options?: RequestInit,
   defaultErrorMessage: string = "API request failed",
   queryParams?: Record<string, string | number | boolean>
 ): Promise<T> {
-  let url = buildUrlWithParams(endpoint, queryParams);
-
-  let fetchOptions = options || {};
-
-  for (const interceptor of interceptors) {
-      const [newUrl, newOptions] = await interceptor(url, fetchOptions);
-      url = newUrl;
-      fetchOptions = newOptions;
-  }
+  const { url, fetchOptions } = await prepareRequest(endpoint, options, queryParams);
 
   const res = await executeRequest(url, fetchOptions, defaultErrorMessage);
 
@@ -139,7 +148,7 @@ export async function apiFetchStream(
   defaultErrorMessage: string = "API request failed",
   queryParams?: Record<string, string | number | boolean>
 ): Promise<Response> {
-  const url = buildUrlWithParams(endpoint, queryParams);
+  const { url, fetchOptions } = await prepareRequest(endpoint, options, queryParams);
 
-  return executeRequest(url, options, defaultErrorMessage);
+  return executeRequest(url, fetchOptions, defaultErrorMessage);
 }
