@@ -3,6 +3,7 @@ import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, 
 import { DEFAULT_CONFIG } from "../data/templates";
 import { isMockSession } from "./mockDefinitions";
 import { enqueueOfflineMutation } from "./offlineService";
+import { generateUniqueId } from "./idGenerator";
 
 /**
  * Generic Utility: Filter out Mock or Synthetic data from entity collections.
@@ -599,7 +600,7 @@ export function saveAndActivateProject(
   projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
 ): ProjectInfo {
   const now = Date.now();
-  const id = projectData.id || `proj_${now}_${Math.random().toString(36).slice(2, 7)}`;
+  const id = projectData.id || generateUniqueId("proj");
 
   const savedProject = {
     ...projectData,

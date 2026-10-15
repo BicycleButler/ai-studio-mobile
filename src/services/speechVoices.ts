@@ -141,6 +141,19 @@ export function saveSpeechSettings(settings: SpeechSettings): void {
   safeSetStorage(STORAGE_KEYS.SPEECH_SETTINGS, settings);
 }
 
+function isNaturalVoiceName(name: string): boolean {
+  const lowerName = name.toLowerCase();
+  return (
+    lowerName.includes("natural") ||
+    lowerName.includes("online") ||
+    lowerName.includes("enhanced") ||
+    lowerName.includes("google") ||
+    lowerName.includes("siri") ||
+    lowerName.includes("premium") ||
+    lowerName.includes("neural")
+  );
+}
+
 /**
  * Retrieves and filters system voices, scoring natural/neural voices to top
  */
@@ -154,21 +167,11 @@ export function getAvailableDeviceVoices(): DeviceVoiceOption[] {
   if (!rawVoices || rawVoices.length === 0) return [];
 
   const options: DeviceVoiceOption[] = rawVoices.map((v) => {
-    const lowerName = v.name.toLowerCase();
-    const isNatural =
-      lowerName.includes("natural") ||
-      lowerName.includes("online") ||
-      lowerName.includes("enhanced") ||
-      lowerName.includes("google") ||
-      lowerName.includes("siri") ||
-      lowerName.includes("premium") ||
-      lowerName.includes("neural");
-
     return {
       voiceURI: v.voiceURI,
       name: v.name,
       lang: v.lang,
-      isNatural,
+      isNatural: isNaturalVoiceName(v.name),
       isDefault: v.default,
     };
   });
@@ -207,33 +210,11 @@ export function getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesi
   const userLangPrefix = userLang.slice(0, 2);
 
   // 1. Natural / Neural voice in user's exact language
-  const naturalExactLang = voices.find((v) => {
-    const name = v.name.toLowerCase();
-    const isNat =
-      name.includes("natural") ||
-      name.includes("online") ||
-      name.includes("enhanced") ||
-      name.includes("google") ||
-      name.includes("siri") ||
-      name.includes("premium") ||
-      name.includes("neural");
-    return isNat && v.lang.toLowerCase() === userLang;
-  });
+  const naturalExactLang = voices.find((v) => isNaturalVoiceName(v.name) && v.lang.toLowerCase() === userLang);
   if (naturalExactLang) return naturalExactLang;
 
   // 2. Natural / Neural voice in user's language family
-  const naturalPrefixLang = voices.find((v) => {
-    const name = v.name.toLowerCase();
-    const isNat =
-      name.includes("natural") ||
-      name.includes("online") ||
-      name.includes("enhanced") ||
-      name.includes("google") ||
-      name.includes("siri") ||
-      name.includes("premium") ||
-      name.includes("neural");
-    return isNat && v.lang.toLowerCase().startsWith(userLangPrefix);
-  });
+  const naturalPrefixLang = voices.find((v) => isNaturalVoiceName(v.name) && v.lang.toLowerCase().startsWith(userLangPrefix));
   if (naturalPrefixLang) return naturalPrefixLang;
 
   // 3. Any voice in user's language

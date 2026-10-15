@@ -49,9 +49,9 @@ import {
   getChatSessions,
   deleteChatSession,
   bulkDeleteChatSessions,
-  formatRelativeTime,
   isMockChatSession,
 } from "../services/chatHistoryService";
+import { formatRelativeTime } from "../utils/timeUtils";
 import { JulesActivityCard } from "./JulesActivityCard";
 import { GoogleIcon } from "./GoogleIcon";
 import { PromptTemplateDrawer } from "./PromptTemplateDrawer";
