@@ -1,5 +1,6 @@
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
 import { safeRemoveStorage, STORAGE_KEYS, StorageCollection } from "../utils/storage";
+import { generateUniqueId } from "../utils/idGenerator";
 
 export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
   {
@@ -91,24 +92,28 @@ export function saveCustomTemplate(data: {
   content: string;
   category: PromptTemplateCategory;
 }): PromptTemplate {
-  if (!data.title.trim()) {
+  const title = data.title.trim();
+  const content = data.content.trim();
+  const description = data.description?.trim();
+
+  if (!title) {
     throw new Error("Template title is required");
   }
-  if (!data.content.trim()) {
+  if (!content) {
     throw new Error("Template content is required");
   }
 
   const now = Date.now();
-  const id = data.id || `custom_tpl_${now}_${Math.random().toString(36).substring(2, 7)}`;
+  const id = data.id || generateUniqueId("custom_tpl");
 
   // Find if it exists to preserve createdAt
   const existing = customTemplatesCollection.load().find((t) => t.id === id);
 
   const savedTemplate: PromptTemplate = {
     id,
-    title: data.title.trim(),
-    description: data.description?.trim(),
-    content: data.content.trim(),
+    title,
+    description,
+    content,
     category: data.category || "custom",
     isBuiltin: false,
     createdAt: existing?.createdAt || now,

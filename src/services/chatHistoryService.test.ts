@@ -7,11 +7,11 @@ import {
 
   clearAllChatSessions,
   generateSessionTitle,
-  formatRelativeTime,
   getChatSessionsStorageKey,
   isMockChatSession,
   purgeMockSessionsFromStorage,
 } from "./chatHistoryService";
+import { formatRelativeTime } from "../utils/timeUtils";
 import { ChatSession, ChatMessage } from "../types";
 
 describe('testChatHistoryService', () => {

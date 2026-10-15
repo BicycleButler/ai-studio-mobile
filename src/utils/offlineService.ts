@@ -1,4 +1,5 @@
 import { get, set } from "idb-keyval";
+import { generateUniqueId } from "./idGenerator";
 
 export interface OfflineMutation {
   type: string;
@@ -30,18 +31,23 @@ let queueLock: Promise<void> = Promise.resolve();
 
 async function safeGetQueue(): Promise<OfflineMutation[]> {
   try {
-    return (await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY)) || [];
+    const data = await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY);
+    return Array.isArray(data) ? data : [];
   } catch (err) {
-    console.warn("Failed to read offline queue from IndexedDB", err);
+    console.error(`[OfflineService] Critical failure reading from IndexedDB (${OFFLINE_QUEUE_KEY})`, err);
     return [];
   }
 }
 
 async function safeSetQueue(queue: OfflineMutation[]): Promise<void> {
   try {
+    if (!Array.isArray(queue)) {
+      throw new Error("Invalid queue format: Expected an array.");
+    }
     await set(OFFLINE_QUEUE_KEY, queue);
   } catch (err) {
-    console.warn("Failed to write offline queue to IndexedDB", err);
+    console.error(`[OfflineService] Critical failure writing to IndexedDB (${OFFLINE_QUEUE_KEY})`, err);
+    // Depending on strictness, we might want to alert monitoring here
   }
 }
 
@@ -52,7 +58,7 @@ export async function enqueueOfflineMutation(type: string, payload: unknown, ver
       type,
       payload,
       timestamp: Date.now(),
-      id: Math.random().toString(36).substring(2, 9),
+      id: generateUniqueId("mutation"),
       version,
     });
     await safeSetQueue(queue);
