@@ -31,6 +31,7 @@ import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 import { safeAddEventListener } from "../utils/platform";
+import { Drawer } from "./ui/Drawer";
 
 interface PromptTemplateDrawerProps {
   isOpen: boolean;
@@ -227,34 +228,15 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          key="prompt-templates-backdrop"
-          id="prompt-templates-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.26, ease: "easeOut" }}
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              onClose();
-            }
-          }}
-        >
-          <motion.div
-            key="prompt-templates-drawer-dialog"
-            id="prompt-templates-drawer-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Prompt Templates drawer"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ duration: 1.26, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed inset-0 z-50 w-full h-full h-[100dvh] bg-background border-none shadow-2xl flex flex-col overflow-hidden text-foreground"
-          >
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      drawerId="prompt-templates-drawer"
+      position="full"
+      hideHeader={true}
+      className="!p-0"
+    >
+      <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* Mobile Drawer Header */}
       <div className="h-14 px-4 bg-card border-b border-border flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
@@ -830,9 +812,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
           </div>
         </div>
       )}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      </div>
+    </Drawer>
   );
 };
