@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { DatasetScopeBanner } from "./DatasetScopeBanner";
 import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
@@ -35,6 +35,7 @@ import { loadStoredJulesApiKey } from "../utils/storage";
 import { safeAddEventListener } from "../utils/platform";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 import { Combobox } from "./Combobox";
+import { useBatchSelection } from "../hooks/useBatchSelection";
 
 interface JulesSessionDrawerProps {
   isOpen: boolean;
@@ -61,11 +62,6 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Clear selection on filter change (ADR 0047 Option A)
-  useEffect(() => {
-    setSelectedSessionIds(new Set());
-    setLastSelectedId(null);
-  }, [searchQuery]);
   const [isCreating, setIsCreating] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
 
@@ -75,15 +71,43 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const [branch, setBranch] = useState("main");
   const [initialTaskTitle, setInitialTaskTitle] = useState("");
 
-  const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
-  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
-
   const refreshSessions = () => {
     const list = getStoredJulesSessions();
     setSessions(list);
   };
+
+  const filteredSessions = searchQuery
+    ? sessions.filter((s) =>
+        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.repository.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.branch && s.branch.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : sessions;
+
+  const {
+    selectedIds: selectedSessionIds,
+    showBulkDeleteConfirm,
+    setShowBulkDeleteConfirm,
+    bulkDeleteConfirmationText,
+    setBulkDeleteConfirmationText,
+    toggleSelection,
+    toggleSelectAll,
+    clearSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBatchSelection({
+    items: filteredSessions,
+    getItemId: (s) => s.id,
+    onBulkDelete: (ids) => {
+      bulkDeleteJulesSessions(ids);
+      refreshSessions();
+    },
+  });
+
+  // Clear selection on filter change (ADR 0047 Option A)
+  useEffect(() => {
+    clearSelection();
+  }, [searchQuery, clearSelection]);
 
   useEffect(() => {
     if (isOpen) {
@@ -130,61 +154,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     deleteJulesSession(id);
-    setSelectedSessionIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-    refreshSessions();
-  };
-
-  const toggleSelection = useCallback(
-    (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredList: JulesSession[]) => {
-      e.stopPropagation();
-      setSelectedSessionIds((prev) => {
-        const next = new Set(prev);
-        if (e.shiftKey && lastSelectedId) {
-          const lastIndex = filteredList.findIndex((s) => s.id === lastSelectedId);
-          if (lastIndex !== -1) {
-            const start = Math.min(index, lastIndex);
-            const end = Math.max(index, lastIndex);
-            for (let i = start; i <= end; i++) {
-              next.add(filteredList[i].id);
-            }
-            return next;
-          }
-        }
-
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.add(id);
-        }
-        return next;
-      });
-      setLastSelectedId(id);
-    },
-    [lastSelectedId]
-  );
-
-  const toggleSelectAll = useCallback((filteredList: JulesSession[]) => {
-    if (selectedSessionIds.size === filteredList.length && filteredList.length > 0) {
-      setSelectedSessionIds(new Set());
-    } else {
-      setSelectedSessionIds(new Set(filteredList.map((s) => s.id)));
-    }
-  }, [selectedSessionIds.size]);
-
-  const clearSelection = useCallback(() => {
-    setSelectedSessionIds(new Set());
-    setLastSelectedId(null);
-  }, []);
-
-  const handleBulkDelete = () => {
-    bulkDeleteJulesSessions(Array.from(selectedSessionIds));
-    clearSelection();
-    setShowBulkDeleteConfirm(false);
-    setBulkDeleteConfirmationText("");
+    removeFromSelection(id);
     refreshSessions();
   };
 
@@ -207,21 +177,14 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
         // Prevent default browser select all
         if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
           e.preventDefault();
-          const filtered = searchQuery
-            ? sessions.filter((s) =>
-                s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                s.repository.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (s.branch && s.branch.toLowerCase().includes(searchQuery.toLowerCase()))
-              )
-            : sessions;
-          toggleSelectAll(filtered);
+          toggleSelectAll(filteredSessions);
         }
       }
     };
 
     const removeKey = safeAddEventListener("keydown", handleKeyDown);
     return () => removeKey();
-  }, [isOpen, selectedSessionIds.size, isCreating, sessions, searchQuery, clearSelection, onClose, toggleSelectAll, showBulkDeleteConfirm]);
+  }, [isOpen, selectedSessionIds.size, isCreating, filteredSessions, onClose, showBulkDeleteConfirm, setShowBulkDeleteConfirm, setBulkDeleteConfirmationText, clearSelection, toggleSelectAll]);
 
   const getStatusBadge = (status: JulesTaskStatus) => {
     switch (status) {
@@ -268,15 +231,6 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
         );
     }
   };
-
-  const filteredSessions = sessions.filter((s) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      s.title.toLowerCase().includes(q) ||
-      s.repository.toLowerCase().includes(q) ||
-      s.branch.toLowerCase().includes(q)
-    );
-  });
 
   return (
     <AnimatePresence>

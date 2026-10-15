@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { DatasetScopeBanner } from "./DatasetScopeBanner";
 import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { SavedPrompt } from "../types";
 import { STARTER_TEMPLATES } from "../data/templates";
+import { useBatchSelection } from "../hooks/useBatchSelection";
 
 interface LibraryModalProps {
   savedPrompts: SavedPrompt[];
@@ -40,69 +41,26 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [newTitle, setNewTitle] = useState(currentTitle);
   const [showSaveForm, setShowSaveForm] = useState(false);
 
-  // Batch Selection State
-  const [selectedPromptIds, setSelectedPromptIds] = useState<Set<string>>(new Set());
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
-  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
+  const {
+    selectedIds: selectedPromptIds,
+    showBulkDeleteConfirm,
+    setShowBulkDeleteConfirm,
+    bulkDeleteConfirmationText,
+    setBulkDeleteConfirmationText,
+    toggleSelection,
+    toggleSelectAll,
+    clearSelection,
+    handleBulkDelete,
+    removeFromSelection,
+  } = useBatchSelection({
+    items: savedPrompts,
+    getItemId: (p) => p.id,
+    onBulkDelete: onBulkDeletePrompts
+      ? onBulkDeletePrompts
+      : (ids) => ids.forEach((id) => onDeletePrompt(id)),
+  });
 
-  const toggleSelection = useCallback(
-    (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
-      e.stopPropagation();
-      setSelectedPromptIds((prev) => {
-        const next = new Set(prev);
-        if (e.shiftKey && lastSelectedId) {
-          const lastIndex = savedPrompts.findIndex((p) => p.id === lastSelectedId);
-          if (lastIndex !== -1) {
-            const start = Math.min(index, lastIndex);
-            const end = Math.max(index, lastIndex);
-            for (let i = start; i <= end; i++) {
-              next.add(savedPrompts[i].id);
-            }
-            return next;
-          }
-        }
-
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.add(id);
-        }
-        return next;
-      });
-      setLastSelectedId(id);
-    },
-    [lastSelectedId, savedPrompts]
-  );
-
-  const toggleSelectAll = useCallback(() => {
-    if (selectedPromptIds.size === savedPrompts.length && savedPrompts.length > 0) {
-      setSelectedPromptIds(new Set());
-    } else {
-      setSelectedPromptIds(new Set(savedPrompts.map((p) => p.id)));
-    }
-  }, [selectedPromptIds.size, savedPrompts]);
-
-  const clearSelection = useCallback(() => {
-    setSelectedPromptIds(new Set());
-    setLastSelectedId(null);
-  }, []);
-
-  const handleBulkDelete = () => {
-    if (onBulkDeletePrompts) {
-      onBulkDeletePrompts(Array.from(selectedPromptIds));
-    } else {
-      // Fallback if bulk delete is not provided
-      Array.from(selectedPromptIds).forEach((id) => {
-        onDeletePrompt(id);
-      });
-    }
-    clearSelection();
-    setShowBulkDeleteConfirm(false);
-    setBulkDeleteConfirmationText("");
-  };
-
-  // Keyboard shortcuts
+  // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -113,17 +71,18 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             clearSelection();
          }
       }
+
       if ((e.metaKey || e.ctrlKey) && e.key === "a") {
         if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
           e.preventDefault();
-          toggleSelectAll();
+          toggleSelectAll(savedPrompts);
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedPromptIds.size, clearSelection, savedPrompts, toggleSelectAll, showBulkDeleteConfirm]);
+  }, [toggleSelectAll, savedPrompts, selectedPromptIds.size, showBulkDeleteConfirm, clearSelection, setShowBulkDeleteConfirm, setBulkDeleteConfirmationText]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,7 +202,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={toggleSelectAll}
+                onClick={() => toggleSelectAll()}
                 className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
                 aria-label="Select all prompts on this page"
               >
@@ -327,7 +286,11 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     Open
                   </button>
                   <button
-                    onClick={() => onDeletePrompt(item.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeletePrompt(item.id);
+                      removeFromSelection(item.id);
+                    }}
                     className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-muted/40 transition-colors cursor-pointer"
                     title="Delete prompt"
                   >
