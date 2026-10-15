@@ -16,137 +16,168 @@ export interface ThemeState {
 
 export type ThemeListener = (state: ThemeState) => void;
 
-let currentMode: ThemeMode = "system";
-let currentResolved: ResolvedTheme = "dark";
-const listeners = new Set<ThemeListener>();
-let initialized = false;
-let mediaQueryList: MediaQueryList | null = null;
+class ThemeManager {
+  private currentMode: ThemeMode = "system";
+  private currentResolved: ResolvedTheme = "dark";
+  private listeners = new Set<ThemeListener>();
+  private initialized = false;
+  private mediaQueryList: MediaQueryList | null = null;
+
+  public getSystemResolvedTheme(): ResolvedTheme {
+    if (!isBrowserEnvironment()) {
+      return "dark"; // Default fallback
+    }
+    const win = getSafeWindowMatchMedia();
+    if (!win || !win.matchMedia) return "dark";
+    return win.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  public loadStoredThemeMode(): ThemeMode {
+    const stored = safeGetStorage<string>(STORAGE_KEYS.THEME_MODE, "system");
+    if (stored === "light" || stored === "dark" || stored === "system") {
+      return stored as ThemeMode;
+    }
+    return "system";
+  }
+
+  public persistThemeMode(mode: ThemeMode): void {
+    safeSetStorage(STORAGE_KEYS.THEME_MODE, mode);
+  }
+
+  public resolveTheme(mode: ThemeMode): ResolvedTheme {
+    if (mode === "system") {
+      return this.getSystemResolvedTheme();
+    }
+    return mode;
+  }
+
+  public applyThemeToDOM(resolved: ResolvedTheme): void {
+    if (!isBrowserEnvironment()) return;
+
+    const root = document.documentElement;
+    root.setAttribute("data-theme", resolved);
+    if (resolved === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+
+    // Update theme-color meta tag if available
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      const computedBg = getComputedStyle(root).getPropertyValue("--background").trim();
+      if (computedBg) {
+        metaThemeColor.setAttribute("content", computedBg);
+      }
+    }
+  }
+
+  private notifyListeners(): void {
+    const state: ThemeState = {
+      mode: this.currentMode,
+      resolvedTheme: this.currentResolved,
+    };
+    this.listeners.forEach((listener) => {
+      try {
+        listener(state);
+      } catch (err: unknown) {
+        console.error("Error in theme listener:", err);
+      }
+    });
+  }
+
+  public getThemeState(): ThemeState {
+    return {
+      mode: this.currentMode,
+      resolvedTheme: this.currentResolved,
+    };
+  }
+
+  public setThemeMode(newMode: ThemeMode): void {
+    this.currentMode = newMode;
+    this.currentResolved = this.resolveTheme(newMode);
+    this.persistThemeMode(newMode);
+    this.applyThemeToDOM(this.currentResolved);
+    this.notifyListeners();
+  }
+
+  public toggleTheme(): void {
+    const nextResolved: ResolvedTheme = this.currentResolved === "dark" ? "light" : "dark";
+    this.setThemeMode(nextResolved);
+  }
+
+  public subscribeToTheme(listener: ThemeListener): () => void {
+    this.listeners.add(listener);
+    listener({ mode: this.currentMode, resolvedTheme: this.currentResolved });
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  public initThemeService(): () => void {
+    if (!isBrowserEnvironment()) {
+      return () => {};
+    }
+
+    if (!this.initialized) {
+      this.initialized = true;
+      this.currentMode = this.loadStoredThemeMode();
+      this.currentResolved = this.resolveTheme(this.currentMode);
+      this.applyThemeToDOM(this.currentResolved);
+
+      const win = getSafeWindowMatchMedia();
+      if (win && win.matchMedia) {
+        this.mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
+      }
+    }
+
+    let removeListener = () => {};
+    if (this.mediaQueryList) {
+      const handleChange = () => {
+        if (this.currentMode === "system") {
+          this.currentResolved = this.getSystemResolvedTheme();
+          this.applyThemeToDOM(this.currentResolved);
+          this.notifyListeners();
+        }
+      };
+      removeListener = safeAddMatchMediaListener(this.mediaQueryList, handleChange);
+    }
+
+    return () => {
+      removeListener();
+    };
+  }
+}
+
+const themeManager = new ThemeManager();
 
 export function getSystemResolvedTheme(): ResolvedTheme {
-  if (!isBrowserEnvironment()) {
-    return "dark"; // Default fallback
-  }
-  const win = getSafeWindowMatchMedia();
-  if (!win || !win.matchMedia) return "dark";
-  return win.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return themeManager.getSystemResolvedTheme();
 }
-
 export function loadStoredThemeMode(): ThemeMode {
-  const stored = safeGetStorage<string>(STORAGE_KEYS.THEME_MODE, "system");
-  if (stored === "light" || stored === "dark" || stored === "system") {
-    return stored as ThemeMode;
-  }
-  return "system";
+  return themeManager.loadStoredThemeMode();
 }
-
 export function persistThemeMode(mode: ThemeMode): void {
-  safeSetStorage(STORAGE_KEYS.THEME_MODE, mode);
+  return themeManager.persistThemeMode(mode);
 }
-
 export function resolveTheme(mode: ThemeMode): ResolvedTheme {
-  if (mode === "system") {
-    return getSystemResolvedTheme();
-  }
-  return mode;
+  return themeManager.resolveTheme(mode);
 }
-
 export function applyThemeToDOM(resolved: ResolvedTheme): void {
-  if (!isBrowserEnvironment()) return;
-
-  const root = document.documentElement;
-  root.setAttribute("data-theme", resolved);
-  if (resolved === "dark") {
-    root.classList.add("dark");
-  } else {
-    root.classList.remove("dark");
-  }
-
-  // Update theme-color meta tag if available
-  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-  if (metaThemeColor) {
-    const computedBg = getComputedStyle(root).getPropertyValue("--background").trim();
-    if (computedBg) {
-      metaThemeColor.setAttribute("content", computedBg);
-    }
-  }
+  return themeManager.applyThemeToDOM(resolved);
 }
-
-function notifyListeners(): void {
-  const state: ThemeState = {
-    mode: currentMode,
-    resolvedTheme: currentResolved,
-  };
-  listeners.forEach((listener) => {
-    try {
-      listener(state);
-    } catch (err: unknown) {
-      console.error("Error in theme listener:", err);
-    }
-  });
-}
-
 export function getThemeState(): ThemeState {
-  return {
-    mode: currentMode,
-    resolvedTheme: currentResolved,
-  };
+  return themeManager.getThemeState();
 }
-
 export function setThemeMode(newMode: ThemeMode): void {
-  currentMode = newMode;
-  currentResolved = resolveTheme(newMode);
-  persistThemeMode(newMode);
-  applyThemeToDOM(currentResolved);
-  notifyListeners();
+  return themeManager.setThemeMode(newMode);
 }
-
 export function toggleTheme(): void {
-  // Toggle between light and dark explicitly
-  const nextResolved: ResolvedTheme = currentResolved === "dark" ? "light" : "dark";
-  setThemeMode(nextResolved);
+  return themeManager.toggleTheme();
 }
-
 export function subscribeToTheme(listener: ThemeListener): () => void {
-  listeners.add(listener);
-  // Emit initial state
-  listener({ mode: currentMode, resolvedTheme: currentResolved });
-  return () => {
-    listeners.delete(listener);
-  };
+  return themeManager.subscribeToTheme(listener);
 }
-
 export function initThemeService(): () => void {
-  if (!isBrowserEnvironment()) {
-    return () => {};
-  }
-
-  if (!initialized) {
-    initialized = true;
-    currentMode = loadStoredThemeMode();
-    currentResolved = resolveTheme(currentMode);
-    applyThemeToDOM(currentResolved);
-
-    const win = getSafeWindowMatchMedia();
-    if (win && win.matchMedia) {
-      mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
-    }
-  }
-
-  // Set up the listener on every call to initThemeService to guarantee it returns a valid teardown,
-  // but only if we have a valid mediaQueryList.
-  let removeListener = () => {};
-  if (mediaQueryList) {
-    const handleChange = () => {
-      if (currentMode === "system") {
-        currentResolved = getSystemResolvedTheme();
-        applyThemeToDOM(currentResolved);
-        notifyListeners();
-      }
-    };
-    removeListener = safeAddMatchMediaListener(mediaQueryList, handleChange);
-  }
-
-  return () => {
-    removeListener();
-  };
+  return themeManager.initThemeService();
 }
