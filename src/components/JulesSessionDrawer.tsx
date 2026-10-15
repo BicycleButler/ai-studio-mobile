@@ -35,6 +35,7 @@ import { safeAddEventListener } from "../utils/platform";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 import { Combobox } from "./Combobox";
 import { useBatchSelection } from "../hooks/useBatchSelection";
+import { Drawer } from "./ui/Drawer";
 
 interface JulesSessionDrawerProps {
   isOpen: boolean;
@@ -234,30 +235,15 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          key="jules-drawer-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.26, ease: "easeOut" }}
-          className="fixed inset-0 z-50 flex bg-background/80 backdrop-blur-sm"
-        >
-          <div
-            className="fixed inset-0"
-            onClick={onClose}
-            aria-hidden="true"
-          />
-
-          <motion.div
-            key="jules-drawer-sheet"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ duration: 1.26, ease: [0.32, 0.72, 0, 1] }}
-            className="relative ms-auto w-full max-w-md h-full bg-card border-s border-border shadow-2xl flex flex-col z-10 text-foreground"
-          >
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      drawerId="jules-session-drawer"
+      position="right"
+      hideHeader={true}
+      className="!p-0"
+    >
+      <div className="flex flex-col h-full bg-card text-foreground">
         {/* Drawer Header */}
         <div className="p-4 border-b border-border bg-muted/40 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
@@ -638,9 +624,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             Manage Jules Key
           </button>
         </div>
-      </motion.div>
-    </motion.div>
-    )}
-  </AnimatePresence>
+      </div>
+    </Drawer>
   );
 };
