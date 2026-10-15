@@ -18,6 +18,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { PromptConfig, ChatMessage, StructuredExample } from "../types";
+import { generateUniqueId } from "../utils/idGenerator";
 
 import {
   generateAndroidKotlinCode,
@@ -190,7 +191,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
   const addConsoleLog = (type: ConsoleLog["type"], message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    setConsoleLogs((prev) => [...prev, { id: `c-${Date.now()}-${Math.random()}`, timestamp, type, message }]);
+    setConsoleLogs((prev) => [...prev, { id: generateUniqueId("c"), timestamp, type, message }]);
   };
 
   // Run/Execute Code simulation
@@ -336,7 +337,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
   // Create new scratchpad file
   const handleCreateScratchpad = () => {
-    const newId = `scratch-${Date.now()}`;
+    const newId = generateUniqueId("scratch");
     const newFile: IDEFile = {
       id: newId,
       name: `scratch_${files.length + 1}.ts`,

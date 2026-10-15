@@ -486,9 +486,15 @@ export class StorageCollection<T extends { id: string }> {
         items = items.slice(0, this.maxItems);
       }
       const toStore = this.transformIn ? items.map(this.transformIn) : items;
-      safeSetStorage(this.key, toStore);
+      if (!safeSetStorage(this.key, toStore)) {
+          console.warn(`StorageCollection[${this.key}]: safeSetStorage returned false.`);
+      }
       if (this.onSave) {
-        this.onSave(this.load());
+        try {
+            this.onSave(this.load());
+        } catch (onSaveErr) {
+            console.error(`StorageCollection[${this.key}]: error during onSave callback`, onSaveErr);
+        }
       }
     } catch (err) {
       console.error(`StorageCollection[${this.key}]: unhandled error during save`, err);

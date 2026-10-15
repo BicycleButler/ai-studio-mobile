@@ -30,6 +30,7 @@ import { AlertCircle, AlertTriangle, Key, RefreshCw, X, Shield, ArrowRight, Exte
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
 import { initializeSyncHandlers } from "./utils/syncRegistry";
+import { generateUniqueId } from "./utils/idGenerator";
 
 initializeSyncHandlers();
 
@@ -181,7 +182,7 @@ export default function App() {
     }
 
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: generateUniqueId("user"),
       role: "user",
       text,
       images: attachments,
@@ -193,7 +194,7 @@ export default function App() {
     const updatedMessages = [...messages, userMessage];
 
     // Placeholder model message for streaming
-    const modelMessageId = `model-${Date.now()}`;
+    const modelMessageId = generateUniqueId("model");
     const placeholderModelMsg: ChatMessage = {
       id: modelMessageId,
       role: "model",

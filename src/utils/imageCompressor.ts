@@ -1,4 +1,5 @@
 import { MessageAttachment } from "../types";
+import { generateUniqueId } from "./idGenerator";
 
 export interface CompressionOptions {
   maxDimension?: number;
@@ -82,7 +83,7 @@ export async function compressImageForGemini(
           const sizeKb = Math.round((base64Data.length * 3) / 4 / 1024);
 
           const attachment: MessageAttachment = {
-            id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            id: generateUniqueId("att"),
             name: file.name,
             mimeType: targetMime,
             data: base64Data,

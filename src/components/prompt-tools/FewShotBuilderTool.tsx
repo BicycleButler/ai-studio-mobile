@@ -2,6 +2,7 @@ import { getSafeNavigatorClipboard } from "../../utils/platform";
 import React, { useState } from "react";
 import { Plus, Trash2, Copy, Check, Sparkles, Send, RotateCcw } from "lucide-react";
 import { StructuredExample } from "../../types";
+import { generateUniqueId } from "../../utils/idGenerator";
 
 interface FewShotBuilderToolProps {
   onInsertText?: (text: string) => void;
@@ -72,7 +73,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
     setExamples((prev) => [
       ...prev,
       {
-        id: `ex-${Date.now()}`,
+        id: generateUniqueId("ex"),
         input: "",
         output: "",
       },
@@ -90,7 +91,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
   };
 
   const handleLoadPreset = (preset: typeof PRESETS[0]) => {
-    setExamples(preset.examples.map((ex) => ({ ...ex, id: `ex-${Date.now()}-${Math.random()}` })));
+    setExamples(preset.examples.map((ex) => ({ ...ex, id: generateUniqueId("ex") })));
   };
 
   const formatFewShotPrompt = (): string => {

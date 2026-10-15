@@ -76,16 +76,16 @@ export function sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage
 /**
  * Generates a clean human-readable title from conversation messages
  */
-export function generateSessionTitle(messages: ChatMessage[]): string {
+export function generateSessionTitle(messages: ChatMessage[], maxLength: number = 42): string {
   const firstUserMsg = messages.find((m) => m.role === "user" && m.text.trim().length > 0);
   if (firstUserMsg && firstUserMsg.text.trim()) {
     const raw = firstUserMsg.text.trim().replace(/\s+/g, " ");
-    return raw.length > 42 ? `${raw.slice(0, 42)}...` : raw;
+    return raw.length > maxLength ? `${raw.slice(0, maxLength)}...` : raw;
   }
   const firstAnyMsg = messages.find((m) => m.text.trim().length > 0);
   if (firstAnyMsg && firstAnyMsg.text.trim()) {
     const raw = firstAnyMsg.text.trim().replace(/\s+/g, " ");
-    return raw.length > 42 ? `${raw.slice(0, 42)}...` : raw;
+    return raw.length > maxLength ? `${raw.slice(0, maxLength)}...` : raw;
   }
   return "New Conversation";
 }

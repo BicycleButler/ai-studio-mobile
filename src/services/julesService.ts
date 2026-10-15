@@ -15,6 +15,7 @@ import {
   deleteStoredJulesSession,
   bulkDeleteStoredJulesSessions,
 } from "../utils/storage";
+import { generateUniqueId } from "../utils/idGenerator";
 
 export interface JulesTaskPayload {
   id: string;
@@ -332,7 +333,7 @@ export function createNewJulesSession(
   branch: string = "main",
   initialTitle?: string
 ): JulesSession {
-  const id = `jules_sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const id = generateUniqueId("jules_sess");
   const newSession: JulesSession = {
     id,
     title: initialTitle || `Task on ${repository}`,
