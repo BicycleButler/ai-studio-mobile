@@ -300,149 +300,62 @@ export function safeRemoveStorage(key: string): boolean {
   }
 }
 
-// API Key management
-export function safeGetStorageString(key: string, fallback: string = ""): string {
-  try {
-    const storage = getStorageInstance();
-    return storage.getItem(key) || fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-export function safeSetStorageString(key: string, value: string): boolean {
-  try {
-    const storage = getStorageInstance();
-    storage.setItem(key, value);
-    return true;
-  } catch (err: unknown) {
-    console.warn(`Failed to write ${key} to storage:`, err);
-    return false;
-  }
-}
-
-export function loadStoredApiKey(): string {
-  return safeGetStorageString(STORAGE_KEYS.API_KEY, "");
-}
-
-export function saveStoredApiKey(key: string): void {
-  if (key.trim()) {
-    safeSetStorageString(STORAGE_KEYS.API_KEY, key.trim());
-  } else {
-    safeRemoveStorage(STORAGE_KEYS.API_KEY);
-  }
-}
-
-// Saved Prompts Library
-export function loadSavedPrompts(): SavedPrompt[] {
-  return safeGetStorageArray<SavedPrompt>(STORAGE_KEYS.SAVED_PROMPTS, []);
-}
-
-export function persistSavedPrompts(prompts: SavedPrompt[]): void {
-  // Strip large image payloads from saved prompt history to prevent QuotaExceededError
-  const sanitized = prompts.map((p) => ({
-    ...p,
-    messages: p.messages.map((m) => ({
-      ...m,
-      images: m.images?.map((img) => ({
-        ...img,
-        data: "", // don't persist heavy base64 strings in storage
-      })),
-    })),
-  }));
-  safeSetStorage(STORAGE_KEYS.SAVED_PROMPTS, sanitized);
-}
-
-// Draft state auto-save and restoration with project scoping
-export function getProjectDraftKey(projectId?: string | null): string {
-  if (projectId && projectId.trim()) {
-    return `${STORAGE_KEYS.DRAFT_STATE}_${projectId.trim()}`;
-  }
-  return STORAGE_KEYS.DRAFT_STATE;
-}
-
-export function loadDraftState(projectId?: string | null): DraftState {
-  const fallback: DraftState = {
-    promptType: "chat",
-    config: DEFAULT_CONFIG,
-    chatInputText: "",
-    freeformText: "",
-    structuredExamples: [],
-    messages: undefined,
-    updatedAt: Date.now(),
-  };
-
-  const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
-
-  const sanitizeType = (typeVal: unknown): PromptType => {
-    if (typeof typeVal === "string" && validPromptTypes.includes(typeVal as PromptType)) {
-      return typeVal as PromptType;
-    }
-    return "chat";
-  };
-
-  const key = getProjectDraftKey(projectId);
-  const stored = safeGetStorage<DraftState | null>(key, null);
-  if (!stored) {
-    // If project-specific key not yet initialized, fallback to default or global draft
-    if (projectId) {
-      const globalStored = safeGetStorage<DraftState | null>(STORAGE_KEYS.DRAFT_STATE, null);
-      if (globalStored) {
-        return {
-          ...fallback,
-          ...globalStored,
-          promptType: sanitizeType(globalStored.promptType),
-          config: {
-            ...DEFAULT_CONFIG,
-            ...(globalStored.config || {}),
-          },
-        };
-      }
-    }
-    return fallback;
-  }
-
-  const sanitizeMessages = (msgs: unknown): ChatMessage[] | undefined => {
-    if (!Array.isArray(msgs)) return undefined;
-    const clean = cleanMockData(msgs as ChatMessage[], "chat");
-    return clean.length > 0 ? clean : undefined;
-  };
-
-  return {
-    ...fallback,
-    ...stored,
-    messages: sanitizeMessages(getNestedValue(stored, ['messages'], undefined)),
-    promptType: sanitizeType(getNestedValue(stored, ['promptType'], 'chat')),
-    config: {
-      ...DEFAULT_CONFIG,
-      ...(getNestedValue(stored, ['config'], {})),
-    },
-    chatInputText: getNestedValue(stored, ['chatInputText'], ''),
-    freeformText: getNestedValue(stored, ['freeformText'], ''),
-    structuredExamples: getNestedValue(stored, ['structuredExamples'], []),
-    updatedAt: getNestedValue(stored, ['updatedAt'], fallback.updatedAt),
-  };
-}
-
-export function saveDraftState(draft: Partial<DraftState>, projectId?: string | null): void {
-  try {
-    const current = loadDraftState(projectId);
-    const updated: DraftState = {
-      ...current,
-      ...draft,
-      updatedAt: Date.now(),
-    };
-    const key = getProjectDraftKey(projectId);
-    safeSetStorage(key, updated);
-  } catch (err: unknown) {
-    console.warn("Failed to auto-save draft:", err);
-  }
-}
-
-
 // ---------------------------------------------------------------------------
 // Generic Collection Abstraction
 // ---------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------
+// Generic Singleton Abstraction
+// ---------------------------------------------------------------------------
+
+export class StorageSingleton<T> {
+  private key: string;
+  private fallback: T;
+  private transformIn?: (item: T) => T;
+  private transformOut?: (item: T) => T;
+  private validate?: (item: unknown) => boolean;
+  private getter: (key: string, fallback: T) => T;
+  private setter: (key: string, value: T) => void;
+
+  constructor(
+    key: string,
+    fallback: T,
+    options?: {
+      transformIn?: (item: T) => T;
+      transformOut?: (item: T) => T;
+      validate?: (item: unknown) => boolean;
+      getter?: (key: string, fallback: T) => T;
+      setter?: (key: string, value: T) => void;
+    }
+  ) {
+    this.key = key;
+    this.fallback = fallback;
+    this.transformIn = options?.transformIn;
+    this.transformOut = options?.transformOut;
+    this.validate = options?.validate;
+    this.getter = options?.getter || (safeGetStorage as any);
+    this.setter = options?.setter || safeSetStorage;
+  }
+
+  load(): T {
+    const raw = this.getter(this.key, this.fallback);
+    let valid = raw;
+    if (this.validate && !this.validate(raw)) {
+      valid = this.fallback;
+    }
+    return this.transformOut ? this.transformOut(valid) : valid;
+  }
+
+  save(item: T): void {
+    const toStore = this.transformIn ? this.transformIn(item) : item;
+    this.setter(this.key, toStore);
+  }
+
+  clear(): void {
+    safeRemoveStorage(this.key);
+  }
+}
 
 export class StorageCollection<T extends { id: string }> {
   private key: string;
@@ -563,6 +476,160 @@ export class StorageCollection<T extends { id: string }> {
   }
 }
 
+// API Key management
+export function safeGetStorageString(key: string, fallback: string = ""): string {
+  try {
+    const storage = getStorageInstance();
+    return storage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function safeSetStorageString(key: string, value: string): boolean {
+  try {
+    const storage = getStorageInstance();
+    storage.setItem(key, value);
+    return true;
+  } catch (err: unknown) {
+    console.warn(`Failed to write ${key} to storage:`, err);
+    return false;
+  }
+}
+
+const apiKeySingleton = new StorageSingleton<string>(
+  STORAGE_KEYS.API_KEY,
+  "",
+  {
+    transformIn: (key) => key.trim(),
+    getter: safeGetStorageString as (key: string, fallback: string) => string,
+    setter: safeSetStorageString as (key: string, value: string) => void,
+  }
+);
+
+export function loadStoredApiKey(): string {
+  return apiKeySingleton.load();
+}
+
+export function saveStoredApiKey(key: string): void {
+  if (key.trim()) {
+    apiKeySingleton.save(key);
+  } else {
+    apiKeySingleton.clear();
+  }
+}
+
+// Saved Prompts Library
+const savedPromptsCollection = new StorageCollection<SavedPrompt>(STORAGE_KEYS.SAVED_PROMPTS, {
+  transformIn: (p) => ({
+    ...p,
+    messages: p.messages.map((m) => ({
+      ...m,
+      images: m.images?.map((img) => ({
+        ...img,
+        data: "", // don't persist heavy base64 strings in storage
+      })),
+    })),
+  }),
+});
+
+export function loadSavedPrompts(): SavedPrompt[] {
+  return savedPromptsCollection.load();
+}
+
+export function persistSavedPrompts(prompts: SavedPrompt[]): void {
+  savedPromptsCollection.save(prompts);
+}
+
+// Draft state auto-save and restoration with project scoping
+export function getProjectDraftKey(projectId?: string | null): string {
+  if (projectId && projectId.trim()) {
+    return `${STORAGE_KEYS.DRAFT_STATE}_${projectId.trim()}`;
+  }
+  return STORAGE_KEYS.DRAFT_STATE;
+}
+
+export function loadDraftState(projectId?: string | null): DraftState {
+  const fallback: DraftState = {
+    promptType: "chat",
+    config: DEFAULT_CONFIG,
+    chatInputText: "",
+    freeformText: "",
+    structuredExamples: [],
+    messages: undefined,
+    updatedAt: Date.now(),
+  };
+
+  const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
+
+  const sanitizeType = (typeVal: unknown): PromptType => {
+    if (typeof typeVal === "string" && validPromptTypes.includes(typeVal as PromptType)) {
+      return typeVal as PromptType;
+    }
+    return "chat";
+  };
+
+  const key = getProjectDraftKey(projectId);
+  const stored = safeGetStorage<DraftState | null>(key, null);
+  if (!stored) {
+    // If project-specific key not yet initialized, fallback to default or global draft
+    if (projectId) {
+      const globalStored = safeGetStorage<DraftState | null>(STORAGE_KEYS.DRAFT_STATE, null);
+      if (globalStored) {
+        return {
+          ...fallback,
+          ...globalStored,
+          promptType: sanitizeType(globalStored.promptType),
+          config: {
+            ...DEFAULT_CONFIG,
+            ...(globalStored.config || {}),
+          },
+        };
+      }
+    }
+    return fallback;
+  }
+
+  const sanitizeMessages = (msgs: unknown): ChatMessage[] | undefined => {
+    if (!Array.isArray(msgs)) return undefined;
+    const clean = cleanMockData(msgs as ChatMessage[], "chat");
+    return clean.length > 0 ? clean : undefined;
+  };
+
+  return {
+    ...fallback,
+    ...stored,
+    messages: sanitizeMessages(getNestedValue(stored, ['messages'], undefined)),
+    promptType: sanitizeType(getNestedValue(stored, ['promptType'], 'chat')),
+    config: {
+      ...DEFAULT_CONFIG,
+      ...(getNestedValue(stored, ['config'], {})),
+    },
+    chatInputText: getNestedValue(stored, ['chatInputText'], ''),
+    freeformText: getNestedValue(stored, ['freeformText'], ''),
+    structuredExamples: getNestedValue(stored, ['structuredExamples'], []),
+    updatedAt: getNestedValue(stored, ['updatedAt'], fallback.updatedAt),
+  };
+}
+
+export function saveDraftState(draft: Partial<DraftState>, projectId?: string | null): void {
+  try {
+    const current = loadDraftState(projectId);
+    const updated: DraftState = {
+      ...current,
+      ...draft,
+      updatedAt: Date.now(),
+    };
+    const key = getProjectDraftKey(projectId);
+    safeSetStorage(key, updated);
+  } catch (err: unknown) {
+    console.warn("Failed to auto-save draft:", err);
+  }
+}
+
+
+
+
 // Phase 2: Encrypted Project Storage & Ingestion Management
 
 const projectsCollection = new StorageCollection<ProjectInfo>(STORAGE_KEYS.PROJECTS, {
@@ -578,16 +645,34 @@ export function saveStoredProjects(projects: ProjectInfo[]): void {
   projectsCollection.save(projects);
 }
 
+const activeProjectIdSingleton = new StorageSingleton<string | null>(
+  STORAGE_KEYS.ACTIVE_PROJECT_ID,
+  null,
+  {
+    getter: (key, fallback) => {
+      const val = safeGetStorageString(key, "");
+      return val ? val : fallback;
+    },
+    setter: (key, value) => {
+      if (value) {
+        safeSetStorageString(key, value);
+      } else {
+        safeRemoveStorage(key);
+      }
+    }
+  }
+);
+
 export function getActiveProjectId(): string | null {
-  const val = safeGetStorageString(STORAGE_KEYS.ACTIVE_PROJECT_ID, "");
+  const val = activeProjectIdSingleton.load();
   return val ? val : null;
 }
 
 export function setActiveProjectId(id: string | null): void {
   if (id) {
-    safeSetStorageString(STORAGE_KEYS.ACTIVE_PROJECT_ID, id);
+    activeProjectIdSingleton.save(id);
   } else {
-    safeRemoveStorage(STORAGE_KEYS.ACTIVE_PROJECT_ID);
+    activeProjectIdSingleton.clear();
   }
 }
 
@@ -656,12 +741,17 @@ export function updateStoredProject(
   return updated;
 }
 
+const flagSecureSingleton = new StorageSingleton<boolean>(
+  STORAGE_KEYS.FLAG_SECURE_ENABLED,
+  true
+);
+
 export function isFlagSecureEnabled(): boolean {
-  return safeGetStorage<boolean>(STORAGE_KEYS.FLAG_SECURE_ENABLED, true);
+  return flagSecureSingleton.load();
 }
 
 export function setFlagSecureEnabled(enabled: boolean): void {
-  safeSetStorage(STORAGE_KEYS.FLAG_SECURE_ENABLED, enabled);
+  flagSecureSingleton.save(enabled);
   if (isBrowserEnvironment()) {
     getSafeWindow()?.dispatchEvent(new CustomEvent("flag_secure_changed", { detail: enabled }));
   }
@@ -671,15 +761,21 @@ export function setFlagSecureEnabled(enabled: boolean): void {
 // Google Jules Agent Storage Helpers (Account-level Key & Dedicated Sessions)
 // ---------------------------------------------------------------------------
 
+const julesApiKeySingleton = new StorageSingleton<string>(
+  STORAGE_KEYS.JULES_API_KEY,
+  "",
+  {
+    transformIn: (key) => key.trim() ? encryptSecret(key.trim()) : "",
+    transformOut: (key) => decryptSecret(key),
+  }
+);
+
 export function loadStoredJulesApiKey(): string {
-  const encrypted = safeGetStorage<string>(STORAGE_KEYS.JULES_API_KEY, "");
-  return decryptSecret(encrypted);
+  return julesApiKeySingleton.load();
 }
 
 export function saveStoredJulesApiKey(key: string): void {
-  const trimmed = (key || "").trim();
-  const encrypted = trimmed ? encryptSecret(trimmed) : "";
-  safeSetStorage(STORAGE_KEYS.JULES_API_KEY, encrypted);
+  julesApiKeySingleton.save(key);
 }
 
 export function isMockJulesSession(session: Partial<JulesSession>): boolean {
@@ -759,20 +855,30 @@ const DEFAULT_JULES_SETTINGS: JulesSettings = {
   defaultBranch: "main",
 };
 
+const julesSettingsSingleton = new StorageSingleton<JulesSettings>(
+  STORAGE_KEYS.JULES_SETTINGS,
+  DEFAULT_JULES_SETTINGS
+);
+
 export function loadStoredJulesSettings(): JulesSettings {
-  return safeGetStorage<JulesSettings>(STORAGE_KEYS.JULES_SETTINGS, DEFAULT_JULES_SETTINGS);
+  return julesSettingsSingleton.load();
 }
 
 export function saveStoredJulesSettings(settings: JulesSettings): void {
-  safeSetStorage(STORAGE_KEYS.JULES_SETTINGS, settings);
+  julesSettingsSingleton.save(settings);
 }
 
+const activeJulesSessionIdSingleton = new StorageSingleton<string | null>(
+  STORAGE_KEYS.ACTIVE_JULES_SESSION_ID,
+  null
+);
+
 export function getActiveJulesSessionId(): string | null {
-  return safeGetStorage<string | null>(STORAGE_KEYS.ACTIVE_JULES_SESSION_ID, null);
+  return activeJulesSessionIdSingleton.load();
 }
 
 export function setActiveJulesSessionId(id: string | null): void {
-  safeSetStorage(STORAGE_KEYS.ACTIVE_JULES_SESSION_ID, id);
+  activeJulesSessionIdSingleton.save(id);
 }
 
 export function getActiveJulesSession(): JulesSession | null {
