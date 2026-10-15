@@ -718,9 +718,29 @@ export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
     const res = await fetch("/api/jules/sessions");
     if (res.ok) {
       const data = await res.json();
-      const clean = Array.isArray(data) ? cleanMockData(data, "jules") : [];
-      julesSessionsCollection.save(clean);
-      return clean;
+      const cleanServerSessions = Array.isArray(data) ? cleanMockData(data, "jules") as JulesSession[] : [];
+
+      const localSessions = loadStoredJulesSessions();
+      const localSessionMap = new Map(localSessions.map(s => [s.id, s]));
+
+      // Merge server sessions with local ones, preferring local modifications if they are newer
+      const mergedSessions = cleanServerSessions.map(serverSession => {
+        const localSession = localSessionMap.get(serverSession.id);
+        if (localSession && (localSession.updatedAt || 0) > (serverSession.updatedAt || 0)) {
+          return localSession;
+        }
+        return serverSession;
+      });
+
+      // Add any local sessions that aren't on the server yet
+      for (const localSession of localSessions) {
+        if (!mergedSessions.some(s => s.id === localSession.id)) {
+          mergedSessions.push(localSession);
+        }
+      }
+
+      julesSessionsCollection.save(mergedSessions);
+      return mergedSessions;
     }
   } catch (e) {
     console.error("Failed to fetch Jules sessions from server", e);
