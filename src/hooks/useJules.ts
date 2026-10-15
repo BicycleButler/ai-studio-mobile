@@ -14,6 +14,7 @@ import {
   dispatchJulesTask,
   subscribeToJulesTask,
   approveJulesPlan,
+  bulkDeleteJulesSessions
 } from "../services/julesService";
 
 export function useJules() {
@@ -304,6 +305,20 @@ export function useJules() {
     }
   }, [julesSessions]);
 
+  const handleBulkDeleteJulesSessions = useCallback((sessionIds: string[]) => {
+    if (!sessionIds || sessionIds.length === 0) return;
+
+    bulkDeleteJulesSessions(sessionIds);
+
+    setJulesSessions((prev) => prev.filter((s) => !sessionIds.includes(s.id)));
+
+    if (activeJulesSession && sessionIds.includes(activeJulesSession.id)) {
+      setActiveJulesSession(null);
+      setJulesMessages([]);
+      setActiveJulesSessionId(null);
+    }
+  }, [activeJulesSession]);
+
   // Sync julesMessages and activeJulesSession to storage
   useEffect(() => {
     if (activeJulesSession) {
@@ -336,6 +351,7 @@ export function useJules() {
     handleStopJulesPolling,
     handleApproveJulesPlan,
     handleRejectJulesPlan,
-    handleSelectSession
+    handleSelectSession,
+    handleBulkDeleteJulesSessions
   };
 }
