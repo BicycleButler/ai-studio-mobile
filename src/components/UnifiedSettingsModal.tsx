@@ -9,7 +9,6 @@ import {
   Volume2,
   Sliders,
   Smartphone,
-  Laptop,
   Check,
   Loader2,
   Square,
@@ -28,11 +27,8 @@ import {
   FolderPlus, CheckSquare, MinusSquare,
   Folder,
   CheckCircle2,
-  Lock,
   AlertTriangle,
   Sun,
-  Moon,
-  Monitor,
   Bot,
   ClipboardPaste,
   ArrowLeft,
@@ -62,8 +58,10 @@ import {
 import { LibraryModal } from "./LibraryModal";
 import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
-import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
+import { isFlagSecureEnabled } from "../utils/storage";
 import { useTheme } from "../hooks/useTheme";
+import { SettingsDisplayTab } from "./settings/SettingsDisplayTab";
+import { SettingsSecurityTab } from "./settings/SettingsSecurityTab";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 
 
@@ -1998,197 +1996,20 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
           {/* TAB 3: DISPLAY & APPEARANCE */}
           {activeTab === "display" && (
-            <div className="space-y-5">
-              {/* Theme Selection */}
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Theme Appearance
-                </label>
-                <div className="grid grid-cols-3 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setThemeMode("light")}
-                    className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
-                      themeMode === "light"
-                        ? "bg-primary/20 border-primary ring-1 ring-primary"
-                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <Sun className="w-3.5 h-3.5 text-foreground" />
-                        <span className="font-semibold text-xs text-foreground">Light</span>
-                      </div>
-                      {themeMode === "light" && (
-                        <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
-                          <Check className="w-2.5 h-2.5" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Minimal crisp high-contrast theme.
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setThemeMode("dark")}
-                    className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
-                      themeMode === "dark"
-                        ? "bg-primary/20 border-primary ring-1 ring-primary"
-                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <Moon className="w-3.5 h-3.5 text-foreground" />
-                        <span className="font-semibold text-xs text-foreground">Dark</span>
-                      </div>
-                      {themeMode === "dark" && (
-                        <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
-                          <Check className="w-2.5 h-2.5" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      AI Studio deep 4-tier dark theme.
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setThemeMode("system")}
-                    className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
-                      themeMode === "system"
-                        ? "bg-primary/20 border-primary ring-1 ring-primary"
-                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <Monitor className="w-3.5 h-3.5 text-foreground" />
-                        <span className="font-semibold text-xs text-foreground">System</span>
-                      </div>
-                      {themeMode === "system" && (
-                        <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
-                          <Check className="w-2.5 h-2.5" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Automatically matches your OS preference.
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Display View Mode
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => onSelectDeviceMode("responsive")}
-                    className={`p-4 rounded-xl border text-start transition-colors cursor-pointer ${
-                      deviceMode === "responsive"
-                        ? "bg-primary/20 border-primary ring-1 ring-primary"
-                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
-                        <Laptop className="w-4 h-4 text-primary" />
-                        <span>Responsive Full</span>
-                      </div>
-                      {deviceMode === "responsive" && (
-                        <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
-                          <Check className="w-3 h-3" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Adapts fluidly to your full screen or preview window width.
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onSelectDeviceMode("pixel")}
-                    className={`p-4 rounded-xl border text-start transition-colors cursor-pointer ${
-                      deviceMode === "pixel"
-                        ? "bg-primary/20 border-primary ring-1 ring-primary"
-                        : "bg-card border-border hover:border-primary/50 hover:bg-muted"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
-                        <Smartphone className="w-4 h-4 text-primary" />
-                        <span>Google Pixel 9</span>
-                      </div>
-                      {deviceMode === "pixel" && (
-                        <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
-                          <Check className="w-3 h-3" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Realistic Android mobile frame simulation with status bar and bezel.
-                    </p>
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SettingsDisplayTab
+              themeMode={themeMode}
+              setThemeMode={setThemeMode}
+              deviceMode={deviceMode}
+              onSelectDeviceMode={onSelectDeviceMode}
+            />
           )}
 
           {/* TAB 4: SECURITY & PRIVACY */}
           {activeTab === "security" && (
-            <div className="space-y-4">
-              {/* Window & Screen Security (FLAG_SECURE) */}
-              <div className="p-4 rounded-xl border border-border bg-card space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-lg bg-primary/20 text-primary">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-semibold text-foreground">
-                        Android Screen Protection (FLAG_SECURE)
-                      </h4>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                        Obscures screen snapshots in Recent Apps / App Switcher to prevent sensitive API key leaks.
-                      </p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    id="settings-flag-secure-toggle"
-                    checked={flagSecure}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      setFlagSecure(enabled);
-                      setFlagSecureEnabled(enabled);
-                    }}
-                    className="w-4 h-4 rounded text-primary bg-muted border-border focus:ring-primary cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Data Sovereignty & Store Policy Disclosure */}
-              <div className="p-4 rounded-xl border border-border bg-card space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                  <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-                  <span>Data Sovereignty & Privacy</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed font-normal">
-                  Your API keys, prompts, and project configurations are stored locally on your device and never sent to external servers other than official Google AI Studio endpoints.
-                </p>
-                <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>Client for Google AI Studio</span>
-                  <span className="text-primary font-medium">Official Gemini API</span>
-                </div>
-              </div>
-            </div>
+            <SettingsSecurityTab
+              flagSecure={flagSecure}
+              setFlagSecure={setFlagSecure}
+            />
           )}
 
           {/* TAB: MODELS & TUNERS */}
