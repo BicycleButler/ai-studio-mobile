@@ -449,6 +449,7 @@ export class StorageCollection<T extends { id: string }> {
   private transformOut?: (item: T) => T;
   private validate?: (item: unknown) => boolean;
   private maxItems?: number;
+  private onSave?: (items: T[]) => void;
 
   constructor(
     key: string,
@@ -457,6 +458,7 @@ export class StorageCollection<T extends { id: string }> {
       transformOut?: (item: T) => T;
       validate?: (item: unknown) => boolean;
       maxItems?: number;
+      onSave?: (items: T[]) => void;
     }
   ) {
     this.key = key;
@@ -464,6 +466,7 @@ export class StorageCollection<T extends { id: string }> {
     this.transformOut = options?.transformOut;
     this.validate = options?.validate;
     this.maxItems = options?.maxItems;
+    this.onSave = options?.onSave;
   }
 
   load(): T[] {
@@ -483,6 +486,9 @@ export class StorageCollection<T extends { id: string }> {
       }
       const toStore = this.transformIn ? items.map(this.transformIn) : items;
       safeSetStorage(this.key, toStore);
+      if (this.onSave) {
+        this.onSave(this.load());
+      }
     } catch (err) {
       console.error(`StorageCollection[${this.key}]: unhandled error during save`, err);
     }
@@ -676,7 +682,26 @@ export function isMockJulesSession(session: Partial<JulesSession>): boolean {
 
 
 const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, {
-  validate: (s) => !isMockJulesSession(s as Partial<JulesSession>)
+  validate: (s) => !isMockJulesSession(s as Partial<JulesSession>),
+  onSave: (clean) => {
+    // Async sync to server
+    if (isBrowserEnvironment()) {
+      const win = getSafeWindow();
+      const isOnline = win && typeof win.navigator.onLine === "boolean" ? win.navigator.onLine : true;
+
+      if (isOnline) {
+        fetch("/api/jules/sessions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(clean),
+        }).catch((e) => console.error("Failed to save Jules sessions to server", e));
+      } else {
+        enqueueOfflineMutation("jules_sessions", clean).catch(console.error);
+      }
+    }
+  }
 });
 
 export function loadStoredJulesSessions(): JulesSession[] {
@@ -685,25 +710,6 @@ export function loadStoredJulesSessions(): JulesSession[] {
 
 export function saveStoredJulesSessions(sessions: JulesSession[]): void {
   julesSessionsCollection.save(sessions);
-  const clean = julesSessionsCollection.load();
-
-  // Async sync to server
-  if (isBrowserEnvironment()) {
-    const win = getSafeWindow();
-    const isOnline = win && typeof win.navigator.onLine === "boolean" ? win.navigator.onLine : true;
-
-    if (isOnline) {
-      fetch("/api/jules/sessions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(clean),
-      }).catch((e) => console.error("Failed to save Jules sessions to server", e));
-    } else {
-      enqueueOfflineMutation("jules_sessions", clean).catch(console.error);
-    }
-  }
 }
 
 export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
@@ -754,21 +760,14 @@ export function getActiveJulesSession(): JulesSession | null {
 }
 
 export function updateStoredJulesSession(session: JulesSession): JulesSession {
-  const updated = julesSessionsCollection.upsert(session, true);
-
-  // Trigger save side effects (like async sync to server)
-  saveStoredJulesSessions(julesSessionsCollection.load());
-
-  return updated;
+  return julesSessionsCollection.upsert(session, true);
 }
 
 export function deleteStoredJulesSession(id: string): void {
   julesSessionsCollection.delete(id);
-  saveStoredJulesSessions(julesSessionsCollection.load());
 }
 
 export function bulkDeleteStoredJulesSessions(ids: string[]): void {
   julesSessionsCollection.bulkDelete(ids);
-  saveStoredJulesSessions(julesSessionsCollection.load());
 }
 
