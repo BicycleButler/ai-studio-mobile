@@ -28,7 +28,6 @@ import {
   fetchJulesRepositories,
   createNewJulesSession,
   deleteJulesSession,
-  bulkDeleteJulesSessions,
   getStoredJulesSessions,
 } from "../services/julesService";
 import { loadStoredJulesApiKey } from "../utils/storage";
@@ -42,6 +41,7 @@ interface JulesSessionDrawerProps {
   onClose: () => void;
   activeSessionId: string | null;
   onSelectSession: (session: JulesSession) => void;
+  onBulkDeleteSessions: (sessionIds: string[]) => void;
   onOpenApiKeyModal: () => void;
 }
 
@@ -50,6 +50,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   onClose,
   activeSessionId,
   onSelectSession,
+  onBulkDeleteSessions,
   onOpenApiKeyModal,
 }) => {
   const [sessions, setSessions] = useState<JulesSession[]>([]);
@@ -99,7 +100,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     items: filteredSessions,
     getItemId: (s) => s.id,
     onBulkDelete: (ids) => {
-      bulkDeleteJulesSessions(ids);
+      onBulkDeleteSessions(ids);
       refreshSessions();
     },
   });

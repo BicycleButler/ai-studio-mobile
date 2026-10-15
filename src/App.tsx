@@ -112,7 +112,8 @@ export default function App() {
     handleStopJulesPolling,
     handleApproveJulesPlan,
     handleRejectJulesPlan,
-    handleSelectSession: handleSelectJulesSession
+    handleSelectSession: handleSelectJulesSession,
+    handleBulkDeleteJulesSessions
   } = useJules();
 
   // Dedicated resilient streaming hook
@@ -695,6 +696,7 @@ export default function App() {
           handleSelectJulesSession(session);
           setShowJulesDrawer(false);
         }}
+        onBulkDeleteSessions={handleBulkDeleteJulesSessions}
         onOpenApiKeyModal={() => {
           handleOpenSettings("account");
         }}
