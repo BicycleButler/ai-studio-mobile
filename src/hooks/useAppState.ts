@@ -50,6 +50,7 @@ import {
 import { SettingsTab } from "../components/UnifiedSettingsModal";
 import { getSafeWindow } from "../utils/platform";
 import { fetchServerHealth } from "../services/auth";
+import { generateUniqueId } from "../utils/idGenerator";
 
 export function useAppState() {
   // Phase 3: Active Project & Projects vault
@@ -223,7 +224,7 @@ export function useAppState() {
     if (onStopStream) {
       onStopStream();
     }
-    const newSessionId = `sess_${Date.now()}`;
+    const newSessionId = generateUniqueId("sess");
     setCurrentSessionId(newSessionId);
     setMessages([]);
   };
@@ -308,7 +309,7 @@ export function useAppState() {
 
   const handleSaveCurrentPrompt = (title: string) => {
     const newSaved: SavedPrompt = {
-      id: `saved-${Date.now()}`,
+      id: generateUniqueId("saved"),
       title,
       type: promptType,
       config: { ...config },
