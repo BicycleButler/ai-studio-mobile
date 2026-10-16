@@ -1,8 +1,6 @@
-import { getSafeNavigatorClipboard } from "../utils/platform";
 import { safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { DatasetScopeBanner } from "./DatasetScopeBanner";
 import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
 import {
   X,
@@ -12,28 +10,15 @@ import {
   Check,
   Loader2,
   Square,
-  ShieldCheck,
-  AlertCircle,
-  ExternalLink,
-  Eye,
-  EyeOff,
   Sparkles,
   Radio,
   FolderHeart,
   Code2,
   Compass,
-  Trash2,
-  Edit2,
-  FolderPlus, CheckSquare, MinusSquare,
-  Folder,
-  CheckCircle2,
-  AlertTriangle,
   Sun,
-  Bot,
-  ClipboardPaste,
-  ArrowLeft,
   User,
   Layers,
+  ArrowLeft,
 } from "lucide-react";
 import {
   PromptConfig,
@@ -44,9 +29,6 @@ import {
   GoogleUser,
   ProjectInfo,
 } from "../types";
-import { GoogleAuthCard } from "./GoogleAuthCard";
-import { fetchAuthStatus } from "../services/auth";
-import { verifyJulesApiKey } from "../services/julesService";
 import { fetchTTSAudioUrl } from "../services/speechVoices";
 import { TunerBottomSheet } from "./TunerBottomSheet";
 import {
@@ -61,6 +43,7 @@ import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
 import { isFlagSecureEnabled } from "../utils/storage";
 import { useTheme } from "../hooks/useTheme";
 import { SettingsDisplayTab } from "./settings/SettingsDisplayTab";
+import { SettingsAccountTab } from "./settings/SettingsAccountTab";
 import { SettingsSecurityTab } from "./settings/SettingsSecurityTab";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 
@@ -139,18 +122,18 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onClose,
   initialTab = "account",
   customApiKey,
-  onSaveCustomApiKey,
+  onSaveCustomApiKey: _onSaveCustomApiKey,
   julesApiKey = "",
-  onSaveJulesApiKey,
+  onSaveJulesApiKey: _onSaveJulesApiKey,
   hasServerKey,
   onRefreshServerAuth,
   googleUser = null,
   onGoogleLogin,
   onGoogleLogout,
   liveModelsCount = 55,
-  onOpenCustomTabBrowser,
+  onOpenCustomTabBrowser: _onOpenCustomTabBrowser,
   onOpenImportProject,
-  activeProjectName,
+  activeProjectName: _activeProjectName,
   projects = [],
   activeProject = null,
   onSelectProject,
@@ -199,63 +182,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
 
 
-  // Account, Keys & Project state
-  const [inputApiKey, setInputApiKey] = useState(customApiKey);
-  const [showKeyText, setShowKeyText] = useState(false);
-  const [isTestingKey, setIsTestingKey] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
-
-  // Jules API key state
-  const [julesInputKey, setJulesInputKey] = useState(julesApiKey);
-  const [showJulesKeyText, setShowJulesKeyText] = useState(false);
-  const [isTestingJulesKey, setIsTestingJulesKey] = useState(false);
-  const [julesTestResult, setJulesTestResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
-
-  // Project editing
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [editingProjectName, setEditingProjectName] = useState("");
-  const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<string | null>(null);
-
   // Batch Selection State
   const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
-  const [lastSelectedProjectId, setLastSelectedProjectId] = useState<string | null>(null);
   const [showBulkDeleteProjectsConfirm, setShowBulkDeleteProjectsConfirm] = useState(false);
   const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
-
-  const toggleProjectSelection = useCallback(
-    (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
-      e.stopPropagation();
-      setSelectedProjectIds((prev) => {
-        const next = new Set(prev);
-        if (e.shiftKey && lastSelectedProjectId) {
-          const lastIndex = projects.findIndex((p) => p.id === lastSelectedProjectId);
-          if (lastIndex !== -1) {
-            const start = Math.min(index, lastIndex);
-            const end = Math.max(index, lastIndex);
-            for (let j = start; j <= end; j++) {
-              next.add(projects[j].id);
-            }
-            return next;
-          }
-        }
-
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.add(id);
-        }
-        return next;
-      });
-      setLastSelectedProjectId(id);
-    },
-    [lastSelectedProjectId, projects]
-  );
 
   const toggleSelectAllProjects = useCallback(() => {
     if (selectedProjectIds.size === projects.length && projects.length > 0) {
@@ -267,7 +197,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   const clearProjectSelection = useCallback(() => {
     setSelectedProjectIds(new Set());
-    setLastSelectedProjectId(null);
   }, []);
 
   // Clear project selection when switching tabs (ADR 0047)
@@ -321,13 +250,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     return () => removeKey();
   }, [isOpen, onClose, activeTab, selectedProjectIds.size, clearProjectSelection, toggleSelectAllProjects, showBulkDeleteProjectsConfirm]);
 
-  useEffect(() => {
-    setInputApiKey(customApiKey);
-  }, [customApiKey]);
-
-  useEffect(() => {
-    setJulesInputKey(julesApiKey);
-  }, [julesApiKey]);
 
   // Audio state
   const [currentSpeechSettings, setCurrentSpeechSettings] = useState<SpeechSettings>(speechSettings);
@@ -380,133 +302,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     setIsPreviewLoading(false);
   };
 
-  // Gemini API Key Actions
-  const handleSaveApiKey = () => {
-    onSaveCustomApiKey(inputApiKey.trim());
-    setTestResult({
-      success: true,
-      message: "API Key updated successfully in local storage.",
-    });
-    setTimeout(() => setTestResult(null), 3500);
-  };
-
-  const handleClearApiKey = () => {
-    setInputApiKey("");
-    onSaveCustomApiKey("");
-    setTestResult({
-      success: true,
-      message: "Custom Gemini API key removed.",
-    });
-    setTimeout(() => setTestResult(null), 3500);
-  };
-
-  const handlePasteApiKey = async () => {
-    try {
-      const text = await getSafeNavigatorClipboard()?.readText() || "";
-      if (text) {
-        setInputApiKey(text.trim());
-      }
-    } catch {
-      // Clipboard access denied
-    }
-  };
-
-  const handleTestKey = async (keyToTest?: string) => {
-    setIsTestingKey(true);
-    setTestResult(null);
-    const key = keyToTest !== undefined ? keyToTest : inputApiKey.trim();
-
-    try {
-      const data = await fetchAuthStatus(key);
-
-      if (data.valid) {
-        setTestResult({
-          success: true,
-          message:
-            data.authSource === "ai_studio_secret"
-              ? "Verified! Google AI Studio environment authentication is connected and active."
-              : "Verified! Your Gemini API key is valid and connected to live models.",
-        });
-        if (onRefreshServerAuth) onRefreshServerAuth();
-      } else {
-        setTestResult({
-          success: false,
-          message: data.error || "Authentication verification failed. Please check your key.",
-        });
-      }
-    } catch {
-      setTestResult({
-        success: false,
-        message: "Failed to connect to authentication verification service.",
-      });
-    } finally {
-      setIsTestingKey(false);
-    }
-  };
-
-  // Jules API Key Actions
-  const handleSaveJulesApiKey = () => {
-    if (onSaveJulesApiKey) {
-      onSaveJulesApiKey(julesInputKey.trim());
-      setJulesTestResult({
-        success: true,
-        message: "Google Jules API Key saved successfully.",
-      });
-      setTimeout(() => setJulesTestResult(null), 3500);
-    }
-  };
-
-  const handleClearJulesKey = () => {
-    setJulesInputKey("");
-    if (onSaveJulesApiKey) {
-      onSaveJulesApiKey("");
-      setJulesTestResult({
-        success: true,
-        message: "Google Jules API key removed.",
-      });
-      setTimeout(() => setJulesTestResult(null), 3500);
-    }
-  };
-
-  const handlePasteJulesKey = async () => {
-    try {
-      const text = await getSafeNavigatorClipboard()?.readText() || "";
-      if (text) {
-        setJulesInputKey(text.trim());
-      }
-    } catch {
-      // Clipboard access denied
-    }
-  };
-
-  const handleTestJulesKey = async () => {
-    setIsTestingJulesKey(true);
-    setJulesTestResult(null);
-    const key = julesInputKey.trim();
-
-    try {
-      const data = await verifyJulesApiKey(key);
-
-      if (data.valid) {
-        setJulesTestResult({
-          success: true,
-          message: "Verified! Your Google Jules API key is active and connected to GitHub tasks.",
-        });
-      } else {
-        setJulesTestResult({
-          success: false,
-          message: data.error || "Google Jules key verification failed.",
-        });
-      }
-    } catch (err: unknown) {
-      setJulesTestResult({
-        success: false,
-        message: err instanceof Error ? err.message : "Failed to verify Jules key.",
-      });
-    } finally {
-      setIsTestingJulesKey(false);
-    }
-  };
 
   // Audio Actions
   const handlePreviewVoice = async (voiceName: string, engine: "gemini" | "device") => {
@@ -953,595 +748,31 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         >
           {/* TAB 1: CONSOLIDATED ACCOUNT & KEYS HUB (Q1) */}
           {activeTab === "account" && (
-            <div className="space-y-4">
-              {/* Google Account Authentication */}
-              <GoogleAuthCard
-                user={googleUser}
-                onLogin={onGoogleLogin || (async () => {})}
-                onLogout={onGoogleLogout || (async () => {})}
-                liveModelsCount={liveModelsCount}
-              />
-
-              {/* Server Environment Connection Status */}
-              <div
-                className={`p-4 rounded-xl border flex items-start justify-between gap-3 ${
-                  hasServerKey
-                    ? "bg-emerald-950/20 border-emerald-500/40 text-emerald-300"
-                    : "bg-card border-border text-muted-foreground"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`mt-0.5 p-1.5 rounded-lg ${
-                      hasServerKey
-                        ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-foreground">
-                      AI Studio Cloud Environment
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                      {hasServerKey
-                        ? "Server environment credentials are active. Requests are securely proxied."
-                        : "No server environment key detected. You can supply a custom Gemini API key below."}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  id="test-env-auth-btn"
-                  onClick={() => handleTestKey("")}
-                  disabled={isTestingKey}
-                  className="px-3 py-1.5 rounded-lg bg-card hover:bg-muted border border-border text-xs font-medium text-foreground shrink-0 transition-colors cursor-pointer"
-                >
-                  {isTestingKey ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    "Test Status"
-                  )}
-                </button>
-              </div>
-
-              {/* Workspace Projects Management Card */}
-              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-primary/15 border border-primary/30 text-primary">
-                      <Folder className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-xs font-semibold text-foreground">
-                          Workspace Projects ({projects.length})
-                        </h4>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        Manage registered AI Studio projects and switch credentials.
-                      </p>
-                    </div>
-                  </div>
-                  {onOpenImportProject && (
-                    <button
-                      type="button"
-                      id="settings-add-project-btn"
-                      onClick={() => {
-                        onClose();
-                        onOpenImportProject();
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <FolderPlus className="w-3.5 h-3.5" />
-                      <span>+ New Project</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Bulk Action Selection Header */}
-                {projects.length > 0 && (
-                  <div className="px-2 py-2 border-b border-border bg-muted/40 flex flex-col gap-2 text-xs mb-2 rounded-t-xl">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={toggleSelectAllProjects}
-                        className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
-                        aria-label="Select all projects on this page"
-                      >
-                        {selectedProjectIds.size === projects.length ? (
-                          <CheckSquare className="w-4 h-4 text-primary" />
-                        ) : selectedProjectIds.size > 0 ? (
-                          <MinusSquare className="w-4 h-4 text-primary" />
-                        ) : (
-                          <Square className="w-4 h-4" />
-                        )}
-                      </button>
-                      <span className="text-muted-foreground font-medium">
-                        {selectedProjectIds.size > 0
-                          ? `${selectedProjectIds.size} selected`
-                          : "Select all on this page"}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Dataset Scope Banner (ADR 0047) */}
-                <DatasetScopeBanner
-                  selectedCount={selectedProjectIds.size}
-                  totalCount={projects.length}
-                  className="mb-2"
-                />
-
-                {/* Projects List */}
-                {projects.length === 0 ? (
-                  <div className="p-3 text-center rounded-xl bg-muted border border-border text-xs text-muted-foreground space-y-1">
-                    <p className="font-medium text-foreground">No Projects Registered</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Add a project or enter a custom key below to start prompting.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {projects.map((proj, index) => {
-                      const isActive = activeProject?.id === proj.id;
-                      const isSelected = selectedProjectIds.has(proj.id);
-                      const isEditing = editingProjectId === proj.id;
-                      const isConfirmingDelete = deleteConfirmProjectId === proj.id;
-                      const maskedKey = proj.apiKey
-                        ? `${proj.apiKey.slice(0, 6)}••••••••${proj.apiKey.slice(-4)}`
-                        : "No key stored";
-
-                      return (
-                        <div
-                          key={proj.id}
-                          id={`settings-project-card-${proj.id}`}
-                          className={`p-3 rounded-xl border transition-colors flex items-center justify-between ${
-                            isSelected
-                              ? "bg-primary/5 border-primary/30"
-                              : isActive
-                                ? "bg-primary/15 border-primary shadow-sm"
-                                : "bg-card border-border hover:border-primary/50"
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={(e) => toggleProjectSelection(proj.id, e, index)}
-                            className="me-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
-                            aria-label={`Select project ${proj.name}`}
-                          >
-                            {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-primary" />
-                            ) : (
-                              <Square className="w-4 h-4" />
-                            )}
-                          </button>
-                          <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
-                            <div className="flex-1 min-w-0">
-                              {isEditing ? (
-                                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                  <input
-                                    type="text"
-                                    id={`input-rename-project-${proj.id}`}
-                                    value={editingProjectName}
-                                    onChange={(e) => setEditingProjectName(e.target.value)}
-                                    className="px-2 py-1 text-xs bg-muted border border-primary rounded-md text-foreground focus:outline-none w-full max-w-[200px]"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        if (editingProjectName.trim()) {
-                                          onRenameProject?.(proj.id, editingProjectName.trim());
-                                        }
-                                        setEditingProjectId(null);
-                                      } else if (e.key === "Escape") {
-                                        setEditingProjectId(null);
-                                      }
-                                    }}
-                                  />
-                                  <button
-                                    type="button"
-                                    id={`btn-save-rename-${proj.id}`}
-                                    onClick={() => {
-                                      if (editingProjectName.trim()) {
-                                        onRenameProject?.(proj.id, editingProjectName.trim());
-                                      }
-                                      setEditingProjectId(null);
-                                    }}
-                                    className="px-2 py-1 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded-md font-medium cursor-pointer"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingProjectId(null)}
-                                    className="px-2 py-1 text-xs bg-muted hover:bg-muted/80 text-foreground rounded-md cursor-pointer"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h5 className="text-xs font-semibold text-foreground">
-                                    {proj.name}
-                                  </h5>
-                                  {(!proj.isValid || proj.status === "invalid_key" || proj.status === "attention_required") ? (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-muted/40 text-destructive border border-destructive/30 text-[10px] font-medium flex items-center gap-1">
-                                      <AlertTriangle className="w-2.5 h-2.5 text-destructive" />
-                                      <span>Key Attention</span>
-                                    </span>
-                                  ) : isActive ? (
-                                    <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 text-[10px] font-medium flex items-center gap-1">
-                                      <CheckCircle2 className="w-2.5 h-2.5" />
-                                      <span>Active</span>
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      id={`btn-set-active-${proj.id}`}
-                                      onClick={() => onSelectProject?.(proj)}
-                                      className="px-1.5 py-0.5 rounded-md bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border text-[10px] transition-colors font-medium cursor-pointer"
-                                    >
-                                      Set Active
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    id={`btn-edit-rename-${proj.id}`}
-                                    onClick={() => {
-                                      setEditingProjectId(proj.id);
-                                      setEditingProjectName(proj.name);
-                                    }}
-                                    className="text-muted-foreground hover:text-foreground p-0.5 rounded transition-colors cursor-pointer"
-                                    title="Rename project"
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              )}
-
-                              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <span className="text-[11px] font-mono text-muted-foreground">
-                                  {maskedKey}
-                                </span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border font-mono">
-                                  {proj.defaultModel || "gemini-3.8-flash"}
-                                </span>
-                                {(!proj.isValid || proj.status === "invalid_key") && onOpenCustomTabBrowser && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      onClose();
-                                      onOpenCustomTabBrowser("aistudio");
-                                    }}
-                                    className="text-[10px] text-primary hover:underline font-medium cursor-pointer"
-                                  >
-                                    Update in AI Studio →
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Actions on Project */}
-                            <div className="flex items-center gap-1 shrink-0">
-                              {isConfirmingDelete ? (
-                                <div className="flex items-center gap-1 bg-muted/40 border border-destructive/30 p-1 rounded-lg">
-                                  <span className="text-[10px] text-destructive font-medium px-1">
-                                    Delete?
-                                  </span>
-                                  <button
-                                    type="button"
-                                    id={`btn-confirm-delete-${proj.id}`}
-                                    onClick={() => {
-                                      onDeleteProject?.(proj.id);
-                                      setDeleteConfirmProjectId(null);
-                                    }}
-                                    className="px-1.5 py-0.5 text-[10px] bg-destructive text-destructive-foreground rounded font-medium transition-colors cursor-pointer"
-                                  >
-                                    Yes
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeleteConfirmProjectId(null)}
-                                    className="px-1.5 py-0.5 text-[10px] bg-muted hover:bg-muted/80 text-foreground rounded transition-colors cursor-pointer"
-                                  >
-                                    No
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  id={`btn-delete-project-${proj.id}`}
-                                  onClick={() => setDeleteConfirmProjectId(proj.id)}
-                                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-muted/40 rounded-lg transition-colors cursor-pointer"
-                                  title="Delete project"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Gemini Custom API Key Input Card */}
-              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-xs font-semibold text-foreground block">
-                      Custom Gemini API Key
-                    </label>
-                    {activeProjectName && (
-                      <span className="text-[10px] text-muted-foreground block font-normal">
-                        Active Project: <strong className="text-primary">{activeProjectName}</strong>
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {onOpenCustomTabBrowser && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                          onOpenCustomTabBrowser("aistudio");
-                        }}
-                        className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors font-medium cursor-pointer"
-                        title="Launch AI Studio in Chrome Custom Tab"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>Get Key</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <input
-                    type={showKeyText ? "text" : "password"}
-                    id="settings-custom-key-input"
-                    value={inputApiKey}
-                    onChange={(e) => setInputApiKey(e.target.value)}
-                    placeholder="AIzaSy..."
-                    className="w-full text-xs font-mono bg-muted/50 border border-input rounded-xl px-3.5 py-2.5 pe-24 text-foreground placeholder:text-subtle-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                  />
-                  <div className="absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={handlePasteApiKey}
-                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors cursor-pointer"
-                      title="Paste from clipboard"
-                    >
-                      <ClipboardPaste className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowKeyText(!showKeyText)}
-                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors cursor-pointer"
-                      title={showKeyText ? "Hide key" : "Show key"}
-                    >
-                      {showKeyText ? (
-                        <EyeOff className="w-3.5 h-3.5" />
-                      ) : (
-                        <Eye className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleTestKey(inputApiKey)}
-                    disabled={isTestingKey}
-                    className="px-3 py-1.5 rounded-lg bg-card hover:bg-muted border border-border text-xs font-medium text-foreground flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    {isTestingKey ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                    ) : (
-                      <Check className="w-3.5 h-3.5 text-primary" />
-                    )}
-                    <span>Test Key</span>
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    {customApiKey && (
-                      <button
-                        type="button"
-                        onClick={handleClearApiKey}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-muted/40 transition-colors cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      id="settings-save-key-btn"
-                      onClick={handleSaveApiKey}
-                      className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md transition-colors active:scale-95 cursor-pointer"
-                    >
-                      Save Key
-                    </button>
-                  </div>
-                </div>
-
-                {testResult && (
-                  <div
-                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
-                      testResult.success
-                        ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
-                        : "bg-muted/40 border-destructive/30 text-destructive"
-                    }`}
-                  >
-                    {testResult.success ? (
-                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
-                    )}
-                    <span className="leading-relaxed">{testResult.message}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Google Jules Autonomous Agent Key Card */}
-              <div className="p-4 rounded-xl border border-purple-500/30 bg-card space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-400">
-                      <Bot className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-semibold text-foreground">
-                        Google Jules Autonomous Agent Key
-                      </h4>
-                      <p className="text-[11px] text-muted-foreground">
-                        Required for autonomous GitHub coding tasks, PR creations, and code reviews.
-                      </p>
-                    </div>
-                  </div>
-                  {onOpenCustomTabBrowser && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        onOpenCustomTabBrowser("jules");
-                      }}
-                      className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors font-medium cursor-pointer"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      <span>Jules Portal</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="relative">
-                  <input
-                    type={showJulesKeyText ? "text" : "password"}
-                    id="settings-jules-key-input"
-                    value={julesInputKey}
-                    onChange={(e) => setJulesInputKey(e.target.value)}
-                    placeholder="Enter Google Jules API Key..."
-                    className="w-full text-xs font-mono bg-muted/50 border border-input rounded-xl px-3.5 py-2.5 pe-24 text-foreground placeholder:text-subtle-foreground focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
-                  />
-                  <div className="absolute end-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={handlePasteJulesKey}
-                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors cursor-pointer"
-                      title="Paste from clipboard"
-                    >
-                      <ClipboardPaste className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowJulesKeyText(!showJulesKeyText)}
-                      className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors cursor-pointer"
-                      title={showJulesKeyText ? "Hide key" : "Show key"}
-                    >
-                      {showJulesKeyText ? (
-                        <EyeOff className="w-3.5 h-3.5" />
-                      ) : (
-                        <Eye className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <button
-                    type="button"
-                    onClick={handleTestJulesKey}
-                    disabled={isTestingJulesKey}
-                    className="px-3 py-1.5 rounded-lg bg-card hover:bg-muted border border-border text-xs font-medium text-foreground flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    {isTestingJulesKey ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
-                    ) : (
-                      <Check className="w-3.5 h-3.5 text-purple-400" />
-                    )}
-                    <span>Test Jules Key</span>
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    {julesApiKey && (
-                      <button
-                        type="button"
-                        onClick={handleClearJulesKey}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-muted/40 transition-colors cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      id="settings-save-jules-key-btn"
-                      onClick={handleSaveJulesApiKey}
-                      className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md transition-colors active:scale-95 cursor-pointer"
-                    >
-                      Save Jules Key
-                    </button>
-                  </div>
-                </div>
-
-                {julesTestResult && (
-                  <div
-                    className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
-                      julesTestResult.success
-                        ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
-                        : "bg-muted/40 border-destructive/30 text-destructive"
-                    }`}
-                  >
-                    {julesTestResult.success ? (
-                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
-                    )}
-                    <span className="leading-relaxed">{julesTestResult.message}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Native Android Application • Google Play Store Distribution Placeholder */}
-              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-                      <Smartphone className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-semibold text-foreground">
-                          Native Android Application
-                        </h4>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-primary/10 text-primary border border-primary/25">
-                          Google Play
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                        If you want the mobile native version with full system integration and background execution, download it directly from Google Play.
-                      </p>
-                    </div>
-                  </div>
-
-                  <a
-                    href="https://play.google.com/store/apps/details?id=com.aistudio.mobile"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    id="play-store-download-btn"
-                    className="px-3.5 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium shrink-0 transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                  >
-                    <span>Get on Play Store</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              </div>
-            </div>
+            <SettingsAccountTab
+              customApiKey={customApiKey}
+              hasServerKey={hasServerKey}
+              googleUser={googleUser}
+              onGoogleLogin={onGoogleLogin}
+              onGoogleLogout={onGoogleLogout}
+              onRefreshServerAuth={onRefreshServerAuth}
+              onOpenCustomTabBrowser={() => {}} // Replace if there's a real handler
+              isVerifyingKey={false}
+              localKeyValidationResult={null}
+              julesApiKey={julesApiKey}
+              isVerifyingJulesKey={false}
+              julesKeyValidationResult={null}
+              activeProject={activeProject}
+              projects={projects}
+              onOpenImportProject={() => onOpenImportProject && onOpenImportProject()}
+              onSelectProject={(p) => {
+                if (onSelectProject) onSelectProject(p);
+                onClose();
+              }}
+              onRenameProject={(p) => onRenameProject && onRenameProject(p.id, p.name)}
+              onDeleteProject={(p) => { if (onDeleteProject) onDeleteProject(p.id); }}
+              liveModelsCount={liveModelsCount}
+            />
           )}
-
           {/* TAB 2: VOICE & SPEECH */}
           {activeTab === "audio" && (
             <div className="space-y-4">
