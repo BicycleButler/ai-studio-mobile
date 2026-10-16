@@ -55,10 +55,11 @@ export function purgeMockSessionsFromStorage(): void {
     // Fail gracefully if storage access is restricted
   }
 }
-// Initial sweep when module loads in browser
-if (isBrowserEnvironment()) {
+
+export function initializeChatHistoryService(): void {
   purgeMockSessionsFromStorage();
 }
+
 
 /**
  * Sanitizes messages by removing heavy base64 image data before persisting

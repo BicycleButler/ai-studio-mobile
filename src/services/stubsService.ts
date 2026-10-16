@@ -94,10 +94,11 @@ export async function executeStubsCommand(
 }
 
 export function connectStubsStream(
-  onLog: (data: { type: string; text: string; timestamp: number; code?: number }) => void
+  onLog: (data: { type: string; text: string; timestamp: number; code?: number }) => void,
+  endpoint: string = "/api/stubs/stream"
 ): () => void {
   try {
-    const eventSource = new EventSource("/api/stubs/stream");
+    const eventSource = new EventSource(endpoint);
 
     eventSource.onmessage = (event) => {
       try {

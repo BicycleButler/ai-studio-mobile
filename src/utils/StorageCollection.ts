@@ -6,6 +6,8 @@ export class StorageCollection<T extends { id: string }> {
   private transformOut?: (item: T) => T;
   private validate?: (item: unknown) => boolean;
   private maxItems?: number;
+  private getter?: (key: string, fallback: T[]) => T[];
+  private setter?: (key: string, value: T[]) => boolean;
   private onSave?: (items: T[]) => void;
 
   constructor(
@@ -15,6 +17,8 @@ export class StorageCollection<T extends { id: string }> {
       transformOut?: (item: T) => T;
       validate?: (item: unknown) => boolean;
       maxItems?: number;
+      getter?: (key: string, fallback: T[]) => T[];
+      setter?: (key: string, value: T[]) => boolean;
       onSave?: (items: T[]) => void;
     }
   ) {
@@ -23,11 +27,13 @@ export class StorageCollection<T extends { id: string }> {
     this.transformOut = options?.transformOut;
     this.validate = options?.validate;
     this.maxItems = options?.maxItems;
+    this.getter = options?.getter;
+    this.setter = options?.setter;
     this.onSave = options?.onSave;
   }
 
   load(): T[] {
-    const raw = safeGetStorageArray<T>(this.key, []);
+    const raw = this.getter ? this.getter(this.key, []) : safeGetStorageArray<T>(this.key, []);
     let filtered = raw;
     if (this.validate) {
       filtered = raw.filter((item) => this.validate!(item));
@@ -43,7 +49,8 @@ export class StorageCollection<T extends { id: string }> {
         items = items.slice(0, this.maxItems);
       }
       const toStore = this.transformIn ? items.map(this.transformIn) : items;
-      if (!safeSetStorage(this.key, toStore)) {
+      const success = this.setter ? this.setter(this.key, toStore) : safeSetStorage(this.key, toStore);
+      if (!success) {
           console.warn(`StorageCollection[${this.key}]: safeSetStorage returned false.`);
       }
       if (this.onSave) {

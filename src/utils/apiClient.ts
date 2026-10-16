@@ -28,7 +28,7 @@ export function isAbortError(err: unknown): boolean {
   return false;
 }
 
-export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
+
 
 export async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string>; rawData?: unknown }> {
   const headers: Record<string, string> = {};
@@ -56,6 +56,34 @@ export async function parseErrorResponse(res: Response, defaultErrorMessage: str
   return { errorMessage, headers, rawData };
 }
 
+
+export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
+
+async function fetchWithRetry(url: string, options: RequestInit, retries: number = 3, _defaultErrorMessage: string = "API request failed"): Promise<Response> {
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok || !RETRYABLE_STATUS_CODES.has(res.status)) {
+        return res;
+      }
+      attempt++;
+      if (attempt >= retries) return res;
+
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    } catch (err: unknown) {
+      if (isAbortError(err)) throw err;
+      attempt++;
+      if (attempt >= retries) throw err;
+
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 async function executeRequest(
   endpoint: string,
   options?: RequestInit,
@@ -63,7 +91,7 @@ async function executeRequest(
 ): Promise<Response> {
   let res: Response;
   try {
-    res = await fetch(endpoint, options);
+    res = await fetchWithRetry(endpoint, options || {}, 3, defaultErrorMessage);
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err;
@@ -78,6 +106,7 @@ async function executeRequest(
 
   return res;
 }
+
 
 export type Interceptor = (url: string, options: RequestInit) => Promise<[string, RequestInit]>;
 

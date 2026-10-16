@@ -105,8 +105,8 @@ export default function App() {
     julesApiKey,
     handleSaveJulesApiKey,
     activeJulesSession,
-    julesMessages,
-    isJulesExecuting,
+    julesMessages: _julesMessages,
+    isJulesExecuting: _isJulesExecuting,
     isApprovingJulesPlan,
     handleSendJulesMessage,
     handleClearJulesMessages,
@@ -432,14 +432,13 @@ export default function App() {
           onOpenJulesSessions: () => setShowJulesDrawer(true),
           onApproveJulesPlan: (taskId) => void handleApproveJulesPlan(taskId),
           onRejectJulesPlan: (taskId) => void handleRejectJulesPlan(taskId),
-          isApprovingJulesPlan,
-          julesMessages,
-          onSendJulesMessage: (text, atts, tplIds, rawUserText) => handleSendJulesMessage(text, atts, tplIds, rawUserText),
-          onClearJulesMessages: handleClearJulesMessages,
-          onStopJulesPolling: handleStopJulesPolling,
-          isJulesExecuting,
+          isApprovingJulesPlan, messages: _julesMessages, onSendMessage: (text, atts, tplIds, rawUserText) => handleSendJulesMessage(text, atts, tplIds, rawUserText),
+          onClearMessages: handleClearJulesMessages,
+          onStopGeneration: handleStopJulesPolling,
+           isGenerating: _isJulesExecuting,
           hasJulesApiKey: Boolean(julesApiKey.trim()),
-          onSelectJulesSession: handleSelectJulesSession
+          onSelectJulesSession: handleSelectJulesSession,
+          onRegenerate: () => {},
         }}
       />
 

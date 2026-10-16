@@ -202,7 +202,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     setShowBulkDeleteConfirm: setShowBulkDeleteProjectsConfirm,
     bulkDeleteConfirmationText,
     setBulkDeleteConfirmationText,
-    toggleSelection: toggleProjectSelection,
+    toggleSelection: _toggleProjectSelection,
     toggleSelectAll: toggleSelectAllProjectsRaw,
     clearSelection: clearProjectSelection,
     handleBulkDelete: handleBulkDeleteProjects,

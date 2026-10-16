@@ -64,13 +64,14 @@ export interface JulesWorkspaceProps extends SharedWorkspaceProps {
   onApproveJulesPlan: (taskId: string) => Promise<void> | void;
   onRejectJulesPlan: (taskId: string) => Promise<void> | void;
   isApprovingJulesPlan: boolean;
-  julesMessages: ChatMessage[];
-  onSendJulesMessage: (text: string, attachments?: MessageAttachment[], templateIds?: string[], rawUserText?: string) => Promise<boolean | void> | void;
-  onClearJulesMessages: () => void;
-  onStopJulesPolling: () => void;
-  isJulesExecuting: boolean;
+  messages: ChatMessage[];
+  onSendMessage: (text: string, attachments?: MessageAttachment[], templateIds?: string[], rawUserText?: string) => Promise<boolean | void> | void;
+  onClearMessages: () => void;
+  onStopGeneration: () => void;
+  isGenerating: boolean;
   hasJulesApiKey: boolean;
   onSelectJulesSession: (s: Partial<JulesSession>) => void;
+  onRegenerate: () => void;
 }
 
 export interface WorkspaceRouterProps {
