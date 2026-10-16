@@ -1,11 +1,14 @@
 import React from "react";
 import { X, AlertCircle } from "lucide-react";
 
-export interface ConflictResolutionModalProps {
-  isOpen: boolean;
+export interface ConflictResolutionHandlers {
   onCancel: () => void;
   onKeepRemote: () => void;
   onOverwriteRemote: () => void;
+}
+
+export interface ConflictResolutionModalProps extends ConflictResolutionHandlers {
+  isOpen: boolean;
   localData: Record<string, unknown>;
   remoteData: Record<string, unknown>;
   title?: string;

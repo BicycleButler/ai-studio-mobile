@@ -12,10 +12,13 @@ import {
 import { GoogleUser } from "../types";
 import { GoogleIcon } from "./GoogleIcon";
 
-interface GoogleAuthCardProps {
-  user: GoogleUser | null;
+export interface GoogleAuthActionHandlers {
   onLogin: (email?: string, name?: string) => Promise<void>;
   onLogout: () => Promise<void>;
+}
+
+export interface GoogleAuthCardProps extends GoogleAuthActionHandlers {
+  user: GoogleUser | null;
   liveModelsCount?: number;
   compact?: boolean;
 }

@@ -66,12 +66,7 @@ export type SettingsTab =
   | "model"
   | "models";
 
-interface UnifiedSettingsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialTab?: SettingsTab;
-
-  // Account, Keys & Projects
+export interface AccountSettingsProps {
   customApiKey: string;
   onSaveCustomApiKey: (key: string) => void;
   julesApiKey?: string;
@@ -81,7 +76,9 @@ interface UnifiedSettingsModalProps {
   googleUser?: GoogleUser | null;
   onGoogleLogin?: (email?: string, name?: string) => Promise<void>;
   onGoogleLogout?: () => Promise<void>;
-  liveModelsCount?: number;
+}
+
+export interface ProjectSettingsProps {
   onOpenCustomTabBrowser?: (service?: "aistudio" | "jules") => void;
   onOpenImportProject?: () => void;
   activeProjectName?: string;
@@ -91,23 +88,38 @@ interface UnifiedSettingsModalProps {
   onRenameProject?: (id: string, newName: string) => void;
   onDeleteProject?: (id: string) => void;
   onBulkDeleteProjects?: (ids: string[]) => void;
+}
 
-  // Audio / Speech
+export interface SpeechSettingsProps {
   speechSettings: SpeechSettings;
   onSaveSpeechSettings: (newSettings: SpeechSettings) => void;
+}
 
-  // Parameter trigger (canonical home is TunerBottomSheet)
-  onOpenParameters?: () => void;
-  config?: PromptConfig;
-  onChangeConfig?: (newConfig: PromptConfig) => void;
-  models?: ModelInfo[];
-
-  // Library
+export interface LibrarySettingsProps {
   savedPrompts?: SavedPrompt[];
   onLoadPrompt?: (prompt: SavedPrompt) => void;
   onSaveCurrentPrompt?: (title: string) => void;
   onDeletePrompt?: (id: string) => void;
   onBulkDeletePrompts?: (ids: string[]) => void;
+}
+
+export interface ConfigSettingsProps {
+  onOpenParameters?: () => void;
+  config?: PromptConfig;
+  onChangeConfig?: (newConfig: PromptConfig) => void;
+  models?: ModelInfo[];
+}
+
+export interface UnifiedSettingsModalProps
+  extends AccountSettingsProps,
+          ProjectSettingsProps,
+          SpeechSettingsProps,
+          LibrarySettingsProps,
+          ConfigSettingsProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialTab?: SettingsTab;
+  liveModelsCount?: number;
 
   // Export
   messages?: ChatMessage[];

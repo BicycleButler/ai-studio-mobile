@@ -515,7 +515,7 @@ export default function App() {
         onOpenSettings={handleOpenSettings}
         activeProjectId={activeProject?.id}
         currentSessionId={currentSessionId}
-        onSelectSession={(s) => handleSelectChatSession(s, stopStream)}
+        onSelectSession={(s) => handleSelectChatSession(s as import("./types").ChatSession, stopStream)}
         onNewChat={() => handleStartNewChat(stopStream)}
         onOpenBottomNav={() => setShowBottomNav(true)}
         isTemplateDrawerOpen={isTemplateDrawerOpen}
