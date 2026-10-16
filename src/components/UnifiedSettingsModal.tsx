@@ -1,3 +1,4 @@
+import { useBatchSelection } from "../hooks/useBatchSelection";
 import { safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -195,39 +196,32 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
 
   // Batch Selection State
-  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
-  const [showBulkDeleteProjectsConfirm, setShowBulkDeleteProjectsConfirm] = useState(false);
-  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
+  const {
+    selectedIds: selectedProjectIds,
+    showBulkDeleteConfirm: showBulkDeleteProjectsConfirm,
+    setShowBulkDeleteConfirm: setShowBulkDeleteProjectsConfirm,
+    bulkDeleteConfirmationText,
+    setBulkDeleteConfirmationText,
+    toggleSelection: toggleProjectSelection,
+    toggleSelectAll: toggleSelectAllProjectsRaw,
+    clearSelection: clearProjectSelection,
+    handleBulkDelete: handleBulkDeleteProjects,
+  } = useBatchSelection({
+    items: projects,
+    getItemId: (p) => p.id,
+    onBulkDelete: onBulkDeleteProjects
+      ? onBulkDeleteProjects
+      : (ids) => ids.forEach((id) => onDeleteProject && onDeleteProject(id)),
+  });
 
   const toggleSelectAllProjects = useCallback(() => {
-    if (selectedProjectIds.size === projects.length && projects.length > 0) {
-      setSelectedProjectIds(new Set());
-    } else {
-      setSelectedProjectIds(new Set(projects.map((p) => p.id)));
-    }
-  }, [selectedProjectIds.size, projects]);
-
-  const clearProjectSelection = useCallback(() => {
-    setSelectedProjectIds(new Set());
-  }, []);
+    toggleSelectAllProjectsRaw(projects);
+  }, [toggleSelectAllProjectsRaw, projects]);
 
   // Clear project selection when switching tabs (ADR 0047)
   useEffect(() => {
     clearProjectSelection();
   }, [activeTab, clearProjectSelection]);
-
-  const handleBulkDeleteProjects = () => {
-    if (onBulkDeleteProjects) {
-      onBulkDeleteProjects(Array.from(selectedProjectIds));
-    } else {
-      Array.from(selectedProjectIds).forEach((id) => {
-        if (onDeleteProject) onDeleteProject(id);
-      });
-    }
-    clearProjectSelection();
-    setShowBulkDeleteProjectsConfirm(false);
-    setBulkDeleteConfirmationText("");
-  };
   const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
 
   // Enable device/browser back navigation to dismiss drawer smoothly

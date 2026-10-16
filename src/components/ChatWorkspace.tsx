@@ -1,3 +1,4 @@
+import { useBatchSelection } from "../hooks/useBatchSelection";
 import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeWindow, getSafeWindowVisualViewport } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo , useCallback} from "react";
 import {
@@ -157,11 +158,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const [selectedHistoryIds, setSelectedHistoryIds] = useState<Set<string>>(new Set());
-  const [lastSelectedHistoryId, setLastSelectedHistoryId] = useState<string | null>(null);
-  const [showBulkDeleteHistoryConfirm, setShowBulkDeleteHistoryConfirm] = useState(false);
-  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
-
   const [historySessions, setHistorySessions] = useState<ChatSession[]>(() => {
     if (isJulesMode) {
       return loadStoredJulesSessions().map((js) => ({
@@ -180,44 +176,41 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     return historySessions.filter((s) => !isMockChatSession(s));
   }, [historySessions]);
 
-  const toggleHistorySelection = useCallback((id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
-    e.stopPropagation();
-    setSelectedHistoryIds((prev) => {
-      const next = new Set(prev);
-      if (e.shiftKey && lastSelectedHistoryId) {
-        const lastIndex = validHistorySessions.findIndex((p) => p.id === lastSelectedHistoryId);
-        if (lastIndex !== -1) {
-          const start = Math.min(index, lastIndex);
-          const end = Math.max(index, lastIndex);
-          for (let i = start; i <= end; i++) {
-            next.add(validHistorySessions[i].id);
-          }
-          return next;
+  const {
+    selectedIds: selectedHistoryIds,
+    showBulkDeleteConfirm: showBulkDeleteHistoryConfirm,
+    setShowBulkDeleteConfirm: setShowBulkDeleteHistoryConfirm,
+    bulkDeleteConfirmationText,
+    setBulkDeleteConfirmationText,
+    toggleSelection: toggleHistorySelectionRaw,
+    toggleSelectAll: toggleSelectAllHistoryRaw,
+    clearSelection: clearHistorySelection,
+    handleBulkDelete: handleBulkDeleteHistory,
+  } = useBatchSelection({
+    items: validHistorySessions,
+    getItemId: (s) => s.id,
+    onBulkDelete: (ids) => {
+      bulkDeleteChatSessions(ids, activeProjectId || "");
+
+      // Check if current session was deleted
+      if (new Set(ids).has(currentSessionId!)) {
+        if (onNewChat) {
+          onNewChat();
         }
       }
 
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-    setLastSelectedHistoryId(id);
-  }, [lastSelectedHistoryId, validHistorySessions]);
+      const updated = getChatSessions(activeProjectId);
+      setHistorySessions(updated);
+    },
+  });
+
+  const toggleHistorySelection = useCallback((id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
+    toggleHistorySelectionRaw(id, e, index, validHistorySessions);
+  }, [toggleHistorySelectionRaw, validHistorySessions]);
 
   const toggleSelectAllHistory = useCallback(() => {
-    if (selectedHistoryIds.size === validHistorySessions.length && validHistorySessions.length > 0) {
-      setSelectedHistoryIds(new Set());
-    } else {
-      setSelectedHistoryIds(new Set(validHistorySessions.map((s) => s.id)));
-    }
-  }, [selectedHistoryIds.size, validHistorySessions]);
-
-  const clearHistorySelection = useCallback(() => {
-    setSelectedHistoryIds(new Set());
-    setLastSelectedHistoryId(null);
-  }, []);
+    toggleSelectAllHistoryRaw(validHistorySessions);
+  }, [toggleSelectAllHistoryRaw, validHistorySessions]);
 
   // Clear selection on popover close
   useEffect(() => {
@@ -225,24 +218,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       clearHistorySelection();
     }
   }, [isHistoryOpen, clearHistorySelection]);
-
-  const handleBulkDeleteHistory = () => {
-    bulkDeleteChatSessions(Array.from(selectedHistoryIds), activeProjectId || "");
-
-    // Check if current session was deleted
-    if (selectedHistoryIds.has(currentSessionId!)) {
-      if (onNewChat) {
-        onNewChat();
-      }
-    }
-
-    const updated = getChatSessions(activeProjectId);
-    setHistorySessions(updated);
-
-    clearHistorySelection();
-    setShowBulkDeleteHistoryConfirm(false);
-    setBulkDeleteConfirmationText("");
-  };
 
   const historyPopoverRef = useRef<HTMLDivElement>(null);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
