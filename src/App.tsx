@@ -14,17 +14,19 @@ import { CustomTabBrowserModal } from "./components/CustomTabBrowserModal";
 import { ImportProjectSheet } from "./components/ImportProjectSheet";
 import { SecurePrivacyShield } from "./components/SecurePrivacyShield";
 import { JulesSessionDrawer } from "./components/JulesSessionDrawer";
+import { ClipboardKeyBanner } from "./components/ClipboardKeyBanner";
+import { AuthRequiredBanner } from "./components/AuthRequiredBanner";
+import { StreamErrorBanner } from "./components/StreamErrorBanner";
 import { useGeminiStream } from "./hooks/useGeminiStream";
 import { useJules } from "./hooks/useJules";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
 import { useWindowSecurity } from "./hooks/useWindowSecurity";
-import { maskApiKey, clearClipboardSafe } from "./services/keyVerification";
+import { clearClipboardSafe } from "./services/keyVerification";
 import {
   updateStoredProject,
 } from "./utils/storage";
 import { saveSpeechSettings } from "./services/speechVoices";
-import { AlertCircle, AlertTriangle, Key, RefreshCw, X, Shield, ArrowRight, ExternalLink } from "lucide-react";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
 import { initializeSyncHandlers } from "./utils/syncRegistry";
@@ -339,157 +341,49 @@ export default function App() {
         selectedTemplateCount={selectedTemplateIds.length}
       />
 
-      {/* Floating Clipboard Key Sniffer Detection Alert */}
-      {clipboardToastKey && !showImportModal && !showCustomTabBrowser && (
-        <div
-          id="clipboard-key-detection-banner"
-          className="mx-3 my-2 p-3 rounded-xl bg-gradient-to-r from-blue-950/90 to-indigo-950/90 border border-blue-500/40 text-blue-200 flex items-center justify-between gap-2.5 shadow-lg animate-in slide-in-from-top-2 shrink-0"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-              <Key className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-white">Google API Key Copied</span>
-                <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-mono">
-                  {maskApiKey(clipboardToastKey)}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-300 truncate">
-                Tap to import and activate in this project
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              id="dismiss-clipboard-banner-btn"
-              onClick={async () => {
-                setClipboardToastKey(null);
-                setCandidateClipboardKey("");
-                await clearClipboardSafe();
-              }}
-              className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
-              title="Dismiss and wipe clipboard"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              id="import-detected-key-btn"
-              onClick={() => {
-                setCandidateClipboardKey(clipboardToastKey);
-                setShowImportModal(true);
-                setClipboardToastKey(null);
-              }}
-              className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1 transition-colors shadow-sm active:scale-95"
-            >
-              <span>Import</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-        </div>
-      )}
+      <ClipboardKeyBanner
+        clipboardToastKey={clipboardToastKey}
+        showImportModal={showImportModal}
+        showCustomTabBrowser={showCustomTabBrowser}
+        onDismiss={async () => {
+          setClipboardToastKey(null);
+          setCandidateClipboardKey("");
+          await clearClipboardSafe();
+        }}
+        onImport={() => {
+          setCandidateClipboardKey(clipboardToastKey || "");
+          setShowImportModal(true);
+          setClipboardToastKey(null);
+        }}
+      />
 
-      {/* Unauthenticated Alert Banner */}
-      {!hasApiKey && (
-        <div className="bg-muted/90 border-b border-border px-3.5 py-2 text-xs text-foreground flex items-center justify-between gap-2 shrink-0 animate-in fade-in">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <Shield className="w-4 h-4 text-primary shrink-0" />
-            <span className="truncate text-[11px] sm:text-xs">
-              <strong>Authentication Required:</strong> Connect your AI Studio workspace or API key to start prompting.
-            </span>
-          </div>
-          <button
-            id="banner-auth-btn"
-            onClick={() => handleOpenSettings("account")}
-            className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-[11px] shadow-sm flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
-          >
-            <Key className="w-3 h-3" />
-            <span>Connect</span>
-          </button>
-        </div>
-      )}
+      <AuthRequiredBanner
+        hasApiKey={hasApiKey}
+        onOpenSettings={() => handleOpenSettings("account")}
+      />
 
-      {/* Granular Error Banner (Quota, Auth, Revocation, Network) */}
-      {streamError && (
-        <div
-          className={`border-b px-3 py-2 text-xs flex items-center justify-between gap-2 shrink-0 ${
-            errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key"
-              ? "bg-muted border-border text-foreground"
-              : "bg-destructive/15 border-destructive/30 text-foreground /* error */"
-          }`}
-        >
-          <div className="flex items-center gap-2 overflow-hidden">
-            {errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key" ? (
-              <AlertTriangle className="w-4 h-4 text-zinc-400 shrink-0 animate-pulse" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            )}
-            <span className="truncate">
-              {errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key"
-                ? "API key expired or revoked — Update API Key in AI Studio to resume requests."
-                : streamError}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {errorDetails?.isKeyInvalid || activeProject?.status === "invalid_key" ? (
-              <button
-                type="button"
-                id="banner-update-ai-studio-btn"
-                onClick={() => {
-                  clearError();
-                  setShowCustomTabBrowser(true);
-                }}
-                className="px-2.5 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold flex items-center gap-1 text-[11px] shadow-sm transition-colors"
-              >
-                <ExternalLink className="w-3 h-3" />
-                <span>Update in AI Studio</span>
-              </button>
-            ) : errorDetails?.isAuthError ? (
-              <button
-                onClick={() => {
-                  clearError();
-                  handleOpenSettings("account");
-                }}
-                className="px-2 py-0.5 rounded bg-rose-800 hover:bg-rose-700 text-rose-100 font-medium flex items-center gap-1 text-[11px]"
-              >
-                <Key className="w-3 h-3" /> Fix Key
-              </button>
-            ) : null}
-            {errorDetails?.isQuotaError && (
-              <button
-                onClick={() => {
-                  clearError();
-                  setConfig((prev) => ({ ...prev, model: "gemini-3.1-flash-lite" }));
-                }}
-                className="px-2 py-0.5 rounded bg-amber-800 hover:bg-amber-700 text-amber-100 font-medium flex items-center gap-1 text-[11px]"
-              >
-                <RefreshCw className="w-3 h-3" /> Try Lite
-              </button>
-            )}
-            {errorDetails?.isUnavailable && (
-              <button
-                onClick={() => {
-                  clearError();
-                  handleRegenerate();
-                }}
-                className="px-2 py-0.5 rounded bg-amber-800 hover:bg-amber-700 text-amber-100 font-medium flex items-center gap-1 text-[11px]"
-              >
-                <RefreshCw className="w-3 h-3" /> Retry
-              </button>
-            )}
-            <button
-              onClick={clearError}
-              className="p-1 text-zinc-400 hover:text-white rounded transition-colors"
-              title="Dismiss error"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
+      <StreamErrorBanner
+        streamError={streamError}
+        errorDetails={errorDetails}
+        activeProjectStatus={activeProject?.status}
+        onClearError={clearError}
+        onUpdateInAIStudio={() => {
+          clearError();
+          setShowCustomTabBrowser(true);
+        }}
+        onFixKey={() => {
+          clearError();
+          handleOpenSettings("account");
+        }}
+        onTryLite={() => {
+          clearError();
+          setConfig((prev) => ({ ...prev, model: "gemini-3.1-flash-lite" }));
+        }}
+        onRetry={() => {
+          clearError();
+          handleRegenerate();
+        }}
+      />
 
       {/* Main Content Area: Primary Active Workspace */}
       <WorkspaceRouter
