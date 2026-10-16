@@ -1,4 +1,6 @@
 import React from "react";
+import { SettingsTab } from "./UnifiedSettingsModal";
+import { SpeechSettings } from "../services/speechVoices";
 import { ChatWorkspace } from "./ChatWorkspace";
 import { MobileIDEWorkspace } from "./MobileIDEWorkspace";
 import { StubsWorkspace } from "./StubsWorkspace";
@@ -9,8 +11,8 @@ import {
   StructuredExample,
   MessageAttachment,
   JulesSession,
-  SpeechSettings,
-  ChatSessionItem,
+
+  ChatSession,
 } from "../types";
 
 export interface SharedWorkspaceProps {
@@ -19,7 +21,7 @@ export interface SharedWorkspaceProps {
   onOpenParameters: () => void;
   hasApiKey: boolean;
   onOpenAuth: () => void;
-  onOpenSettings: (tab: "account" | "display" | "security") => void;
+  onOpenSettings: (tab?: SettingsTab) => void;
   activeProjectId?: string;
   onOpenBottomNav: () => void;
 
@@ -45,7 +47,7 @@ export interface ChatWorkspaceProps extends SharedWorkspaceProps {
   onStopGeneration: () => void;
   isGenerating: boolean;
   currentSessionId?: string;
-  onSelectSession: (s: Partial<ChatSessionItem>) => void;
+  onSelectSession: (s: Partial<ChatSession>) => void;
   onNewChat: () => void;
 }
 

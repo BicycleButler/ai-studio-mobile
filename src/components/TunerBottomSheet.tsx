@@ -23,15 +23,19 @@ import { useBackNavigation } from "../hooks/useBackNavigation";
 import { safeAddEventListener } from "../utils/platform";
 import { Drawer } from "./ui/Drawer.tsx";
 
-interface TunerBottomSheetProps {
-  config: PromptConfig;
-  onChangeConfig: (newConfig: PromptConfig) => void;
-  models: ModelInfo[];
+export interface TunerActionHandlers {
   onClose?: () => void;
-  isModal?: boolean;
-  isOpen?: boolean;
-  hasApiKey?: boolean;
+  onChangeConfig: (newConfig: PromptConfig) => void;
   onOpenAuth?: () => void;
+}
+
+export interface TunerBottomSheetProps extends TunerActionHandlers {
+  isOpen?: boolean;
+  config: PromptConfig;
+  models: ModelInfo[];
+  liveModelsCount?: number;
+  isModal?: boolean;
+  hasApiKey?: boolean;
 }
 
 export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
