@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useRef, useEffect, KeyboardEvent } from "react";
+import React, { createContext, useContext, useState, useRef, useEffect } from "react";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 
 interface SegmentedControlContextType {
   activeValue: string;
@@ -42,33 +43,12 @@ export function SegmentedControl({
     el?.focus();
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const itemValues = Array.from((e.currentTarget.querySelectorAll('[role="radio"]') as NodeListOf<HTMLButtonElement>)).map(el => el.dataset.value);
-    if (itemValues.length === 0) return;
-
-    const currentIndex = itemValues.indexOf(activeValue);
-    let nextIndex = currentIndex;
-
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-      nextIndex = (currentIndex + 1) % itemValues.length;
-      e.preventDefault();
-    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-      nextIndex = (currentIndex - 1 + itemValues.length) % itemValues.length;
-      e.preventDefault();
-    } else if (e.key === "Home") {
-      nextIndex = 0;
-      e.preventDefault();
-    } else if (e.key === "End") {
-      nextIndex = itemValues.length - 1;
-      e.preventDefault();
-    }
-
-    if (nextIndex !== currentIndex && itemValues[nextIndex]) {
-      const nextItem = itemValues[nextIndex]!;
-      handleSetActiveValue(nextItem);
-      focusItem(nextItem);
-    }
-  };
+  const handleKeyDown = useKeyboardNavigation({
+    activeValue,
+    setActiveValue: handleSetActiveValue,
+    focusItem,
+    itemSelector: '[role="radio"]'
+  });
 
   return (
     <SegmentedControlContext.Provider value={{ activeValue, setActiveValue: handleSetActiveValue, registerItem, focusItem }}>
