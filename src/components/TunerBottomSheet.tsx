@@ -1,11 +1,9 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Sliders,
   RotateCcw,
   FileJson,
   Layers,
-  X,
   Key,
   ShieldCheck,
   Check,
@@ -14,7 +12,6 @@ import {
   Brain,
   CheckCircle2,
   AlertCircle,
-  ArrowLeft,
 } from "lucide-react";
 import { PromptConfig, ModelInfo } from "../types";
 import {

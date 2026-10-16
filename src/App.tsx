@@ -5,9 +5,7 @@ import {
   IncomingMessage,
 } from "./types";
 import { TopAppBar } from "./components/TopAppBar";
-import { ChatWorkspace } from "./components/ChatWorkspace";
-import { MobileIDEWorkspace } from "./components/MobileIDEWorkspace";
-import { StubsWorkspace } from "./components/StubsWorkspace";
+import { WorkspaceRouter } from "./components/WorkspaceRouter";
 import { TunerBottomSheet } from "./components/TunerBottomSheet";
 import { UnifiedSettingsModal } from "./components/UnifiedSettingsModal";
 import { AndroidFrame } from "./components/AndroidFrame";
@@ -494,113 +492,55 @@ export default function App() {
       )}
 
       {/* Main Content Area: Primary Active Workspace */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        {promptType === "chat" && (
-          <ChatWorkspace
-            messages={messages}
-            onSendMessage={(text, atts, tplIds, rawText) => void handleSendMessage(text, atts, tplIds, rawText)}
-            onClearMessages={() => handleStartNewChat(stopStream)}
-            onRegenerate={handleRegenerate}
-            onStopGeneration={stopStream}
-            isGenerating={isGenerating}
-            config={config}
-            onUpdateSystemInstruction={(inst) =>
-              setConfig((prev) => ({ ...prev, systemInstruction: inst }))
-            }
-            onOpenParameters={() => setShowTunerSheet(true)}
-            hasApiKey={hasApiKey}
-            onOpenAuth={() => handleOpenSettings("account")}
-            speechSettings={speechSettings}
-            onSaveSpeechSettings={(newSettings) => {
-              setSpeechSettings(newSettings);
-              saveSpeechSettings(newSettings);
-            }}
-            onOpenSettings={handleOpenSettings}
-            activeProjectId={activeProject?.id}
-            currentSessionId={currentSessionId}
-            onSelectSession={(s) => handleSelectChatSession(s, stopStream)}
-            onNewChat={() => handleStartNewChat(stopStream)}
-            onOpenBottomNav={() => setShowBottomNav(true)}
-            isTemplateDrawerOpen={isTemplateDrawerOpen}
-            onOpenTemplateDrawer={() => setIsTemplateDrawerOpen(true)}
-            onCloseTemplateDrawer={() => setIsTemplateDrawerOpen(false)}
-            selectedTemplateIds={selectedTemplateIds}
-            onToggleTemplate={handleToggleTemplate}
-            onRemoveTemplate={handleRemoveTemplate}
-            onClearAllTemplates={handleClearAllTemplates}
-          />
-        )}
-        {promptType === "code" && (
-          <MobileIDEWorkspace
-            config={config}
-            messages={messages}
-            freeformText={freeformText}
-            structuredExamples={structuredExamples}
-            hasApiKey={hasApiKey}
-            onOpenAuth={() => handleOpenSettings("account")}
-            onSwitchToPrompt={() => {
-              setPromptType("chat");
-            }}
-            onOpenParameters={() => setShowTunerSheet(true)}
-          />
-        )}
-        {promptType === "jules" && (
-          <ChatWorkspace
-            isJulesMode={true}
-            activeJulesSession={activeJulesSession}
-            onOpenJulesSessions={() => setShowJulesDrawer(true)}
-            onApproveJulesPlan={(taskId) => void handleApproveJulesPlan(taskId)}
-            onRejectJulesPlan={(taskId) => void handleRejectJulesPlan(taskId)}
-            isApprovingJulesPlan={isApprovingJulesPlan}
-            messages={julesMessages}
-            onSendMessage={async (text, attachments, templateIds, rawUserText) => {
-              if (!julesApiKey.trim()) {
-                 handleOpenSettings("account");
-                 return;
-              }
-              const result = await handleSendJulesMessage(text, attachments, templateIds, rawUserText);
-              if (result === false) {
-                 setShowJulesDrawer(true);
-              }
-            }}
-            onClearMessages={handleClearJulesMessages}
-            onRegenerate={() => {}}
-            onStopGeneration={handleStopJulesPolling}
-            isGenerating={isJulesExecuting}
-            config={config}
-            onUpdateSystemInstruction={(inst) =>
-              setConfig((prev) => ({ ...prev, systemInstruction: inst }))
-            }
-            onOpenParameters={() => setShowTunerSheet(true)}
-            hasApiKey={Boolean(julesApiKey.trim())}
-            onOpenAuth={() => handleOpenSettings("account")}
-            speechSettings={speechSettings}
-            onSaveSpeechSettings={(newSettings) => {
-              setSpeechSettings(newSettings);
-              saveSpeechSettings(newSettings);
-            }}
-            onOpenSettings={handleOpenSettings}
-            activeProjectId={activeProject?.id}
-            currentSessionId={activeJulesSession?.id}
-            onSelectSession={handleSelectJulesSession}
-            onNewChat={() => setShowJulesDrawer(true)}
-            onOpenBottomNav={() => setShowBottomNav(true)}
-            isTemplateDrawerOpen={isTemplateDrawerOpen}
-            onOpenTemplateDrawer={() => setIsTemplateDrawerOpen(true)}
-            onCloseTemplateDrawer={() => setIsTemplateDrawerOpen(false)}
-            selectedTemplateIds={selectedTemplateIds}
-            onToggleTemplate={handleToggleTemplate}
-            onRemoveTemplate={handleRemoveTemplate}
-            onClearAllTemplates={handleClearAllTemplates}
-          />
-        )}
-        {promptType === "stubs" && (
-          <StubsWorkspace
-            onOpenBottomNav={() => setShowBottomNav(true)}
-            onOpenParameters={() => setShowTunerSheet(true)}
-          />
-        )}
-      </main>
+      <WorkspaceRouter
+        promptType={promptType}
+        messages={messages}
+        onSendMessage={(text, atts, tplIds, rawText) => void handleSendMessage(text, atts, tplIds, rawText)}
+        onClearMessages={() => handleStartNewChat(stopStream)}
+        onRegenerate={handleRegenerate}
+        onStopGeneration={stopStream}
+        isGenerating={isGenerating}
+        config={config}
+        onUpdateSystemInstruction={(inst) =>
+          setConfig((prev) => ({ ...prev, systemInstruction: inst }))
+        }
+        onOpenParameters={() => setShowTunerSheet(true)}
+        hasApiKey={hasApiKey}
+        onOpenAuth={() => handleOpenSettings("account")}
+        speechSettings={speechSettings}
+        onSaveSpeechSettings={(newSettings) => {
+          setSpeechSettings(newSettings);
+          saveSpeechSettings(newSettings);
+        }}
+        onOpenSettings={handleOpenSettings}
+        activeProjectId={activeProject?.id}
+        currentSessionId={currentSessionId}
+        onSelectSession={(s) => handleSelectChatSession(s, stopStream)}
+        onNewChat={() => handleStartNewChat(stopStream)}
+        onOpenBottomNav={() => setShowBottomNav(true)}
+        isTemplateDrawerOpen={isTemplateDrawerOpen}
+        onOpenTemplateDrawer={() => setIsTemplateDrawerOpen(true)}
+        onCloseTemplateDrawer={() => setIsTemplateDrawerOpen(false)}
+        selectedTemplateIds={selectedTemplateIds}
+        onToggleTemplate={handleToggleTemplate}
+        onRemoveTemplate={handleRemoveTemplate}
+        onClearAllTemplates={handleClearAllTemplates}
+        freeformText={freeformText}
+        structuredExamples={structuredExamples}
+        onSwitchToPrompt={() => { setPromptType("chat"); }}
+        activeJulesSession={activeJulesSession}
+        onOpenJulesSessions={() => setShowJulesDrawer(true)}
+        onApproveJulesPlan={(taskId) => void handleApproveJulesPlan(taskId)}
+        onRejectJulesPlan={(taskId) => void handleRejectJulesPlan(taskId)}
+        isApprovingJulesPlan={isApprovingJulesPlan}
+        julesMessages={julesMessages}
+        onSendJulesMessage={(text, atts, tplIds, rawUserText) => handleSendJulesMessage(text, atts, tplIds, rawUserText)}
+        onClearJulesMessages={handleClearJulesMessages}
+        onStopJulesPolling={handleStopJulesPolling}
+        isJulesExecuting={isJulesExecuting}
+        hasJulesApiKey={Boolean(julesApiKey.trim())}
+        onSelectJulesSession={handleSelectJulesSession}
+      />
 
       {/* Primary Android Workspace Bottom Navigation Bar */}
       <BottomNavBar
