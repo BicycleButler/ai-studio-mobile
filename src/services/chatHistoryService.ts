@@ -1,9 +1,16 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorageArray, safeSetStorage, safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
+import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
 
 function getChatCollection(projectId?: string): StorageCollection<ChatSession> {
   const key = getChatSessionsStorageKey(projectId);
+  return new StorageCollection<ChatSession>(key, {
+    validate: (s) => !isMockChatSession(s as Partial<ChatSession>),
+    maxItems: 100,
+  });
+}
+
+function getChatCollectionByKey(key: string): StorageCollection<ChatSession> {
   return new StorageCollection<ChatSession>(key, {
     validate: (s) => !isMockChatSession(s as Partial<ChatSession>),
     maxItems: 100,
@@ -42,12 +49,15 @@ export function purgeMockSessionsFromStorage(): void {
       const keysToClean = safeGetStorageKeys(STORAGE_KEYS.CHAT_SESSIONS_PREFIX);
 
       keysToClean.forEach((key) => {
-        const sessions = safeGetStorageArray<ChatSession>(key, []);
-        if (Array.isArray(sessions)) {
-          const cleanSessions = sessions.filter((s) => !isMockChatSession(s));
-          if (cleanSessions.length !== sessions.length) {
-            safeSetStorage(key, cleanSessions);
-          }
+        const collection = getChatCollectionByKey(key);
+        // We temporarily create a new collection without validation to load the raw data,
+        // then compare its length to the validated collection.
+        const rawCollection = new StorageCollection<ChatSession>(key, {});
+        const rawSessions = rawCollection.load();
+
+        const cleanSessions = collection.load();
+        if (cleanSessions.length !== rawSessions.length) {
+          collection.save(cleanSessions);
         }
       });
     }
