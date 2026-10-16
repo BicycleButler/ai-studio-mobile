@@ -101,9 +101,9 @@ export function safeParseStorageItem<T>(
   }
 }
 
-export function safeGetStorage<T>(key: string, fallback: T): T {
+export function safeGetStorage<T>(key: string, fallback: T, storageInstance?: Storage): T {
   try {
-    const storage = getStorageInstance();
+    const storage = storageInstance || getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
     return safeParseStorageItem(key, raw, fallback, storage, false);
@@ -113,9 +113,9 @@ export function safeGetStorage<T>(key: string, fallback: T): T {
   }
 }
 
-export function safeGetStorageArray<T>(key: string, fallback: T[] = []): T[] {
+export function safeGetStorageArray<T>(key: string, fallback: T[] = [], storageInstance?: Storage): T[] {
   try {
-    const storage = getStorageInstance();
+    const storage = storageInstance || getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
     return safeParseStorageItem(key, raw, fallback, storage, true) as T[];
@@ -125,10 +125,10 @@ export function safeGetStorageArray<T>(key: string, fallback: T[] = []): T[] {
   }
 }
 
-export function safeGetStorageKeys(prefix: string): string[] {
+export function safeGetStorageKeys(prefix: string, storageInstance?: Storage): string[] {
   const keys: string[] = [];
   try {
-    const storage = getStorageInstance();
+    const storage = storageInstance || getStorageInstance();
     const len = storage.length;
     for (let i = 0; i < len; i++) {
       const key = storage.key(i);
@@ -142,9 +142,9 @@ export function safeGetStorageKeys(prefix: string): string[] {
   return keys;
 }
 
-export function safeSetStorage<T>(key: string, value: T): boolean {
+export function safeSetStorage<T>(key: string, value: T, storageInstance?: Storage): boolean {
   try {
-    const storage = getStorageInstance();
+    const storage = storageInstance || getStorageInstance();
     const serialized = JSON.stringify(value);
     return enforceStorageLimits(storage, key, serialized);
   } catch (err: unknown) {
@@ -153,18 +153,18 @@ export function safeSetStorage<T>(key: string, value: T): boolean {
   }
 }
 
-export function safeGetStorageString(key: string, fallback: string = ""): string {
+export function safeGetStorageString(key: string, fallback: string = "", storageInstance?: Storage): string {
   try {
-    const storage = getStorageInstance();
+    const storage = storageInstance || getStorageInstance();
     return storage.getItem(key) || fallback;
   } catch {
     return fallback;
   }
 }
 
-export function safeSetStorageString(key: string, value: string): boolean {
+export function safeSetStorageString(key: string, value: string, storageInstance?: Storage): boolean {
   try {
-    const storage = getStorageInstance();
+    const storage = storageInstance || getStorageInstance();
     return enforceStorageLimits(storage, key, value);
   } catch (err: unknown) {
     console.warn(`Failed to write string ${key} to storage:`, err);
@@ -172,10 +172,10 @@ export function safeSetStorageString(key: string, value: string): boolean {
   }
 }
 
-export function safeRemoveStorageKeysWithPrefix(prefix: string): void {
+export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance?: Storage): void {
   try {
-    const keysToRemove = safeGetStorageKeys(prefix);
-    const storage = getStorageInstance();
+    const storage = storageInstance || getStorageInstance();
+    const keysToRemove = safeGetStorageKeys(prefix, storage);
     for (const key of keysToRemove) {
       storage.removeItem(key);
     }
@@ -184,9 +184,9 @@ export function safeRemoveStorageKeysWithPrefix(prefix: string): void {
   }
 }
 
-export function safeRemoveStorage(key: string): boolean {
+export function safeRemoveStorage(key: string, storageInstance?: Storage): boolean {
   try {
-    const storage = getStorageInstance();
+    const storage = storageInstance || getStorageInstance();
     storage.removeItem(key);
     return true;
   } catch (err: unknown) {

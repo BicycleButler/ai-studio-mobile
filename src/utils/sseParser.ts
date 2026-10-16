@@ -8,6 +8,8 @@ export type SSEEventCallback = (eventName: string, data: string) => void;
 export class SSEStreamParser {
   private buffer: string = "";
   private onEvent: SSEEventCallback;
+  private currentEventName: string = "message";
+  private currentData: string[] = [];
 
   /**
    * @param onEvent Callback triggered when a complete SSE event (data payload) is parsed.
@@ -38,19 +40,41 @@ export class SSEStreamParser {
       this.processLines([this.buffer]);
       this.buffer = "";
     }
+    this.dispatchCurrentEvent();
+  }
+
+  private dispatchCurrentEvent(): void {
+    if (this.currentData.length > 0) {
+      this.onEvent(this.currentEventName, this.currentData.join("\n"));
+      this.currentData = [];
+    }
+    this.currentEventName = "message"; // Reset to default
   }
 
   private processLines(lines: string[]): void {
     for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (!line || !line.startsWith("data: ")) continue;
+      // Lines ending in \r need to be stripped
+      const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
 
-      const dataStr = line.slice(6).trim();
-      if (!dataStr) continue;
+      if (line === "") {
+        // Empty line signifies the end of an event
+        this.dispatchCurrentEvent();
+        continue;
+      }
 
-      // Currently hardcoded to emit 'message' events for standard data lines.
-      // Can be extended to support event type lines (e.g., 'event: ...').
-      this.onEvent("message", dataStr);
+      if (line.startsWith("event:")) {
+        this.currentEventName = line.slice(6).trim() || "message";
+      } else if (line.startsWith("data:")) {
+        this.currentData.push(line.slice(5).trim());
+      } else if (line.startsWith(":")) {
+        // Comment line, ignore
+        continue;
+      } else if (line.includes(":")) {
+         // other field types could be handled here (id, retry)
+      } else {
+         // this line is just data if it has no colon according to SSE spec
+         this.currentData.push(line);
+      }
     }
   }
 }
