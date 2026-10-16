@@ -2,6 +2,9 @@ import React from "react";
 import { ShieldCheck, CheckCircle2, Lock, Smartphone, ExternalLink, Bot, Check, FolderPlus, Folder, Trash2, Edit2, Loader2, AlertCircle } from "lucide-react";
 import { GoogleUser, ProjectInfo } from "../../types";
 import { GoogleAuthCard } from "../GoogleAuthCard";
+import { DatasetScopeBanner } from "../DatasetScopeBanner";
+import { FloatingBatchActionBar } from "../FloatingBatchActionBar";
+import { AnimatePresence, motion } from "motion/react";
 
 export interface SettingsAccountTabProps {
   customApiKey: string;
@@ -22,6 +25,16 @@ export interface SettingsAccountTabProps {
   onSelectProject: (p: ProjectInfo) => void;
   onRenameProject: (p: ProjectInfo) => void;
   onDeleteProject: (p: ProjectInfo) => void;
+  onBulkDeleteProjects?: (ids: string[]) => void;
+  selectedProjectIds?: Set<string>;
+  toggleProjectSelection?: (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredList?: ProjectInfo[]) => void;
+  toggleSelectAllProjects?: () => void;
+  clearProjectSelection?: () => void;
+  handleBulkDeleteProjects?: () => void;
+  showBulkDeleteProjectsConfirm?: boolean;
+  setShowBulkDeleteProjectsConfirm?: (show: boolean) => void;
+  bulkDeleteConfirmationText?: string;
+  setBulkDeleteConfirmationText?: (text: string) => void;
   liveModelsCount: number;
 }
 
@@ -44,7 +57,17 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
   onSelectProject,
   onRenameProject,
   onDeleteProject,
-  liveModelsCount
+  liveModelsCount,
+  // onBulkDeleteProjects, // keep it but don't use
+  selectedProjectIds,
+  toggleProjectSelection,
+  toggleSelectAllProjects,
+  clearProjectSelection,
+  handleBulkDeleteProjects,
+  showBulkDeleteProjectsConfirm,
+  setShowBulkDeleteProjectsConfirm,
+  bulkDeleteConfirmationText,
+  setBulkDeleteConfirmationText
 }) => {
   return (
     <div className="space-y-4">
@@ -257,17 +280,60 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
                 </button>
               </div>
 
+              {projects.length > 0 && toggleSelectAllProjects && (
+                <div className="py-2 border-b border-border bg-muted/40 flex flex-col gap-2 text-xs mb-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleSelectAllProjects()}
+                      className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
+                      aria-label="Select all projects on this page"
+                    >
+                      {selectedProjectIds?.size === projects.length ? (
+                        <Check className="w-4 h-4 text-primary" />
+                      ) : selectedProjectIds?.size && selectedProjectIds.size > 0 ? (
+                        <Check className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Check className="w-4 h-4 opacity-50" />
+                      )}
+                    </button>
+                    <span className="text-muted-foreground font-medium">
+                      {selectedProjectIds?.size && selectedProjectIds.size > 0
+                        ? `${selectedProjectIds.size} selected`
+                        : "Select all on this page"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Dataset Scope Banner (ADR 0047) */}
+              <DatasetScopeBanner selectedCount={selectedProjectIds?.size || 0} totalCount={projects.length} />
+
               <div className="space-y-2">
-                {projects.map((p) => (
+                {projects.map((p, index) => {
+                  const isSelected = selectedProjectIds?.has(p.id);
+                  return (
                   <div
                     key={p.id}
-                    className={`p-3 rounded-lg border ${
-                      activeProject?.id === p.id
+                    className={`p-3 rounded-lg border transition-colors flex items-center justify-between ${
+                      isSelected ? "bg-primary/5 border-primary/30" : activeProject?.id === p.id
                         ? "bg-blue-500/5 border-blue-500/30"
-                        : "bg-muted/50 border-border/50"
+                        : "bg-muted/50 border-border/50 hover:border-border"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={(e) => toggleProjectSelection && toggleProjectSelection(p.id, e, index)}
+                      className="me-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                      aria-label={`Select project ${p.name}`}
+                    >
+                      {isSelected ? (
+                        <Check className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Check className="w-4 h-4 opacity-50" />
+                      )}
+                    </button>
+                    <div className="flex items-center justify-between flex-1">
                       <div
                         className="flex-1 cursor-pointer"
                         onClick={() => onSelectProject(p)}
@@ -311,12 +377,76 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
                       </div>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Floating Batch Action Bar for Projects */}
+      <FloatingBatchActionBar
+        isVisible={!!(selectedProjectIds && selectedProjectIds.size > 0)}
+        selectedCount={selectedProjectIds?.size || 0}
+        onDelete={() => setShowBulkDeleteProjectsConfirm && setShowBulkDeleteProjectsConfirm(true)}
+        onClearSelection={() => clearProjectSelection && clearProjectSelection()}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showBulkDeleteProjectsConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-card border border-border rounded-xl shadow-xl overflow-hidden"
+            >
+              <div className="p-4 border-b border-border">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Delete {selectedProjectIds?.size} selected {selectedProjectIds?.size === 1 ? 'project' : 'projects'}?
+                </h3>
+              </div>
+              <div className="p-4 text-sm text-muted-foreground space-y-4">
+                <p>
+                  This action cannot be undone. This will permanently delete the selected projects from your local storage.
+                </p>
+                {selectedProjectIds && selectedProjectIds.size > 100 && (
+                  <div className="mt-4">
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Type the exact quantity ({selectedProjectIds.size}) to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={bulkDeleteConfirmationText || ""}
+                      onChange={(e) => setBulkDeleteConfirmationText && setBulkDeleteConfirmationText(e.target.value)}
+                      className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder={selectedProjectIds.size.toString()}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="p-4 bg-muted/40 border-t border-border flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkDeleteProjectsConfirm && setShowBulkDeleteProjectsConfirm(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteProjects}
+                  disabled={selectedProjectIds && selectedProjectIds.size > 100 && bulkDeleteConfirmationText !== selectedProjectIds.size.toString()}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed text-destructive-foreground transition-colors cursor-pointer shadow-sm"
+                >
+                  Delete {selectedProjectIds?.size} {selectedProjectIds?.size === 1 ? 'Project' : 'Projects'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
