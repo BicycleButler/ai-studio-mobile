@@ -1,6 +1,6 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorage, safeSetStorage, safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
+import { safeGetStorageArray, safeSetStorage, safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
 
 function getChatCollection(projectId?: string): StorageCollection<ChatSession> {
   const key = getChatSessionsStorageKey(projectId);
@@ -42,7 +42,7 @@ export function purgeMockSessionsFromStorage(): void {
       const keysToClean = safeGetStorageKeys(STORAGE_KEYS.CHAT_SESSIONS_PREFIX);
 
       keysToClean.forEach((key) => {
-        const sessions = safeGetStorage<ChatSession[]>(key, []);
+        const sessions = safeGetStorageArray<ChatSession>(key, []);
         if (Array.isArray(sessions)) {
           const cleanSessions = sessions.filter((s) => !isMockChatSession(s));
           if (cleanSessions.length !== sessions.length) {

@@ -1,15 +1,17 @@
-import { useState, useCallback, useEffect } from "react";
-import { safeGetStorage, safeSetStorage } from "../utils/storage";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { StorageSingleton } from "../utils/storage";
 
 export function useOfflineMutationQueue<T>(storageKey: string) {
+  const queueSingleton = useMemo(() => new StorageSingleton<T[]>(storageKey, []), [storageKey]);
+
   const [queue, setQueue] = useState<T[]>(() => {
-    return safeGetStorage<T[]>(storageKey, []);
+    return queueSingleton.load();
   });
 
   // Sync to storage whenever the queue changes
   useEffect(() => {
-    safeSetStorage(storageKey, queue);
-  }, [queue, storageKey]);
+    queueSingleton.save(queue);
+  }, [queue, queueSingleton]);
 
   const enqueue = useCallback((item: T) => {
     setQueue((prevQueue) => [...prevQueue, item]);
