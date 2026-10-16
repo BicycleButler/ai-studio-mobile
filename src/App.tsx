@@ -388,52 +388,59 @@ export default function App() {
       {/* Main Content Area: Primary Active Workspace */}
       <WorkspaceRouter
         promptType={promptType}
-        messages={messages}
-        onSendMessage={(text, atts, tplIds, rawText) => void handleSendMessage(text, atts, tplIds, rawText)}
-        onClearMessages={() => handleStartNewChat(stopStream)}
-        onRegenerate={handleRegenerate}
-        onStopGeneration={stopStream}
-        isGenerating={isGenerating}
-        config={config}
-        onUpdateSystemInstruction={(inst) =>
-          setConfig((prev) => ({ ...prev, systemInstruction: inst }))
-        }
-        onOpenParameters={() => setShowTunerSheet(true)}
-        hasApiKey={hasApiKey}
-        onOpenAuth={() => handleOpenSettings("account")}
-        speechSettings={speechSettings}
-        onSaveSpeechSettings={(newSettings) => {
-          setSpeechSettings(newSettings);
-          saveSpeechSettings(newSettings);
+        sharedProps={{
+          config,
+          onUpdateSystemInstruction: (inst) => setConfig((prev) => ({ ...prev, systemInstruction: inst })),
+          onOpenParameters: () => setShowTunerSheet(true),
+          hasApiKey,
+          onOpenAuth: () => handleOpenSettings("account"),
+          onOpenSettings: handleOpenSettings,
+          activeProjectId: activeProject?.id,
+          onOpenBottomNav: () => setShowBottomNav(true),
+          isTemplateDrawerOpen,
+          onOpenTemplateDrawer: () => setIsTemplateDrawerOpen(true),
+          onCloseTemplateDrawer: () => setIsTemplateDrawerOpen(false),
+          selectedTemplateIds,
+          onToggleTemplate: handleToggleTemplate,
+          onRemoveTemplate: handleRemoveTemplate,
+          onClearAllTemplates: handleClearAllTemplates,
+          speechSettings,
+          onSaveSpeechSettings: (newSettings) => {
+            setSpeechSettings(newSettings);
+            saveSpeechSettings(newSettings);
+          }
         }}
-        onOpenSettings={handleOpenSettings}
-        activeProjectId={activeProject?.id}
-        currentSessionId={currentSessionId}
-        onSelectSession={(s) => handleSelectChatSession(s as import("./types").ChatSession, stopStream)}
-        onNewChat={() => handleStartNewChat(stopStream)}
-        onOpenBottomNav={() => setShowBottomNav(true)}
-        isTemplateDrawerOpen={isTemplateDrawerOpen}
-        onOpenTemplateDrawer={() => setIsTemplateDrawerOpen(true)}
-        onCloseTemplateDrawer={() => setIsTemplateDrawerOpen(false)}
-        selectedTemplateIds={selectedTemplateIds}
-        onToggleTemplate={handleToggleTemplate}
-        onRemoveTemplate={handleRemoveTemplate}
-        onClearAllTemplates={handleClearAllTemplates}
-        freeformText={freeformText}
-        structuredExamples={structuredExamples}
-        onSwitchToPrompt={() => { setPromptType("chat"); }}
-        activeJulesSession={activeJulesSession}
-        onOpenJulesSessions={() => setShowJulesDrawer(true)}
-        onApproveJulesPlan={(taskId) => void handleApproveJulesPlan(taskId)}
-        onRejectJulesPlan={(taskId) => void handleRejectJulesPlan(taskId)}
-        isApprovingJulesPlan={isApprovingJulesPlan}
-        julesMessages={julesMessages}
-        onSendJulesMessage={(text, atts, tplIds, rawUserText) => handleSendJulesMessage(text, atts, tplIds, rawUserText)}
-        onClearJulesMessages={handleClearJulesMessages}
-        onStopJulesPolling={handleStopJulesPolling}
-        isJulesExecuting={isJulesExecuting}
-        hasJulesApiKey={Boolean(julesApiKey.trim())}
-        onSelectJulesSession={handleSelectJulesSession}
+        chatProps={{
+          messages,
+          onSendMessage: (text, atts, tplIds, rawText) => void handleSendMessage(text, atts, tplIds, rawText),
+          onClearMessages: () => handleStartNewChat(stopStream),
+          onRegenerate: handleRegenerate,
+          onStopGeneration: stopStream,
+          isGenerating,
+          currentSessionId,
+          onSelectSession: (s) => handleSelectChatSession(s as import("./types").ChatSession, stopStream),
+          onNewChat: () => handleStartNewChat(stopStream)
+        }}
+        ideProps={{
+          messages,
+          freeformText,
+          structuredExamples,
+          onSwitchToPrompt: () => { setPromptType("chat"); }
+        }}
+        julesProps={{
+          activeJulesSession,
+          onOpenJulesSessions: () => setShowJulesDrawer(true),
+          onApproveJulesPlan: (taskId) => void handleApproveJulesPlan(taskId),
+          onRejectJulesPlan: (taskId) => void handleRejectJulesPlan(taskId),
+          isApprovingJulesPlan,
+          julesMessages,
+          onSendJulesMessage: (text, atts, tplIds, rawUserText) => handleSendJulesMessage(text, atts, tplIds, rawUserText),
+          onClearJulesMessages: handleClearJulesMessages,
+          onStopJulesPolling: handleStopJulesPolling,
+          isJulesExecuting,
+          hasJulesApiKey: Boolean(julesApiKey.trim()),
+          onSelectJulesSession: handleSelectJulesSession
+        }}
       />
 
       {/* Primary Android Workspace Bottom Navigation Bar */}
