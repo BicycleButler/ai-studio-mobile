@@ -334,8 +334,8 @@ export class StorageSingleton<T> {
     this.transformIn = options?.transformIn;
     this.transformOut = options?.transformOut;
     this.validate = options?.validate;
-    this.getter = options?.getter || (safeGetStorage as any);
-    this.setter = options?.setter || safeSetStorage;
+    this.getter = options?.getter || (safeGetStorage as unknown as (key: string, fallback: T) => T);
+    this.setter = options?.setter || (safeSetStorage as unknown as (key: string, value: T) => void);
   }
 
   load(): T {
