@@ -5,21 +5,10 @@ import {
   Cpu,
   Layers,
   ShieldCheck,
-  AlertTriangle,
   AlertOctagon,
   Terminal,
   FileCode2,
   RefreshCw,
-  Search,
-  CheckCircle2,
-  Copy,
-  Code,
-  FileText,
-  Hammer,
-  Trash2,
-  Filter,
-  Check,
-  Eye,
   Sparkles,
 } from "lucide-react";
 import mermaid from "mermaid";
@@ -51,16 +40,6 @@ interface StubsWorkspaceProps {
 
 type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal";
 
-const LAYER_LABELS: Record<number, { title: string; color: string }> = {
-  0: { title: "Layer 0: Core Types", color: "border-sky-500/40 text-sky-400 bg-sky-950/30" },
-  1: { title: "Layer 1: Low-Level Storage", color: "border-border/40 text-muted-foreground bg-muted/30" },
-  2: { title: "Layer 2: Domain Services", color: "border-indigo-500/40 text-indigo-400 bg-indigo-950/30" },
-  3: { title: "Layer 3: UI Components", color: "border-border/40 text-muted-foreground bg-muted/40 hover:border-yellow-500/40 hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors" },
-  4: { title: "Layer 4: Workspaces", color: "border-purple-500/40 text-purple-400 bg-purple-950/30" },
-  5: { title: "Layer 5: App Scaffold", color: "border-pink-500/40 text-pink-400 bg-pink-950/30" },
-  6: { title: "Layer 6: Server Infrastructure", color: "border-border/40 text-muted-foreground bg-muted/40 hover:border-rose-500/40 hover:text-rose-500 hover:bg-rose-500/10 transition-colors" },
-};
-
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   return String(err);
@@ -85,13 +64,8 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
     }, 3500);
   }, []);
 
-  // Diagram state
-  const [copyDiagramToast, setCopyDiagramToast] = useState(false);
-
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDomain, setSelectedDomain] = useState<string>("all");
-  const [selectedLayer, setSelectedLayer] = useState<number | "all">("all");
 
   const [selectedImpactTarget, setSelectedImpactTarget] = useState<string>("src/types.ts");
 
@@ -118,7 +92,6 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
     isLoadingLint,
     loadLint,
     impactResult,
-    isLoadingImpact,
     loadImpact
   } = useStubsData(showToast);
 
@@ -204,16 +177,6 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
       onError: (err) => showToast(`Execution error: ${getErrorMessage(err)}`)
     });
   };
-
-  // Filtered nodes
-  const filteredNodes = (graphData?.nodes || []).filter((node) => {
-    const matchesSearch =
-      node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      node.filePath.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDomain = selectedDomain === "all" || node.domain === selectedDomain;
-    const matchesLayer = selectedLayer === "all" || node.layer === selectedLayer;
-    return matchesSearch && matchesDomain && matchesLayer;
-  });
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground select-text overflow-hidden relative font-sans">
