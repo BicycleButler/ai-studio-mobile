@@ -9,6 +9,7 @@ export class StorageCollection<T extends { id: string }> {
   private getter?: (key: string, fallback: T[]) => T[];
   private setter?: (key: string, value: T[]) => boolean;
   private onSave?: (items: T[]) => void;
+  private storageAdapter?: Storage;
 
   constructor(
     key: string,
@@ -20,6 +21,7 @@ export class StorageCollection<T extends { id: string }> {
       getter?: (key: string, fallback: T[]) => T[];
       setter?: (key: string, value: T[]) => boolean;
       onSave?: (items: T[]) => void;
+      storageAdapter?: Storage;
     }
   ) {
     this.key = key;
@@ -30,10 +32,11 @@ export class StorageCollection<T extends { id: string }> {
     this.getter = options?.getter;
     this.setter = options?.setter;
     this.onSave = options?.onSave;
+    this.storageAdapter = options?.storageAdapter;
   }
 
   load(): T[] {
-    const raw = this.getter ? this.getter(this.key, []) : safeGetStorageArray<T>(this.key, []);
+    const raw = this.getter ? this.getter(this.key, []) : safeGetStorageArray<T>(this.key, [], this.storageAdapter);
     let filtered = raw;
     if (this.validate) {
       filtered = raw.filter((item) => this.validate!(item));
@@ -49,7 +52,7 @@ export class StorageCollection<T extends { id: string }> {
         items = items.slice(0, this.maxItems);
       }
       const toStore = this.transformIn ? items.map(this.transformIn) : items;
-      const success = this.setter ? this.setter(this.key, toStore) : safeSetStorage(this.key, toStore);
+      const success = this.setter ? this.setter(this.key, toStore) : safeSetStorage(this.key, toStore, this.storageAdapter);
       if (!success) {
           console.warn(`StorageCollection[${this.key}]: safeSetStorage returned false.`);
       }
