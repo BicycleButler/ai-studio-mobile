@@ -1,4 +1,4 @@
-import { safeGetStorageArray, safeSetStorage } from "./storage";
+import { safeGetStorageArray, safeSetStorage } from "./storage/core";
 
 export class StorageCollection<T extends { id: string }> {
   private key: string;
