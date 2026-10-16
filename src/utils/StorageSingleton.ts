@@ -1,4 +1,4 @@
-import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./storage";
+import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./storage/core";
 
 export class StorageSingleton<T> {
   private key: string;

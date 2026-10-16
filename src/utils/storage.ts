@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "./platform";
+import { isBrowserEnvironment, getSafeWindow } from "./platform";
 import { PromptConfig, PromptType, StructuredExample, SavedPrompt, ProjectInfo, ChatMessage, JulesSession, JulesSettings } from "../types";
 import { DEFAULT_CONFIG } from "../data/templates";
 import { isMockSession } from "./mockDefinitions";
@@ -9,6 +9,32 @@ import { generateUniqueId } from "./idGenerator";
  * Generic Utility: Filter out Mock or Synthetic data from entity collections.
  * Leverages mapping functions for different entity shapes to check via `isMockSession`.
  */
+import {
+  getStorageInstance,
+  MemoryStorage,
+  safeGetStorage,
+  safeGetStorageArray,
+  safeGetStorageKeys,
+  safeSetStorage,
+  safeGetStorageString,
+  safeSetStorageString,
+  safeRemoveStorage,
+  safeRemoveStorageKeysWithPrefix
+} from "./storage/core";
+
+export {
+  getStorageInstance,
+  MemoryStorage,
+  safeGetStorage,
+  safeGetStorageArray,
+  safeGetStorageKeys,
+  safeSetStorage,
+  safeGetStorageString,
+  safeSetStorageString,
+  safeRemoveStorage,
+  safeRemoveStorageKeysWithPrefix
+};
+
 export interface EntityMapper {
   id?: string;
   title?: string;
@@ -105,109 +131,11 @@ export interface DraftState {
   updatedAt: number;
 }
 
-export class MemoryStorage implements Storage {
-  private store: Map<string, string>;
-  private keysCache: string[] | null = null;
 
-  constructor() {
-    this.store = new Map();
-  }
 
-  getItem(key: string): string | null {
-    return this.store.get(key) ?? null;
-  }
 
-  setItem(key: string, value: string): void {
-    this.store.set(key, value);
-    this.keysCache = null; // Invalidate cache
-  }
 
-  removeItem(key: string): void {
-    if (this.store.delete(key)) {
-      this.keysCache = null; // Invalidate cache
-    }
-  }
 
-  clear(): void {
-    this.store.clear();
-    this.keysCache = null;
-  }
-
-  get length(): number {
-    return this.store.size;
-  }
-
-  key(index: number): string | null {
-    if (this.keysCache === null) {
-      this.keysCache = Array.from(this.store.keys());
-    }
-    return this.keysCache[index] ?? null;
-  }
-}
-
-const memoryFallbackInstance = new MemoryStorage();
-
-let _storageInstance: Storage | null = null;
-
-export function getStorageInstance(): Storage {
-  if (_storageInstance) return _storageInstance;
-
-  try {
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow() as WindowWithLocalStorage | null;
-      if (win && win.localStorage) {
-        // Test if storage is actually accessible (not disabled by incognito / iframe policy)
-        const testKey = "__storage_test__";
-        win.localStorage.setItem(testKey, "1");
-        win.localStorage.removeItem(testKey);
-        _storageInstance = win.localStorage;
-        return _storageInstance;
-      }
-    }
-  } catch {
-    // Fall back to in-memory store
-  }
-
-  _storageInstance = memoryFallbackInstance;
-  return _storageInstance;
-}
-
-function safeParseStorageItem<T>(
-  key: string,
-  raw: string,
-  fallback: T,
-  storage: Storage,
-  isArrayExpected = false
-): T {
-  try {
-    const parsed = JSON.parse(raw);
-    if (isArrayExpected && !Array.isArray(parsed)) {
-      console.warn(`Storage key ${key} contained non-array JSON. Corrupted data removed.`);
-      storage.removeItem(key);
-      return fallback;
-    }
-    return parsed as T;
-  } catch (parseErr) {
-    console.warn(`Storage key ${key} contained invalid JSON. Corrupted data removed.`, parseErr);
-    storage.removeItem(key);
-    return fallback;
-  }
-}
-
-/**
- * Safe wrapper for storage access with quota protection
- */
-export function safeGetStorage<T>(key: string, fallback: T): T {
-  try {
-    const storage = getStorageInstance();
-    const raw = storage.getItem(key);
-    if (!raw) return fallback;
-    return safeParseStorageItem(key, raw, fallback, storage, false);
-  } catch (err: unknown) {
-    console.warn(`Failed to read ${key} from storage:`, err);
-    return fallback;
-  }
-}
 
 /**
  * Extracts a deeply nested value safely without throwing, returning a fallback if missing or type mismatches.
@@ -226,79 +154,11 @@ export function getNestedValue<T>(obj: unknown, path: string[], fallback: T): T 
   return current !== undefined ? (current as T) : fallback;
 }
 
-/**
- * Safely reads an array from local storage, guaranteeing an array return type.
- */
-export function safeGetStorageArray<T>(key: string, fallback: T[] = []): T[] {
-  try {
-    const storage = getStorageInstance();
-    const raw = storage.getItem(key);
-    if (!raw) return fallback;
-    return safeParseStorageItem(key, raw, fallback, storage, true) as T[];
-  } catch (err: unknown) {
-    console.warn(`Failed to read ${key} from storage:`, err);
-    return fallback;
-  }
-}
-
-export function safeSetStorage<T>(key: string, value: T): boolean {
-  try {
-    const storage = getStorageInstance();
-    storage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch (err: unknown) {
-    console.warn(`Failed to write ${key} to storage (likely quota limit):`, err);
-    return false;
-  }
-}
-
-/**
- * Safely removes all storage keys that match the given prefix.
- */
-export function safeRemoveStorageKeysWithPrefix(prefix: string): void {
-  try {
-    const keysToRemove = safeGetStorageKeys(prefix);
-    const storage = getStorageInstance();
-    for (const key of keysToRemove) {
-      storage.removeItem(key);
-    }
-  } catch (err: unknown) {
-    console.warn(`Failed to remove keys with prefix ${prefix}:`, err);
-  }
-}
 
 
-/**
- * Safely retrieves all storage keys matching a specific prefix.
- * Complies with performance rule by loading getStorageInstance() once outside loop.
- */
-export function safeGetStorageKeys(prefix: string): string[] {
-  const keys: string[] = [];
-  try {
-    const storage = getStorageInstance();
-    const len = storage.length;
-    for (let i = 0; i < len; i++) {
-      const key = storage.key(i);
-      if (key && key.startsWith(prefix)) {
-        keys.push(key);
-      }
-    }
-  } catch (err: unknown) {
-    console.warn("Failed to enumerate storage keys:", err);
-  }
-  return keys;
-}
 
-export function safeRemoveStorage(key: string): boolean {
-  try {
-    const storage = getStorageInstance();
-    storage.removeItem(key);
-    return true;
-  } catch (err: unknown) {
-    console.warn(`Failed to remove ${key} from storage:`, err);
-    return false;
-  }
-}
+
+
 
 import { StorageCollection } from "./StorageCollection";
 import { StorageSingleton } from "./StorageSingleton";
@@ -308,25 +168,7 @@ export { StorageCollection, StorageSingleton };
 
 
 // API Key management
-export function safeGetStorageString(key: string, fallback: string = ""): string {
-  try {
-    const storage = getStorageInstance();
-    return storage.getItem(key) || fallback;
-  } catch {
-    return fallback;
-  }
-}
 
-export function safeSetStorageString(key: string, value: string): boolean {
-  try {
-    const storage = getStorageInstance();
-    storage.setItem(key, value);
-    return true;
-  } catch (err: unknown) {
-    console.warn(`Failed to write ${key} to storage:`, err);
-    return false;
-  }
-}
 
 const apiKeySingleton = new StorageSingleton<string>(
   STORAGE_KEYS.API_KEY,
