@@ -13,28 +13,14 @@ import {
   ChatSessionItem,
 } from "../types";
 
-export interface WorkspaceRouterProps {
-  promptType: PromptType;
-
-  // ChatWorkspace & Shared Props
-  messages: ChatMessage[];
-  onSendMessage: (text: string, atts?: MessageAttachment[], tplIds?: string[], rawText?: string) => Promise<void> | void;
-  onClearMessages: () => void;
-  onRegenerate: () => void;
-  onStopGeneration: () => void;
-  isGenerating: boolean;
+export interface SharedWorkspaceProps {
   config: PromptConfig;
   onUpdateSystemInstruction: (inst: string) => void;
   onOpenParameters: () => void;
   hasApiKey: boolean;
   onOpenAuth: () => void;
-  speechSettings: SpeechSettings;
-  onSaveSpeechSettings: (newSettings: SpeechSettings) => void;
   onOpenSettings: (tab: "account" | "display" | "security") => void;
   activeProjectId?: string;
-  currentSessionId?: string;
-  onSelectSession: (s: Partial<ChatSessionItem>) => void;
-  onNewChat: () => void;
   onOpenBottomNav: () => void;
 
   // Template props
@@ -46,12 +32,31 @@ export interface WorkspaceRouterProps {
   onRemoveTemplate: (id: string) => void;
   onClearAllTemplates: () => void;
 
-  // IDE props
+  // Speech Settings
+  speechSettings: SpeechSettings;
+  onSaveSpeechSettings: (newSettings: SpeechSettings) => void;
+}
+
+export interface ChatWorkspaceProps extends SharedWorkspaceProps {
+  messages: ChatMessage[];
+  onSendMessage: (text: string, atts?: MessageAttachment[], tplIds?: string[], rawText?: string) => Promise<void> | void;
+  onClearMessages: () => void;
+  onRegenerate: () => void;
+  onStopGeneration: () => void;
+  isGenerating: boolean;
+  currentSessionId?: string;
+  onSelectSession: (s: Partial<ChatSessionItem>) => void;
+  onNewChat: () => void;
+}
+
+export interface IDEWorkspaceProps extends SharedWorkspaceProps {
+  messages: ChatMessage[];
   freeformText?: string;
   structuredExamples?: StructuredExample[];
   onSwitchToPrompt: () => void;
+}
 
-  // Jules Props
+export interface JulesWorkspaceProps extends SharedWorkspaceProps {
   activeJulesSession: JulesSession | null;
   onOpenJulesSessions: () => void;
   onApproveJulesPlan: (taskId: string) => Promise<void> | void;
@@ -64,6 +69,10 @@ export interface WorkspaceRouterProps {
   isJulesExecuting: boolean;
   hasJulesApiKey: boolean;
   onSelectJulesSession: (s: Partial<JulesSession>) => void;
+}
+
+export interface WorkspaceRouterProps extends ChatWorkspaceProps, IDEWorkspaceProps, JulesWorkspaceProps {
+  promptType: PromptType;
 }
 
 export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({

@@ -393,8 +393,9 @@ export class StorageCollection<T extends { id: string }> {
     return result;
   }
 
-  save(items: T[]): void {
+  save(itemsToSave: T[]): void {
     try {
+      let items = itemsToSave;
       if (this.maxItems !== undefined && items.length > this.maxItems) {
         items = items.slice(0, this.maxItems);
       }
@@ -453,7 +454,7 @@ export class StorageCollection<T extends { id: string }> {
   }
 
   upsert(item: T, prepend = false): T {
-    const items = this.load();
+    let items = this.load();
     const index = items.findIndex((i) => i.id === item.id);
 
     const updated = {
@@ -464,11 +465,7 @@ export class StorageCollection<T extends { id: string }> {
     if (index >= 0) {
       items[index] = updated;
     } else {
-      if (prepend) {
-        items.unshift(updated);
-      } else {
-        items.push(updated);
-      }
+      items = prepend ? [updated, ...items] : [...items, updated];
     }
 
     this.save(items);
