@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useRef, KeyboardEvent } from "react";
+import React, { createContext, useContext, useState, useRef } from "react";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 
 // Context to share state between Tabs, TabList, TabTriggers, and TabPanels
 interface TabsContextType {
@@ -63,33 +64,12 @@ export function TabList({
   const context = useContext(TabsContext);
   if (!context) throw new Error("TabList must be used within Tabs");
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const tabValues = Array.from((e.currentTarget.querySelectorAll('[role="tab"]') as NodeListOf<HTMLButtonElement>)).map(el => el.dataset.value);
-    if (tabValues.length === 0) return;
-
-    const currentIndex = tabValues.indexOf(context.activeTab);
-    let nextIndex = currentIndex;
-
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-      nextIndex = (currentIndex + 1) % tabValues.length;
-      e.preventDefault();
-    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-      nextIndex = (currentIndex - 1 + tabValues.length) % tabValues.length;
-      e.preventDefault();
-    } else if (e.key === "Home") {
-      nextIndex = 0;
-      e.preventDefault();
-    } else if (e.key === "End") {
-      nextIndex = tabValues.length - 1;
-      e.preventDefault();
-    }
-
-    if (nextIndex !== currentIndex && tabValues[nextIndex]) {
-      const nextTab = tabValues[nextIndex]!;
-      context.setActiveTab(nextTab);
-      context.focusTab(nextTab);
-    }
-  };
+  const handleKeyDown = useKeyboardNavigation({
+    activeValue: context.activeTab,
+    setActiveValue: context.setActiveTab,
+    focusItem: context.focusTab,
+    itemSelector: '[role="tab"]'
+  });
 
   return (
     <div

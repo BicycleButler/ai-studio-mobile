@@ -1,5 +1,6 @@
 import { get, set } from "idb-keyval";
 import { generateUniqueId } from "./idGenerator";
+import { Mutex } from "./mutex";
 
 export interface OfflineMutation {
   type: string;
@@ -27,7 +28,7 @@ export function registerSyncHandler(type: string, handler: SyncHandler) {
 }
 
 // Ensure serialized enqueues so we don't drop mutations due to race conditions.
-let queueLock: Promise<void> = Promise.resolve();
+const queueMutex = new Mutex();
 
 async function safeGetQueue(): Promise<OfflineMutation[]> {
   try {
@@ -52,48 +53,50 @@ async function safeSetQueue(queue: OfflineMutation[]): Promise<void> {
 }
 
 export async function enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {
-  const op = queueLock.then(async () => {
-    const queue = await safeGetQueue();
-    queue.push({
-      type,
-      payload,
-      timestamp: Date.now(),
-      id: generateUniqueId("mutation"),
-      version,
-    });
-    await safeSetQueue(queue);
-  }).catch(err => {
-    console.error("Enqueue failed", err);
+  return queueMutex.run(async () => {
+    try {
+      const queue = await safeGetQueue();
+      queue.push({
+        type,
+        payload,
+        timestamp: Date.now(),
+        id: generateUniqueId("mutation"),
+        version,
+      });
+      await safeSetQueue(queue);
+    } catch (err) {
+      console.error("Enqueue failed", err);
+    }
   });
-  queueLock = op;
-  return op;
 }
 
 export async function removeOfflineMutation(id: string): Promise<void> {
-  const op = queueLock.then(async () => {
-    const queue = await safeGetQueue();
-    const newQueue = queue.filter((m) => m.id !== id);
-    await safeSetQueue(newQueue);
-  }).catch(err => {
-    console.error("Remove failed", err);
+  return queueMutex.run(async () => {
+    try {
+      const queue = await safeGetQueue();
+      const newQueue = queue.filter((m) => m.id !== id);
+      await safeSetQueue(newQueue);
+    } catch (err) {
+      console.error("Remove failed", err);
+    }
   });
-  queueLock = op;
-  return op;
 }
 
 export async function getOfflineQueueLength(): Promise<number> {
-  const queue = await safeGetQueue();
-  return queue.length;
+  return queueMutex.run(async () => {
+    const queue = await safeGetQueue();
+    return queue.length;
+  });
 }
 
 export async function clearOfflineMutations(): Promise<void> {
-  const op = queueLock.then(async () => {
-    await safeSetQueue([]);
-  }).catch(err => {
-    console.error("Clear failed", err);
+  return queueMutex.run(async () => {
+    try {
+      await safeSetQueue([]);
+    } catch (err) {
+      console.error("Clear failed", err);
+    }
   });
-  queueLock = op;
-  return op;
 }
 
 export async function processOfflineMutations(): Promise<{
@@ -102,13 +105,13 @@ export async function processOfflineMutations(): Promise<{
 }> {
   // Read queue safely within lock
   let queue: OfflineMutation[] = [];
-  const readOp = queueLock.then(async () => {
-    queue = await safeGetQueue();
-  }).catch(err => {
-    console.error("Queue read failed", err);
+  await queueMutex.run(async () => {
+    try {
+      queue = await safeGetQueue();
+    } catch (err) {
+      console.error("Queue read failed", err);
+    }
   });
-  queueLock = readOp;
-  await readOp;
 
   if (queue.length === 0) {
     return { success: true, conflicts: [] };
@@ -144,28 +147,21 @@ export async function processOfflineMutations(): Promise<{
   }
 
   // Write updated queue safely within lock
-  // We must re-read the queue and only filter out the ones we successfully processed.
-  // Otherwise we will overwrite mutations that were added while we were syncing outside the lock!
-  const writeOp = queueLock.then(async () => {
-    const currentQueue = await safeGetQueue();
-    // keep mutations that are in currentQueue but were NOT successfully processed.
-    // Which means: keep mutations that are EITHER not in the original queue we tried to process,
-    // OR they are in the original queue but they failed (are in remainingQueue).
+  await queueMutex.run(async () => {
+    try {
+      const currentQueue = await safeGetQueue();
+      const successfulIds = new Set(
+        queue
+          .filter(m => !remainingQueue.some(rm => rm.id === m.id))
+          .map(m => m.id)
+      );
 
-    // An easier way: remove the mutations from currentQueue that we successfully processed.
-    const successfulIds = new Set(
-      queue
-        .filter(m => !remainingQueue.some(rm => rm.id === m.id))
-        .map(m => m.id)
-    );
-
-    const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
-    await safeSetQueue(finalQueue);
-  }).catch(err => {
-    console.error("Queue write failed", err);
+      const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
+      await safeSetQueue(finalQueue);
+    } catch (err) {
+      console.error("Queue write failed", err);
+    }
   });
-  queueLock = writeOp;
-  await writeOp;
 
   return { success: processSuccess, conflicts };
 }
