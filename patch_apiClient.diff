@@ -1,0 +1,85 @@
+<<<<<<< SEARCH
+export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
+
+async function fetchWithRetry(url: string, options: RequestInit, retries: number = 3, _defaultErrorMessage: string = "API request failed"): Promise<Response> {
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok || !RETRYABLE_STATUS_CODES.has(res.status)) {
+        return res;
+      }
+      attempt++;
+      if (attempt >= retries) return res;
+
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    } catch (err: unknown) {
+      if (isAbortError(err)) throw err;
+      attempt++;
+      if (attempt >= retries) throw err;
+
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
+async function executeRequest(
+  endpoint: string,
+  options?: RequestInit,
+  defaultErrorMessage: string = "API request failed"
+): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetchWithRetry(endpoint, options || {}, 3, defaultErrorMessage);
+  } catch (err: unknown) {
+=======
+export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
+
+export interface RetryConfig {
+  retries?: number;
+  baseDelayMs?: number;
+  fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}
+
+async function fetchWithRetry(url: string, options: RequestInit, _defaultErrorMessage: string = "API request failed", config: RetryConfig = {}): Promise<Response> {
+  const retries = config.retries ?? 3;
+  const baseDelayMs = config.baseDelayMs ?? 1000;
+  const fetcher = config.fetcher ?? fetch;
+
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      const res = await fetcher(url, options);
+      if (res.ok || !RETRYABLE_STATUS_CODES.has(res.status)) {
+        return res;
+      }
+      attempt++;
+      if (attempt >= retries) return res;
+
+      const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    } catch (err: unknown) {
+      if (isAbortError(err)) throw err;
+      attempt++;
+      if (attempt >= retries) throw err;
+
+      const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
+async function executeRequest(
+  endpoint: string,
+  options?: RequestInit,
+  defaultErrorMessage: string = "API request failed"
+): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetchWithRetry(endpoint, options || {}, defaultErrorMessage);
+  } catch (err: unknown) {
+>>>>>>> REPLACE

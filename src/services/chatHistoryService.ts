@@ -2,19 +2,23 @@ import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
 import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
 
+const collectionRegistry = new Map<string, StorageCollection<ChatSession>>();
+
 function getChatCollection(projectId?: string): StorageCollection<ChatSession> {
   const key = getChatSessionsStorageKey(projectId);
-  return new StorageCollection<ChatSession>(key, {
-    validate: (s) => !isMockChatSession(s as Partial<ChatSession>),
-    maxItems: 100,
-  });
+  return getChatCollectionByKey(key);
 }
 
 function getChatCollectionByKey(key: string): StorageCollection<ChatSession> {
-  return new StorageCollection<ChatSession>(key, {
+  if (collectionRegistry.has(key)) {
+    return collectionRegistry.get(key)!;
+  }
+  const collection = new StorageCollection<ChatSession>(key, {
     validate: (s) => !isMockChatSession(s as Partial<ChatSession>),
     maxItems: 100,
   });
+  collectionRegistry.set(key, collection);
+  return collection;
 }
 
 import { isMockSession } from "../utils/mockDefinitions";
