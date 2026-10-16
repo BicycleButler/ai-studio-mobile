@@ -4,8 +4,11 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { initThemeService } from './services/themeService';
+import { initializeChatHistoryService } from './services/chatHistoryService';
 import { registerSW } from 'virtual:pwa-register';
 
+// Initialize core services on startup
+initializeChatHistoryService();
 // Initialize theme immediately on startup to prevent theme flash
 initThemeService();
 

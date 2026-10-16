@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { StorageSingleton } from "../utils/storage";
+import { StorageCollection } from "../utils/storage";
 
-export function useOfflineMutationQueue<T>(storageKey: string) {
-  const queueSingleton = useMemo(() => new StorageSingleton<T[]>(storageKey, []), [storageKey]);
+export function useOfflineMutationQueue<T extends { id: string }>(storageKey: string) {
+  const queueSingleton = useMemo(() => new StorageCollection<T>(storageKey, {}), [storageKey]);
 
   const [queue, setQueue] = useState<T[]>(() => {
     return queueSingleton.load();
