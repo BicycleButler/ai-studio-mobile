@@ -8,7 +8,7 @@ import { getSafeWindowSpeechSynthesis, getSafeNavigatorLanguage } from "../utils
  * 2. Enhanced On-Device System Voices (with intelligent Natural/Neural voice prioritization)
  */
 
-import { safeGetStorage, safeSetStorage, STORAGE_KEYS } from "../utils/storage";
+import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
 
 export interface GeminiVoiceOption {
   id: string;
@@ -83,8 +83,6 @@ export const GEMINI_VOICES: GeminiVoiceOption[] = [
   },
 ];
 
-let inMemorySettings: SpeechSettings | null = null;
-
 export const DEFAULT_SPEECH_SETTINGS: SpeechSettings = {
   engine: "device", // Default to device for instant 0ms, 100% free, offline availability
   geminiVoice: "Puck",
@@ -97,6 +95,26 @@ export const DEFAULT_SPEECH_SETTINGS: SpeechSettings = {
   voiceButtonPlacement: "footer",
 };
 
+const speechSettingsSingleton = new StorageSingleton<SpeechSettings>(
+  STORAGE_KEYS.SPEECH_SETTINGS,
+  DEFAULT_SPEECH_SETTINGS,
+  {
+    transformOut: (parsed) => {
+      if (!parsed) return DEFAULT_SPEECH_SETTINGS;
+      return {
+        engine: parsed.engine === "gemini" ? "gemini" : "device",
+        geminiVoice: parsed.geminiVoice || "Puck",
+        deviceVoiceURI: parsed.deviceVoiceURI || "",
+        playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
+        autoReadResponses: Boolean(parsed.autoReadResponses),
+        handsFreeMode: Boolean(parsed.handsFreeMode),
+        silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
+        sentenceStreaming: parsed.sentenceStreaming !== false,
+        voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
+      };
+    }
+  }
+);
 
 
 /**
@@ -118,27 +136,11 @@ export async function fetchTTSAudioUrl(text: string, voiceName: string): Promise
 }
 
 export function loadSpeechSettings(): SpeechSettings {
-  const fallback = inMemorySettings || DEFAULT_SPEECH_SETTINGS;
-  const parsed = safeGetStorage<Partial<SpeechSettings>>(STORAGE_KEYS.SPEECH_SETTINGS, fallback);
-
-  if (parsed === fallback) return fallback as SpeechSettings;
-
-  return {
-    engine: parsed.engine === "gemini" ? "gemini" : "device",
-    geminiVoice: parsed.geminiVoice || "Puck",
-    deviceVoiceURI: parsed.deviceVoiceURI || "",
-    playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
-    autoReadResponses: Boolean(parsed.autoReadResponses),
-    handsFreeMode: Boolean(parsed.handsFreeMode),
-    silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
-    sentenceStreaming: parsed.sentenceStreaming !== false,
-    voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
-  };
+  return speechSettingsSingleton.load();
 }
 
 export function saveSpeechSettings(settings: SpeechSettings): void {
-  inMemorySettings = settings;
-  safeSetStorage(STORAGE_KEYS.SPEECH_SETTINGS, settings);
+  speechSettingsSingleton.save(settings);
 }
 
 function isNaturalVoiceName(name: string): boolean {

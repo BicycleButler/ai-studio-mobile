@@ -4,7 +4,7 @@ import { isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListene
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
  */
 
-import { safeGetStorage, safeSetStorage, STORAGE_KEYS } from "../utils/storage";
+import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -15,6 +15,14 @@ export interface ThemeState {
 }
 
 export type ThemeListener = (state: ThemeState) => void;
+
+const themeModeSingleton = new StorageSingleton<ThemeMode>(
+  STORAGE_KEYS.THEME_MODE,
+  "system",
+  {
+    validate: (val) => val === "light" || val === "dark" || val === "system",
+  }
+);
 
 class ThemeManager {
   private currentMode: ThemeMode = "system";
@@ -33,15 +41,11 @@ class ThemeManager {
   }
 
   public loadStoredThemeMode(): ThemeMode {
-    const stored = safeGetStorage<string>(STORAGE_KEYS.THEME_MODE, "system");
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      return stored as ThemeMode;
-    }
-    return "system";
+    return themeModeSingleton.load();
   }
 
   public persistThemeMode(mode: ThemeMode): void {
-    safeSetStorage(STORAGE_KEYS.THEME_MODE, mode);
+    themeModeSingleton.save(mode);
   }
 
   public resolveTheme(mode: ThemeMode): ResolvedTheme {
