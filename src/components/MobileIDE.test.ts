@@ -1,11 +1,6 @@
 import { describe, test } from 'vitest';
 import { PromptConfig, ChatMessage, PromptType } from "../types";
-import {
-  generateAndroidKotlinCode,
-  generateTypeScriptCode,
-  generatePythonCode,
-  generateCurlCode,
-} from "../utils/codeGenerators";
+import { CODE_GENERATORS } from "../utils/codeGenerators";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -41,21 +36,21 @@ describe('testMobileIDEAndPromptModes', () => {
     },
   ];
 
-  const kotlinCode = generateAndroidKotlinCode(sampleConfig, sampleMessages);
+  const kotlinCode = CODE_GENERATORS.kotlin.generate(sampleConfig, sampleMessages);
   assert(kotlinCode.includes("gemini-3.8-flash"), "Kotlin code should contain the configured model");
   assert(kotlinCode.includes("GenerativeModel"), "Kotlin code should import GenerativeModel");
   assert(kotlinCode.includes("reactive stream"), "Kotlin code should contain the prompt contents");
 
-  const tsCode = generateTypeScriptCode(sampleConfig, sampleMessages);
+  const tsCode = CODE_GENERATORS.typescript.generate(sampleConfig, sampleMessages);
   assert(tsCode.includes("@google/genai"), "TypeScript code should use @google/genai SDK");
   assert(tsCode.includes("generateContent"), "TypeScript code should call generateContent");
   assert(tsCode.includes("gemini-3.8-flash"), "TypeScript code should use specified model");
 
-  const pyCode = generatePythonCode(sampleConfig, sampleMessages);
+  const pyCode = CODE_GENERATORS.python.generate(sampleConfig, sampleMessages);
   assert(pyCode.includes("google.genai"), "Python code should use google.genai SDK");
   assert(pyCode.includes("client.models.generate_content"), "Python code should generate content");
 
-  const curlCode = generateCurlCode(sampleConfig, sampleMessages);
+  const curlCode = CODE_GENERATORS.curl.generate(sampleConfig, sampleMessages);
   assert(curlCode.includes("curl \"https://generativelanguage.googleapis.com"), "cURL should have correct endpoint");
   assert(curlCode.includes("gemini-3.8-flash:generateContent"), "cURL should target configured model");
 

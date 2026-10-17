@@ -2,12 +2,7 @@ import { getSafeNavigatorClipboard } from "../utils/platform";
 import React, { useState } from "react";
 import { Copy, Check, Terminal, FileCode2, Smartphone, Globe, LucideIcon, Code2 } from "lucide-react";
 import { PromptConfig, ChatMessage } from "../types";
-import {
-  generatePythonCode,
-  generateTypeScriptCode,
-  generateAndroidKotlinCode,
-  generateCurlCode,
-} from "../utils/codeGenerators";
+import { CODE_GENERATORS, CodeLangId } from "../utils/codeGenerators";
 
 interface CodeExportModalProps {
   config: PromptConfig;
@@ -16,27 +11,17 @@ interface CodeExportModalProps {
   onOpenMobileIDE?: () => void;
 }
 
-type CodeLang = "kotlin" | "python" | "typescript" | "curl";
-
 export const CodeExportModal: React.FC<CodeExportModalProps> = ({
   config,
   messages,
   isEmbedded = false,
   onOpenMobileIDE,
 }) => {
-  const [selectedLang, setSelectedLang] = useState<CodeLang>("kotlin");
+  const [selectedLang, setSelectedLang] = useState<CodeLangId>("kotlin");
   const [copied, setCopied] = useState(false);
 
-  let code = "";
-  if (selectedLang === "kotlin") {
-    code = generateAndroidKotlinCode(config, messages);
-  } else if (selectedLang === "python") {
-    code = generatePythonCode(config, messages);
-  } else if (selectedLang === "typescript") {
-    code = generateTypeScriptCode(config, messages);
-  } else {
-    code = generateCurlCode(config, messages);
-  }
+  const generator = CODE_GENERATORS[selectedLang] || CODE_GENERATORS.kotlin;
+  const code = generator.generate(config, messages);
 
   const handleCopy = () => {
     getSafeNavigatorClipboard()?.writeText(code);
@@ -44,7 +29,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const langs: { id: CodeLang; label: string; icon: LucideIcon }[] = [
+  const langs: { id: CodeLangId; label: string; icon: LucideIcon }[] = [
     { id: "kotlin", label: "Android (Kotlin)", icon: Smartphone },
     { id: "typescript", label: "Node / TS", icon: FileCode2 },
     { id: "python", label: "Python", icon: Terminal },
