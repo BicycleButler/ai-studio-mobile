@@ -243,11 +243,14 @@ export function loadDraftState(projectId?: string | null): DraftState {
   };
 
   const key = getProjectDraftKey(projectId);
-  const stored = safeGetStorage<DraftState | null>(key, null);
+  const draftSingleton = new StorageSingleton<DraftState | null>(key, null);
+  const stored = draftSingleton.load();
+
   if (!stored) {
     // If project-specific key not yet initialized, fallback to default or global draft
     if (projectId) {
-      const globalStored = safeGetStorage<DraftState | null>(STORAGE_KEYS.DRAFT_STATE, null);
+      const globalDraftSingleton = new StorageSingleton<DraftState | null>(STORAGE_KEYS.DRAFT_STATE, null);
+      const globalStored = globalDraftSingleton.load();
       if (globalStored) {
         return {
           ...fallback,
@@ -294,7 +297,8 @@ export function saveDraftState(draft: Partial<DraftState>, projectId?: string | 
       updatedAt: Date.now(),
     };
     const key = getProjectDraftKey(projectId);
-    safeSetStorage(key, updated);
+    const draftSingleton = new StorageSingleton<DraftState | null>(key, null);
+    draftSingleton.save(updated);
   } catch (err: unknown) {
     console.warn("Failed to auto-save draft:", err);
   }
