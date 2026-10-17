@@ -5,6 +5,7 @@ import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
 import {
   FolderHeart,
   Trash2,
+  Clock,
   Sparkles,
   ArrowRight,
   BookmarkPlus,
@@ -16,6 +17,7 @@ import {
 
 } from "lucide-react";
 import { SavedPrompt } from "../types";
+import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { STARTER_TEMPLATES } from "../data/templates";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 
@@ -40,6 +42,17 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 }) => {
   const [newTitle, setNewTitle] = useState(currentTitle);
   const [showSaveForm, setShowSaveForm] = useState(false);
+
+  const offlineQueue = useOfflineQueue();
+  const pendingPromptIds = new Set(
+    offlineQueue.filter(m => m.type === "saved_prompts").flatMap(m => {
+      if (typeof m.payload === "object" && m.payload !== null && "prompts" in m.payload && Array.isArray((m.payload as Record<string, unknown>).prompts)) {
+          return ((m.payload as Record<string, unknown>).prompts as Record<string, unknown>[]).map(p => p.id as string);
+      }
+      return [];
+    })
+  );
+
 
   const {
     selectedIds: selectedPromptIds,
@@ -273,6 +286,9 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {new Date(item.updatedAt).toLocaleDateString()}
+                      {pendingPromptIds.has(item.id) && (
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground/60 ml-2 flex-shrink-0 inline-block" aria-label="Pending sync" />
+                      )}
                     </span>
                     <span>• {item.config.model}</span>
                   </div>

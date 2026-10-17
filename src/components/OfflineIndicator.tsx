@@ -14,7 +14,7 @@ export const OfflineIndicator: React.FC = () => {
 
   if (!isOnline) {
     return (
-      <div
+            <div
         id="pwa-offline-indicator"
         role="status"
         aria-live="polite"
@@ -22,15 +22,21 @@ export const OfflineIndicator: React.FC = () => {
       >
         <div className="flex items-center gap-2">
           <WifiOff className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>You are offline. {pendingQueueLength > 0 ? `${pendingQueueLength} changes queued.` : 'Working in read/cache mode.'}</span>
+          <span>You are offline. {pendingQueueLength > 0 ? `${pendingQueueLength} changes queued. ` : ''}Working in read/cache mode.</span>
         </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-primary hover:text-primary/80 font-semibold px-2 py-1 -mr-2"
+        >
+          [Retry]
+        </button>
       </div>
     );
   }
 
   if (reconnectState === "reconnecting") {
     return (
-      <div
+            <div
         id="pwa-reconnected-indicator"
         role="status"
         aria-live="polite"
@@ -38,7 +44,7 @@ export const OfflineIndicator: React.FC = () => {
       >
         <div className="flex items-center gap-2">
           <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
-          <span>Reconnecting & syncing changes...</span>
+          <span>{pendingQueueLength > 0 ? `Reconnecting & syncing ${pendingQueueLength} changes...` : 'Reconnecting...'}</span>
         </div>
       </div>
     );

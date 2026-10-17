@@ -24,6 +24,7 @@ import {
   MinusSquare,
 } from "lucide-react";
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
+import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import {
   fetchJulesRepositories,
   createNewJulesSession,
@@ -46,6 +47,7 @@ interface JulesSessionDrawerProps {
 }
 
 export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
+
   isOpen,
   onClose,
   activeSessionId,
@@ -58,6 +60,15 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const [loadingRepos, setLoadingRepos] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
+
+  const offlineQueue = useOfflineQueue();
+  const pendingIds = new Set(
+    offlineQueue.filter(m => m.type === "jules_sessions").flatMap(m => {
+      if (Array.isArray(m.payload)) return m.payload.map(s => s.id);
+      return [];
+    })
+  );
+
 
   const [isCreating, setIsCreating] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
@@ -543,6 +554,9 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         <span>{new Date(session.updatedAt).toLocaleDateString()}</span>
+                        {pendingIds.has(session.id) && (
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground/60 ml-2" aria-label="Pending sync" />
+                        )}
                       </div>
                       <span className="font-mono">{session.steps.length} steps</span>
                     </div>
