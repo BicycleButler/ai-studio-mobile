@@ -42,25 +42,7 @@ import { SettingsDisplayTab } from "./settings/SettingsDisplayTab";
 import { SettingsAccountTab } from "./settings/SettingsAccountTab";
 import { SettingsSecurityTab } from "./settings/SettingsSecurityTab";
 import { useBackNavigation } from "../hooks/useBackNavigation";
-
-
-export type SettingsTab =
-  | "account"
-  | "auth"
-  | "key"
-  | "profile"
-  | "audio"
-  | "display"
-  | "theme"
-  | "themes"
-  | "security"
-  | "settings"
-  | "library"
-  | "export"
-  | "companion"
-  | "tune"
-  | "model"
-  | "models";
+import { SettingsTab } from "../types";
 
 export interface AccountSettingsProps {
   customApiKey: string;

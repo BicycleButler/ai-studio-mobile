@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PromptType, GoogleUser, ProjectInfo, JulesSession } from "../types";
-import { SettingsTab } from "./UnifiedSettingsModal";
+import { SettingsTab } from "../types";
 import { useTheme } from "../hooks/useTheme";
 import { TokenCounterVisualization } from "./TokenCounterVisualization";
 import { PWAInstallButton } from "./PWAInstallButton";

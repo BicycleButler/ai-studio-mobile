@@ -33,6 +33,24 @@ export interface JulesExecutionStep {
   };
 }
 
+export type SettingsTab =
+  | "account"
+  | "auth"
+  | "key"
+  | "profile"
+  | "audio"
+  | "display"
+  | "theme"
+  | "themes"
+  | "security"
+  | "settings"
+  | "library"
+  | "export"
+  | "companion"
+  | "tune"
+  | "model"
+  | "models";
+
 export interface JulesPullRequest {
   number: number;
   title: string;

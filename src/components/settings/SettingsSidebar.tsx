@@ -9,7 +9,7 @@ import {
   Code2,
   Compass,
 } from "lucide-react";
-import { SettingsTab } from "../UnifiedSettingsModal";
+import { SettingsTab } from "../../types";
 
 export interface SettingsSidebarProps {
   activeTab: SettingsTab;

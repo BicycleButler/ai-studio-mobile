@@ -41,14 +41,40 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     if (this.cachedSnapshot !== undefined) {
       return this.cachedSnapshot;
     }
-    const raw = this.getter ? this.getter(this.key, []) : safeGetStorageArray<T>(this.key, [], this.storageAdapter);
-    let filtered = raw;
-    if (this.validate) {
-      filtered = raw.filter((item) => this.validate!(item));
+    try {
+      const raw = this.getter ? this.getter(this.key, []) : safeGetStorageArray<T>(this.key, [], this.storageAdapter);
+      let filtered = raw;
+      if (this.validate) {
+        filtered = raw.filter((item) => {
+          try {
+            return this.validate!(item);
+          } catch (err) {
+            console.warn(`StorageCollection[${this.key}]: validation error on item`, err);
+            return false; // Skip invalid item
+          }
+        });
+      }
+
+      let result: T[] = [];
+      if (this.transformOut) {
+        // Only map elements that successfully transform without throwing
+        for (const item of filtered) {
+          try {
+            result.push(this.transformOut(item));
+          } catch (err) {
+            console.warn(`StorageCollection[${this.key}]: transformOut error on item`, err);
+          }
+        }
+      } else {
+        result = filtered;
+      }
+
+      this.cachedSnapshot = result;
+      return result;
+    } catch (err) {
+      console.error(`StorageCollection[${this.key}]: unhandled error during load`, err);
+      return [];
     }
-    const result = this.transformOut ? filtered.map(this.transformOut) : filtered;
-    this.cachedSnapshot = result;
-    return result;
   }
 
   save(itemsToSave: T[]): void {

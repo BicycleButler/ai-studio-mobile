@@ -41,7 +41,7 @@ import {
   loadSpeechSettings,
 } from "../services/speechVoices";
 import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
-import { SettingsTab } from "./UnifiedSettingsModal";
+import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import {
   getChatSessions,
