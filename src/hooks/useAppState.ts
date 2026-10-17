@@ -42,6 +42,7 @@ import {
   setActiveProjectId,
   updateStoredProject,
   deleteStoredProject,
+  bulkDeleteStoredProjects,
 } from "../utils/storage";
 import {
   SpeechSettings,
@@ -266,9 +267,7 @@ export function useAppState() {
   };
 
   const handleBulkDeleteProjects = (ids: string[], onStopStream?: () => void) => {
-    ids.forEach((id) => {
-      deleteStoredProject(id);
-    });
+    bulkDeleteStoredProjects(ids);
     const updated = loadStoredProjects();
     setProjects(updated);
 
