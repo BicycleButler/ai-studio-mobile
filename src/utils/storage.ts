@@ -162,6 +162,7 @@ export function getNestedValue<T>(obj: unknown, path: string[], fallback: T): T 
 
 import { StorageCollection } from "./StorageCollection";
 import { StorageSingleton } from "./StorageSingleton";
+import { clearAllChatSessions } from "../services/chatHistoryService";
 
 export { StorageCollection, StorageSingleton };
 
@@ -392,8 +393,31 @@ export function saveAndActivateProject(
 
 export function deleteStoredProject(id: string): void {
   const filtered = projectsCollection.delete(id);
+
+  // ADR 0047 cascading cleanup
+  clearAllChatSessions(id);
+
   const activeId = getActiveProjectId();
   if (activeId === id) {
+    if (filtered.length > 0) {
+      setActiveProjectId(filtered[0].id);
+      saveStoredApiKey(filtered[0].apiKey);
+    } else {
+      setActiveProjectId(null);
+      saveStoredApiKey("");
+    }
+  }
+}
+
+export function bulkDeleteStoredProjects(ids: string[]): void {
+  if (!ids || ids.length === 0) return;
+  const filtered = projectsCollection.bulkDelete(ids);
+
+  // ADR 0047 cascading cleanup
+  ids.forEach(id => clearAllChatSessions(id));
+
+  const activeId = getActiveProjectId();
+  if (activeId && ids.includes(activeId)) {
     if (filtered.length > 0) {
       setActiveProjectId(filtered[0].id);
       saveStoredApiKey(filtered[0].apiKey);
