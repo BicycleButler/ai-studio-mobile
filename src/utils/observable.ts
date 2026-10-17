@@ -10,7 +10,7 @@ export class Observable<T> {
     };
   }
 
-  protected notify(state: T): void {
+  public notify(state: T): void {
     for (const listener of this.listeners) {
       try {
         listener(state);
