@@ -31,7 +31,7 @@ export class StorageSingleton<T> extends StorageBase<T> {
   }
 
   override load(): T {
-    if (this.cachedSnapshot !== null) {
+    if (this.cachedSnapshot !== undefined) {
       return this.cachedSnapshot;
     }
     const raw = this.getter(this.key, this.fallback, this.storageAdapter);
@@ -48,7 +48,7 @@ export class StorageSingleton<T> extends StorageBase<T> {
     try {
       const toStore = this.transformIn ? this.transformIn(item) : item;
       this.setter(this.key, toStore, this.storageAdapter);
-      this.cachedSnapshot = null;
+      this.cachedSnapshot = undefined;
       this.notify(this.load());
     } catch (err) {
       console.warn(`StorageSingleton[${this.key}]: save error`, err);
@@ -57,7 +57,7 @@ export class StorageSingleton<T> extends StorageBase<T> {
 
   clear(): void {
     safeRemoveStorage(this.key, this.storageAdapter);
-    this.cachedSnapshot = null;
+    this.cachedSnapshot = undefined;
     this.notify(this.load());
   }
 }
