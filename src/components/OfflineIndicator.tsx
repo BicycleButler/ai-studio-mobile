@@ -1,82 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { WifiOff, Loader2, Check } from "lucide-react";
-import { useNetworkStatus } from "../hooks/useNetworkStatus";
-import {
-  processOfflineMutations,
-  ConflictData,
-  removeOfflineMutation,
-  enqueueOfflineMutation,
-  getOfflineQueueLength
-} from "../utils/offlineService";
 import { ConflictResolutionModal } from "./ConflictResolutionModal";
+import { useOfflineSync } from "../hooks/useOfflineSync";
 
 export const OfflineIndicator: React.FC = () => {
-  const { isOnline, wasOffline } = useNetworkStatus();
-  const [reconnectState, setReconnectState] = useState<"idle" | "reconnecting" | "success" | "conflict">("idle");
-  const [pendingQueueLength, setPendingQueueLength] = useState(0);
-  const [conflictData, setConflictData] = useState<ConflictData | null>(null);
-
-  useEffect(() => {
-    // Check pending queue length
-    const checkQueue = async () => {
-      const length = await getOfflineQueueLength();
-      setPendingQueueLength(length);
-    };
-    checkQueue();
-  }, [isOnline]);
-
-  useEffect(() => {
-    if (isOnline && wasOffline) {
-      setReconnectState("reconnecting");
-
-      const processQueue = async () => {
-        const { conflicts } = await processOfflineMutations();
-        if (conflicts.length > 0) {
-           setConflictData(conflicts[0]); // Handle first conflict for simplicity
-           setReconnectState("conflict");
-        } else {
-           setReconnectState("success");
-           setTimeout(() => setReconnectState("idle"), 3000);
-        }
-      };
-
-      processQueue();
-    }
-  }, [isOnline, wasOffline]);
-
-  const handleResolveConflict = async (action: 'keep' | 'overwrite') => {
-     if (conflictData) {
-       await removeOfflineMutation(conflictData.id);
-       if (action === 'overwrite') {
-          // Re-enqueue without version check to force overwrite (or a special flag if backend supports it).
-          // For now, we simulate overwrite by re-enqueueing the local payload.
-          await enqueueOfflineMutation(conflictData.type, conflictData.localData, undefined);
-          const { conflicts } = await processOfflineMutations();
-          if (conflicts.length > 0) {
-             setConflictData(conflicts[0]);
-             return;
-          }
-       }
-     }
-
-     setConflictData(null);
-
-     const queueLength = await getOfflineQueueLength();
-     if (queueLength > 0) {
-        // More conflicts or remaining items
-        const { conflicts } = await processOfflineMutations();
-        if (conflicts.length > 0) {
-           setConflictData(conflicts[0]);
-           setReconnectState("conflict");
-        } else {
-           setReconnectState("success");
-           setTimeout(() => setReconnectState("idle"), 3000);
-        }
-     } else {
-        setReconnectState("success");
-        setTimeout(() => setReconnectState("idle"), 3000);
-     }
-  };
+  const {
+    isOnline,
+    reconnectState,
+    pendingQueueLength,
+    conflictData,
+    handleResolveConflict
+  } = useOfflineSync();
 
   if (!isOnline) {
     return (

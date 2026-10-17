@@ -27,7 +27,6 @@ export function registerSyncHandler(type: string, handler: SyncHandler) {
   syncRegistry[type] = handler;
 }
 
-// Ensure serialized enqueues so we don't drop mutations due to race conditions.
 const queueMutex = new Mutex();
 
 async function safeGetQueue(): Promise<OfflineMutation[]> {
@@ -48,54 +47,44 @@ async function safeSetQueue(queue: OfflineMutation[]): Promise<void> {
     await set(OFFLINE_QUEUE_KEY, queue);
   } catch (err) {
     console.error(`[OfflineService] Critical failure writing to IndexedDB (${OFFLINE_QUEUE_KEY})`, err);
-    // Depending on strictness, we might want to alert monitoring here
   }
 }
 
-export async function enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {
+async function withQueueLock<T>(action: (queue: OfflineMutation[]) => Promise<T | void>): Promise<T | void> {
   return queueMutex.run(async () => {
-    try {
-      const queue = await safeGetQueue();
-      queue.push({
-        type,
-        payload,
-        timestamp: Date.now(),
-        id: generateUniqueId("mutation"),
-        version,
-      });
-      await safeSetQueue(queue);
-    } catch (err) {
-      console.error("Enqueue failed", err);
-    }
+    const queue = await safeGetQueue();
+    const result = await action(queue);
+    return result;
+  });
+}
+
+export async function enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {
+  await withQueueLock(async (queue) => {
+    queue.push({
+      type,
+      payload,
+      timestamp: Date.now(),
+      id: generateUniqueId("mutation"),
+      version,
+    });
+    await safeSetQueue(queue);
   });
 }
 
 export async function removeOfflineMutation(id: string): Promise<void> {
-  return queueMutex.run(async () => {
-    try {
-      const queue = await safeGetQueue();
-      const newQueue = queue.filter((m) => m.id !== id);
-      await safeSetQueue(newQueue);
-    } catch (err) {
-      console.error("Remove failed", err);
-    }
+  await withQueueLock(async (queue) => {
+    const newQueue = queue.filter((m) => m.id !== id);
+    await safeSetQueue(newQueue);
   });
 }
 
 export async function getOfflineQueueLength(): Promise<number> {
-  return queueMutex.run(async () => {
-    const queue = await safeGetQueue();
-    return queue.length;
-  });
+  return (await withQueueLock(async (queue) => queue.length)) as number || 0;
 }
 
 export async function clearOfflineMutations(): Promise<void> {
-  return queueMutex.run(async () => {
-    try {
-      await safeSetQueue([]);
-    } catch (err) {
-      console.error("Clear failed", err);
-    }
+  await withQueueLock(async () => {
+    await safeSetQueue([]);
   });
 }
 
@@ -103,15 +92,8 @@ export async function processOfflineMutations(): Promise<{
   success: boolean;
   conflicts: ConflictData[];
 }> {
-  // Read queue safely within lock
   let queue: OfflineMutation[] = [];
-  await queueMutex.run(async () => {
-    try {
-      queue = await safeGetQueue();
-    } catch (err) {
-      console.error("Queue read failed", err);
-    }
-  });
+  await withQueueLock(async (q) => { queue = q; });
 
   if (queue.length === 0) {
     return { success: true, conflicts: [] };
@@ -121,7 +103,6 @@ export async function processOfflineMutations(): Promise<{
   const conflicts: ConflictData[] = [];
   let processSuccess = true;
 
-  // Perform slow sync operations OUTSIDE the lock
   for (const mutation of queue) {
     let success = false;
     try {
@@ -133,7 +114,6 @@ export async function processOfflineMutations(): Promise<{
           conflicts.push(result.conflict);
         }
       } else {
-        // Unknown type, discard it
         success = true;
       }
     } catch (e) {
@@ -146,21 +126,15 @@ export async function processOfflineMutations(): Promise<{
     }
   }
 
-  // Write updated queue safely within lock
-  await queueMutex.run(async () => {
-    try {
-      const currentQueue = await safeGetQueue();
-      const successfulIds = new Set(
-        queue
-          .filter(m => !remainingQueue.some(rm => rm.id === m.id))
-          .map(m => m.id)
-      );
+  await withQueueLock(async (currentQueue) => {
+    const successfulIds = new Set(
+      queue
+        .filter(m => !remainingQueue.some(rm => rm.id === m.id))
+        .map(m => m.id)
+    );
 
-      const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
-      await safeSetQueue(finalQueue);
-    } catch (err) {
-      console.error("Queue write failed", err);
-    }
+    const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
+    await safeSetQueue(finalQueue);
   });
 
   return { success: processSuccess, conflicts };
