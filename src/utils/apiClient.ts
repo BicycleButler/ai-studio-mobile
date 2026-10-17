@@ -1,129 +1,7 @@
-export class BaseApiError extends Error {
-  public statusCode: number;
-  public headers?: Record<string, string>;
-  public endpoint?: string;
-  public rawData?: unknown;
-
-  constructor(message: string, statusCode: number, headers?: Record<string, string>, endpoint?: string, rawData?: unknown) {
-    super(message);
-    this.name = "BaseApiError";
-    this.statusCode = statusCode;
-    this.headers = headers;
-    this.endpoint = endpoint;
-    this.rawData = rawData;
-  }
-
-  static fromResponse(message: string, statusCode: number, headers?: Record<string, string>, endpoint?: string, rawData?: unknown): BaseApiError {
-    return new BaseApiError(message, statusCode, headers, endpoint, rawData);
-  }
-
-  public isRetryable(): boolean {
-    return RETRYABLE_STATUS_CODES.has(this.statusCode);
-  }
-}
-
-export function isAbortError(err: unknown): boolean {
-  if (err instanceof Error && err.name === "AbortError") return true;
-  if (typeof DOMException !== "undefined" && err instanceof DOMException && err.name === "AbortError") return true;
-  return false;
-}
-
-export async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string>; rawData?: unknown }> {
-  const headers: Record<string, string> = {};
-  res.headers.forEach((value, key) => {
-    headers[key] = value;
-  });
-
-  let errorMessage = defaultErrorMessage;
-  let rawData: unknown;
-
-  try {
-    const contentType = res.headers.get("content-type");
-    if (contentType?.includes("application/json")) {
-      const err = await res.json();
-      rawData = err;
-      errorMessage = err.error || err.message || res.statusText || defaultErrorMessage;
-    } else {
-      const text = await res.text();
-      rawData = text;
-      errorMessage = text || res.statusText || defaultErrorMessage;
-    }
-  } catch {
-    errorMessage = res.statusText || defaultErrorMessage;
-  }
-  return { errorMessage, headers, rawData };
-}
-
 import { buildUrlWithParams } from "./urlUtils";
-
-export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
-
-export interface RetryConfig {
-  retryableStatusCodes?: Set<number>;
-  retries?: number;
-  baseDelayMs?: number;
-  fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-  retryStrategy?: IRetryStrategy;
-}
-
-export interface IRetryStrategy {
-  execute(
-    url: string,
-    options: RequestInit,
-    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryableStatusCodes?: Set<number> }
-  ): Promise<Response>;
-}
-
-export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
-  async execute(
-    url: string,
-    options: RequestInit,
-    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryableStatusCodes?: Set<number> }
-  ): Promise<Response> {
-    const { retries, baseDelayMs, fetcher } = config;
-    const retryableCodes = config.retryableStatusCodes || RETRYABLE_STATUS_CODES;
-    let attempt = 0;
-    let lastError: unknown;
-    let lastResponse: Response | undefined;
-
-    while (attempt < retries) {
-      try {
-        const res = await fetcher(url, options);
-        if (res.ok || !retryableCodes.has(res.status)) {
-          return res;
-        }
-        lastResponse = res;
-        lastError = undefined;
-      } catch (err: unknown) {
-        if (isAbortError(err)) throw err;
-        lastError = err;
-        lastResponse = undefined;
-      }
-
-      attempt++;
-      if (attempt >= retries) {
-        if (lastResponse) return lastResponse;
-        if (lastError) {
-          const msg = lastError instanceof Error ? lastError.message : "Network error during fetch";
-          throw BaseApiError.fromResponse(msg, 0, undefined, url, lastError);
-        }
-        break;
-      }
-
-      const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-
-    if (lastResponse) return lastResponse;
-    if (lastError) {
-       const msg = lastError instanceof Error ? lastError.message : "Max retries exceeded with network error";
-       throw BaseApiError.fromResponse(msg, 0, undefined, url, lastError);
-    }
-    throw BaseApiError.fromResponse("Max retries exceeded", 0, undefined, url);
-  }
-}
-
-export type Interceptor = (url: string, options: RequestInit) => Promise<[string, RequestInit]>;
+import { BaseApiError, isAbortError, parseErrorResponse } from "./apiClientErrors";
+import { InterceptorManager, Interceptor } from "./apiClientInterceptors";
+import { ExponentialBackoffRetryStrategy, IRetryStrategy, RetryConfig } from "./apiClientRetry";
 
 export interface IApiClient {
   addInterceptor(interceptor: Interceptor): void;
@@ -143,10 +21,11 @@ export interface IApiClient {
 }
 
 export class ApiClient implements IApiClient {
-  private interceptors: Interceptor[] = [];
+  private interceptorManager: InterceptorManager;
   public retryConfig: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
 
   constructor(retryConfig: RetryConfig = {}) {
+    this.interceptorManager = new InterceptorManager();
     this.retryConfig = {
       retries: retryConfig.retries ?? 3,
       baseDelayMs: retryConfig.baseDelayMs ?? 1000,
@@ -157,11 +36,11 @@ export class ApiClient implements IApiClient {
   }
 
   public addInterceptor(interceptor: Interceptor): void {
-    this.interceptors.push(interceptor);
+    this.interceptorManager.addInterceptor(interceptor);
   }
 
   public clearInterceptors(): void {
-    this.interceptors = [];
+    this.interceptorManager.clearInterceptors();
   }
 
   private async prepareRequest(
@@ -172,13 +51,7 @@ export class ApiClient implements IApiClient {
     let url = buildUrlWithParams(endpoint, queryParams);
     let fetchOptions = options || {};
 
-    for (const interceptor of this.interceptors) {
-      const [newUrl, newOptions] = await interceptor(url, fetchOptions);
-      url = newUrl;
-      fetchOptions = newOptions;
-    }
-
-    return { url, fetchOptions };
+    return this.interceptorManager.applyInterceptors(url, fetchOptions);
   }
 
   private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
@@ -278,3 +151,7 @@ export function apiFetchStream(
 ): Promise<Response> {
   return defaultClient.fetchStream(endpoint, options, defaultErrorMessage, queryParams);
 }
+
+export * from "./apiClientErrors";
+export * from "./apiClientInterceptors";
+export * from "./apiClientRetry";
