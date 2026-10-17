@@ -1,36 +1,143 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
 import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
-
-const collectionRegistry = new Map<string, StorageCollection<ChatSession>>();
-
-function getChatCollection(projectId?: string): StorageCollection<ChatSession> {
-  const key = getChatSessionsStorageKey(projectId);
-  return getChatCollectionByKey(key);
-}
-
-function getChatCollectionByKey(key: string): StorageCollection<ChatSession> {
-  if (collectionRegistry.has(key)) {
-    return collectionRegistry.get(key)!;
-  }
-  const collection = new StorageCollection<ChatSession>(key, {
-    validate: (s) => !isMockChatSession(s as Partial<ChatSession>),
-    maxItems: 100,
-  });
-  collectionRegistry.set(key, collection);
-  return collection;
-}
-
 import { isMockSession } from "../utils/mockDefinitions";
+
+class ChatHistoryManager {
+  private collectionRegistry = new Map<string, StorageCollection<ChatSession>>();
+
+  private getChatCollectionByKey(key: string): StorageCollection<ChatSession> {
+    if (this.collectionRegistry.has(key)) {
+      return this.collectionRegistry.get(key)!;
+    }
+    const collection = new StorageCollection<ChatSession>(key, {
+      validate: (s) => !this.isMockChatSession(s as Partial<ChatSession>),
+      maxItems: 100,
+    });
+    this.collectionRegistry.set(key, collection);
+    return collection;
+  }
+
+  private getChatCollection(projectId?: string): StorageCollection<ChatSession> {
+    const key = this.getChatSessionsStorageKey(projectId);
+    return this.getChatCollectionByKey(key);
+  }
+
+  public getChatSessionsStorageKey(projectId?: string): string {
+    if (projectId && projectId.trim()) {
+      return `${STORAGE_KEYS.CHAT_SESSIONS_PREFIX}_${projectId.trim()}`;
+    }
+    return `${STORAGE_KEYS.CHAT_SESSIONS_PREFIX}_default`;
+  }
+
+  public isMockChatSession(session: Partial<ChatSession>): boolean {
+    return isMockSession(session, "chat");
+  }
+
+  public purgeMockSessionsFromStorage(): void {
+    try {
+      if (isBrowserEnvironment()) {
+        const keysToClean = safeGetStorageKeys(STORAGE_KEYS.CHAT_SESSIONS_PREFIX);
+
+        keysToClean.forEach((key) => {
+          const collection = this.getChatCollectionByKey(key);
+          const rawCollection = new StorageCollection<ChatSession>(key, {});
+          const rawSessions = rawCollection.load();
+
+          const cleanSessions = collection.load();
+          if (cleanSessions.length !== rawSessions.length) {
+            collection.save(cleanSessions);
+          }
+        });
+      }
+    } catch {
+      // Fail gracefully if storage access is restricted
+    }
+  }
+
+  public sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[] {
+    return messages.map((m) => ({
+      ...m,
+      images: m.images?.map((img) => ({
+        ...img,
+        data: "", // Stripped to conserve storage quota
+      })),
+    }));
+  }
+
+  public generateSessionTitle(messages: ChatMessage[], maxLength: number = 42): string {
+    const firstUserMsg = messages.find((m) => m.role === "user" && m.text.trim().length > 0);
+    if (firstUserMsg && firstUserMsg.text.trim()) {
+      const raw = firstUserMsg.text.trim().replace(/\s+/g, " ");
+      return raw.length > maxLength ? `${raw.slice(0, maxLength)}...` : raw;
+    }
+    const firstAnyMsg = messages.find((m) => m.text.trim().length > 0);
+    if (firstAnyMsg && firstAnyMsg.text.trim()) {
+      const raw = firstAnyMsg.text.trim().replace(/\s+/g, " ");
+      return raw.length > maxLength ? `${raw.slice(0, maxLength)}...` : raw;
+    }
+    return "New Conversation";
+  }
+
+  public getChatSessions(projectId?: string): ChatSession[] {
+    return this.getChatCollection(projectId).load().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }
+
+  public saveChatSession(session: ChatSession, projectId?: string): void {
+    if (!session.id || !session.messages || this.isMockChatSession(session)) return;
+
+    const collection = this.getChatCollection(projectId);
+    const sanitizedMessages = this.sanitizeMessagesForHistory(session.messages || []);
+
+    const title =
+      session.title && session.title !== "New Conversation" && session.title !== "Untitled Chat"
+        ? session.title
+        : this.generateSessionTitle(sanitizedMessages);
+
+    const updatedSession: ChatSession = {
+      ...session,
+      title,
+      messages: sanitizedMessages,
+      projectId: projectId || session.projectId,
+      updatedAt: Date.now(),
+      createdAt: session.createdAt || Date.now(),
+    };
+
+    collection.upsert(updatedSession, true);
+  }
+
+  public getChatSessionById(sessionId: string, projectId?: string): ChatSession | null {
+    const sessions = this.getChatSessions(projectId);
+    return sessions.find((s) => s.id === sessionId) || null;
+  }
+
+  public deleteChatSession(sessionId: string, projectId?: string): boolean {
+    const collection = this.getChatCollection(projectId);
+    const beforeLength = collection.load().length;
+    const after = collection.delete(sessionId);
+    return after.length !== beforeLength;
+  }
+
+  public clearAllChatSessions(projectId?: string): void {
+    this.getChatCollection(projectId).clear();
+  }
+
+  public bulkDeleteChatSessions(sessionIds: string[], projectId?: string): boolean {
+    if (!sessionIds || sessionIds.length === 0) return false;
+    const collection = this.getChatCollection(projectId);
+    const itemsBefore = collection.load().length;
+    const filtered = collection.bulkDelete(sessionIds);
+    return filtered.length !== itemsBefore;
+  }
+}
+
+const chatHistoryManager = new ChatHistoryManager();
 
 /**
  * Returns the storage key scoped by project
  */
 export function getChatSessionsStorageKey(projectId?: string): string {
-  if (projectId && projectId.trim()) {
-    return `${STORAGE_KEYS.CHAT_SESSIONS_PREFIX}_${projectId.trim()}`;
-  }
-  return `${STORAGE_KEYS.CHAT_SESSIONS_PREFIX}_default`;
+  return chatHistoryManager.getChatSessionsStorageKey(projectId);
 }
 
 /**
@@ -39,7 +146,7 @@ export function getChatSessionsStorageKey(projectId?: string): string {
  * even in the development environment.
  */
 export function isMockChatSession(session: Partial<ChatSession>): boolean {
-  return isMockSession(session, "chat");
+  return chatHistoryManager.isMockChatSession(session);
 }
 
 /**
@@ -48,61 +155,25 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
  * zero mock data remains in storage.
  */
 export function purgeMockSessionsFromStorage(): void {
-  try {
-    if (isBrowserEnvironment()) {
-      const keysToClean = safeGetStorageKeys(STORAGE_KEYS.CHAT_SESSIONS_PREFIX);
-
-      keysToClean.forEach((key) => {
-        const collection = getChatCollectionByKey(key);
-        // We temporarily create a new collection without validation to load the raw data,
-        // then compare its length to the validated collection.
-        const rawCollection = new StorageCollection<ChatSession>(key, {});
-        const rawSessions = rawCollection.load();
-
-        const cleanSessions = collection.load();
-        if (cleanSessions.length !== rawSessions.length) {
-          collection.save(cleanSessions);
-        }
-      });
-    }
-  } catch {
-    // Fail gracefully if storage access is restricted
-  }
+  chatHistoryManager.purgeMockSessionsFromStorage();
 }
 
 export function initializeChatHistoryService(): void {
   purgeMockSessionsFromStorage();
 }
 
-
 /**
  * Sanitizes messages by removing heavy base64 image data before persisting
  */
 export function sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[] {
-  return messages.map((m) => ({
-    ...m,
-    images: m.images?.map((img) => ({
-      ...img,
-      data: "", // Stripped to conserve storage quota
-    })),
-  }));
+  return chatHistoryManager.sanitizeMessagesForHistory(messages);
 }
 
 /**
  * Generates a clean human-readable title from conversation messages
  */
 export function generateSessionTitle(messages: ChatMessage[], maxLength: number = 42): string {
-  const firstUserMsg = messages.find((m) => m.role === "user" && m.text.trim().length > 0);
-  if (firstUserMsg && firstUserMsg.text.trim()) {
-    const raw = firstUserMsg.text.trim().replace(/\s+/g, " ");
-    return raw.length > maxLength ? `${raw.slice(0, maxLength)}...` : raw;
-  }
-  const firstAnyMsg = messages.find((m) => m.text.trim().length > 0);
-  if (firstAnyMsg && firstAnyMsg.text.trim()) {
-    const raw = firstAnyMsg.text.trim().replace(/\s+/g, " ");
-    return raw.length > maxLength ? `${raw.slice(0, maxLength)}...` : raw;
-  }
-  return "New Conversation";
+  return chatHistoryManager.generateSessionTitle(messages, maxLength);
 }
 
 /**
@@ -110,7 +181,7 @@ export function generateSessionTitle(messages: ChatMessage[], maxLength: number 
  * Enforces strict filtering to guarantee zero mock data is returned.
  */
 export function getChatSessions(projectId?: string): ChatSession[] {
-  return getChatCollection(projectId).load().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return chatHistoryManager.getChatSessions(projectId);
 }
 
 /**
@@ -118,60 +189,33 @@ export function getChatSessions(projectId?: string): ChatSession[] {
  * Strictly blocks saving any mock or synthetic data.
  */
 export function saveChatSession(session: ChatSession, projectId?: string): void {
-  if (!session.id || !session.messages || isMockChatSession(session)) return;
-
-  const collection = getChatCollection(projectId);
-  const sanitizedMessages = sanitizeMessagesForHistory(session.messages || []);
-
-  const title =
-    session.title && session.title !== "New Conversation" && session.title !== "Untitled Chat"
-      ? session.title
-      : generateSessionTitle(sanitizedMessages);
-
-  const updatedSession: ChatSession = {
-    ...session,
-    title,
-    messages: sanitizedMessages,
-    projectId: projectId || session.projectId,
-    updatedAt: Date.now(),
-    createdAt: session.createdAt || Date.now(),
-  };
-
-  collection.upsert(updatedSession, true);
+  return chatHistoryManager.saveChatSession(session, projectId);
 }
 
 /**
  * Gets a specific chat session by ID
  */
 export function getChatSessionById(sessionId: string, projectId?: string): ChatSession | null {
-  const sessions = getChatSessions(projectId);
-  return sessions.find((s) => s.id === sessionId) || null;
+  return chatHistoryManager.getChatSessionById(sessionId, projectId);
 }
 
 /**
  * Deletes an individual chat session by ID
  */
 export function deleteChatSession(sessionId: string, projectId?: string): boolean {
-  const collection = getChatCollection(projectId);
-  const beforeLength = collection.load().length;
-  const after = collection.delete(sessionId);
-  return after.length !== beforeLength;
+  return chatHistoryManager.deleteChatSession(sessionId, projectId);
 }
 
 /**
  * Clears all chat sessions for a project
  */
 export function clearAllChatSessions(projectId?: string): void {
-  getChatCollection(projectId).clear();
+  return chatHistoryManager.clearAllChatSessions(projectId);
 }
 
 /**
  * Deletes multiple chat sessions by ID (Batch Productivity ADR 0047)
  */
 export function bulkDeleteChatSessions(sessionIds: string[], projectId?: string): boolean {
-  if (!sessionIds || sessionIds.length === 0) return false;
-  const collection = getChatCollection(projectId);
-  const itemsBefore = collection.load().length;
-  const filtered = collection.bulkDelete(sessionIds);
-  return filtered.length !== itemsBefore;
+  return chatHistoryManager.bulkDeleteChatSessions(sessionIds, projectId);
 }

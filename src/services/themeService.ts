@@ -17,19 +17,19 @@ export interface ThemeState {
 
 export type ThemeListener = (state: ThemeState) => void;
 
-const themeModeSingleton = new StorageSingleton<ThemeMode>(
-  STORAGE_KEYS.THEME_MODE,
-  "system",
-  {
-    validate: (val) => val === "light" || val === "dark" || val === "system",
-  }
-);
-
 class ThemeManager extends Observable<ThemeState> {
   private currentMode: ThemeMode = "system";
   private currentResolved: ResolvedTheme = "dark";
   private initialized = false;
   private mediaQueryList: MediaQueryList | null = null;
+
+  private themeModeSingleton = new StorageSingleton<ThemeMode>(
+    STORAGE_KEYS.THEME_MODE,
+    "system",
+    {
+      validate: (val) => val === "light" || val === "dark" || val === "system",
+    }
+  );
 
   public getSystemResolvedTheme(): ResolvedTheme {
     if (!isBrowserEnvironment()) {
@@ -41,11 +41,11 @@ class ThemeManager extends Observable<ThemeState> {
   }
 
   public loadStoredThemeMode(): ThemeMode {
-    return themeModeSingleton.load();
+    return this.themeModeSingleton.load();
   }
 
   public persistThemeMode(mode: ThemeMode): void {
-    themeModeSingleton.save(mode);
+    this.themeModeSingleton.save(mode);
   }
 
   public resolveTheme(mode: ThemeMode): ResolvedTheme {
