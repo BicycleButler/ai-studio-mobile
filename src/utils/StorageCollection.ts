@@ -1,7 +1,10 @@
 import { safeGetStorageArray, safeSetStorage } from "./storage/core";
+import { Observable } from "./observable";
+import { isBrowserEnvironment, getSafeWindow } from "./platform";
 
-export class StorageCollection<T> {
+export class StorageCollection<T> extends Observable<T[]> {
   private key: string;
+  private cachedSnapshot: T[] | null = null;
   private keyExtractor: (item: T) => string;
   private transformIn?: (item: T) => T;
   private transformOut?: (item: T) => T;
@@ -26,6 +29,7 @@ export class StorageCollection<T> {
       storageAdapter?: Storage;
     }
   ) {
+    super();
     this.key = key;
     // Default to extracting an 'id' property if it exists
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
@@ -37,15 +41,41 @@ export class StorageCollection<T> {
     this.setter = options?.setter;
     this.onSave = options?.onSave;
     this.storageAdapter = options?.storageAdapter;
+
+    if (isBrowserEnvironment()) {
+      const win = getSafeWindow();
+      if (win) {
+        win.addEventListener("storage", this.handleStorageEvent);
+      }
+    }
   }
 
+  private handleStorageEvent = (e: StorageEvent) => {
+    if (e.key === this.key || e.key === null) {
+      this.cachedSnapshot = null;
+      this.notify(this.load());
+    }
+  };
+
+  public bindSubscribe = (listener: () => void) => {
+    return this.subscribe(listener);
+  };
+
+  public getSnapshot = (): T[] => {
+    return this.load();
+  };
+
   load(): T[] {
+    if (this.cachedSnapshot) {
+      return this.cachedSnapshot;
+    }
     const raw = this.getter ? this.getter(this.key, []) : safeGetStorageArray<T>(this.key, [], this.storageAdapter);
     let filtered = raw;
     if (this.validate) {
       filtered = raw.filter((item) => this.validate!(item));
     }
     const result = this.transformOut ? filtered.map(this.transformOut) : filtered;
+    this.cachedSnapshot = result;
     return result;
   }
 
@@ -60,9 +90,13 @@ export class StorageCollection<T> {
       if (!success) {
           console.warn(`StorageCollection[${this.key}]: safeSetStorage returned false.`);
       }
+      this.cachedSnapshot = null;
+      const loaded = this.load();
+      this.notify(loaded);
+
       if (this.onSave) {
         try {
-            this.onSave(this.load());
+            this.onSave(loaded);
         } catch (onSaveErr) {
             console.error(`StorageCollection[${this.key}]: error during onSave callback`, onSaveErr);
         }
