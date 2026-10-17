@@ -76,7 +76,24 @@ function buildUrlWithParams(endpoint: string, queryParams?: Record<string, strin
   return `${endpoint}${separator}${searchParams.toString()}`;
 }
 
-export class ApiClient {
+export interface IApiClient {
+  addInterceptor(interceptor: Interceptor): void;
+  clearInterceptors(): void;
+  fetch<T>(
+    endpoint: string,
+    options?: RequestInit,
+    defaultErrorMessage?: string,
+    queryParams?: Record<string, string | number | boolean>
+  ): Promise<T>;
+  fetchStream(
+    endpoint: string,
+    options?: RequestInit,
+    defaultErrorMessage?: string,
+    queryParams?: Record<string, string | number | boolean>
+  ): Promise<Response>;
+}
+
+export class ApiClient implements IApiClient {
   private interceptors: Interceptor[] = [];
   public retryConfig: RetryConfig;
 
@@ -88,11 +105,11 @@ export class ApiClient {
     };
   }
 
-  public addInterceptor(interceptor: Interceptor) {
+  public addInterceptor(interceptor: Interceptor): void {
     this.interceptors.push(interceptor);
   }
 
-  public clearInterceptors() {
+  public clearInterceptors(): void {
     this.interceptors = [];
   }
 
@@ -139,14 +156,23 @@ export class ApiClient {
       attempt++;
       if (attempt >= retries) {
         if (lastResponse) return lastResponse;
-        if (lastError) throw lastError;
+        if (lastError) {
+          const msg = lastError instanceof Error ? lastError.message : "Network error during fetch";
+          throw BaseApiError.fromResponse(msg, 0, undefined, url, lastError);
+        }
         break;
       }
 
       const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
-    throw new Error("Max retries exceeded");
+
+    if (lastResponse) return lastResponse;
+    if (lastError) {
+       const msg = lastError instanceof Error ? lastError.message : "Max retries exceeded with network error";
+       throw BaseApiError.fromResponse(msg, 0, undefined, url, lastError);
+    }
+    throw BaseApiError.fromResponse("Max retries exceeded", 0, undefined, url);
   }
 
   private async executeRequest(
@@ -161,7 +187,9 @@ export class ApiClient {
       if (isAbortError(err)) {
         throw err;
       }
-      throw BaseApiError.fromResponse(err instanceof Error ? err.message : defaultErrorMessage, 0, undefined, endpoint);
+      // Ensure we don't leak raw DOM exceptions; wrap them cleanly
+      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : defaultErrorMessage;
+      throw BaseApiError.fromResponse(msg, 0, undefined, endpoint, err);
     }
 
     if (!res.ok) {
@@ -207,6 +235,7 @@ export class ApiClient {
   }
 }
 
+// Expose the interface but keep the instance variable typed as ApiClient internally to avoid type issues with retryConfig.
 const defaultClient = new ApiClient();
 
 export function addInterceptor(interceptor: Interceptor) {
