@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { ChatSession } from "../types";
 import { formatRelativeTime } from "../utils/timeUtils";
+import { DatasetScopeBanner } from "./DatasetScopeBanner";
 
 export interface ChatHistoryPopoverProps {
   isJulesMode: boolean;
@@ -84,7 +85,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
 
       {/* 3. Batch Select All Toggle (Only if there are valid history items) */}
       {validHistorySessions.length > 0 && (
-        <div className="px-3 py-2 flex items-center gap-2 border-b border-border/40 bg-muted/20">
+        <div className="px-3 py-2 flex flex-col gap-2 border-b border-border/40 bg-muted/20 items-start">
           <button
             type="button"
             onClick={toggleSelectAllHistory}
@@ -97,6 +98,11 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
             )}
             {selectedHistoryIds.size === validHistorySessions.length ? "Deselect All" : "Select All"}
           </button>
+          {/* Dataset Scope Banner (ADR 0047) */}
+          <DatasetScopeBanner
+            selectedCount={selectedHistoryIds.size}
+            totalCount={validHistorySessions.length}
+          />
         </div>
       )}
 
