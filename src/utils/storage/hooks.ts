@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { StorageBase } from "../StorageBase";
+import { StorageBase } from "./StorageBase";
 
 /**
  * A React hook that subscribes to a StorageBase instance (StorageCollection or StorageSingleton).

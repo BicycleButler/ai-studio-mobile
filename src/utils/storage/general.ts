@@ -1,5 +1,5 @@
 import { isBrowserEnvironment, getSafeWindow } from "../platform";
-import { StorageSingleton } from "../StorageSingleton";
+import { StorageSingleton } from "./StorageSingleton";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeSetStorageString } from "./core";
 

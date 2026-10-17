@@ -1,4 +1,4 @@
-import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./storage/core";
+import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./core";
 import { StorageBase } from "./StorageBase";
 
 export class StorageSingleton<T> extends StorageBase<T> {

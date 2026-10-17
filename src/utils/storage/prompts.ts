@@ -1,5 +1,5 @@
 import { SavedPrompt } from "../../types";
-import { StorageCollection } from "../StorageCollection";
+import { StorageCollection } from "./StorageCollection";
 import { STORAGE_KEYS } from "./constants";
 
 const savedPromptsCollection = new StorageCollection<SavedPrompt>(STORAGE_KEYS.SAVED_PROMPTS, {

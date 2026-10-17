@@ -1,6 +1,6 @@
 import { PromptConfig, PromptType, StructuredExample, ChatMessage } from "../../types";
 import { DEFAULT_CONFIG } from "../../data/templates";
-import { StorageSingleton } from "../StorageSingleton";
+import { StorageSingleton } from "./StorageSingleton";
 import { STORAGE_KEYS } from "./constants";
 import { cleanMockData, getNestedValue } from "./helpers";
 

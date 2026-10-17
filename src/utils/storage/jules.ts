@@ -1,8 +1,8 @@
 import { JulesSession, JulesSettings } from "../../types";
 import { isBrowserEnvironment, getSafeWindow } from "../platform";
 import { enqueueOfflineMutation } from "../offlineService";
-import { StorageCollection } from "../StorageCollection";
-import { StorageSingleton } from "../StorageSingleton";
+import { StorageCollection } from "./StorageCollection";
+import { StorageSingleton } from "./StorageSingleton";
 import { STORAGE_KEYS } from "./constants";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";

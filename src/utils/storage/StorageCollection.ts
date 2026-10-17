@@ -1,4 +1,4 @@
-import { safeGetStorageArray, safeSetStorage } from "./storage/core";
+import { safeGetStorageArray, safeSetStorage } from "./core";
 import { StorageBase } from "./StorageBase";
 
 export class StorageCollection<T> extends StorageBase<T[]> {
