@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { SettingsTab } from "../../types";
 
+
 export interface SettingsSidebarProps {
   activeTab: SettingsTab;
   setActiveTab: (tab: SettingsTab) => void;

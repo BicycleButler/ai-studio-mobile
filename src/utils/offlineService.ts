@@ -1,6 +1,7 @@
 import { get, set } from "idb-keyval";
 import { generateUniqueId } from "./idGenerator";
 import { Mutex } from "./mutex";
+import { Observable } from "./observable";
 
 export interface OfflineMutation {
   type: string;
@@ -28,6 +29,12 @@ export function registerSyncHandler(type: string, handler: SyncHandler) {
 }
 
 const queueMutex = new Mutex();
+
+export const queueObservable = new Observable<OfflineMutation[]>();
+
+function notifyQueue(queue: OfflineMutation[]) {
+  queueObservable.notify(queue);
+}
 
 async function safeGetQueue(): Promise<OfflineMutation[]> {
   try {
@@ -68,6 +75,7 @@ export async function enqueueOfflineMutation(type: string, payload: unknown, ver
       version,
     });
     await safeSetQueue(queue);
+    notifyQueue(queue);
   });
 }
 
@@ -75,6 +83,7 @@ export async function removeOfflineMutation(id: string): Promise<void> {
   await withQueueLock(async (queue) => {
     const newQueue = queue.filter((m) => m.id !== id);
     await safeSetQueue(newQueue);
+    notifyQueue(newQueue);
   });
 }
 
@@ -85,6 +94,7 @@ export async function getOfflineQueueLength(): Promise<number> {
 export async function clearOfflineMutations(): Promise<void> {
   await withQueueLock(async () => {
     await safeSetQueue([]);
+    notifyQueue([]);
   });
 }
 
@@ -135,7 +145,12 @@ export async function processOfflineMutations(): Promise<{
 
     const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
     await safeSetQueue(finalQueue);
+    notifyQueue(finalQueue);
   });
 
   return { success: processSuccess, conflicts };
+}
+
+export async function getOfflineQueue(): Promise<OfflineMutation[]> {
+  return (await withQueueLock(async (queue) => queue)) as OfflineMutation[] || [];
 }

@@ -1,6 +1,8 @@
 import React from "react";
-import { ShieldCheck, CheckCircle2, Lock, Smartphone, ExternalLink, Bot, Check, FolderPlus, Folder, Trash2, Edit2, Loader2, AlertCircle } from "lucide-react";
+import { ShieldCheck, CheckCircle2, Lock, Smartphone, ExternalLink, Bot, Check, FolderPlus, Folder, Trash2,
+  Clock, Edit2, Loader2, AlertCircle } from "lucide-react";
 import { GoogleUser, ProjectInfo } from "../../types";
+import { useOfflineQueue } from "../../hooks/useOfflineQueue";
 import { GoogleAuthCard } from "../GoogleAuthCard";
 import { DatasetScopeBanner } from "../DatasetScopeBanner";
 import { FloatingBatchActionBar } from "../FloatingBatchActionBar";
@@ -69,7 +71,18 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
   bulkDeleteConfirmationText,
   setBulkDeleteConfirmationText
 }) => {
+
+  const offlineQueue = useOfflineQueue();
+  const pendingProjectIds = new Set(
+    offlineQueue.filter(m => m.type === "projects").flatMap(m => {
+      if (typeof m.payload === "object" && m.payload !== null && "projects" in m.payload && Array.isArray((m.payload as Record<string, unknown>).projects)) {
+          return ((m.payload as Record<string, unknown>).projects as Record<string, unknown>[]).map(p => p.id as string);
+      }
+      return [];
+    })
+  );
   return (
+
     <div className="space-y-4">
       <GoogleAuthCard
         user={googleUser}
@@ -339,8 +352,11 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
                         onClick={() => onSelectProject(p)}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground truncate max-w-[140px]">
-                            {p.name}
+                          <span className="text-sm font-medium text-foreground truncate max-w-[140px] flex items-center gap-1">
+                            <span className="truncate">{p.name}</span>
+                            {pendingProjectIds.has(p.id) && (
+                              <Clock className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" aria-label="Pending sync" />
+                            )}
                           </span>
                           {activeProject?.id === p.id && (
                             <span className="text-[9px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
