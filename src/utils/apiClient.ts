@@ -54,6 +54,8 @@ export async function parseErrorResponse(res: Response, defaultErrorMessage: str
   return { errorMessage, headers, rawData };
 }
 
+import { buildUrlWithParams } from "./urlUtils";
+
 export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
 
 export interface RetryConfig {
@@ -121,18 +123,6 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
 
 export type Interceptor = (url: string, options: RequestInit) => Promise<[string, RequestInit]>;
 
-function buildUrlWithParams(endpoint: string, queryParams?: Record<string, string | number | boolean>): string {
-  if (!queryParams || Object.keys(queryParams).length === 0) {
-    return endpoint;
-  }
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(queryParams)) {
-    searchParams.append(key, String(value));
-  }
-  const separator = endpoint.includes('?') ? '&' : '?';
-  return `${endpoint}${separator}${searchParams.toString()}`;
-}
-
 export interface IApiClient {
   addInterceptor(interceptor: Interceptor): void;
   clearInterceptors(): void;
@@ -140,13 +130,13 @@ export interface IApiClient {
     endpoint: string,
     options?: RequestInit,
     defaultErrorMessage?: string,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<T>;
   fetchStream(
     endpoint: string,
     options?: RequestInit,
     defaultErrorMessage?: string,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<Response>;
 }
 
@@ -174,7 +164,7 @@ export class ApiClient implements IApiClient {
   private async prepareRequest(
     endpoint: string,
     options?: RequestInit,
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<{ url: string; fetchOptions: RequestInit }> {
     let url = buildUrlWithParams(endpoint, queryParams);
     let fetchOptions = options || {};
@@ -225,7 +215,7 @@ export class ApiClient implements IApiClient {
     endpoint: string,
     options?: RequestInit,
     defaultErrorMessage: string = "API request failed",
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<T> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
 
@@ -248,7 +238,7 @@ export class ApiClient implements IApiClient {
     endpoint: string,
     options?: RequestInit,
     defaultErrorMessage: string = "API request failed",
-    queryParams?: Record<string, string | number | boolean>
+    queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<Response> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
 
@@ -271,7 +261,7 @@ export function apiFetch<T>(
   endpoint: string,
   options?: RequestInit,
   defaultErrorMessage?: string,
-  queryParams?: Record<string, string | number | boolean>
+  queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
 ): Promise<T> {
   return defaultClient.fetch<T>(endpoint, options, defaultErrorMessage, queryParams);
 }
@@ -280,7 +270,7 @@ export function apiFetchStream(
   endpoint: string,
   options?: RequestInit,
   defaultErrorMessage?: string,
-  queryParams?: Record<string, string | number | boolean>
+  queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
 ): Promise<Response> {
   return defaultClient.fetchStream(endpoint, options, defaultErrorMessage, queryParams);
 }
