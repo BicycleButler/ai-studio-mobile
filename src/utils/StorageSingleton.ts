@@ -42,8 +42,12 @@ export class StorageSingleton<T> {
   }
 
   save(item: T): void {
-    const toStore = this.transformIn ? this.transformIn(item) : item;
-    this.setter(this.key, toStore, this.storageAdapter);
+    try {
+      const toStore = this.transformIn ? this.transformIn(item) : item;
+      this.setter(this.key, toStore, this.storageAdapter);
+    } catch (err) {
+      console.warn(`StorageSingleton[${this.key}]: save error`, err);
+    }
   }
 
   clear(): void {

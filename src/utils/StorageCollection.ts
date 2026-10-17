@@ -73,6 +73,7 @@ export class StorageCollection<T> {
   }
 
   update(id: string, updates: Partial<T>): T | null {
+    if (!id) return null;
     const items = this.load();
     const index = items.findIndex((item) => this.keyExtractor(item) === id);
     if (index === -1) return null;
@@ -100,6 +101,7 @@ export class StorageCollection<T> {
   }
 
   delete(id: string): T[] {
+    if (!id) return this.load();
     const items = this.load();
     const filtered = items.filter((item) => this.keyExtractor(item) !== id);
     this.save(filtered);
