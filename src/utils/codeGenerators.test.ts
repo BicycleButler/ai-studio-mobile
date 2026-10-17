@@ -1,11 +1,6 @@
 // Test suite for code generators
 import { PromptConfig, ChatMessage } from "../types";
-import {
-  generateAndroidKotlinCode,
-  generatePythonCode,
-  generateTypeScriptCode,
-  generateCurlCode,
-} from "./codeGenerators";
+import { CODE_GENERATORS } from "./codeGenerators";
 
 // Verification that explicit 'any' is permitted in test files
 const mockConfig: PromptConfig = {
@@ -39,16 +34,16 @@ describe('codeGenerators', () => {
   test('testGenerators', () => {
     expect(testMockPayload).toBeTruthy();
 
-    const kotlin = generateAndroidKotlinCode(mockConfig, mockMessages);
+    const kotlin = CODE_GENERATORS.kotlin.generate(mockConfig, mockMessages);
     expect(kotlin).toContain("com.google.ai.client.generativeai");
 
-    const python = generatePythonCode(mockConfig, mockMessages);
+    const python = CODE_GENERATORS.python.generate(mockConfig, mockMessages);
     expect(python).toContain("from google import genai");
 
-    const ts = generateTypeScriptCode(mockConfig, mockMessages);
+    const ts = CODE_GENERATORS.typescript.generate(mockConfig, mockMessages);
     expect(ts).toContain("@google/genai");
 
-    const curl = generateCurlCode(mockConfig, mockMessages);
+    const curl = CODE_GENERATORS.curl.generate(mockConfig, mockMessages);
     expect(curl).toContain("generativelanguage.googleapis.com");
   });
 });

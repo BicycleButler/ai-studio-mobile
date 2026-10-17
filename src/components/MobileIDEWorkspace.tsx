@@ -21,10 +21,7 @@ import { PromptConfig, ChatMessage, StructuredExample } from "../types";
 import { generateUniqueId } from "../utils/idGenerator";
 
 import {
-  generateAndroidKotlinCode,
-  generateTypeScriptCode,
-  generatePythonCode,
-  generateCurlCode,
+  CODE_GENERATORS
 } from "../utils/codeGenerators";
 import { fetchGenerateContent } from "../services/geminiStreamService";
 
@@ -66,30 +63,12 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 }) => {
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [
-    {
-      id: "kotlin",
-      name: "gemini_client.kt",
-      language: "kotlin",
-      content: generateAndroidKotlinCode(config, messages),
-    },
-    {
-      id: "typescript",
-      name: "gemini_service.ts",
-      language: "typescript",
-      content: generateTypeScriptCode(config, messages),
-    },
-    {
-      id: "python",
-      name: "gemini_app.py",
-      language: "python",
-      content: generatePythonCode(config, messages),
-    },
-    {
-      id: "curl",
-      name: "curl_request.sh",
-      language: "bash",
-      content: generateCurlCode(config, messages),
-    },
+    ...Object.values(CODE_GENERATORS).map(generator => ({
+      id: generator.id,
+      name: generator.name,
+      language: generator.language,
+      content: generator.generate(config, messages),
+    })),
     {
       id: "system",
       name: "system_prompt.md",

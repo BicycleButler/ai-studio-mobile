@@ -16,7 +16,16 @@ export function extractPromptContext(config: PromptConfig, messages: ChatMessage
   return { promptText, sysInst };
 }
 
-export function generatePythonCode(config: PromptConfig, messages: ChatMessage[]): string {
+export type CodeLangId = "kotlin" | "python" | "typescript" | "curl";
+
+export interface CodeGenerator {
+  id: CodeLangId;
+  name: string;
+  language: string; // Used for syntax highlighting (e.g., 'bash', 'python')
+  generate: (config: PromptConfig, messages: ChatMessage[]) => string;
+}
+
+export const generatePythonCode = (config: PromptConfig, messages: ChatMessage[]): string => {
   const { promptText, sysInst } = extractPromptContext(config, messages);
 
   return `import os
@@ -40,9 +49,9 @@ response = client.models.generate_content(
 
 print(response.text)
 `;
-}
+};
 
-export function generateTypeScriptCode(config: PromptConfig, messages: ChatMessage[]): string {
+export const generateTypeScriptCode = (config: PromptConfig, messages: ChatMessage[]): string => {
   const { promptText, sysInst } = extractPromptContext(config, messages);
 
   return `import { GoogleGenAI } from "@google/genai";
@@ -69,9 +78,9 @@ async function main() {
 
 main();
 `;
-}
+};
 
-export function generateAndroidKotlinCode(config: PromptConfig, messages: ChatMessage[]): string {
+export const generateAndroidKotlinCode = (config: PromptConfig, messages: ChatMessage[]): string => {
   const { promptText, sysInst } = extractPromptContext(config, messages);
 
   return `// In your Android app build.gradle.kts:
@@ -104,9 +113,9 @@ fun main() {
     }
 }
 `;
-}
+};
 
-export function generateCurlCode(config: PromptConfig, messages: ChatMessage[]): string {
+export const generateCurlCode = (config: PromptConfig, messages: ChatMessage[]): string => {
   const { promptText } = extractPromptContext(config, messages);
 
   return `curl "https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=\${GEMINI_API_KEY}" \\
@@ -124,4 +133,31 @@ export function generateCurlCode(config: PromptConfig, messages: ChatMessage[]):
     }
   }'
 `;
-}
+};
+
+export const CODE_GENERATORS: Record<CodeLangId, CodeGenerator> = {
+  kotlin: {
+    id: "kotlin",
+    name: "MainActivity.kt",
+    language: "kotlin",
+    generate: generateAndroidKotlinCode,
+  },
+  typescript: {
+    id: "typescript",
+    name: "gemini_service.ts",
+    language: "typescript",
+    generate: generateTypeScriptCode,
+  },
+  python: {
+    id: "python",
+    name: "gemini_app.py",
+    language: "python",
+    generate: generatePythonCode,
+  },
+  curl: {
+    id: "curl",
+    name: "curl_request.sh",
+    language: "bash",
+    generate: generateCurlCode,
+  },
+};
