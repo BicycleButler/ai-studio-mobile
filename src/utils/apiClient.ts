@@ -28,8 +28,6 @@ export function isAbortError(err: unknown): boolean {
   return false;
 }
 
-
-
 export async function parseErrorResponse(res: Response, defaultErrorMessage: string): Promise<{ errorMessage: string; headers: Record<string, string>; rawData?: unknown }> {
   const headers: Record<string, string> = {};
   res.headers.forEach((value, key) => {
@@ -56,7 +54,6 @@ export async function parseErrorResponse(res: Response, defaultErrorMessage: str
   return { errorMessage, headers, rawData };
 }
 
-
 export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
 
 export interface RetryConfig {
@@ -64,59 +61,6 @@ export interface RetryConfig {
   baseDelayMs?: number;
   fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
-
-async function fetchWithRetry(url: string, options: RequestInit, _defaultErrorMessage: string = "API request failed", config: RetryConfig = {}): Promise<Response> {
-  const retries = config.retries ?? 3;
-  const baseDelayMs = config.baseDelayMs ?? 1000;
-  const fetcher = config.fetcher ?? fetch;
-
-  let attempt = 0;
-  while (attempt < retries) {
-    try {
-      const res = await fetcher(url, options);
-      if (res.ok || !RETRYABLE_STATUS_CODES.has(res.status)) {
-        return res;
-      }
-      attempt++;
-      if (attempt >= retries) return res;
-
-      const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    } catch (err: unknown) {
-      if (isAbortError(err)) throw err;
-      attempt++;
-      if (attempt >= retries) throw err;
-
-      const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error("Max retries exceeded");
-}
-
-async function executeRequest(
-  endpoint: string,
-  options?: RequestInit,
-  defaultErrorMessage: string = "API request failed"
-): Promise<Response> {
-  let res: Response;
-  try {
-    res = await fetchWithRetry(endpoint, options || {}, defaultErrorMessage);
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw err;
-    }
-    throw BaseApiError.fromResponse(err instanceof Error ? err.message : defaultErrorMessage, 0, undefined, endpoint);
-  }
-
-  if (!res.ok) {
-    const { errorMessage, headers, rawData } = await parseErrorResponse(res, defaultErrorMessage);
-    throw BaseApiError.fromResponse(errorMessage, res.status, headers, endpoint, rawData);
-  }
-
-  return res;
-}
-
 
 export type Interceptor = (url: string, options: RequestInit) => Promise<[string, RequestInit]>;
 
@@ -134,6 +78,15 @@ function buildUrlWithParams(endpoint: string, queryParams?: Record<string, strin
 
 export class ApiClient {
   private interceptors: Interceptor[] = [];
+  public retryConfig: RetryConfig;
+
+  constructor(retryConfig: RetryConfig = {}) {
+    this.retryConfig = {
+      retries: retryConfig.retries ?? 3,
+      baseDelayMs: retryConfig.baseDelayMs ?? 1000,
+      fetcher: retryConfig.fetcher ?? fetch,
+    };
+  }
 
   public addInterceptor(interceptor: Interceptor) {
     this.interceptors.push(interceptor);
@@ -160,6 +113,58 @@ export class ApiClient {
     return { url, fetchOptions };
   }
 
+  private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+    const retries = this.retryConfig.retries!;
+    const baseDelayMs = this.retryConfig.baseDelayMs!;
+    const fetcher = this.retryConfig.fetcher!;
+
+    let attempt = 0;
+    while (attempt < retries) {
+      try {
+        const res = await fetcher(url, options);
+        if (res.ok || !RETRYABLE_STATUS_CODES.has(res.status)) {
+          return res;
+        }
+        attempt++;
+        if (attempt >= retries) return res;
+
+        const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } catch (err: unknown) {
+        if (isAbortError(err)) throw err;
+        attempt++;
+        if (attempt >= retries) throw err;
+
+        const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw new Error("Max retries exceeded");
+  }
+
+  private async executeRequest(
+    endpoint: string,
+    options?: RequestInit,
+    defaultErrorMessage: string = "API request failed"
+  ): Promise<Response> {
+    let res: Response;
+    try {
+      res = await this.fetchWithRetry(endpoint, options || {});
+    } catch (err: unknown) {
+      if (isAbortError(err)) {
+        throw err;
+      }
+      throw BaseApiError.fromResponse(err instanceof Error ? err.message : defaultErrorMessage, 0, undefined, endpoint);
+    }
+
+    if (!res.ok) {
+      const { errorMessage, headers, rawData } = await parseErrorResponse(res, defaultErrorMessage);
+      throw BaseApiError.fromResponse(errorMessage, res.status, headers, endpoint, rawData);
+    }
+
+    return res;
+  }
+
   public async fetch<T>(
     endpoint: string,
     options?: RequestInit,
@@ -168,7 +173,7 @@ export class ApiClient {
   ): Promise<T> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
 
-    const res = await executeRequest(url, fetchOptions, defaultErrorMessage);
+    const res = await this.executeRequest(url, fetchOptions, defaultErrorMessage);
 
     if (res.status === 204) {
       return {} as T;
@@ -195,7 +200,7 @@ export class ApiClient {
   ): Promise<Response> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
 
-    return executeRequest(url, fetchOptions, defaultErrorMessage);
+    return this.executeRequest(url, fetchOptions, defaultErrorMessage);
   }
 }
 
