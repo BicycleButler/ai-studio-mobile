@@ -252,6 +252,11 @@ export function useAppState() {
 
   const handleDeleteProject = (id: string, onStopStream?: () => void) => {
     deleteStoredProject(id);
+    try {
+      clearAllChatSessions(id);
+    } catch(e) {
+      console.error("Failed to clean up chat sessions", e);
+    }
     const updated = loadStoredProjects();
     setProjects(updated);
     if (activeProject?.id === id) {
@@ -268,6 +273,11 @@ export function useAppState() {
 
   const handleBulkDeleteProjects = (ids: string[], onStopStream?: () => void) => {
     bulkDeleteStoredProjects(ids);
+    try {
+      ids.forEach(id => clearAllChatSessions(id));
+    } catch(e) {
+      console.error("Failed to clean up chat sessions", e);
+    }
     const updated = loadStoredProjects();
     setProjects(updated);
 
