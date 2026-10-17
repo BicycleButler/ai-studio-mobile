@@ -1,5 +1,5 @@
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
-import { safeRemoveStorage, STORAGE_KEYS, StorageCollection } from "../utils/storage";
+import { STORAGE_KEYS, StorageCollection } from "../utils/storage";
 import { generateUniqueId } from "../utils/idGenerator";
 
 export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
@@ -149,7 +149,7 @@ export function bulkDeleteCustomTemplates(ids: string[]): boolean {
 }
 
 export function clearCustomTemplates(): void {
-  safeRemoveStorage(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
+  customTemplatesCollection.clear();
 }
 
 /**
