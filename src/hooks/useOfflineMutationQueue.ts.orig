@@ -1,0 +1,70 @@
+import { useCallback, useSyncExternalStore } from "react";
+import { StorageCollection } from "../utils/storage";
+import { Observable } from "../utils/observable";
+
+export interface OfflineQueueOptions<T> {
+  keyExtractor?: (item: T) => string;
+  storageAdapter?: Storage;
+}
+
+export class OfflineQueueManager<T> extends Observable<T[]> {
+  private collection: StorageCollection<T>;
+  private queue: T[];
+
+  constructor(storageKey: string, options?: OfflineQueueOptions<T>) {
+    super();
+    this.collection = new StorageCollection<T>(storageKey, {
+      keyExtractor: options?.keyExtractor,
+      storageAdapter: options?.storageAdapter,
+    });
+    this.queue = this.collection.load();
+  }
+
+  public bindSubscribe = (listener: () => void) => {
+    return this.subscribe(listener);
+  };
+
+  public getSnapshot = () => {
+    return this.queue;
+  };
+
+  private persistAndNotify() {
+    this.collection.save(this.queue);
+    this.notify(this.queue);
+  }
+
+  public enqueue = (item: T) => {
+    this.queue = [...this.queue, item];
+    this.persistAndNotify();
+  };
+
+  public dequeue = () => {
+    this.queue = this.queue.slice(1);
+    this.persistAndNotify();
+  };
+
+  public clear = () => {
+    this.queue = [];
+    this.persistAndNotify();
+  };
+}
+
+const managers = new Map<string, OfflineQueueManager<unknown>>();
+
+export function getOfflineQueueManager<T>(storageKey: string, options?: OfflineQueueOptions<T>): OfflineQueueManager<T> {
+  if (!managers.has(storageKey)) {
+    managers.set(storageKey, new OfflineQueueManager<T>(storageKey, options));
+  }
+  return managers.get(storageKey) as OfflineQueueManager<T>;
+}
+
+export function useOfflineMutationQueue<T>(storageKey: string, options?: OfflineQueueOptions<T>) {
+  const manager = getOfflineQueueManager<T>(storageKey, options);
+  const queue = useSyncExternalStore(manager.bindSubscribe, manager.getSnapshot, manager.getSnapshot);
+
+  const enqueue = useCallback((item: T) => manager.enqueue(item), [manager]);
+  const dequeue = useCallback(() => manager.dequeue(), [manager]);
+  const clear = useCallback(() => manager.clear(), [manager]);
+
+  return { queue, enqueue, dequeue, clear };
+}
