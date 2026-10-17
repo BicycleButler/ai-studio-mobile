@@ -144,9 +144,8 @@ export function safeGetStorageKeys(prefix: string, storageInstance?: Storage): s
 
 export function safeSetStorage<T>(key: string, value: T, storageInstance?: Storage): boolean {
   try {
-    const storage = storageInstance || getStorageInstance();
     const serialized = JSON.stringify(value);
-    return enforceStorageLimits(storage, key, serialized);
+    return safeSetStorageString(key, serialized, storageInstance);
   } catch (err: unknown) {
     console.warn(`Failed to stringify ${key} for storage:`, err);
     return false;
@@ -165,7 +164,36 @@ export function safeGetStorageString(key: string, fallback: string = "", storage
 export function safeSetStorageString(key: string, value: string, storageInstance?: Storage): boolean {
   try {
     const storage = storageInstance || getStorageInstance();
-    return enforceStorageLimits(storage, key, value);
+    const result = enforceStorageLimits(storage, key, value);
+
+    // If the storage failed and we are not already using MemoryStorage, promote to MemoryStorage
+    if (!result && !(storage instanceof MemoryStorage)) {
+       // Promote to memory fallback directly on quota error, preserving existing items if possible
+       if (storage === _storageInstance && !(_storageInstance instanceof MemoryStorage)) {
+           const newMemoryStorage = new MemoryStorage();
+           // Try to copy existing keys
+           try {
+             for (let i = 0; i < storage.length; i++) {
+               const k = storage.key(i);
+               if (k) {
+                 const v = storage.getItem(k);
+                 if (v !== null) {
+                   newMemoryStorage.setItem(k, v);
+                 }
+               }
+             }
+           } catch (e) {
+             console.warn("Could not copy existing storage items to memory fallback", e);
+           }
+           _storageInstance = newMemoryStorage;
+           _storageInstance.setItem(key, value);
+           return true;
+       } else if (storage !== _storageInstance) {
+          // If a specific, isolated storage instance was provided and failed, don't mutate global state.
+          return false;
+       }
+    }
+    return result;
   } catch (err: unknown) {
     console.warn(`Failed to write string ${key} to storage:`, err);
     return false;
