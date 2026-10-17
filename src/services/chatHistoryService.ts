@@ -11,6 +11,7 @@ class ChatHistoryManager {
       return this.collectionRegistry.get(key)!;
     }
     const collection = new StorageCollection<ChatSession>(key, {
+      keyExtractor: (item) => String(item.id || ""),
       validate: (s) => !this.isMockChatSession(s as Partial<ChatSession>),
       maxItems: 100,
     });
