@@ -49,7 +49,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         <div className="relative flex items-center justify-center">
           <User className="w-4 h-4" />
           {!hasAnyAuth && (
-            <span className="absolute -top-1 -end-2 text-[10px] font-mono text-destructive font-bold" title="Authentication needed">
+            <span className="absolute -top-1 -end-2 text-[10px] font-mono text-foreground font-bold" title="Authentication needed">
               !
             </span>
           )}

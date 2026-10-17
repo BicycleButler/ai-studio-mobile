@@ -129,8 +129,8 @@ export const PromptTemplateItem: React.FC<PromptTemplateItemProps> = ({
 
       {/* Delete confirmation banner */}
       {confirmDeleteId === template.id && (
-        <div className="mt-2 p-2 rounded-xl bg-muted/40 border border-destructive/20 flex items-center justify-between gap-2 animate-in fade-in">
-          <span className="text-[11px] text-destructive font-medium">
+        <div className="mt-2 p-2 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between gap-2 animate-in fade-in">
+          <span className="text-[11px] text-foreground font-medium">
             Delete &ldquo;{template.title}&rdquo;?
           </span>
           <div className="flex items-center gap-1.5">
