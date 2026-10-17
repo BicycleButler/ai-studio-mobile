@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../../utils/errorHandling";
 import { useState, useCallback, useEffect } from "react";
 import {
   StubsGraphData,
@@ -13,10 +14,6 @@ import {
 } from "../../services/stubsService";
 import mermaid from "mermaid";
 
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
 
 export function useStubsData(showToast: (msg: string) => void) {
   // Graph state
