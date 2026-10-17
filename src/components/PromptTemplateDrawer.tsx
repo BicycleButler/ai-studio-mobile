@@ -28,7 +28,6 @@ import {
 } from "../services/promptTemplateService";
 import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
-import { useBackNavigation } from "../hooks/useBackNavigation";
 import { safeAddEventListener } from "../utils/platform";
 import { Drawer } from "./ui/Drawer";
 
@@ -99,9 +98,6 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   draftUserText = "",
   onInsertText,
 }) => {
-  // Enable device/browser back navigation to dismiss drawer smoothly
-  useBackNavigation(isOpen, onClose, "prompt-templates-drawer");
-
   // Keyboard Escape listener
   useEffect(() => {
     if (!isOpen) return;

@@ -19,7 +19,6 @@ import {
   isDeprecatedOrUnusableModel,
   sanitizeModelId,
 } from "../utils/modelCatalog";
-import { useBackNavigation } from "../hooks/useBackNavigation";
 import { safeAddEventListener } from "../utils/platform";
 import { Drawer } from "./ui/Drawer.tsx";
 
@@ -49,9 +48,6 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
   onOpenAuth,
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>("All");
-
-  // Device/browser back navigation support
-  useBackNavigation(Boolean(isModal && onClose), onClose || (() => {}), "tuner-drawer");
 
   // Filter out any deprecated, legacy, or unusable non-chat models
   const cleanModels = useMemo(() => {

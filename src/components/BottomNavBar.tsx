@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MessageSquare, Code2, Bot, Ticket } from "lucide-react";
 import { PromptType } from "../types";
-import { useBackNavigation } from "../hooks/useBackNavigation";
 import { safeAddEventListener } from "../utils/platform";
 import { Drawer } from "./ui/Drawer";
 
@@ -35,9 +34,6 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       setInternalIsOpen(false);
     }
   };
-
-  // Enable device/browser back navigation to dismiss drawer smoothly
-  useBackNavigation(Boolean(isOpen), handleClose, "bottom-nav-drawer");
 
   const workspaces: WorkspaceItem[] = [
     {
