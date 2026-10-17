@@ -60,81 +60,24 @@ export interface RetryConfig {
   retries?: number;
   baseDelayMs?: number;
   fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+  retryStrategy?: IRetryStrategy;
 }
 
-export type Interceptor = (url: string, options: RequestInit) => Promise<[string, RequestInit]>;
-
-function buildUrlWithParams(endpoint: string, queryParams?: Record<string, string | number | boolean>): string {
-  if (!queryParams || Object.keys(queryParams).length === 0) {
-    return endpoint;
-  }
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(queryParams)) {
-    searchParams.append(key, String(value));
-  }
-  const separator = endpoint.includes('?') ? '&' : '?';
-  return `${endpoint}${separator}${searchParams.toString()}`;
-}
-
-export interface IApiClient {
-  addInterceptor(interceptor: Interceptor): void;
-  clearInterceptors(): void;
-  fetch<T>(
-    endpoint: string,
-    options?: RequestInit,
-    defaultErrorMessage?: string,
-    queryParams?: Record<string, string | number | boolean>
-  ): Promise<T>;
-  fetchStream(
-    endpoint: string,
-    options?: RequestInit,
-    defaultErrorMessage?: string,
-    queryParams?: Record<string, string | number | boolean>
+export interface IRetryStrategy {
+  execute(
+    url: string,
+    options: RequestInit,
+    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">>
   ): Promise<Response>;
 }
 
-export class ApiClient implements IApiClient {
-  private interceptors: Interceptor[] = [];
-  public retryConfig: RetryConfig;
-
-  constructor(retryConfig: RetryConfig = {}) {
-    this.retryConfig = {
-      retries: retryConfig.retries ?? 3,
-      baseDelayMs: retryConfig.baseDelayMs ?? 1000,
-      fetcher: retryConfig.fetcher ?? fetch,
-    };
-  }
-
-  public addInterceptor(interceptor: Interceptor): void {
-    this.interceptors.push(interceptor);
-  }
-
-  public clearInterceptors(): void {
-    this.interceptors = [];
-  }
-
-  private async prepareRequest(
-    endpoint: string,
-    options?: RequestInit,
-    queryParams?: Record<string, string | number | boolean>
-  ): Promise<{ url: string; fetchOptions: RequestInit }> {
-    let url = buildUrlWithParams(endpoint, queryParams);
-    let fetchOptions = options || {};
-
-    for (const interceptor of this.interceptors) {
-      const [newUrl, newOptions] = await interceptor(url, fetchOptions);
-      url = newUrl;
-      fetchOptions = newOptions;
-    }
-
-    return { url, fetchOptions };
-  }
-
-  private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
-    const retries = this.retryConfig.retries!;
-    const baseDelayMs = this.retryConfig.baseDelayMs!;
-    const fetcher = this.retryConfig.fetcher!;
-
+export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
+  async execute(
+    url: string,
+    options: RequestInit,
+    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">>
+  ): Promise<Response> {
+    const { retries, baseDelayMs, fetcher } = config;
     let attempt = 0;
     let lastError: unknown;
     let lastResponse: Response | undefined;
@@ -173,6 +116,84 @@ export class ApiClient implements IApiClient {
        throw BaseApiError.fromResponse(msg, 0, undefined, url, lastError);
     }
     throw BaseApiError.fromResponse("Max retries exceeded", 0, undefined, url);
+  }
+}
+
+export type Interceptor = (url: string, options: RequestInit) => Promise<[string, RequestInit]>;
+
+function buildUrlWithParams(endpoint: string, queryParams?: Record<string, string | number | boolean>): string {
+  if (!queryParams || Object.keys(queryParams).length === 0) {
+    return endpoint;
+  }
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(queryParams)) {
+    searchParams.append(key, String(value));
+  }
+  const separator = endpoint.includes('?') ? '&' : '?';
+  return `${endpoint}${separator}${searchParams.toString()}`;
+}
+
+export interface IApiClient {
+  addInterceptor(interceptor: Interceptor): void;
+  clearInterceptors(): void;
+  fetch<T>(
+    endpoint: string,
+    options?: RequestInit,
+    defaultErrorMessage?: string,
+    queryParams?: Record<string, string | number | boolean>
+  ): Promise<T>;
+  fetchStream(
+    endpoint: string,
+    options?: RequestInit,
+    defaultErrorMessage?: string,
+    queryParams?: Record<string, string | number | boolean>
+  ): Promise<Response>;
+}
+
+export class ApiClient implements IApiClient {
+  private interceptors: Interceptor[] = [];
+  public retryConfig: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryStrategy: IRetryStrategy };
+
+  constructor(retryConfig: RetryConfig = {}) {
+    this.retryConfig = {
+      retries: retryConfig.retries ?? 3,
+      baseDelayMs: retryConfig.baseDelayMs ?? 1000,
+      fetcher: retryConfig.fetcher ?? fetch,
+      retryStrategy: retryConfig.retryStrategy ?? new ExponentialBackoffRetryStrategy(),
+    };
+  }
+
+  public addInterceptor(interceptor: Interceptor): void {
+    this.interceptors.push(interceptor);
+  }
+
+  public clearInterceptors(): void {
+    this.interceptors = [];
+  }
+
+  private async prepareRequest(
+    endpoint: string,
+    options?: RequestInit,
+    queryParams?: Record<string, string | number | boolean>
+  ): Promise<{ url: string; fetchOptions: RequestInit }> {
+    let url = buildUrlWithParams(endpoint, queryParams);
+    let fetchOptions = options || {};
+
+    for (const interceptor of this.interceptors) {
+      const [newUrl, newOptions] = await interceptor(url, fetchOptions);
+      url = newUrl;
+      fetchOptions = newOptions;
+    }
+
+    return { url, fetchOptions };
+  }
+
+  private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+    return this.retryConfig.retryStrategy.execute(url, options, {
+      retries: this.retryConfig.retries,
+      baseDelayMs: this.retryConfig.baseDelayMs,
+      fetcher: this.retryConfig.fetcher,
+    });
   }
 
   private async executeRequest(
