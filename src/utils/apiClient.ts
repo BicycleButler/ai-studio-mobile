@@ -119,25 +119,32 @@ export class ApiClient {
     const fetcher = this.retryConfig.fetcher!;
 
     let attempt = 0;
+    let lastError: unknown;
+    let lastResponse: Response | undefined;
+
     while (attempt < retries) {
       try {
         const res = await fetcher(url, options);
         if (res.ok || !RETRYABLE_STATUS_CODES.has(res.status)) {
           return res;
         }
-        attempt++;
-        if (attempt >= retries) return res;
-
-        const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        lastResponse = res;
+        lastError = undefined;
       } catch (err: unknown) {
         if (isAbortError(err)) throw err;
-        attempt++;
-        if (attempt >= retries) throw err;
-
-        const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        lastError = err;
+        lastResponse = undefined;
       }
+
+      attempt++;
+      if (attempt >= retries) {
+        if (lastResponse) return lastResponse;
+        if (lastError) throw lastError;
+        break;
+      }
+
+      const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
     throw new Error("Max retries exceeded");
   }
@@ -185,11 +192,7 @@ export class ApiClient {
     }
 
     const text = await res.text();
-    if (typeof text === "string") {
-      return text as T;
-    }
-
-    throw new BaseApiError("Unexpected response type", res.status);
+    return text as unknown as T;
   }
 
   public async fetchStream(
