@@ -49,6 +49,7 @@ class ChatHistoryManager {
           if (cleanSessions.length !== rawSessions.length) {
             collection.save(cleanSessions);
           }
+          rawCollection.dispose();
         });
       }
     } catch {

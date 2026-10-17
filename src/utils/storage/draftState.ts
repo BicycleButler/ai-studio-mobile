@@ -21,6 +21,15 @@ export function getProjectDraftKey(projectId?: string | null): string {
   return STORAGE_KEYS.DRAFT_STATE;
 }
 
+const draftSingletonCache = new Map<string, StorageSingleton<DraftState | null>>();
+
+function getDraftSingleton(key: string): StorageSingleton<DraftState | null> {
+  if (!draftSingletonCache.has(key)) {
+    draftSingletonCache.set(key, new StorageSingleton<DraftState | null>(key, null));
+  }
+  return draftSingletonCache.get(key)!;
+}
+
 export function loadDraftState(projectId?: string | null): DraftState {
   const fallback: DraftState = {
     promptType: "chat",
@@ -42,13 +51,13 @@ export function loadDraftState(projectId?: string | null): DraftState {
   };
 
   const key = getProjectDraftKey(projectId);
-  const draftSingleton = new StorageSingleton<DraftState | null>(key, null);
+  const draftSingleton = getDraftSingleton(key);
   const stored = draftSingleton.load();
 
   if (!stored) {
     // If project-specific key not yet initialized, fallback to default or global draft
     if (projectId) {
-      const globalDraftSingleton = new StorageSingleton<DraftState | null>(STORAGE_KEYS.DRAFT_STATE, null);
+      const globalDraftSingleton = getDraftSingleton(STORAGE_KEYS.DRAFT_STATE);
       const globalStored = globalDraftSingleton.load();
       if (globalStored) {
         return {
@@ -96,7 +105,7 @@ export function saveDraftState(draft: Partial<DraftState>, projectId?: string | 
       updatedAt: Date.now(),
     };
     const key = getProjectDraftKey(projectId);
-    const draftSingleton = new StorageSingleton<DraftState | null>(key, null);
+    const draftSingleton = getDraftSingleton(key);
     draftSingleton.save(updated);
   } catch (err: unknown) {
     console.warn("Failed to auto-save draft:", err);

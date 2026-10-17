@@ -7,6 +7,7 @@ export * from "./projects";
 export * from "./jules";
 export * from "./prompts";
 export * from "./core";
+export * from "./hooks";
 
 import { StorageCollection } from "../StorageCollection";
 import { StorageSingleton } from "../StorageSingleton";

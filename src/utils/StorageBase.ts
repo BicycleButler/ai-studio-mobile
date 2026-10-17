@@ -3,7 +3,7 @@ import { isBrowserEnvironment, getSafeWindow } from "./platform";
 
 export abstract class StorageBase<T> extends Observable<T> {
   protected key: string;
-  protected cachedSnapshot: T | null = null;
+  protected cachedSnapshot: T | undefined = undefined;
   protected storageAdapter?: Storage;
   private boundHandleStorageEvent: (e: StorageEvent) => void;
 
@@ -24,7 +24,7 @@ export abstract class StorageBase<T> extends Observable<T> {
 
   protected handleStorageEvent(e: StorageEvent): void {
     if (e.key === this.key || e.key === null) {
-      this.cachedSnapshot = null;
+      this.cachedSnapshot = undefined;
       this.notify(this.load());
     }
   }

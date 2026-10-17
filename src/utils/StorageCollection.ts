@@ -38,7 +38,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
   }
 
   override load(): T[] {
-    if (this.cachedSnapshot) {
+    if (this.cachedSnapshot !== undefined) {
       return this.cachedSnapshot;
     }
     const raw = this.getter ? this.getter(this.key, []) : safeGetStorageArray<T>(this.key, [], this.storageAdapter);
@@ -62,7 +62,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
       if (!success) {
           console.warn(`StorageCollection[${this.key}]: safeSetStorage returned false.`);
       }
-      this.cachedSnapshot = null;
+      this.cachedSnapshot = undefined;
       const loaded = this.load();
       this.notify(loaded);
 
