@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../utils/errorHandling";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { ChatMessage, JulesSession, MessageAttachment } from "../types";
 import { JulesTaskPayload } from "../services/julesService";
@@ -214,7 +215,7 @@ export function useJules() {
         );
       } catch (err: unknown) {
         setIsJulesExecuting(false);
-        const errMsg = err instanceof Error ? err.message : "Failed to dispatch Jules task";
+        const errMsg = getErrorMessage(err) || "Failed to dispatch Jules task";
         setJulesMessages((prev) =>
           prev.map((m) =>
             m.id === aiMsg.id
@@ -254,7 +255,7 @@ export function useJules() {
           )
         );
       } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : "Failed to approve plan";
+        const errMsg = getErrorMessage(err) || "Failed to approve plan";
         setJulesMessages((prev) =>
           prev.map((m) =>
             m.julesActivity?.taskId === taskId

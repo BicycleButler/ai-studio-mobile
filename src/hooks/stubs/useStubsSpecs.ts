@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../../utils/errorHandling";
 import { useState, useCallback } from "react";
 import { StubsSidecarSpec } from "../../types";
 import {
@@ -7,10 +8,6 @@ import {
   materializeSpec,
 } from "../../services/stubsService";
 
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
 
 export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: () => void) {
   const [specs, setSpecs] = useState<StubsSidecarSpec[]>([]);

@@ -1,5 +1,6 @@
+import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
-import { apiFetch, BaseApiError } from "../utils/apiClient";
+import { apiFetch } from "../utils/apiClient";
 import { getSafeNavigatorClipboard } from "../utils/platform";
 
 // Base string patterns for dynamic regex composition
@@ -152,7 +153,7 @@ export async function verifyGoogleApiKey(
       error: data.error || "The provided API key is inactive or unauthorized by Google AI Studio.",
     };
   } catch (err: unknown) {
-    const errorMsg = err instanceof BaseApiError ? err.message : (err instanceof Error ? err.message : "Network error during key authorization check.");
+    const errorMsg = getErrorMessage(err) || "Network error during key authorization check.";
     return {
       valid: false,
       error: errorMsg,

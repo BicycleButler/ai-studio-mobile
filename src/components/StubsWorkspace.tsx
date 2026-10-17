@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../utils/errorHandling";
 import { getSafeNavigatorClipboard } from "../utils/platform";
 import React, { useState, useEffect } from "react";
 import {
@@ -40,10 +41,6 @@ interface StubsWorkspaceProps {
 
 type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal";
 
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
 
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
   onOpenBottomNav: _onOpenBottomNav,
