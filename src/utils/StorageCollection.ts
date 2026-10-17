@@ -1,7 +1,8 @@
 import { safeGetStorageArray, safeSetStorage } from "./storage/core";
 
-export class StorageCollection<T extends { id: string }> {
+export class StorageCollection<T> {
   private key: string;
+  private keyExtractor: (item: T) => string;
   private transformIn?: (item: T) => T;
   private transformOut?: (item: T) => T;
   private validate?: (item: unknown) => boolean;
@@ -14,6 +15,7 @@ export class StorageCollection<T extends { id: string }> {
   constructor(
     key: string,
     options?: {
+      keyExtractor?: (item: T) => string;
       transformIn?: (item: T) => T;
       transformOut?: (item: T) => T;
       validate?: (item: unknown) => boolean;
@@ -25,6 +27,8 @@ export class StorageCollection<T extends { id: string }> {
     }
   ) {
     this.key = key;
+    // Default to extracting an 'id' property if it exists
+    this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
     this.transformIn = options?.transformIn;
     this.transformOut = options?.transformOut;
     this.validate = options?.validate;
@@ -68,9 +72,9 @@ export class StorageCollection<T extends { id: string }> {
     }
   }
 
-  update(id: string, updates: Partial<Omit<T, "id">>): T | null {
+  update(id: string, updates: Partial<T>): T | null {
     const items = this.load();
-    const index = items.findIndex((item) => item.id === id);
+    const index = items.findIndex((item) => this.keyExtractor(item) === id);
     if (index === -1) return null;
 
     const updated = {
@@ -88,7 +92,7 @@ export class StorageCollection<T extends { id: string }> {
     if (!ids || ids.length === 0) return this.load();
     const items = this.load();
     const idSet = new Set(ids);
-    const filtered = items.filter((item) => !idSet.has(item.id));
+    const filtered = items.filter((item) => !idSet.has(this.keyExtractor(item)));
     if (filtered.length !== items.length) {
       this.save(filtered);
     }
@@ -97,7 +101,7 @@ export class StorageCollection<T extends { id: string }> {
 
   delete(id: string): T[] {
     const items = this.load();
-    const filtered = items.filter((item) => item.id !== id);
+    const filtered = items.filter((item) => this.keyExtractor(item) !== id);
     this.save(filtered);
     return filtered;
   }
@@ -108,7 +112,8 @@ export class StorageCollection<T extends { id: string }> {
 
   upsert(item: T, prepend = false): T {
     let items = this.load();
-    const index = items.findIndex((i) => i.id === item.id);
+    const id = this.keyExtractor(item);
+    const index = items.findIndex((i) => this.keyExtractor(i) === id);
 
     const updated = {
       ...item,
