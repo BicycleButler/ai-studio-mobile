@@ -1,10 +1,7 @@
 import { safeGetStorageArray, safeSetStorage } from "./storage/core";
-import { Observable } from "./observable";
-import { isBrowserEnvironment, getSafeWindow } from "./platform";
+import { StorageBase } from "./StorageBase";
 
-export class StorageCollection<T> extends Observable<T[]> {
-  private key: string;
-  private cachedSnapshot: T[] | null = null;
+export class StorageCollection<T> extends StorageBase<T[]> {
   private keyExtractor: (item: T) => string;
   private transformIn?: (item: T) => T;
   private transformOut?: (item: T) => T;
@@ -13,7 +10,6 @@ export class StorageCollection<T> extends Observable<T[]> {
   private getter?: (key: string, fallback: T[]) => T[];
   private setter?: (key: string, value: T[]) => boolean;
   private onSave?: (items: T[]) => void;
-  private storageAdapter?: Storage;
 
   constructor(
     key: string,
@@ -29,8 +25,7 @@ export class StorageCollection<T> extends Observable<T[]> {
       storageAdapter?: Storage;
     }
   ) {
-    super();
-    this.key = key;
+    super(key, options?.storageAdapter);
     // Default to extracting an 'id' property if it exists
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
     this.transformIn = options?.transformIn;
@@ -40,32 +35,9 @@ export class StorageCollection<T> extends Observable<T[]> {
     this.getter = options?.getter;
     this.setter = options?.setter;
     this.onSave = options?.onSave;
-    this.storageAdapter = options?.storageAdapter;
-
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      if (win) {
-        win.addEventListener("storage", this.handleStorageEvent);
-      }
-    }
   }
 
-  private handleStorageEvent = (e: StorageEvent) => {
-    if (e.key === this.key || e.key === null) {
-      this.cachedSnapshot = null;
-      this.notify(this.load());
-    }
-  };
-
-  public bindSubscribe = (listener: () => void) => {
-    return this.subscribe(listener);
-  };
-
-  public getSnapshot = (): T[] => {
-    return this.load();
-  };
-
-  load(): T[] {
+  override load(): T[] {
     if (this.cachedSnapshot) {
       return this.cachedSnapshot;
     }

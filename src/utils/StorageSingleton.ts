@@ -1,17 +1,13 @@
 import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./storage/core";
-import { Observable } from "./observable";
-import { isBrowserEnvironment, getSafeWindow } from "./platform";
+import { StorageBase } from "./StorageBase";
 
-export class StorageSingleton<T> extends Observable<T> {
-  private key: string;
-  private cachedSnapshot: T | null = null;
+export class StorageSingleton<T> extends StorageBase<T> {
   private fallback: T;
   private transformIn?: (item: T) => T;
   private transformOut?: (item: T) => T;
   private validate?: (item: unknown) => boolean;
   private getter: (key: string, fallback: T, storageInstance?: Storage) => T;
   private setter: (key: string, value: T, storageInstance?: Storage) => void;
-  private storageAdapter?: Storage;
 
   constructor(
     key: string,
@@ -25,40 +21,16 @@ export class StorageSingleton<T> extends Observable<T> {
       storageAdapter?: Storage;
     }
   ) {
-    super();
-    this.key = key;
+    super(key, options?.storageAdapter);
     this.fallback = fallback;
     this.transformIn = options?.transformIn;
     this.transformOut = options?.transformOut;
     this.validate = options?.validate;
     this.getter = options?.getter || safeGetStorage;
     this.setter = options?.setter || safeSetStorage;
-    this.storageAdapter = options?.storageAdapter;
-
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      if (win) {
-        win.addEventListener("storage", this.handleStorageEvent);
-      }
-    }
   }
 
-  private handleStorageEvent = (e: StorageEvent) => {
-    if (e.key === this.key || e.key === null) {
-      this.cachedSnapshot = null;
-      this.notify(this.load());
-    }
-  };
-
-  public bindSubscribe = (listener: () => void) => {
-    return this.subscribe(listener);
-  };
-
-  public getSnapshot = (): T => {
-    return this.load();
-  };
-
-  load(): T {
+  override load(): T {
     if (this.cachedSnapshot !== null) {
       return this.cachedSnapshot;
     }
