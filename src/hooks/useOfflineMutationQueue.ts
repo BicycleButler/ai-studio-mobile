@@ -49,14 +49,13 @@ export class OfflineQueueManager<T> extends Observable<T[]> {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const managers = new Map<string, OfflineQueueManager<any>>();
+const managers = new Map<string, OfflineQueueManager<unknown>>();
 
 export function getOfflineQueueManager<T>(storageKey: string, options?: OfflineQueueOptions<T>): OfflineQueueManager<T> {
   if (!managers.has(storageKey)) {
-    managers.set(storageKey, new OfflineQueueManager<T>(storageKey, options));
+    managers.set(storageKey, new OfflineQueueManager<T>(storageKey, options) as unknown as OfflineQueueManager<unknown>);
   }
-  return managers.get(storageKey) as OfflineQueueManager<T>;
+  return managers.get(storageKey) as unknown as OfflineQueueManager<T>;
 }
 
 export function useOfflineMutationQueue<T>(storageKey: string, options?: OfflineQueueOptions<T>) {

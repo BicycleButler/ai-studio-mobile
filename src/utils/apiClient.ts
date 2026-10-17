@@ -59,6 +59,7 @@ import { buildUrlWithParams } from "./urlUtils";
 export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
 
 export interface RetryConfig {
+  retryableStatusCodes?: Set<number>;
   retries?: number;
   baseDelayMs?: number;
   fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -69,7 +70,7 @@ export interface IRetryStrategy {
   execute(
     url: string,
     options: RequestInit,
-    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">>
+    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryableStatusCodes?: Set<number> }
   ): Promise<Response>;
 }
 
@@ -77,9 +78,10 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
   async execute(
     url: string,
     options: RequestInit,
-    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">>
+    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryableStatusCodes?: Set<number> }
   ): Promise<Response> {
     const { retries, baseDelayMs, fetcher } = config;
+    const retryableCodes = config.retryableStatusCodes || RETRYABLE_STATUS_CODES;
     let attempt = 0;
     let lastError: unknown;
     let lastResponse: Response | undefined;
@@ -87,7 +89,7 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
     while (attempt < retries) {
       try {
         const res = await fetcher(url, options);
-        if (res.ok || !RETRYABLE_STATUS_CODES.has(res.status)) {
+        if (res.ok || !retryableCodes.has(res.status)) {
           return res;
         }
         lastResponse = res;
@@ -142,7 +144,7 @@ export interface IApiClient {
 
 export class ApiClient implements IApiClient {
   private interceptors: Interceptor[] = [];
-  public retryConfig: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryStrategy: IRetryStrategy };
+  public retryConfig: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
 
   constructor(retryConfig: RetryConfig = {}) {
     this.retryConfig = {
@@ -150,6 +152,7 @@ export class ApiClient implements IApiClient {
       baseDelayMs: retryConfig.baseDelayMs ?? 1000,
       fetcher: retryConfig.fetcher ?? fetch,
       retryStrategy: retryConfig.retryStrategy ?? new ExponentialBackoffRetryStrategy(),
+      retryableStatusCodes: retryConfig.retryableStatusCodes,
     };
   }
 
@@ -183,6 +186,7 @@ export class ApiClient implements IApiClient {
       retries: this.retryConfig.retries,
       baseDelayMs: this.retryConfig.baseDelayMs,
       fetcher: this.retryConfig.fetcher,
+      retryableStatusCodes: this.retryConfig.retryableStatusCodes,
     });
   }
 
