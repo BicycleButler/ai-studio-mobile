@@ -49,7 +49,7 @@ import {
   SpeechSettings,
   loadSpeechSettings,
 } from "../services/speechVoices";
-import { SettingsTab } from "../components/UnifiedSettingsModal";
+import { SettingsTab } from "../types";
 import { getSafeWindow } from "../utils/platform";
 import { fetchServerHealth } from "../services/auth";
 import { generateUniqueId } from "../utils/idGenerator";

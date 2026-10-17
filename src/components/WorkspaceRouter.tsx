@@ -1,5 +1,5 @@
 import React from "react";
-import { SettingsTab } from "./UnifiedSettingsModal";
+import { SettingsTab } from "../types";
 import { SpeechSettings } from "../services/speechVoices";
 import { ChatWorkspace } from "./ChatWorkspace";
 import { MobileIDEWorkspace } from "./MobileIDEWorkspace";

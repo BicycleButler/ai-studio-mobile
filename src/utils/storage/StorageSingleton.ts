@@ -34,14 +34,36 @@ export class StorageSingleton<T> extends StorageBase<T> {
     if (this.cachedSnapshot !== undefined) {
       return this.cachedSnapshot;
     }
-    const raw = this.getter(this.key, this.fallback, this.storageAdapter);
-    let valid = raw;
-    if (this.validate && !this.validate(raw)) {
-      valid = this.fallback;
+    try {
+      const raw = this.getter(this.key, this.fallback, this.storageAdapter);
+      let valid = raw;
+      if (this.validate) {
+        try {
+          if (!this.validate(raw)) {
+            valid = this.fallback;
+          }
+        } catch (err) {
+          console.warn(`StorageSingleton[${this.key}]: validation error`, err);
+          valid = this.fallback;
+        }
+      }
+
+      let result = valid;
+      if (this.transformOut) {
+        try {
+          result = this.transformOut(valid);
+        } catch (err) {
+          console.warn(`StorageSingleton[${this.key}]: transformOut error`, err);
+          result = this.fallback;
+        }
+      }
+
+      this.cachedSnapshot = result;
+      return result;
+    } catch (err) {
+      console.error(`StorageSingleton[${this.key}]: unhandled load error`, err);
+      return this.fallback;
     }
-    const result = this.transformOut ? this.transformOut(valid) : valid;
-    this.cachedSnapshot = result;
-    return result;
   }
 
   save(item: T): void {
