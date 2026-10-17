@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { DatasetScopeBanner } from "./DatasetScopeBanner";
 import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
+import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
 import {
   X,
   Plus,
@@ -559,47 +559,18 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
         </div>
 
 
-        {/* Bulk Delete Confirmation Modal */}
-        <AnimatePresence>
-          {showBulkDeleteConfirm && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-sm bg-card border border-border rounded-xl shadow-xl overflow-hidden"
-              >
-                <div className="p-4 border-b border-border">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    Delete {selectedSessionIds.size} selected {selectedSessionIds.size === 1 ? 'session' : 'sessions'}?
-                  </h3>
-                </div>
-                <div className="p-4 text-sm text-muted-foreground space-y-4">
-                  <p>
-                    This action cannot be undone. This will permanently delete the selected Jules sessions and their associated execution histories from your local storage.
-                  </p>
-                </div>
-                <div className="p-4 bg-muted/40 border-t border-border flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowBulkDeleteConfirm(false)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleBulkDelete}
-                    disabled={selectedSessionIds.size > 100 && bulkDeleteConfirmationText !== selectedSessionIds.size.toString()}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed text-destructive-foreground transition-colors cursor-pointer shadow-sm"
-                  >
-                    Delete {selectedSessionIds.size} {selectedSessionIds.size === 1 ? 'Session' : 'Sessions'}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+        <BulkDeleteConfirmModal
+          isOpen={showBulkDeleteConfirm}
+          onClose={() => {
+            setShowBulkDeleteConfirm(false);
+            setBulkDeleteConfirmationText("");
+          }}
+          onConfirm={handleBulkDelete}
+          selectedCount={selectedSessionIds.size}
+          itemType="session"
+          confirmationText={bulkDeleteConfirmationText}
+          onConfirmationTextChange={setBulkDeleteConfirmationText}
+        />
 
         {/* Floating Batch Action Bar for Sessions */}
         <FloatingBatchActionBar
