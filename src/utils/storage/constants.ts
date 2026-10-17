@@ -1,0 +1,17 @@
+export const STORAGE_KEYS = {
+  API_KEY: "ai_studio_api_key",
+  SAVED_PROMPTS: "ai_studio_saved_prompts_v2",
+  DRAFT_STATE: "ai_studio_draft_state_v1",
+  PROJECTS: "ai_studio_projects_v2",
+  ACTIVE_PROJECT_ID: "ai_studio_active_project_id_v2",
+  FLAG_SECURE_ENABLED: "ais_flag_secure_enabled_v1",
+  JULES_API_KEY: "jules_api_key_vault_v1",
+  JULES_SESSIONS: "jules_sessions_v1",
+  JULES_SETTINGS: "jules_settings_v1",
+  ACTIVE_JULES_SESSION_ID: "jules_active_session_id_v1",
+  GOOGLE_USER: "ai_studio_google_user_v1",
+  CUSTOM_PROMPT_TEMPLATES: "ai_studio_custom_prompt_templates",
+  SPEECH_SETTINGS: "gemini_studio_speech_settings_v1",
+  THEME_MODE: "aistudio_theme_mode",
+  CHAT_SESSIONS_PREFIX: "ai_studio_chat_sessions_v1",
+} as const;
