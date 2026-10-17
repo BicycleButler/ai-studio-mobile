@@ -1,7 +1,7 @@
 import { ProjectInfo } from "../../types";
 import { generateUniqueId } from "../idGenerator";
-import { StorageCollection } from "../StorageCollection";
-import { StorageSingleton } from "../StorageSingleton";
+import { StorageCollection } from "./StorageCollection";
+import { StorageSingleton } from "./StorageSingleton";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";

@@ -1,5 +1,5 @@
-import { Observable } from "./observable";
-import { isBrowserEnvironment, getSafeWindow } from "./platform";
+import { Observable } from "../observable";
+import { isBrowserEnvironment, getSafeWindow } from "../platform";
 
 export abstract class StorageBase<T> extends Observable<T> {
   protected key: string;
