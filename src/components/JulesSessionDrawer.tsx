@@ -32,7 +32,6 @@ import {
 } from "../services/julesService";
 import { loadStoredJulesApiKey } from "../utils/storage";
 import { safeAddEventListener } from "../utils/platform";
-import { useBackNavigation } from "../hooks/useBackNavigation";
 import { Combobox } from "./Combobox";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import { Drawer } from "./ui/Drawer";
@@ -57,10 +56,6 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const [sessions, setSessions] = useState<JulesSession[]>([]);
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
-
-  // Enable device/browser back navigation to dismiss drawer smoothly
-  useBackNavigation(isOpen, onClose, "jules-sessions-drawer");
-
 
   const [searchQuery, setSearchQuery] = useState("");
 
