@@ -1,47 +1,45 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { StorageCollection } from "../utils/storage";
+import { Observable } from "../utils/observable";
 
-class OfflineQueueManager<T extends { id: string }> {
+class OfflineQueueManager<T extends { id: string }> extends Observable<T[]> {
   private collection: StorageCollection<T>;
   private queue: T[];
-  private listeners = new Set<() => void>();
 
   constructor(storageKey: string) {
+    super();
     this.collection = new StorageCollection<T>(storageKey, {});
     this.queue = this.collection.load();
   }
 
-  public subscribe = (listener: () => void) => {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
+  // Bind subscribe to instance for useSyncExternalStore
+  public bindSubscribe = (listener: () => void) => {
+    return this.subscribe(listener);
   };
 
   public getSnapshot = () => {
     return this.queue;
   };
 
-  private notify() {
+  private persistAndNotify() {
     this.collection.save(this.queue);
-    for (const listener of this.listeners) {
-      listener();
-    }
+    // Overriding Observable's notify, but use the base class method to dispatch
+    this.notify(this.queue);
   }
 
   public enqueue = (item: T) => {
     this.queue = [...this.queue, item];
-    this.notify();
+    this.persistAndNotify();
   };
 
   public dequeue = () => {
     this.queue = this.queue.slice(1);
-    this.notify();
+    this.persistAndNotify();
   };
 
   public clear = () => {
     this.queue = [];
-    this.notify();
+    this.persistAndNotify();
   };
 }
 
@@ -57,7 +55,7 @@ function getManager<T extends { id: string }>(storageKey: string): OfflineQueueM
 
 export function useOfflineMutationQueue<T extends { id: string }>(storageKey: string) {
   const manager = getManager<T>(storageKey);
-  const queue = useSyncExternalStore(manager.subscribe, manager.getSnapshot, manager.getSnapshot);
+  const queue = useSyncExternalStore(manager.bindSubscribe, manager.getSnapshot, manager.getSnapshot);
 
   const enqueue = useCallback((item: T) => manager.enqueue(item), [manager]);
   const dequeue = useCallback(() => manager.dequeue(), [manager]);

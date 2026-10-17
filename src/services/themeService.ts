@@ -5,6 +5,7 @@ import { isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListene
  */
 
 import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
+import { Observable } from "../utils/observable";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -24,10 +25,9 @@ const themeModeSingleton = new StorageSingleton<ThemeMode>(
   }
 );
 
-class ThemeManager {
+class ThemeManager extends Observable<ThemeState> {
   private currentMode: ThemeMode = "system";
   private currentResolved: ResolvedTheme = "dark";
-  private listeners = new Set<ThemeListener>();
   private initialized = false;
   private mediaQueryList: MediaQueryList | null = null;
 
@@ -81,13 +81,7 @@ class ThemeManager {
       mode: this.currentMode,
       resolvedTheme: this.currentResolved,
     };
-    this.listeners.forEach((listener) => {
-      try {
-        listener(state);
-      } catch (err: unknown) {
-        console.error("Error in theme listener:", err);
-      }
-    });
+    this.notify(state);
   }
 
   public getThemeState(): ThemeState {
@@ -111,11 +105,9 @@ class ThemeManager {
   }
 
   public subscribeToTheme(listener: ThemeListener): () => void {
-    this.listeners.add(listener);
+    const unsubscribe = this.subscribe(listener);
     listener({ mode: this.currentMode, resolvedTheme: this.currentResolved });
-    return () => {
-      this.listeners.delete(listener);
-    };
+    return unsubscribe;
   }
 
   public initThemeService(): () => void {
