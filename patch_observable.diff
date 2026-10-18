@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+  public notify(state: T): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(state);
+      } catch (err: unknown) {
+        console.error("Error in listener:", err);
+      }
+    }
+  }
+}
+=======
+  protected currentState?: T;
+
+  public notify(state: T): void {
+    this.currentState = state;
+    for (const listener of this.listeners) {
+      try {
+        listener(state);
+      } catch (err: unknown) {
+        console.error("Error in listener:", err);
+      }
+    }
+  }
+
+  public getSnapshot(): T | undefined {
+    return this.currentState;
+  }
+
+  public bindSubscribe = (listener: () => void): () => void => {
+    return this.subscribe(listener);
+  };
+}
+>>>>>>> REPLACE

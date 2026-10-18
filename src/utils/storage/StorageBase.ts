@@ -55,11 +55,11 @@ export class StorageBase<T> extends Observable<T> {
     }
   }
 
-  public bindSubscribe = (listener: () => void): () => void => {
+  public override bindSubscribe = (listener: () => void): () => void => {
     return this.subscribe(listener);
   };
 
-  public getSnapshot = (): T => {
+  public override getSnapshot = (): T => {
     return this.load();
   };
 
