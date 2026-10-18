@@ -74,57 +74,100 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     }
   }
 
+  /**
+   * Internal helper to apply a mutation function to the collection.
+   * Reduces duplication of `this.load()` and `this.save()` calls.
+   */
+  private mutate(mutator: (items: T[]) => boolean): T[] {
+    const items = this.load().map(item => ({ ...item }));
+    const shouldSave = mutator(items);
+    if (shouldSave) {
+      this.save(items);
+    }
+    return this.load();
+  }
+
   update(id: string, updates: Partial<T>): T | null {
     if (!id) return null;
-    const items = this.load().map((item) => ({ ...item }));
-    const index = items.findIndex((item) => this.keyExtractor(item) === id);
-    if (index === -1) return null;
+    let updatedItem: T | null = null;
+    this.mutate((items) => {
+      const index = items.findIndex((item) => this.keyExtractor(item) === id);
+      if (index === -1) return false;
+      updatedItem = { ...items[index], ...updates } as T;
+      items[index] = updatedItem;
+      return true;
+    });
+    return updatedItem;
+  }
 
-    const updated = {
-      ...items[index],
-      ...updates,
-    } as T;
-
-    items[index] = updated;
-    this.save(items);
-    return updated;
+  bulkUpdate(updates: { id: string; changes: Partial<T> }[]): T[] {
+    if (!updates || updates.length === 0) return this.load();
+    return this.mutate((items) => {
+      let changed = false;
+      const updatesMap = new Map(updates.map(u => [u.id, u.changes]));
+      for (let i = 0; i < items.length; i++) {
+        const id = this.keyExtractor(items[i]);
+        if (updatesMap.has(id)) {
+          items[i] = { ...items[i], ...updatesMap.get(id) } as T;
+          changed = true;
+        }
+      }
+      return changed;
+    });
   }
 
   bulkDelete(ids: string[]): T[] {
     if (!ids || ids.length === 0) return this.load();
-    const items = this.load();
     const idSet = new Set(ids);
-    const filtered = items.filter((item) => !idSet.has(this.keyExtractor(item)));
-    if (filtered.length !== items.length) {
-      this.save(filtered);
-    }
-    return filtered;
+    return this.mutate((items) => {
+      const originalLength = items.length;
+      const filtered = items.filter((item) => !idSet.has(this.keyExtractor(item)));
+      if (filtered.length !== originalLength) {
+        items.length = 0;
+        items.push(...filtered);
+        return true;
+      }
+      return false;
+    });
   }
 
   delete(id: string): T[] {
     if (!id) return this.load();
-    const items = this.load();
-    const filtered = items.filter((item) => this.keyExtractor(item) !== id);
-    this.save(filtered);
-    return filtered;
+    return this.bulkDelete([id]);
   }
 
   upsert(item: T, prepend = false): T {
-    const items = this.load().map((i) => ({ ...i }));
-    const id = this.keyExtractor(item);
-    const index = items.findIndex((i) => this.keyExtractor(i) === id);
+    let updatedItem: T | null = null;
+    this.mutate((items) => {
+      const id = this.keyExtractor(item);
+      const index = items.findIndex((i) => this.keyExtractor(i) === id);
+      updatedItem = { ...item } as T;
 
-    const updated = {
-      ...item,
-    } as T;
+      if (index >= 0) {
+        items[index] = updatedItem;
+      } else {
+        prepend ? items.unshift(updatedItem) : items.push(updatedItem);
+      }
+      return true;
+    });
+    return updatedItem!;
+  }
 
-    if (index >= 0) {
-      items[index] = updated;
-    } else {
-      prepend ? items.unshift(updated) : items.push(updated);
-    }
+  bulkUpsert(newItems: T[], prepend = false): T[] {
+    if (!newItems || newItems.length === 0) return this.load();
+    return this.mutate((items) => {
+      for (const item of newItems) {
+        const id = this.keyExtractor(item);
+        const index = items.findIndex((i) => this.keyExtractor(i) === id);
+        const updatedItem = { ...item } as T;
 
-    this.save(items);
-    return updated;
+        if (index >= 0) {
+          items[index] = updatedItem;
+        } else {
+          prepend ? items.unshift(updatedItem) : items.push(updatedItem);
+        }
+      }
+      return true;
+    });
   }
 }
