@@ -1,5 +1,5 @@
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
-import { safeGetStorageArray, safeSetStorage } from "./core";
+import { safeGetStorage, safeSetStorage } from "./core";
 
 export interface StorageCollectionOptions<T> {
   keyExtractor?: (item: T) => string;
@@ -47,7 +47,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
       fallback: [],
       transformIn: arrayTransformIn,
       transformOut: arrayTransformOut,
-      getter: options?.getter || (safeGetStorageArray as unknown as (key: string, fallback: T[], storageInstance?: Storage) => T[]),
+      getter: options?.getter || (safeGetStorage as unknown as (key: string, fallback: T[], storageInstance?: Storage) => T[]),
       setter: options?.setter || safeSetStorage,
       storageAdapter: options?.storageAdapter,
     };
