@@ -103,7 +103,6 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     const updated = {
       ...items[index],
       ...updates,
-      updatedAt: Date.now(),
     } as T;
 
     items[index] = updated;
@@ -137,7 +136,6 @@ export class StorageCollection<T> extends StorageBase<T[]> {
 
     const updated = {
       ...item,
-      updatedAt: Date.now(),
     } as T;
 
     if (index >= 0) {

@@ -138,7 +138,8 @@ export function getActiveJulesSession(): JulesSession | null {
 }
 
 export function updateStoredJulesSession(session: JulesSession): JulesSession {
-  return julesSessionsCollection.upsert(session, true);
+  const updatedSession = { ...session, updatedAt: Date.now() };
+  return julesSessionsCollection.upsert(updatedSession, true);
 }
 
 export function deleteStoredJulesSession(id: string): void {
