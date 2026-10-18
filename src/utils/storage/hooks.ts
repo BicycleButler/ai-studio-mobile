@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useCallback } from "react";
 import { StorageBase } from "./StorageBase";
 
 /**
@@ -9,9 +9,13 @@ import { StorageBase } from "./StorageBase";
  * @returns The current state of the storage snapshot
  */
 export function useStorage<T>(storageInstance: StorageBase<T>): T {
-  return useSyncExternalStore(
-    storageInstance.bindSubscribe,
-    storageInstance.getSnapshot,
-    storageInstance.getSnapshot
-  );
+  const subscribe = useCallback((listener: () => void) => {
+    return storageInstance.subscribe(listener);
+  }, [storageInstance]);
+
+  const getSnapshot = useCallback(() => {
+    return storageInstance.getSnapshot();
+  }, [storageInstance]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

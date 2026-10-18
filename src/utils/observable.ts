@@ -1,7 +1,17 @@
 export type Listener<T> = (state: T) => void;
 
-export class Observable<T> {
+export interface IReadableStore<T> {
+  subscribe(listener: Listener<T>): () => void;
+  getSnapshot(): T | undefined;
+}
+
+export class Observable<T> implements IReadableStore<T> {
   protected listeners = new Set<Listener<T>>();
+  protected currentState?: T;
+
+  constructor(initialState?: T) {
+    this.currentState = initialState;
+  }
 
   public subscribe(listener: Listener<T>): () => void {
     this.listeners.add(listener);
@@ -9,8 +19,6 @@ export class Observable<T> {
       this.listeners.delete(listener);
     };
   }
-
-  protected currentState?: T;
 
   public notify(state: T): void {
     this.currentState = state;
@@ -26,8 +34,4 @@ export class Observable<T> {
   public getSnapshot(): T | undefined {
     return this.currentState;
   }
-
-  public bindSubscribe = (listener: () => void): () => void => {
-    return this.subscribe(listener);
-  };
 }

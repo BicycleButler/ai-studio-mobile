@@ -1,4 +1,4 @@
-import { Observable } from "../observable";
+import { Observable, IReadableStore, Listener } from "../observable";
 import { isBrowserEnvironment, getSafeWindow } from "../platform";
 import { deepFreeze } from "./helpers";
 import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./core";
@@ -13,7 +13,8 @@ export interface StorageBaseOptions<T> {
   storageAdapter?: Storage;
 }
 
-export class StorageBase<T> extends Observable<T> {
+export class StorageBase<T> implements IReadableStore<T> {
+  protected observable = new Observable<T>();
   protected key: string;
   protected cachedSnapshot: T | undefined = undefined;
   protected storageAdapter?: Storage;
@@ -27,7 +28,6 @@ export class StorageBase<T> extends Observable<T> {
   protected setter: (key: string, value: T, storageInstance?: Storage) => void;
 
   constructor(key: string, options: StorageBaseOptions<T>) {
-    super();
     this.key = key;
     this.storageAdapter = options.storageAdapter;
 
@@ -51,17 +51,17 @@ export class StorageBase<T> extends Observable<T> {
   protected handleStorageEvent(e: StorageEvent): void {
     if (e.key === this.key || e.key === null) {
       this.cachedSnapshot = undefined;
-      this.notify(this.load());
+      this.observable.notify(this.load());
     }
   }
 
-  public override bindSubscribe = (listener: () => void): () => void => {
-    return this.subscribe(listener);
-  };
+  public subscribe(listener: Listener<T>): () => void {
+    return this.observable.subscribe(listener);
+  }
 
-  public override getSnapshot = (): T => {
+  public getSnapshot(): T {
     return this.load();
-  };
+  }
 
   public load(): T {
     if (this.cachedSnapshot !== undefined) {
@@ -107,7 +107,7 @@ export class StorageBase<T> extends Observable<T> {
       const toStore = this.transformIn ? this.transformIn(item) : item;
       this.setter(this.key, toStore, this.storageAdapter);
       this.cachedSnapshot = undefined;
-      this.notify(this.load());
+      this.observable.notify(this.load());
     } catch (err) {
       console.warn(`StorageBase[${this.key}]: save error`, err);
     }
@@ -116,7 +116,7 @@ export class StorageBase<T> extends Observable<T> {
   public clear(): void {
     safeRemoveStorage(this.key, this.storageAdapter);
     this.cachedSnapshot = undefined;
-    this.notify(this.load());
+    this.observable.notify(this.load());
   }
 
   public dispose(): void {
@@ -126,6 +126,8 @@ export class StorageBase<T> extends Observable<T> {
         win.removeEventListener("storage", this.boundHandleStorageEvent);
       }
     }
-    this.listeners.clear();
+    // Note: since observable encapsulates listeners, we recreate it to clear them.
+    // Alternatively, we could add a `clear` method to Observable if we needed to retain the instance.
+    this.observable = new Observable<T>();
   }
 }
