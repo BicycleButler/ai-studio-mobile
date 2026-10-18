@@ -59,6 +59,21 @@ export function deepFreeze<T>(obj: T): T {
     return obj;
   }
 
+  if (obj instanceof Date) {
+    const frozen = new Date(obj.getTime());
+    const throwError = () => { throw new Error('Cannot mutate frozen Date'); };
+    const methods = ['setTime', 'setMilliseconds', 'setUTCMilliseconds', 'setSeconds', 'setUTCSeconds', 'setMinutes', 'setUTCMinutes', 'setHours', 'setUTCHours', 'setDate', 'setUTCDate', 'setMonth', 'setUTCMonth', 'setFullYear', 'setUTCFullYear', 'setYear'];
+    for (const method of methods) {
+      if (typeof (frozen as any)[method] === 'function') {
+        (frozen as any)[method] = throwError;
+      }
+    }
+    return Object.freeze(frozen) as unknown as T;
+  }
+  if (obj instanceof RegExp) {
+    return Object.freeze(new RegExp(obj.source, obj.flags)) as unknown as T;
+  }
+
   // We should clone the object deeply first to avoid freezing the original reference
   // if it's reused by the caller.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,15 +83,36 @@ export function deepFreeze<T>(obj: T): T {
     for (let i = 0; i < obj.length; i++) {
       clone[i] = deepFreeze(obj[i]);
     }
+  } else if (obj instanceof Map) {
+    clone = new Map();
+    for (const [k, v] of obj.entries()) {
+      clone.set(deepFreeze(k), deepFreeze(v));
+    }
+    const throwError = () => { throw new Error('Cannot mutate frozen Map'); };
+    clone.set = throwError;
+    clone.delete = throwError;
+    clone.clear = throwError;
+  } else if (obj instanceof Set) {
+    clone = new Set();
+    for (const v of obj.values()) {
+      clone.add(deepFreeze(v));
+    }
+    const throwError = () => { throw new Error('Cannot mutate frozen Set'); };
+    clone.add = throwError;
+    clone.delete = throwError;
+    clone.clear = throwError;
   } else {
-    clone = { ...obj };
-    for (const key of Object.getOwnPropertyNames(clone)) {
-      const prop = clone[key];
+    clone = Object.create(Object.getPrototypeOf(obj));
+    for (const key of Object.getOwnPropertyNames(obj)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const prop = (obj as any)[key];
       if (
         prop !== null &&
         (typeof prop === 'object' || typeof prop === 'function')
       ) {
         clone[key] = deepFreeze(prop);
+      } else {
+        clone[key] = prop;
       }
     }
   }
