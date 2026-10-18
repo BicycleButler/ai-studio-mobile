@@ -61,7 +61,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
 
   const [apiKey, setApiKey] = useState(initialKey);
   const [projectName, setProjectName] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gemini-3.8-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
   const [showRawKey, setShowRawKey] = useState(false);
 
   // Validation State: 'idle' | 'validating' | 'valid' | 'invalid'
@@ -75,13 +75,13 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
       const projects = loadStoredProjects();
       const defaultName = `AI Studio Project ${projects.length + 1}`;
       setProjectName(defaultName);
-      setSelectedModel("gemini-3.8-flash");
+      setSelectedModel("gemini-2.5-flash");
       setShowRawKey(false);
       setIsSaving(false);
 
       if (initialKey) {
         setApiKey(initialKey);
-        void performVerification(initialKey, "gemini-3.8-flash");
+        void performVerification(initialKey, "gemini-2.5-flash");
       } else {
         setApiKey("");
         setValidationState("idle");
@@ -345,14 +345,14 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             )}
           </div>
 
-          {/* 3. Default model selection (defaulting to gemini-3.8-flash) */}
+          {/* 3. Default model selection (defaulting to gemini-2.5-flash) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-foreground block">
                 Default Model
               </label>
               <span className="text-[10px] text-primary font-medium">
-                gemini-3.8-flash recommended
+                gemini-2.5-flash recommended
               </span>
             </div>
             <div className="relative">

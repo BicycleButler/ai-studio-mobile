@@ -12,7 +12,7 @@ export async function fetchModels(apiKey?: string, refresh: boolean = false): Pr
   return apiFetch<{ models?: ModelInfo[] }>(endpoint, { headers });
 }
 
-export const FALLBACK_MODEL_ID = "gemini-3.8-flash";
+export const FALLBACK_MODEL_ID = "gemini-2.5-flash";
 
 /**
  * Curated list of fully supported, production-ready, and usable models for
@@ -20,7 +20,7 @@ export const FALLBACK_MODEL_ID = "gemini-3.8-flash";
  */
 export const CURATED_MODELS: ModelInfo[] = [
   {
-    id: "gemini-3.8-flash",
+    id: "gemini-2.5-flash",
     name: "Gemini 3.8 Flash",
     category: "Recommended",
     description: "Google's premier model for versatile text, code, multimodal reasoning, and rapid turnarounds.",

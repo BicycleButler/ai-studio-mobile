@@ -9,7 +9,7 @@ describe('testValidationSchemas', () => {
   test('main', () => {
   // 1. Valid generate request
   const validPayload = {
-    model: "gemini-3.8-flash",
+    model: "gemini-2.5-flash",
     messages: [{ role: "user", text: "Hello Gemini" }],
     temperature: 0.7,
     topP: 0.9,
@@ -23,7 +23,7 @@ describe('testValidationSchemas', () => {
 
   // 2. Reject empty messages array
   const emptyMessagesPayload = {
-    model: "gemini-3.8-flash",
+    model: "gemini-2.5-flash",
     messages: [],
   };
   const parsedEmpty = GenerateRequestSchema.safeParse(emptyMessagesPayload);
@@ -33,7 +33,7 @@ describe('testValidationSchemas', () => {
 
   // 3. Reject out-of-range temperature
   const invalidTempPayload = {
-    model: "gemini-3.8-flash",
+    model: "gemini-2.5-flash",
     messages: [{ role: "user", text: "Test" }],
     temperature: 3.5, // Max is 2.0
   };
@@ -44,7 +44,7 @@ describe('testValidationSchemas', () => {
 
   // 4. Count tokens schema
   const validCountPayload = {
-    model: "gemini-3.8-flash",
+    model: "gemini-2.5-flash",
     contents: "Sample string to count",
   };
   const parsedCount = CountTokensRequestSchema.safeParse(validCountPayload);

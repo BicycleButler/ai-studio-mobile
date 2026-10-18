@@ -74,7 +74,7 @@ describe('testChatHistoryService', () => {
     createdAt: Date.now() - 10000,
     updatedAt: Date.now() - 10000,
     projectId: activeProjectId,
-    model: "gemini-3.8-flash",
+    model: "gemini-2.5-flash",
   };
 
   saveChatSession(realSession1, activeProjectId);

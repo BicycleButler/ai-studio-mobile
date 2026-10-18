@@ -17,7 +17,7 @@ describe('testMobileIDEAndPromptModes', () => {
 
   // Test 2: Code generators properly populate from config & messages
   const sampleConfig: PromptConfig = {
-    model: "gemini-3.8-flash",
+    model: "gemini-2.5-flash",
     systemInstruction: "You are a professional Android and TypeScript engineer.",
     temperature: 0.7,
     topP: 0.9,
@@ -37,14 +37,14 @@ describe('testMobileIDEAndPromptModes', () => {
   ];
 
   const kotlinCode = CODE_GENERATORS.kotlin.generate(sampleConfig, sampleMessages);
-  assert(kotlinCode.includes("gemini-3.8-flash"), "Kotlin code should contain the configured model");
+  assert(kotlinCode.includes("gemini-2.5-flash"), "Kotlin code should contain the configured model");
   assert(kotlinCode.includes("GenerativeModel"), "Kotlin code should import GenerativeModel");
   assert(kotlinCode.includes("reactive stream"), "Kotlin code should contain the prompt contents");
 
   const tsCode = CODE_GENERATORS.typescript.generate(sampleConfig, sampleMessages);
   assert(tsCode.includes("@google/genai"), "TypeScript code should use @google/genai SDK");
   assert(tsCode.includes("generateContent"), "TypeScript code should call generateContent");
-  assert(tsCode.includes("gemini-3.8-flash"), "TypeScript code should use specified model");
+  assert(tsCode.includes("gemini-2.5-flash"), "TypeScript code should use specified model");
 
   const pyCode = CODE_GENERATORS.python.generate(sampleConfig, sampleMessages);
   assert(pyCode.includes("google.genai"), "Python code should use google.genai SDK");
@@ -52,7 +52,7 @@ describe('testMobileIDEAndPromptModes', () => {
 
   const curlCode = CODE_GENERATORS.curl.generate(sampleConfig, sampleMessages);
   assert(curlCode.includes("curl \"https://generativelanguage.googleapis.com"), "cURL should have correct endpoint");
-  assert(curlCode.includes("gemini-3.8-flash:generateContent"), "cURL should target configured model");
+  assert(curlCode.includes("gemini-2.5-flash:generateContent"), "cURL should target configured model");
 
 
   });
