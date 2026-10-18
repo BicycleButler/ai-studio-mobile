@@ -1,3 +1,4 @@
+import { useAudioSettings } from "../../hooks/settings/useAudioSettings";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Smartphone,

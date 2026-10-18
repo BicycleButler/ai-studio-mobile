@@ -1,3 +1,4 @@
+import { useAppAuth } from "./useAppAuth";
 import { clearAllChatSessions } from "../services/chatHistoryService";
 import { useState, useEffect } from "react";
 import {

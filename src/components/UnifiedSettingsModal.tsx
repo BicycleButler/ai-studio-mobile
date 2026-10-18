@@ -1,6 +1,6 @@
+import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsState";
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
-import { useBatchSelection } from "../hooks/useBatchSelection";
 import { safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -26,7 +26,6 @@ import {
   GoogleUser,
   ProjectInfo,
 } from "../types";
-import { fetchTTSAudioUrl } from "../services/speechVoices";
 import { TunerBottomSheet } from "./TunerBottomSheet";
 import {
     SpeechSettings,
@@ -172,22 +171,16 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   // Batch Selection State
   const {
-    selectedIds: selectedProjectIds,
-    showBulkDeleteConfirm: showBulkDeleteProjectsConfirm,
-    setShowBulkDeleteConfirm: setShowBulkDeleteProjectsConfirm,
+    selectedProjectIds,
+    showBulkDeleteProjectsConfirm,
+    setShowBulkDeleteProjectsConfirm,
     bulkDeleteConfirmationText,
     setBulkDeleteConfirmationText,
-    toggleSelection: _toggleProjectSelection,
-    toggleSelectAll: toggleSelectAllProjectsRaw,
-    clearSelection: clearProjectSelection,
-    handleBulkDelete: handleBulkDeleteProjects,
-  } = useBatchSelection({
-    items: projects,
-    getItemId: (p) => p.id,
-    onBulkDelete: onBulkDeleteProjects
-      ? onBulkDeleteProjects
-      : (ids) => ids.forEach((id) => onDeleteProject && onDeleteProject(id)),
-  });
+    toggleProjectSelection: _toggleProjectSelection,
+    toggleSelectAllProjectsRaw,
+    clearProjectSelection,
+    handleBulkDeleteProjects,
+  } = useSettingsProjectsState(projects, onBulkDeleteProjects, onDeleteProject as unknown as (project: ProjectInfo) => void);
 
   const toggleSelectAllProjects = useCallback(() => {
     toggleSelectAllProjectsRaw(projects);
@@ -201,7 +194,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   // Enable device/browser back navigation to dismiss drawer smoothly
   useBackNavigation(isOpen, () => {
-    stopPreview();
+
     onClose();
   }, "settings-drawer");
 
@@ -216,7 +209,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         } else if (selectedProjectIds.size > 0 && activeTab === "account") {
           clearProjectSelection();
         } else {
-          stopPreview();
+
           onClose();
         }
       }
@@ -269,179 +262,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   // Clean up audio playback when closing or unmounting
   useEffect(() => {
     return () => {
-      stopPreview();
+
     };
   }, [isOpen]);
 
-  const stopPreview = () => {
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current = null;
-    }
-    const synth = getSafeWindowSpeechSynthesis();
-    if (synth) {
-      synth.cancel();
-    }
-    setPreviewingVoiceId(null);
-    setIsPreviewLoading(false);
-  };
 
-
-  // Audio Actions
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handlePreviewVoice = async (voiceName: string, engine: "gemini" | "device") => {
-    if (previewingVoiceId === voiceName) {
-      stopPreview();
-      return;
-    }
-
-    stopPreview();
-    setPreviewError(null);
-    setPreviewingVoiceId(voiceName);
-
-    const samplePhrase = `Hello! I'm ${voiceName}, ready to narrate your Gemini responses.`;
-
-    if (engine === "gemini") {
-      setIsPreviewLoading(true);
-      try {
-        const data = await fetchTTSAudioUrl(samplePhrase, voiceName);
-
-        if (!data.audioUrl) {
-          throw new Error("No audio returned from Gemini TTS");
-        }
-
-        setIsPreviewLoading(false);
-        const audio = new Audio(data.audioUrl);
-        audio.playbackRate = currentSpeechSettings.playbackRate;
-        previewAudioRef.current = audio;
-
-        audio.onended = () => {
-          setPreviewingVoiceId(null);
-          previewAudioRef.current = null;
-        };
-
-        audio.onerror = () => {
-          setPreviewingVoiceId(null);
-          previewAudioRef.current = null;
-          setPreviewError("Failed to play audio preview.");
-        };
-
-        await audio.play();
-      } catch (err: unknown) {
-        setIsPreviewLoading(false);
-        setPreviewingVoiceId(null);
-        setPreviewError(err instanceof Error ? err.message : "Error previewing voice.");
-      }
-    } else {
-      const synth = getSafeWindowSpeechSynthesis();
-      if (!synth) {
-        setPreviewError("Device speech synthesis not available.");
-        setPreviewingVoiceId(null);
-        return;
-      }
-
-      synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(samplePhrase);
-      utterance.rate = currentSpeechSettings.playbackRate;
-
-      const rawVoices = synth.getVoices();
-      const selectedVoice = rawVoices.find(
-        (v) => v.voiceURI === currentSpeechSettings.deviceVoiceURI
-      );
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-
-      utterance.onend = () => {
-        setPreviewingVoiceId(null);
-      };
-
-      utterance.onerror = () => {
-        setPreviewingVoiceId(null);
-        setPreviewError("Error playing on-device voice.");
-      };
-
-      synth.speak(utterance);
-    }
-  };
-
-  const handleSelectAudioEngine = (engine: "gemini" | "device") => {
-    stopPreview();
-    const updated: SpeechSettings = { ...currentSpeechSettings, engine };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-  };
-
-  const handleSelectGeminiVoice = (geminiVoice: string) => {
-    const updated: SpeechSettings = { ...currentSpeechSettings, geminiVoice };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-  };
-
-  const handleSelectDeviceVoice = (deviceVoiceURI: string) => {
-    const updated: SpeechSettings = { ...currentSpeechSettings, deviceVoiceURI };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-  };
-
-  const handleSelectRate = (playbackRate: number) => {
-    const updated: SpeechSettings = { ...currentSpeechSettings, playbackRate };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-    if (previewAudioRef.current) {
-      previewAudioRef.current.playbackRate = playbackRate;
-    }
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleToggleAutoRead = () => {
-    const updated: SpeechSettings = {
-      ...currentSpeechSettings,
-      autoReadResponses: !currentSpeechSettings.autoReadResponses,
-    };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleToggleHandsFree = () => {
-    const updated: SpeechSettings = {
-      ...currentSpeechSettings,
-      handsFreeMode: !currentSpeechSettings.handsFreeMode,
-    };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleToggleSentenceStreaming = () => {
-    const updated: SpeechSettings = {
-      ...currentSpeechSettings,
-      sentenceStreaming: !currentSpeechSettings.sentenceStreaming,
-    };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSelectSilenceTimeout = (silenceTimeoutMs: number) => {
-    const updated: SpeechSettings = {
-      ...currentSpeechSettings,
-      silenceTimeoutMs,
-    };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSelectVoiceButtonPlacement = (placement: "footer" | "fab") => {
-    const updated: SpeechSettings = {
-      ...currentSpeechSettings,
-      voiceButtonPlacement: placement,
-    };
-    setCurrentSpeechSettings(updated);
-    onSaveSpeechSettings(updated);
-  };
 
   const hasAnyAuth = Boolean(googleUser || customApiKey.trim() || hasServerKey);
   const isJulesConfigured = Boolean(julesApiKey.trim());
@@ -459,7 +284,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              stopPreview();
+
               onClose();
             }
           }}
@@ -483,7 +308,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               type="button"
               id="settings-modal-back-btn"
               onClick={() => {
-                stopPreview();
+
                 onClose();
               }}
               className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -543,7 +368,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               type="button"
               id="settings-modal-close-btn"
               onClick={() => {
-                stopPreview();
+
                 onClose();
               }}
               className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -726,7 +551,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               type="button"
               id="settings-done-btn"
               onClick={() => {
-                stopPreview();
+
                 onClose();
               }}
               className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
