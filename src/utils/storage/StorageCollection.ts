@@ -15,16 +15,18 @@ export interface StorageCollectionOptions<T> {
 
 export class StorageCollection<T> extends StorageBase<T[]> {
   private keyExtractor: (item: T) => string;
-  private maxItems?: number;
-  private onSave?: (items: T[]) => void;
 
   constructor(
     key: string,
     options?: StorageCollectionOptions<T>
   ) {
-    const arrayTransformIn = options?.transformIn
-      ? (items: T[]) => items.map(options.transformIn!)
-      : undefined;
+    const arrayTransformIn = (items: T[]) => {
+      let processed = options?.transformIn ? items.map(options.transformIn) : items;
+      if (options?.maxItems !== undefined && processed.length > options.maxItems) {
+        processed = processed.slice(0, options.maxItems);
+      }
+      return processed;
+    };
 
     const arrayTransformOut = (options?.transformOut || options?.validate)
       ? (items: T[]) => {
@@ -50,28 +52,12 @@ export class StorageCollection<T> extends StorageBase<T[]> {
       getter: options?.getter || (safeGetStorage as unknown as (key: string, fallback: T[], storageInstance?: Storage) => T[]),
       setter: options?.setter || safeSetStorage,
       storageAdapter: options?.storageAdapter,
+      onSave: options?.onSave,
     };
 
     super(key, baseOptions);
 
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
-    this.maxItems = options?.maxItems;
-    this.onSave = options?.onSave;
-  }
-
-  override save(itemsToSave: T[]): void {
-    let items = itemsToSave;
-    if (this.maxItems !== undefined && items.length > this.maxItems) {
-      items = items.slice(0, this.maxItems);
-    }
-    super.save(items);
-    if (this.onSave) {
-      try {
-        this.onSave(this.load());
-      } catch (onSaveErr) {
-        console.error(`StorageCollection[${this.key}]: error during onSave callback`, onSaveErr);
-      }
-    }
   }
 
   /**
