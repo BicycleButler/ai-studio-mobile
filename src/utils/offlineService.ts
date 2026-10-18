@@ -17,6 +17,53 @@ export class IndexedDbAsyncStorage implements AsyncStorage {
   }
 }
 
+export class MemoryAsyncStorage implements AsyncStorage {
+  private store = new Map<string, unknown>();
+
+  async getItem<T>(key: string): Promise<T | undefined> {
+    return this.store.get(key) as T | undefined;
+  }
+  async setItem<T>(key: string, value: T): Promise<void> {
+    this.store.set(key, value);
+  }
+}
+
+export class FallbackAsyncStorage implements AsyncStorage {
+  private adapters: AsyncStorage[];
+
+  constructor(adapters: AsyncStorage[]) {
+    this.adapters = adapters;
+  }
+
+  async getItem<T>(key: string): Promise<T | undefined> {
+    let lastError: unknown;
+    for (const adapter of this.adapters) {
+      try {
+        return await adapter.getItem<T>(key);
+      } catch (e) {
+        lastError = e;
+        // Continue to the next adapter
+      }
+    }
+    console.error("All storage adapters failed to getItem", lastError);
+    return undefined;
+  }
+
+  async setItem<T>(key: string, value: T): Promise<void> {
+    let lastError: unknown;
+    for (const adapter of this.adapters) {
+      try {
+        await adapter.setItem<T>(key, value);
+        return; // Success, stop trying other adapters
+      } catch (e) {
+        lastError = e;
+        // Continue to the next adapter
+      }
+    }
+    console.error("All storage adapters failed to setItem", lastError);
+  }
+}
+
 export interface OfflineMutation {
   type: string;
   payload: unknown;
@@ -56,7 +103,10 @@ export class OfflineService implements IOfflineService {
 
   constructor(
     private storageKey: string = OFFLINE_QUEUE_KEY,
-    private storageAdapter: AsyncStorage = new IndexedDbAsyncStorage()
+    private storageAdapter: AsyncStorage = new FallbackAsyncStorage([
+      new IndexedDbAsyncStorage(),
+      new MemoryAsyncStorage()
+    ])
   ) {
     try {
       if (typeof BroadcastChannel !== 'undefined') {
