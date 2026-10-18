@@ -106,19 +106,8 @@ export function safeGetStorage<T>(key: string, fallback: T, storageInstance?: St
     const storage = storageInstance || getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
-    return safeParseStorageItem(key, raw, fallback, storage, false);
-  } catch (err: unknown) {
-    console.warn(`Failed to read ${key} from storage:`, err);
-    return fallback;
-  }
-}
-
-export function safeGetStorageArray<T>(key: string, fallback: T[] = [], storageInstance?: Storage): T[] {
-  try {
-    const storage = storageInstance || getStorageInstance();
-    const raw = storage.getItem(key);
-    if (!raw) return fallback;
-    return safeParseStorageItem(key, raw, fallback, storage, true) as T[];
+    const isArray = Array.isArray(fallback);
+    return safeParseStorageItem(key, raw, fallback, storage, isArray);
   } catch (err: unknown) {
     console.warn(`Failed to read ${key} from storage:`, err);
     return fallback;
