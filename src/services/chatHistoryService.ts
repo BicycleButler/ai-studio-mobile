@@ -3,7 +3,21 @@ import { ChatMessage, ChatSession } from "../types";
 import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
 import { isMockSession } from "../utils/mockDefinitions";
 
-class ChatHistoryManager {
+export interface IChatHistoryService {
+  getChatSessionsStorageKey(projectId?: string): string;
+  isMockChatSession(session: Partial<ChatSession>): boolean;
+  purgeMockSessionsFromStorage(): void;
+  sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[];
+  generateSessionTitle(messages: ChatMessage[], maxLength?: number): string;
+  getChatSessions(projectId?: string): ChatSession[];
+  saveChatSession(session: ChatSession, projectId?: string): void;
+  getChatSessionById(sessionId: string, projectId?: string): ChatSession | null;
+  deleteChatSession(sessionId: string, projectId?: string): boolean;
+  clearAllChatSessions(projectId?: string): void;
+  bulkDeleteChatSessions(sessionIds: string[], projectId?: string): boolean;
+}
+
+export class ChatHistoryService implements IChatHistoryService {
   private collectionRegistry = new Map<string, StorageCollection<ChatSession>>();
 
   private getChatCollectionByKey(key: string): StorageCollection<ChatSession> {
@@ -133,13 +147,13 @@ class ChatHistoryManager {
   }
 }
 
-const chatHistoryManager = new ChatHistoryManager();
+export const defaultChatHistoryService = new ChatHistoryService();
 
 /**
  * Returns the storage key scoped by project
  */
 export function getChatSessionsStorageKey(projectId?: string): string {
-  return chatHistoryManager.getChatSessionsStorageKey(projectId);
+  return defaultChatHistoryService.getChatSessionsStorageKey(projectId);
 }
 
 /**
@@ -148,7 +162,7 @@ export function getChatSessionsStorageKey(projectId?: string): string {
  * even in the development environment.
  */
 export function isMockChatSession(session: Partial<ChatSession>): boolean {
-  return chatHistoryManager.isMockChatSession(session);
+  return defaultChatHistoryService.isMockChatSession(session);
 }
 
 /**
@@ -157,7 +171,7 @@ export function isMockChatSession(session: Partial<ChatSession>): boolean {
  * zero mock data remains in storage.
  */
 export function purgeMockSessionsFromStorage(): void {
-  chatHistoryManager.purgeMockSessionsFromStorage();
+  defaultChatHistoryService.purgeMockSessionsFromStorage();
 }
 
 export function initializeChatHistoryService(): void {
@@ -168,14 +182,14 @@ export function initializeChatHistoryService(): void {
  * Sanitizes messages by removing heavy base64 image data before persisting
  */
 export function sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[] {
-  return chatHistoryManager.sanitizeMessagesForHistory(messages);
+  return defaultChatHistoryService.sanitizeMessagesForHistory(messages);
 }
 
 /**
  * Generates a clean human-readable title from conversation messages
  */
 export function generateSessionTitle(messages: ChatMessage[], maxLength: number = 42): string {
-  return chatHistoryManager.generateSessionTitle(messages, maxLength);
+  return defaultChatHistoryService.generateSessionTitle(messages, maxLength);
 }
 
 /**
@@ -183,7 +197,7 @@ export function generateSessionTitle(messages: ChatMessage[], maxLength: number 
  * Enforces strict filtering to guarantee zero mock data is returned.
  */
 export function getChatSessions(projectId?: string): ChatSession[] {
-  return chatHistoryManager.getChatSessions(projectId);
+  return defaultChatHistoryService.getChatSessions(projectId);
 }
 
 /**
@@ -191,33 +205,33 @@ export function getChatSessions(projectId?: string): ChatSession[] {
  * Strictly blocks saving any mock or synthetic data.
  */
 export function saveChatSession(session: ChatSession, projectId?: string): void {
-  return chatHistoryManager.saveChatSession(session, projectId);
+  return defaultChatHistoryService.saveChatSession(session, projectId);
 }
 
 /**
  * Gets a specific chat session by ID
  */
 export function getChatSessionById(sessionId: string, projectId?: string): ChatSession | null {
-  return chatHistoryManager.getChatSessionById(sessionId, projectId);
+  return defaultChatHistoryService.getChatSessionById(sessionId, projectId);
 }
 
 /**
  * Deletes an individual chat session by ID
  */
 export function deleteChatSession(sessionId: string, projectId?: string): boolean {
-  return chatHistoryManager.deleteChatSession(sessionId, projectId);
+  return defaultChatHistoryService.deleteChatSession(sessionId, projectId);
 }
 
 /**
  * Clears all chat sessions for a project
  */
 export function clearAllChatSessions(projectId?: string): void {
-  return chatHistoryManager.clearAllChatSessions(projectId);
+  return defaultChatHistoryService.clearAllChatSessions(projectId);
 }
 
 /**
  * Deletes multiple chat sessions by ID (Batch Productivity ADR 0047)
  */
 export function bulkDeleteChatSessions(sessionIds: string[], projectId?: string): boolean {
-  return chatHistoryManager.bulkDeleteChatSessions(sessionIds, projectId);
+  return defaultChatHistoryService.bulkDeleteChatSessions(sessionIds, projectId);
 }

@@ -1,0 +1,22 @@
+--- src/services/promptTemplateService.ts
++++ src/services/promptTemplateService.ts
+@@ -106,7 +106,18 @@
+   public clearCustomTemplates(): void {
+     this.customTemplatesCollection.clear();
+   }
+
++  /**
++   * Question 3 Decision: Clean Double-Newline Separation
++   * All selected templates precede the user's manual text in exact selection order:
++   * [Template 1 Content]
++   *
++   * [Template 2 Content]
++   *
++   * [User's handwritten text]
++   *
++   * No artificial markdown block delimiters (such as --- dividers) are introduced
++   * unless explicitly included in template content.
++   */
+   public composePrompt(
+     selectedTemplateIds: string[],
+     userText: string
