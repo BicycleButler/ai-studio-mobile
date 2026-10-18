@@ -45,9 +45,10 @@ export function useAppAuth() {
 
   useEffect(() => {
     Promise.resolve(initAuth())
-      .then((res: any) => {
-        if (res && res.hasServerKey) {
-          setHasServerKey(res.hasServerKey);
+      .then((res: unknown) => {
+        const r = res as { hasServerKey?: boolean };
+        if (r && r.hasServerKey) {
+          setHasServerKey(r.hasServerKey);
         }
         refreshServerAuth();
       })

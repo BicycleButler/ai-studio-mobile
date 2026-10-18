@@ -1,12 +1,12 @@
-import { useAppAuth } from "./useAppAuth";
 import { clearAllChatSessions } from "../services/chatHistoryService";
 import { useState, useEffect } from "react";
+import { usePromptTemplates } from "./usePromptTemplates";
+import { useChatSession } from "./useChatSession";
 import {
   PromptType,
   DeviceFrameMode,
   PromptConfig,
   ChatMessage,
-  StructuredExample,
   SavedPrompt,
   ModelInfo,
   GoogleUser,
@@ -18,7 +18,6 @@ import {
   generateSessionTitle,
   purgeMockSessionsFromStorage,
 } from "../services/chatHistoryService";
-import { bulkDeleteCustomTemplates } from "../services/promptTemplateService";
 import {
   getStoredGoogleUser,
   fetchServerCurrentUser,
@@ -35,8 +34,6 @@ import {
 import {
   loadStoredApiKey,
   saveStoredApiKey,
-  loadSavedPrompts,
-  persistSavedPrompts,
   loadDraftState,
   saveDraftState,
   getActiveProject,
@@ -53,7 +50,6 @@ import {
 import { SettingsTab } from "../types";
 import { getSafeWindow } from "../utils/platform";
 import { fetchServerHealth } from "../services/auth";
-import { generateUniqueId } from "../utils/idGenerator";
 
 export function useAppState() {
   // Phase 3: Active Project & Projects vault
@@ -80,10 +76,6 @@ export function useAppState() {
   const [candidateClipboardKey, setCandidateClipboardKey] = useState<string>("");
   const [clipboardToastKey, setClipboardToastKey] = useState<string | null>(null);
 
-  // Prompt Templates State (Global to header & chat)
-  const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
-
   // Models & Server Key state
   const [models, setModels] = useState<ModelInfo[]>(CURATED_MODELS);
   const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => getStoredGoogleUser());
@@ -97,44 +89,15 @@ export function useAppState() {
     model: sanitizeModelId(initialDraft.config?.model),
   }));
 
-  // Chat state & active session tracking
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${Date.now()}`);
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (initialDraft.messages && initialDraft.messages.length > 0) {
-      return initialDraft.messages;
-    }
-    return [];
-  });
-
-  // Mobile IDE compatibility state
-  const [freeformText] = useState(initialDraft.freeformText);
-  const [structuredExamples] = useState<StructuredExample[]>(
-    initialDraft.structuredExamples
-  );
-
-  // Library / saved prompts
-  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(() => loadSavedPrompts());
-
   // Jules
   const [showJulesDrawer, setShowJulesDrawer] = useState(false);
   const [browserService, setBrowserService] = useState<"aistudio" | "jules">("aistudio");
 
+  // Sub-hooks
+  const promptTemplates = usePromptTemplates();
+  const chatSession = useChatSession(initialDraft, promptType, config, activeProject);
+
   // Actions
-  const handleToggleTemplate = (templateId: string) => {
-    setSelectedTemplateIds((prev) =>
-      prev.includes(templateId)
-        ? prev.filter((id) => id !== templateId)
-        : [...prev, templateId]
-    );
-  };
-
-  const handleRemoveTemplate = (templateId: string) => {
-    setSelectedTemplateIds((prev) => prev.filter((id) => id !== templateId));
-  };
-
-  const handleClearAllTemplates = () => {
-    setSelectedTemplateIds([]);
-  };
 
   const handleOpenSettings = (tab: SettingsTab = "account") => {
     setSettingsTab(tab);
@@ -190,9 +153,9 @@ export function useAppState() {
       {
         promptType,
         config,
-        freeformText,
-        structuredExamples,
-        messages,
+        freeformText: chatSession.freeformText,
+        structuredExamples: chatSession.structuredExamples,
+        messages: chatSession.messages,
       },
       activeProject?.id
     );
@@ -211,33 +174,24 @@ export function useAppState() {
       ...(project.defaultModel ? { model: project.defaultModel } : {}),
     });
     if (targetDraft.messages && targetDraft.messages.length > 0) {
-      setMessages(targetDraft.messages);
+      chatSession.setMessages(targetDraft.messages);
     } else {
-      setMessages([]);
+      chatSession.setMessages([]);
     }
 
     // Synchronize project list & clear transient toasts
     setProjects(loadStoredProjects());
     setCandidateClipboardKey("");
     setClipboardToastKey(null);
-    setCurrentSessionId(`sess_${Date.now()}`);
-  };
-
-  const handleStartNewChat = (onStopStream?: () => void) => {
-    if (onStopStream) {
-      onStopStream();
-    }
-    const newSessionId = generateUniqueId("sess");
-    setCurrentSessionId(newSessionId);
-    setMessages([]);
+    chatSession.setCurrentSessionId(`sess_${Date.now()}`);
   };
 
   const handleSelectChatSession = (session: ChatSession, onStopStream?: () => void) => {
     if (onStopStream) {
       onStopStream();
     }
-    setCurrentSessionId(session.id);
-    setMessages(session.messages || []);
+    chatSession.setCurrentSessionId(session.id);
+    chatSession.setMessages(session.messages || []);
     if (session.model) {
       setConfig((prev) => ({ ...prev, model: session.model! }));
     }
@@ -268,7 +222,7 @@ export function useAppState() {
         setActiveProject(null);
         setCustomApiKey("");
         saveStoredApiKey("");
-        setMessages([]);
+        chatSession.setMessages([]);
       }
     }
   };
@@ -290,7 +244,7 @@ export function useAppState() {
         setActiveProject(null);
         setCustomApiKey("");
         saveStoredApiKey("");
-        setMessages([]);
+        chatSession.setMessages([]);
       }
     }
   };
@@ -314,39 +268,11 @@ export function useAppState() {
     setPromptType(targetType);
     setConfig(prompt.config);
     if (prompt.messages && prompt.messages.length > 0) {
-      setMessages(prompt.messages);
+      chatSession.setMessages(prompt.messages);
     }
   };
 
-  const handleSaveCurrentPrompt = (title: string) => {
-    const newSaved: SavedPrompt = {
-      id: generateUniqueId("saved"),
-      title,
-      type: promptType,
-      config: { ...config },
-      messages: [...messages],
-      updatedAt: Date.now(),
-      projectId: activeProject?.id,
-    };
 
-    const updated = [newSaved, ...savedPrompts];
-    setSavedPrompts(updated);
-    persistSavedPrompts(updated);
-  };
-
-  const handleDeleteSavedPrompt = (id: string) => {
-    const updated = savedPrompts.filter((p) => p.id !== id);
-    setSavedPrompts(updated);
-    persistSavedPrompts(updated);
-  };
-
-  const handleBulkDeleteSavedPrompts = (ids: string[]) => {
-    const idSet = new Set(ids);
-    const updated = savedPrompts.filter((p) => !idSet.has(p.id));
-    setSavedPrompts(updated);
-    persistSavedPrompts(updated);
-    bulkDeleteCustomTemplates(ids);
-  };
 
   // Effects
   useEffect(() => {
@@ -355,27 +281,27 @@ export function useAppState() {
         {
           promptType,
           config,
-          freeformText,
-          structuredExamples,
-          messages,
+          freeformText: chatSession.freeformText,
+          structuredExamples: chatSession.structuredExamples,
+          messages: chatSession.messages,
         },
         activeProject?.id
       );
     }, 500);
     return () => clearTimeout(timeout);
-  }, [promptType, config, freeformText, structuredExamples, messages, activeProject?.id]);
+  }, [promptType, config, chatSession.freeformText, chatSession.structuredExamples, chatSession.messages, activeProject?.id]);
 
   useEffect(() => {
-    if (messages && messages.length > 0 && currentSessionId) {
-      const hasMeaningfulContent = messages.some(
-        (m) => m.text.trim().length > 0 || (m.images && m.images.length > 0)
+    if (chatSession.messages && chatSession.messages.length > 0 && chatSession.currentSessionId) {
+      const hasMeaningfulContent = chatSession.messages.some(
+        (m: ChatMessage) => m.text.trim().length > 0 || (m.images && m.images.length > 0)
       );
       if (hasMeaningfulContent) {
         saveChatSession(
           {
-            id: currentSessionId,
-            title: generateSessionTitle(messages),
-            messages,
+            id: chatSession.currentSessionId,
+            title: generateSessionTitle(chatSession.messages),
+            messages: chatSession.messages,
             createdAt: Date.now(),
             updatedAt: Date.now(),
             model: config.model,
@@ -385,7 +311,7 @@ export function useAppState() {
         );
       }
     }
-  }, [messages, currentSessionId, activeProject?.id, config.model]);
+  }, [chatSession.messages, chatSession.currentSessionId, activeProject?.id, config.model]);
 
   useEffect(() => {
     purgeMockSessionsFromStorage();
@@ -461,10 +387,10 @@ export function useAppState() {
     setCandidateClipboardKey,
     clipboardToastKey,
     setClipboardToastKey,
-    isTemplateDrawerOpen,
-    setIsTemplateDrawerOpen,
-    selectedTemplateIds,
-    setSelectedTemplateIds,
+    isTemplateDrawerOpen: promptTemplates.isTemplateDrawerOpen,
+    setIsTemplateDrawerOpen: promptTemplates.setIsTemplateDrawerOpen,
+    selectedTemplateIds: promptTemplates.selectedTemplateIds,
+    setSelectedTemplateIds: promptTemplates.setSelectedTemplateIds,
     models,
     setModels,
     googleUser,
@@ -476,35 +402,35 @@ export function useAppState() {
     hasApiKey,
     config,
     setConfig,
-    currentSessionId,
-    setCurrentSessionId,
-    messages,
-    setMessages,
-    freeformText,
-    structuredExamples,
-    savedPrompts,
-    setSavedPrompts,
+    currentSessionId: chatSession.currentSessionId,
+    setCurrentSessionId: chatSession.setCurrentSessionId,
+    messages: chatSession.messages,
+    setMessages: chatSession.setMessages,
+    freeformText: chatSession.freeformText,
+    structuredExamples: chatSession.structuredExamples,
+    savedPrompts: chatSession.savedPrompts,
+    setSavedPrompts: chatSession.setSavedPrompts,
     showJulesDrawer,
     setShowJulesDrawer,
     browserService,
     setBrowserService,
-    handleToggleTemplate,
-    handleRemoveTemplate,
-    handleClearAllTemplates,
+    handleToggleTemplate: promptTemplates.handleToggleTemplate,
+    handleRemoveTemplate: promptTemplates.handleRemoveTemplate,
+    handleClearAllTemplates: promptTemplates.handleClearAllTemplates,
     handleOpenSettings,
     handleGoogleLogin,
     handleGoogleLogout,
     handleSaveApiKey,
     handleProjectActivated,
-    handleStartNewChat,
+    handleStartNewChat: chatSession.handleStartNewChat,
     handleSelectChatSession,
     handleRenameProject,
     handleDeleteProject,
     handleBulkDeleteProjects,
     refreshServerAuth,
     handleLoadPrompt,
-    handleSaveCurrentPrompt,
-    handleDeleteSavedPrompt,
-    handleBulkDeleteSavedPrompts
+    handleSaveCurrentPrompt: chatSession.handleSaveCurrentPrompt,
+    handleDeleteSavedPrompt: chatSession.handleDeleteSavedPrompt,
+    handleBulkDeleteSavedPrompts: chatSession.handleBulkDeleteSavedPrompts
   };
 }
