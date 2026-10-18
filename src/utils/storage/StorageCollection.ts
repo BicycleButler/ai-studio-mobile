@@ -1,5 +1,6 @@
 import { safeGetStorageArray, safeSetStorage } from "./core";
 import { StorageBase } from "./StorageBase";
+import { deepFreeze } from "./helpers";
 
 export class StorageCollection<T> extends StorageBase<T[]> {
   private keyExtractor: (item: T) => string;
@@ -69,8 +70,9 @@ export class StorageCollection<T> extends StorageBase<T[]> {
         result = filtered;
       }
 
-      this.cachedSnapshot = result;
-      return result;
+      const frozenResult = deepFreeze(result);
+      this.cachedSnapshot = frozenResult;
+      return frozenResult;
     } catch (err) {
       console.error(`StorageCollection[${this.key}]: unhandled error during load`, err);
       return [];
@@ -106,7 +108,9 @@ export class StorageCollection<T> extends StorageBase<T[]> {
 
   update(id: string, updates: Partial<T>): T | null {
     if (!id) return null;
-    const items = this.load();
+    // deep cloning is necessary because we are mutating the array directly
+    // and items inside the array are also frozen by `deepFreeze` during `load()`
+    const items = this.load().map((item) => ({ ...item }));
     const index = items.findIndex((item) => this.keyExtractor(item) === id);
     if (index === -1) return null;
 
@@ -145,7 +149,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
   }
 
   upsert(item: T, prepend = false): T {
-    let items = this.load();
+    const items = this.load().map((item) => ({ ...item }));
     const id = this.keyExtractor(item);
     const index = items.findIndex((i) => this.keyExtractor(i) === id);
 
@@ -157,7 +161,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     if (index >= 0) {
       items[index] = updated;
     } else {
-      items = prepend ? [updated, ...items] : [...items, updated];
+      prepend ? items.unshift(updated) : items.push(updated);
     }
 
     this.save(items);

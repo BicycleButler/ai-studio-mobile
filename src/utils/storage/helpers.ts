@@ -45,3 +45,40 @@ export function getNestedValue<T>(obj: unknown, path: string[], fallback: T): T 
   }
   return current !== undefined ? (current as T) : fallback;
 }
+
+/**
+ * Deep freezes an object to make it immutable.
+ * Used to ensure cached storage snapshots cannot be mutated by consumers.
+ */
+export function deepFreeze<T>(obj: T): T {
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Object.isFrozen(obj)) {
+    return obj;
+  }
+
+  // We should clone the object deeply first to avoid freezing the original reference
+  // if it's reused by the caller.
+  let clone: any;
+  if (Array.isArray(obj)) {
+    clone = [];
+    for (let i = 0; i < obj.length; i++) {
+      clone[i] = deepFreeze(obj[i]);
+    }
+  } else {
+    clone = { ...obj };
+    for (const key of Object.getOwnPropertyNames(clone)) {
+      const prop = clone[key];
+      if (
+        prop !== null &&
+        (typeof prop === 'object' || typeof prop === 'function')
+      ) {
+        clone[key] = deepFreeze(prop);
+      }
+    }
+  }
+
+  return Object.freeze(clone) as T;
+}
