@@ -11,6 +11,7 @@ export interface StorageBaseOptions<T> {
   getter?: (key: string, fallback: T, storageInstance?: Storage) => T;
   setter?: (key: string, value: T, storageInstance?: Storage) => void;
   storageAdapter?: Storage;
+  onSave?: (items: T) => void;
 }
 
 export class StorageBase<T> implements IReadableStore<T> {
@@ -26,6 +27,7 @@ export class StorageBase<T> implements IReadableStore<T> {
   protected validate?: (item: unknown) => boolean;
   protected getter: (key: string, fallback: T, storageInstance?: Storage) => T;
   protected setter: (key: string, value: T, storageInstance?: Storage) => void;
+  protected onSave?: (item: T) => void;
 
   constructor(key: string, options: StorageBaseOptions<T>) {
     this.key = key;
@@ -37,6 +39,7 @@ export class StorageBase<T> implements IReadableStore<T> {
     this.validate = options.validate;
     this.getter = options.getter || safeGetStorage;
     this.setter = options.setter || safeSetStorage;
+    this.onSave = options.onSave;
 
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 
@@ -108,6 +111,13 @@ export class StorageBase<T> implements IReadableStore<T> {
       this.setter(this.key, toStore, this.storageAdapter);
       this.cachedSnapshot = undefined;
       this.observable.notify(this.load());
+      if (this.onSave) {
+        try {
+          this.onSave(this.load());
+        } catch (onSaveErr) {
+          console.error(`StorageBase[${this.key}]: error during onSave callback`, onSaveErr);
+        }
+      }
     } catch (err) {
       console.warn(`StorageBase[${this.key}]: save error`, err);
     }
