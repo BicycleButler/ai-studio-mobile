@@ -159,7 +159,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
                 <span>Gemini AI Studio</span>
               </div>
               {currentSpeechSettings.engine === "gemini" && (
-                <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
+                <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                   <Check className="w-3 h-3" />
                 </span>
               )}
@@ -185,7 +185,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
                 <span>Device System</span>
               </div>
               {currentSpeechSettings.engine === "device" && (
-                <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
+                <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                   <Check className="w-3 h-3" />
                 </span>
               )}

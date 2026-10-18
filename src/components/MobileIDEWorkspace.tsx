@@ -652,7 +652,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             </div>
 
             {/* Terminal Logs View */}
-            <div className="flex-1 p-2.5 overflow-y-auto space-y-1 text-xs leading-relaxed">
+            <div className="flex-1 p-2.5 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] space-y-1 text-xs leading-relaxed">
               {consoleLogs.length === 0 ? (
                 <div className="text-muted-foreground italic text-[11px]">
                   Console cleared. Tap &apos;Run&apos; to execute your script.

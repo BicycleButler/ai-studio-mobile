@@ -116,7 +116,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           >
             <Layers className="w-4 h-4 text-primary" />
             {selectedTemplateCount > 0 && (
-              <span className="absolute top-1.5 end-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-mono font-bold flex items-center justify-center shadow-xs">
+              <span className="absolute -top-1 -end-1 text-xs text-muted-foreground/70 font-medium bg-background px-1 border border-border/40 rounded shadow-xs">
                 {selectedTemplateCount}
               </span>
             )}
@@ -149,7 +149,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           >
             <MoreVertical className="w-4 h-4" />
             {!hasApiKey && (
-              <span className="absolute top-1.5 end-1.5 px-1 py-0.2 rounded text-[8px] font-mono text-muted-foreground bg-muted/80 border border-border/40">
+              <span className="absolute -top-1 -end-1 text-xs text-muted-foreground/70 font-medium bg-background px-1 border border-border/40 rounded shadow-xs">
                 !
               </span>
             )}

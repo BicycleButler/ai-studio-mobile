@@ -334,7 +334,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 bg-background">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] bg-background">
         {/* TAB 1: GRAPH & NODES */}
         {activeTab === "graph" && (
             <StubsGraphTab

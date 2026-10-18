@@ -46,7 +46,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
                 <span className="font-semibold text-xs text-foreground">Light</span>
               </div>
               {themeMode === "light" && (
-                <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
+                <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                   <Check className="w-2.5 h-2.5" />
                 </span>
               )}
@@ -71,7 +71,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
                 <span className="font-semibold text-xs text-foreground">Dark</span>
               </div>
               {themeMode === "dark" && (
-                <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
+                <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                   <Check className="w-2.5 h-2.5" />
                 </span>
               )}
@@ -96,7 +96,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
                 <span className="font-semibold text-xs text-foreground">System</span>
               </div>
               {themeMode === "system" && (
-                <span className="w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[9px]">
+                <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                   <Check className="w-2.5 h-2.5" />
                 </span>
               )}
@@ -129,7 +129,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
                 <span>Responsive Full</span>
               </div>
               {deviceMode === "responsive" && (
-                <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
+                <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                   <Check className="w-3 h-3" />
                 </span>
               )}
@@ -154,7 +154,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
                 <span>Google Pixel 9</span>
               </div>
               {deviceMode === "pixel" && (
-                <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
+                <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                   <Check className="w-3 h-3" />
                 </span>
               )}

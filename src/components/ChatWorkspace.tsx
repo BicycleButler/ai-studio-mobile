@@ -1141,7 +1141,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       {/* Messages Scroll Area */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto overscroll-contain p-3 pt-14 space-y-4 touch-pan-y"
+        className="flex-1 overflow-y-auto overscroll-contain p-3 pt-14 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] space-y-4 touch-pan-y"
         onTouchStart={() => {
           touchIsDraggingRef.current = true;
         }}
@@ -1542,7 +1542,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               key={template.id}
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 text-foreground text-xs shrink-0 animate-in fade-in zoom-in-95"
             >
-              <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+              <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                 #{idx + 1}
               </span>
               <span className="font-medium truncate max-w-[120px] sm:max-w-[160px]">
