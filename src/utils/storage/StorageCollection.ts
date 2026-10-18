@@ -22,53 +22,33 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     key: string,
     options?: StorageCollectionOptions<T>
   ) {
-    const defaultGetter = (key: string, fallback: T[], storageInstance?: Storage) => {
-      const raw = options?.getter ? options.getter(key, fallback) : safeGetStorageArray<T>(key, fallback, storageInstance);
-      let filtered = raw;
-      if (options?.validate) {
-        filtered = raw.filter((item) => {
-          try {
-            return options.validate!(item);
-          } catch (err) {
-            console.warn(`StorageCollection[${key}]: validation error on item`, err);
-            return false;
-          }
-        });
-      }
-      return filtered;
-    };
-
     const arrayTransformIn = options?.transformIn
       ? (items: T[]) => items.map(options.transformIn!)
       : undefined;
 
-    const arrayTransformOut = options?.transformOut
+    const arrayTransformOut = (options?.transformOut || options?.validate)
       ? (items: T[]) => {
           const result: T[] = [];
           for (const item of items) {
             try {
-              result.push(options.transformOut!(item));
+              if (options?.validate && !options.validate(item)) {
+                continue;
+              }
+              result.push(options?.transformOut ? options.transformOut(item) : item);
             } catch (err) {
-              console.warn(`StorageCollection[${key}]: transformOut error on item`, err);
+              console.warn(`StorageCollection[${key}]: item transform/validate error`, err);
             }
           }
           return result;
         }
       : undefined;
 
-    const arraySetter = (key: string, items: T[], storageInstance?: Storage) => {
-       const success = options?.setter ? options.setter(key, items) : safeSetStorage(key, items, storageInstance);
-       if (!success) {
-           console.warn(`StorageCollection[${key}]: safeSetStorage returned false.`);
-       }
-    };
-
     const baseOptions: StorageBaseOptions<T[]> = {
       fallback: [],
       transformIn: arrayTransformIn,
       transformOut: arrayTransformOut,
-      getter: defaultGetter,
-      setter: arraySetter,
+      getter: options?.getter || (safeGetStorageArray as unknown as (key: string, fallback: T[], storageInstance?: Storage) => T[]),
+      setter: options?.setter || safeSetStorage,
       storageAdapter: options?.storageAdapter,
     };
 

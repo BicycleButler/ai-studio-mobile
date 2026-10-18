@@ -10,7 +10,10 @@ export class Observable<T> {
     };
   }
 
+  protected currentState?: T;
+
   public notify(state: T): void {
+    this.currentState = state;
     for (const listener of this.listeners) {
       try {
         listener(state);
@@ -19,4 +22,12 @@ export class Observable<T> {
       }
     }
   }
+
+  public getSnapshot(): T | undefined {
+    return this.currentState;
+  }
+
+  public bindSubscribe = (listener: () => void): () => void => {
+    return this.subscribe(listener);
+  };
 }

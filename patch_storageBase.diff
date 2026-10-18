@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+  public bindSubscribe = (listener: () => void): () => void => {
+    return this.subscribe(listener);
+  };
+
+  public getSnapshot = (): T => {
+    return this.load();
+  };
+=======
+  public override bindSubscribe = (listener: () => void): () => void => {
+    return this.subscribe(listener);
+  };
+
+  public override getSnapshot = (): T => {
+    return this.load();
+  };
+>>>>>>> REPLACE
