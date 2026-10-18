@@ -1,18 +1,18 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { StorageCollection } from "../utils/storage";
-import { Observable } from "../utils/observable";
+import { Observable, IReadableStore, Listener } from "../utils/observable";
 
 export interface OfflineQueueOptions<T> {
   keyExtractor?: (item: T) => string;
   storageAdapter?: Storage;
 }
 
-export class OfflineQueueManager<T> extends Observable<T[]> {
+export class OfflineQueueManager<T> implements IReadableStore<T[]> {
   private collection: StorageCollection<T>;
   private queue: T[];
+  private observable = new Observable<T[]>();
 
   constructor(storageKey: string, options?: OfflineQueueOptions<T>) {
-    super();
     this.collection = new StorageCollection<T>(storageKey, {
       keyExtractor: options?.keyExtractor,
       storageAdapter: options?.storageAdapter,
@@ -20,17 +20,17 @@ export class OfflineQueueManager<T> extends Observable<T[]> {
     this.queue = this.collection.load();
   }
 
-  public bindSubscribe = (listener: () => void) => {
-    return this.subscribe(listener);
-  };
+  public subscribe(listener: Listener<T[]>): () => void {
+    return this.observable.subscribe(listener);
+  }
 
-  public getSnapshot = () => {
+  public getSnapshot(): T[] {
     return this.queue;
-  };
+  }
 
   private persistAndNotify() {
     this.collection.save(this.queue);
-    this.notify(this.queue);
+    this.observable.notify(this.queue);
   }
 
   public enqueue = (item: T) => {
@@ -60,7 +60,16 @@ export function getOfflineQueueManager<T>(storageKey: string, options?: OfflineQ
 
 export function useOfflineMutationQueue<T>(storageKey: string, options?: OfflineQueueOptions<T>) {
   const manager = getOfflineQueueManager<T>(storageKey, options);
-  const queue = useSyncExternalStore(manager.bindSubscribe, manager.getSnapshot, manager.getSnapshot);
+
+  const subscribe = useCallback((listener: () => void) => {
+    return manager.subscribe(listener);
+  }, [manager]);
+
+  const getSnapshot = useCallback(() => {
+    return manager.getSnapshot();
+  }, [manager]);
+
+  const queue = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const enqueue = useCallback((item: T) => manager.enqueue(item), [manager]);
   const dequeue = useCallback(() => manager.dequeue(), [manager]);
