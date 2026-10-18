@@ -66,37 +66,40 @@ export class StorageBase<T> implements IReadableStore<T> {
     return this.load();
   }
 
+  protected processRawValue(raw: T): T {
+    let valid = raw;
+    if (this.validate) {
+      try {
+        if (!this.validate(raw)) {
+          valid = this.fallback;
+        }
+      } catch (err) {
+        console.warn(`StorageBase[${this.key}]: validation error`, err);
+        valid = this.fallback;
+      }
+    }
+
+    let result = valid;
+    if (this.transformOut) {
+      try {
+        result = this.transformOut(valid);
+      } catch (err) {
+        console.warn(`StorageBase[${this.key}]: transformOut error`, err);
+        result = this.fallback;
+      }
+    }
+
+    return deepFreeze(result);
+  }
+
   public load(): T {
     if (this.cachedSnapshot !== undefined) {
       return this.cachedSnapshot;
     }
     try {
       const raw = this.getter(this.key, this.fallback, this.storageAdapter);
-      let valid = raw;
-      if (this.validate) {
-        try {
-          if (!this.validate(raw)) {
-            valid = this.fallback;
-          }
-        } catch (err) {
-          console.warn(`StorageBase[${this.key}]: validation error`, err);
-          valid = this.fallback;
-        }
-      }
-
-      let result = valid;
-      if (this.transformOut) {
-        try {
-          result = this.transformOut(valid);
-        } catch (err) {
-          console.warn(`StorageBase[${this.key}]: transformOut error`, err);
-          result = this.fallback;
-        }
-      }
-
-      const frozenResult = deepFreeze(result);
-      this.cachedSnapshot = frozenResult;
-      return frozenResult;
+      this.cachedSnapshot = this.processRawValue(raw);
+      return this.cachedSnapshot;
     } catch (err) {
       console.error(`StorageBase[${this.key}]: unhandled load error`, err);
       const frozenFallback = deepFreeze(this.fallback);

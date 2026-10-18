@@ -92,7 +92,8 @@ export class StorageCollection<T> extends StorageBase<T[]> {
       let changed = false;
       const updatesMap = new Map<string, Partial<T>>();
       for (const update of updates) {
-        updatesMap.set(update.id, update.changes);
+        const existing = updatesMap.get(update.id);
+        updatesMap.set(update.id, existing ? { ...existing, ...update.changes } : update.changes);
       }
       for (let i = 0; i < items.length; i++) {
         const id = this.keyExtractor(items[i]);
@@ -151,27 +152,38 @@ export class StorageCollection<T> extends StorageBase<T[]> {
         indexMap.set(this.keyExtractor(items[i]), i);
       }
 
+      // Track items that are completely new to avoid O(N*M) prepends
+      // First, collapse the new items so only the latest update for each id is kept
+      const collapsedNewItems = new Map<string, T>();
       for (const item of newItems) {
         const id = this.keyExtractor(item);
+        // Unlike updateMany, upsert replaces the object entirely.
+        // We only take the latest item if there are duplicates in the batch.
+        collapsedNewItems.set(id, { ...item });
+      }
+
+      const itemsToAdd: T[] = [];
+
+      for (const [id, updatedItem] of collapsedNewItems.entries()) {
         const index = indexMap.get(id);
-        const updatedItem = { ...item } as T;
 
         if (index !== undefined) {
+          // Replace entirely, don't shallow merge
           items[index] = updatedItem;
         } else {
-          if (prepend) {
-            items.unshift(updatedItem);
-            // Rebuild index map if prepending, as indices shift
-            indexMap.clear();
-            for (let i = 0; i < items.length; i++) {
-              indexMap.set(this.keyExtractor(items[i]), i);
-            }
-          } else {
-            items.push(updatedItem);
-            indexMap.set(id, items.length - 1);
-          }
+          itemsToAdd.push(updatedItem);
         }
       }
+
+      if (itemsToAdd.length > 0) {
+        if (prepend) {
+            // Unshifting the remaining new items all at once avoids O(N*M) performance penalty
+            items.unshift(...itemsToAdd);
+        } else {
+            items.push(...itemsToAdd);
+        }
+      }
+
       return true;
     });
   }
