@@ -38,18 +38,32 @@ export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> 
   private allowImplicitSelection: boolean;
 
   constructor(options: ActiveItemManagerOptions<T>) {
+    const items = options.collection.load();
+    const activeId = options.activeIdSingleton.load() ? options.activeIdSingleton.load() : null;
+    const allowImplicitSelection = options.allowImplicitSelection ?? true;
+
+    let activeItem: T | null = null;
+    if (items.length > 0) {
+      if (activeId) {
+        const match = items.find((p) => options.getId(p) === activeId);
+        if (match) activeItem = match;
+        else activeItem = allowImplicitSelection ? items[0] : null;
+      } else {
+        activeItem = allowImplicitSelection ? items[0] : null;
+      }
+    }
+
     super({
-      items: options.collection.load(),
-      activeId: options.activeIdSingleton.load() ? options.activeIdSingleton.load() : null,
-      activeItem: null
+      items,
+      activeId,
+      activeItem
     });
+
     this.collection = options.collection;
     this.activeIdSingleton = options.activeIdSingleton;
     this.getId = options.getId;
     this.onActiveItemChange = options.onActiveItemChange;
-    this.allowImplicitSelection = options.allowImplicitSelection ?? true;
-
-    this.currentState!.activeItem = this.getActiveItem();
+    this.allowImplicitSelection = allowImplicitSelection;
 
     // Reactively update when underlying storage changes (e.g. from other tabs)
     this.collection.subscribe(() => {
