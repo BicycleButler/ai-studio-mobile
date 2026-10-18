@@ -1,6 +1,7 @@
 import { PromptConfig, PromptType, StructuredExample, ChatMessage } from "../../types";
 import { DEFAULT_CONFIG } from "../../data/templates";
 import { StorageSingleton } from "./StorageSingleton";
+import { StorageRegistry } from "./StorageRegistry";
 import { STORAGE_KEYS } from "./constants";
 import { cleanMockData, getNestedValue } from "./helpers";
 
@@ -21,13 +22,12 @@ export function getProjectDraftKey(projectId?: string | null): string {
   return STORAGE_KEYS.DRAFT_STATE;
 }
 
-const draftSingletonCache = new Map<string, StorageSingleton<DraftState | null>>();
+const draftRegistry = new StorageRegistry<StorageSingleton<DraftState | null>>((key) => {
+  return new StorageSingleton<DraftState | null>(key, null);
+});
 
 function getDraftSingleton(key: string): StorageSingleton<DraftState | null> {
-  if (!draftSingletonCache.has(key)) {
-    draftSingletonCache.set(key, new StorageSingleton<DraftState | null>(key, null));
-  }
-  return draftSingletonCache.get(key)!;
+  return draftRegistry.get(key);
 }
 
 export function loadDraftState(projectId?: string | null): DraftState {

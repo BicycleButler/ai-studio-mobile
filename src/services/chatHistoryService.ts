@@ -1,6 +1,6 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection } from "../utils/storage";
+import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection, StorageRegistry } from "../utils/storage";
 import { isMockSession } from "../utils/mockDefinitions";
 
 export interface IChatHistoryService {
@@ -18,19 +18,16 @@ export interface IChatHistoryService {
 }
 
 export class ChatHistoryService implements IChatHistoryService {
-  private collectionRegistry = new Map<string, StorageCollection<ChatSession>>();
-
-  private getChatCollectionByKey(key: string): StorageCollection<ChatSession> {
-    if (this.collectionRegistry.has(key)) {
-      return this.collectionRegistry.get(key)!;
-    }
-    const collection = new StorageCollection<ChatSession>(key, {
+  private collectionRegistry = new StorageRegistry<StorageCollection<ChatSession>>((key) => {
+    return new StorageCollection<ChatSession>(key, {
       keyExtractor: (item) => String(item.id || ""),
       validate: (s) => !this.isMockChatSession(s as Partial<ChatSession>),
       maxItems: 100,
     });
-    this.collectionRegistry.set(key, collection);
-    return collection;
+  });
+
+  private getChatCollectionByKey(key: string): StorageCollection<ChatSession> {
+    return this.collectionRegistry.get(key);
   }
 
   private getChatCollection(projectId?: string): StorageCollection<ChatSession> {
