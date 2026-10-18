@@ -1,115 +1,101 @@
+import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { safeGetStorageArray, safeSetStorage } from "./core";
-import { StorageBase } from "./StorageBase";
-import { deepFreeze } from "./helpers";
+
+export interface StorageCollectionOptions<T> {
+  keyExtractor?: (item: T) => string;
+  transformIn?: (item: T) => T;
+  transformOut?: (item: T) => T;
+  validate?: (item: unknown) => boolean;
+  maxItems?: number;
+  getter?: (key: string, fallback: T[]) => T[];
+  setter?: (key: string, value: T[]) => boolean;
+  onSave?: (items: T[]) => void;
+  storageAdapter?: Storage;
+}
 
 export class StorageCollection<T> extends StorageBase<T[]> {
   private keyExtractor: (item: T) => string;
-  private transformIn?: (item: T) => T;
-  private transformOut?: (item: T) => T;
-  private validate?: (item: unknown) => boolean;
   private maxItems?: number;
-  private getter?: (key: string, fallback: T[]) => T[];
-  private setter?: (key: string, value: T[]) => boolean;
   private onSave?: (items: T[]) => void;
 
   constructor(
     key: string,
-    options?: {
-      keyExtractor?: (item: T) => string;
-      transformIn?: (item: T) => T;
-      transformOut?: (item: T) => T;
-      validate?: (item: unknown) => boolean;
-      maxItems?: number;
-      getter?: (key: string, fallback: T[]) => T[];
-      setter?: (key: string, value: T[]) => boolean;
-      onSave?: (items: T[]) => void;
-      storageAdapter?: Storage;
-    }
+    options?: StorageCollectionOptions<T>
   ) {
-    super(key, options?.storageAdapter);
-    // Default to extracting an 'id' property if it exists
-    this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
-    this.transformIn = options?.transformIn;
-    this.transformOut = options?.transformOut;
-    this.validate = options?.validate;
-    this.maxItems = options?.maxItems;
-    this.getter = options?.getter;
-    this.setter = options?.setter;
-    this.onSave = options?.onSave;
-  }
-
-  override load(): T[] {
-    if (this.cachedSnapshot !== undefined) {
-      return this.cachedSnapshot;
-    }
-    try {
-      const raw = this.getter ? this.getter(this.key, []) : safeGetStorageArray<T>(this.key, [], this.storageAdapter);
+    const defaultGetter = (key: string, fallback: T[], storageInstance?: Storage) => {
+      const raw = options?.getter ? options.getter(key, fallback) : safeGetStorageArray<T>(key, fallback, storageInstance);
       let filtered = raw;
-      if (this.validate) {
+      if (options?.validate) {
         filtered = raw.filter((item) => {
           try {
-            return this.validate!(item);
+            return options.validate!(item);
           } catch (err) {
-            console.warn(`StorageCollection[${this.key}]: validation error on item`, err);
-            return false; // Skip invalid item
+            console.warn(`StorageCollection[${key}]: validation error on item`, err);
+            return false;
           }
         });
       }
+      return filtered;
+    };
 
-      let result: T[] = [];
-      if (this.transformOut) {
-        // Only map elements that successfully transform without throwing
-        for (const item of filtered) {
-          try {
-            result.push(this.transformOut(item));
-          } catch (err) {
-            console.warn(`StorageCollection[${this.key}]: transformOut error on item`, err);
+    const arrayTransformIn = options?.transformIn
+      ? (items: T[]) => items.map(options.transformIn!)
+      : undefined;
+
+    const arrayTransformOut = options?.transformOut
+      ? (items: T[]) => {
+          const result: T[] = [];
+          for (const item of items) {
+            try {
+              result.push(options.transformOut!(item));
+            } catch (err) {
+              console.warn(`StorageCollection[${key}]: transformOut error on item`, err);
+            }
           }
+          return result;
         }
-      } else {
-        result = filtered;
-      }
+      : undefined;
 
-      const frozenResult = deepFreeze(result);
-      this.cachedSnapshot = frozenResult;
-      return frozenResult;
-    } catch (err) {
-      console.error(`StorageCollection[${this.key}]: unhandled error during load`, err);
-      return [];
-    }
+    const arraySetter = (key: string, items: T[], storageInstance?: Storage) => {
+       const success = options?.setter ? options.setter(key, items) : safeSetStorage(key, items, storageInstance);
+       if (!success) {
+           console.warn(`StorageCollection[${key}]: safeSetStorage returned false.`);
+       }
+    };
+
+    const baseOptions: StorageBaseOptions<T[]> = {
+      fallback: [],
+      transformIn: arrayTransformIn,
+      transformOut: arrayTransformOut,
+      getter: defaultGetter,
+      setter: arraySetter,
+      storageAdapter: options?.storageAdapter,
+    };
+
+    super(key, baseOptions);
+
+    this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
+    this.maxItems = options?.maxItems;
+    this.onSave = options?.onSave;
   }
 
-  save(itemsToSave: T[]): void {
-    try {
-      let items = itemsToSave;
-      if (this.maxItems !== undefined && items.length > this.maxItems) {
-        items = items.slice(0, this.maxItems);
+  override save(itemsToSave: T[]): void {
+    let items = itemsToSave;
+    if (this.maxItems !== undefined && items.length > this.maxItems) {
+      items = items.slice(0, this.maxItems);
+    }
+    super.save(items);
+    if (this.onSave) {
+      try {
+        this.onSave(this.load());
+      } catch (onSaveErr) {
+        console.error(`StorageCollection[${this.key}]: error during onSave callback`, onSaveErr);
       }
-      const toStore = this.transformIn ? items.map(this.transformIn) : items;
-      const success = this.setter ? this.setter(this.key, toStore) : safeSetStorage(this.key, toStore, this.storageAdapter);
-      if (!success) {
-          console.warn(`StorageCollection[${this.key}]: safeSetStorage returned false.`);
-      }
-      this.cachedSnapshot = undefined;
-      const loaded = this.load();
-      this.notify(loaded);
-
-      if (this.onSave) {
-        try {
-            this.onSave(loaded);
-        } catch (onSaveErr) {
-            console.error(`StorageCollection[${this.key}]: error during onSave callback`, onSaveErr);
-        }
-      }
-    } catch (err) {
-      console.error(`StorageCollection[${this.key}]: unhandled error during save`, err);
     }
   }
 
   update(id: string, updates: Partial<T>): T | null {
     if (!id) return null;
-    // deep cloning is necessary because we are mutating the array directly
-    // and items inside the array are also frozen by `deepFreeze` during `load()`
     const items = this.load().map((item) => ({ ...item }));
     const index = items.findIndex((item) => this.keyExtractor(item) === id);
     if (index === -1) return null;
@@ -144,12 +130,8 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     return filtered;
   }
 
-  clear(): void {
-    this.save([]);
-  }
-
   upsert(item: T, prepend = false): T {
-    const items = this.load().map((item) => ({ ...item }));
+    const items = this.load().map((i) => ({ ...i }));
     const id = this.keyExtractor(item);
     const index = items.findIndex((i) => this.keyExtractor(i) === id);
 
