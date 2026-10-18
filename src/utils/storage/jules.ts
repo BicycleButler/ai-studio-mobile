@@ -3,6 +3,7 @@ import { isBrowserEnvironment, getSafeWindow } from "../platform";
 import { enqueueOfflineMutation } from "../offlineService";
 import { StorageCollection } from "./StorageCollection";
 import { StorageSingleton } from "./StorageSingleton";
+import { ActiveItemManager } from "./ActiveItemManager";
 import { STORAGE_KEYS } from "./constants";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
@@ -52,12 +53,23 @@ const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS
   }
 });
 
+const activeJulesSessionIdSingleton = new StorageSingleton<string | null>(
+  STORAGE_KEYS.ACTIVE_JULES_SESSION_ID,
+  null
+);
+
+export const julesSessionsManager = new ActiveItemManager<JulesSession>({
+  collection: julesSessionsCollection,
+  activeIdSingleton: activeJulesSessionIdSingleton,
+  getId: (s) => s.id,
+});
+
 export function loadStoredJulesSessions(): JulesSession[] {
-  return julesSessionsCollection.load();
+  return julesSessionsManager.getItems();
 }
 
 export function saveStoredJulesSessions(sessions: JulesSession[]): void {
-  julesSessionsCollection.save(sessions);
+  julesSessionsManager.saveItems(sessions);
 }
 
 export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
@@ -86,7 +98,7 @@ export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
         }
       }
 
-      julesSessionsCollection.save(mergedSessions);
+      julesSessionsManager.saveItems(mergedSessions);
       return mergedSessions;
     }
   } catch (e) {
@@ -113,39 +125,27 @@ export function saveStoredJulesSettings(settings: JulesSettings): void {
   julesSettingsSingleton.save(settings);
 }
 
-const activeJulesSessionIdSingleton = new StorageSingleton<string | null>(
-  STORAGE_KEYS.ACTIVE_JULES_SESSION_ID,
-  null
-);
-
 export function getActiveJulesSessionId(): string | null {
-  return activeJulesSessionIdSingleton.load();
+  return julesSessionsManager.getActiveId();
 }
 
 export function setActiveJulesSessionId(id: string | null): void {
-  activeJulesSessionIdSingleton.save(id);
+  julesSessionsManager.setActiveId(id);
 }
 
 export function getActiveJulesSession(): JulesSession | null {
-  const sessions = loadStoredJulesSessions();
-  if (sessions.length === 0) return null;
-  const activeId = getActiveJulesSessionId();
-  if (activeId) {
-    const found = sessions.find((s) => s.id === activeId);
-    if (found) return found;
-  }
-  return sessions[0];
+  return julesSessionsManager.getActiveItem();
 }
 
 export function updateStoredJulesSession(session: JulesSession): JulesSession {
   const updatedSession = { ...session, updatedAt: Date.now() };
-  return julesSessionsCollection.upsert(updatedSession, true);
+  return julesSessionsManager.upsert(updatedSession, true);
 }
 
 export function deleteStoredJulesSession(id: string): void {
-  julesSessionsCollection.delete(id);
+  julesSessionsManager.delete(id);
 }
 
 export function bulkDeleteStoredJulesSessions(ids: string[]): void {
-  julesSessionsCollection.bulkDelete(ids);
+  julesSessionsManager.bulkDelete(ids);
 }

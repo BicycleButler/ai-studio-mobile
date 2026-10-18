@@ -12,3 +12,4 @@ export * from "./hooks";
 import { StorageCollection } from "./StorageCollection";
 import { StorageSingleton } from "./StorageSingleton";
 export { StorageCollection, StorageSingleton };
+export * from "./ActiveItemManager";
