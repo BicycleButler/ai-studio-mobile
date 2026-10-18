@@ -22,135 +22,184 @@ export type SyncHandler = (mutation: OfflineMutation) => Promise<{ success: bool
 
 export const OFFLINE_QUEUE_KEY = "ai_studio_offline_mutations";
 
-const syncRegistry: Record<string, SyncHandler> = {};
+export interface IOfflineService {
+  queueObservable: Observable<OfflineMutation[]>;
+  registerSyncHandler(type: string, handler: SyncHandler): void;
+  enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void>;
+  removeOfflineMutation(id: string): Promise<void>;
+  getOfflineQueueLength(): Promise<number>;
+  clearOfflineMutations(): Promise<void>;
+  processOfflineMutations(): Promise<{ success: boolean; conflicts: ConflictData[] }>;
+  getOfflineQueue(): Promise<OfflineMutation[]>;
+}
+
+export class OfflineService implements IOfflineService {
+  private syncRegistry: Record<string, SyncHandler> = {};
+  private queueMutex = new Mutex();
+  public queueObservable = new Observable<OfflineMutation[]>();
+
+  constructor(private storageKey: string = OFFLINE_QUEUE_KEY) {}
+
+  public registerSyncHandler(type: string, handler: SyncHandler): void {
+    this.syncRegistry[type] = handler;
+  }
+
+  private notifyQueue(queue: OfflineMutation[]) {
+    this.queueObservable.notify(queue);
+  }
+
+  private async safeGetQueue(): Promise<OfflineMutation[]> {
+    try {
+      const data = await get<OfflineMutation[]>(this.storageKey);
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.error(`[OfflineService] Critical failure reading from IndexedDB (${this.storageKey})`, err);
+      return [];
+    }
+  }
+
+  private async safeSetQueue(queue: OfflineMutation[]): Promise<void> {
+    try {
+      if (!Array.isArray(queue)) {
+        throw new Error("Invalid queue format: Expected an array.");
+      }
+      await set(this.storageKey, queue);
+    } catch (err) {
+      console.error(`[OfflineService] Critical failure writing to IndexedDB (${this.storageKey})`, err);
+    }
+  }
+
+  private async withQueueLock<T>(action: (queue: OfflineMutation[]) => Promise<T | void>): Promise<T | void> {
+    return this.queueMutex.run(async () => {
+      const queue = await this.safeGetQueue();
+      const result = await action(queue);
+      return result;
+    });
+  }
+
+  public async enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {
+    await this.withQueueLock(async (queue) => {
+      queue.push({
+        type,
+        payload,
+        timestamp: Date.now(),
+        id: generateUniqueId("mutation"),
+        version,
+      });
+      await this.safeSetQueue(queue);
+      this.notifyQueue(queue);
+    });
+  }
+
+  public async removeOfflineMutation(id: string): Promise<void> {
+    await this.withQueueLock(async (queue) => {
+      const newQueue = queue.filter((m) => m.id !== id);
+      await this.safeSetQueue(newQueue);
+      this.notifyQueue(newQueue);
+    });
+  }
+
+  public async getOfflineQueueLength(): Promise<number> {
+    return (await this.withQueueLock(async (queue) => queue.length)) as number || 0;
+  }
+
+  public async clearOfflineMutations(): Promise<void> {
+    await this.withQueueLock(async () => {
+      await this.safeSetQueue([]);
+      this.notifyQueue([]);
+    });
+  }
+
+  public async processOfflineMutations(): Promise<{
+    success: boolean;
+    conflicts: ConflictData[];
+  }> {
+    let queue: OfflineMutation[] = [];
+    await this.withQueueLock(async (q) => { queue = q; });
+
+    if (queue.length === 0) {
+      return { success: true, conflicts: [] };
+    }
+
+    const remainingQueue: OfflineMutation[] = [];
+    const conflicts: ConflictData[] = [];
+    let processSuccess = true;
+
+    for (const mutation of queue) {
+      let success = false;
+      try {
+        const handler = this.syncRegistry[mutation.type];
+        if (handler) {
+          const result = await handler(mutation);
+          success = result.success;
+          if (result.conflict) {
+            conflicts.push(result.conflict);
+          }
+        } else {
+          success = true; // No handler means we can just drop it? Actually the original code sets it to true
+        }
+      } catch (e) {
+        console.error(`Failed to sync offline mutation ${mutation.type}`, e);
+      }
+
+      if (!success) {
+        remainingQueue.push(mutation);
+        processSuccess = false;
+      }
+    }
+
+    await this.withQueueLock(async (currentQueue) => {
+      const successfulIds = new Set(
+        queue
+          .filter(m => !remainingQueue.some(rm => rm.id === m.id))
+          .map(m => m.id)
+      );
+
+      const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
+      await this.safeSetQueue(finalQueue);
+      this.notifyQueue(finalQueue);
+    });
+
+    return { success: processSuccess, conflicts };
+  }
+
+  public async getOfflineQueue(): Promise<OfflineMutation[]> {
+    return (await this.withQueueLock(async (queue) => queue)) as OfflineMutation[] || [];
+  }
+}
+
+export const defaultOfflineService = new OfflineService();
+
+// Export the observable for backwards compatibility if anyone imports it directly.
+export const queueObservable = defaultOfflineService.queueObservable;
 
 export function registerSyncHandler(type: string, handler: SyncHandler) {
-  syncRegistry[type] = handler;
-}
-
-const queueMutex = new Mutex();
-
-export const queueObservable = new Observable<OfflineMutation[]>();
-
-function notifyQueue(queue: OfflineMutation[]) {
-  queueObservable.notify(queue);
-}
-
-async function safeGetQueue(): Promise<OfflineMutation[]> {
-  try {
-    const data = await get<OfflineMutation[]>(OFFLINE_QUEUE_KEY);
-    return Array.isArray(data) ? data : [];
-  } catch (err) {
-    console.error(`[OfflineService] Critical failure reading from IndexedDB (${OFFLINE_QUEUE_KEY})`, err);
-    return [];
-  }
-}
-
-async function safeSetQueue(queue: OfflineMutation[]): Promise<void> {
-  try {
-    if (!Array.isArray(queue)) {
-      throw new Error("Invalid queue format: Expected an array.");
-    }
-    await set(OFFLINE_QUEUE_KEY, queue);
-  } catch (err) {
-    console.error(`[OfflineService] Critical failure writing to IndexedDB (${OFFLINE_QUEUE_KEY})`, err);
-  }
-}
-
-async function withQueueLock<T>(action: (queue: OfflineMutation[]) => Promise<T | void>): Promise<T | void> {
-  return queueMutex.run(async () => {
-    const queue = await safeGetQueue();
-    const result = await action(queue);
-    return result;
-  });
+  defaultOfflineService.registerSyncHandler(type, handler);
 }
 
 export async function enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {
-  await withQueueLock(async (queue) => {
-    queue.push({
-      type,
-      payload,
-      timestamp: Date.now(),
-      id: generateUniqueId("mutation"),
-      version,
-    });
-    await safeSetQueue(queue);
-    notifyQueue(queue);
-  });
+  return defaultOfflineService.enqueueOfflineMutation(type, payload, version);
 }
 
 export async function removeOfflineMutation(id: string): Promise<void> {
-  await withQueueLock(async (queue) => {
-    const newQueue = queue.filter((m) => m.id !== id);
-    await safeSetQueue(newQueue);
-    notifyQueue(newQueue);
-  });
+  return defaultOfflineService.removeOfflineMutation(id);
 }
 
 export async function getOfflineQueueLength(): Promise<number> {
-  return (await withQueueLock(async (queue) => queue.length)) as number || 0;
+  return defaultOfflineService.getOfflineQueueLength();
 }
 
 export async function clearOfflineMutations(): Promise<void> {
-  await withQueueLock(async () => {
-    await safeSetQueue([]);
-    notifyQueue([]);
-  });
+  return defaultOfflineService.clearOfflineMutations();
 }
 
 export async function processOfflineMutations(): Promise<{
   success: boolean;
   conflicts: ConflictData[];
 }> {
-  let queue: OfflineMutation[] = [];
-  await withQueueLock(async (q) => { queue = q; });
-
-  if (queue.length === 0) {
-    return { success: true, conflicts: [] };
-  }
-
-  const remainingQueue: OfflineMutation[] = [];
-  const conflicts: ConflictData[] = [];
-  let processSuccess = true;
-
-  for (const mutation of queue) {
-    let success = false;
-    try {
-      const handler = syncRegistry[mutation.type];
-      if (handler) {
-        const result = await handler(mutation);
-        success = result.success;
-        if (result.conflict) {
-          conflicts.push(result.conflict);
-        }
-      } else {
-        success = true;
-      }
-    } catch (e) {
-      console.error(`Failed to sync offline mutation ${mutation.type}`, e);
-    }
-
-    if (!success) {
-      remainingQueue.push(mutation);
-      processSuccess = false;
-    }
-  }
-
-  await withQueueLock(async (currentQueue) => {
-    const successfulIds = new Set(
-      queue
-        .filter(m => !remainingQueue.some(rm => rm.id === m.id))
-        .map(m => m.id)
-    );
-
-    const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
-    await safeSetQueue(finalQueue);
-    notifyQueue(finalQueue);
-  });
-
-  return { success: processSuccess, conflicts };
+  return defaultOfflineService.processOfflineMutations();
 }
 
 export async function getOfflineQueue(): Promise<OfflineMutation[]> {
-  return (await withQueueLock(async (queue) => queue)) as OfflineMutation[] || [];
+  return defaultOfflineService.getOfflineQueue();
 }
