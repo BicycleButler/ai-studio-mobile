@@ -3,6 +3,20 @@ import { generateUniqueId } from "./idGenerator";
 import { Mutex } from "./mutex";
 import { Observable } from "./observable";
 
+export interface AsyncStorage {
+  getItem<T>(key: string): Promise<T | undefined>;
+  setItem<T>(key: string, value: T): Promise<void>;
+}
+
+export class IndexedDbAsyncStorage implements AsyncStorage {
+  async getItem<T>(key: string): Promise<T | undefined> {
+    return get<T>(key);
+  }
+  async setItem<T>(key: string, value: T): Promise<void> {
+    return set(key, value);
+  }
+}
+
 export interface OfflineMutation {
   type: string;
   payload: unknown;
@@ -38,7 +52,10 @@ export class OfflineService implements IOfflineService {
   private queueMutex = new Mutex();
   public queueObservable = new Observable<OfflineMutation[]>();
 
-  constructor(private storageKey: string = OFFLINE_QUEUE_KEY) {}
+  constructor(
+    private storageKey: string = OFFLINE_QUEUE_KEY,
+    private storageAdapter: AsyncStorage = new IndexedDbAsyncStorage()
+  ) {}
 
   public registerSyncHandler(type: string, handler: SyncHandler): void {
     this.syncRegistry[type] = handler;
@@ -50,10 +67,10 @@ export class OfflineService implements IOfflineService {
 
   private async safeGetQueue(): Promise<OfflineMutation[]> {
     try {
-      const data = await get<OfflineMutation[]>(this.storageKey);
+      const data = await this.storageAdapter.getItem<OfflineMutation[]>(this.storageKey);
       return Array.isArray(data) ? data : [];
     } catch (err) {
-      console.error(`[OfflineService] Critical failure reading from IndexedDB (${this.storageKey})`, err);
+      console.error(`[OfflineService] Critical failure reading from storage (${this.storageKey})`, err);
       return [];
     }
   }
@@ -63,9 +80,9 @@ export class OfflineService implements IOfflineService {
       if (!Array.isArray(queue)) {
         throw new Error("Invalid queue format: Expected an array.");
       }
-      await set(this.storageKey, queue);
+      await this.storageAdapter.setItem(this.storageKey, queue);
     } catch (err) {
-      console.error(`[OfflineService] Critical failure writing to IndexedDB (${this.storageKey})`, err);
+      console.error(`[OfflineService] Critical failure writing to storage (${this.storageKey})`, err);
     }
   }
 
