@@ -65,7 +65,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
    * Reduces duplication of `this.load()` and `this.save()` calls.
    */
   private mutate(mutator: (items: T[]) => boolean): T[] {
-    const items = this.load().map(item => ({ ...item }));
+    const items = [...this.load()];
     const shouldSave = mutator(items);
     if (shouldSave) {
       this.save(items);

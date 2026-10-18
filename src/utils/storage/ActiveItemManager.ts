@@ -1,10 +1,24 @@
-import { StorageCollection } from "./StorageCollection";
-import { StorageSingleton } from "./StorageSingleton";
-import { Observable, IReadableStore } from "../observable";
+import { IReadableStore, Observable } from "../observable";
+
+export interface IMutableCollection<T> extends IReadableStore<T[]> {
+  save: (items: T[]) => void;
+  delete: (id: string) => T[];
+  bulkDelete: (ids: string[]) => T[];
+  upsert: (item: T, prepend?: boolean) => T;
+  update: (id: string, updates: Partial<T>) => T | null;
+  load: () => T[];
+}
+
+export interface IMutableSingleton<T> extends IReadableStore<T> {
+  save: (item: T) => void;
+  clear: () => void;
+  load: () => T;
+}
+
 
 export interface ActiveItemManagerOptions<T> {
-  collection: StorageCollection<T>;
-  activeIdSingleton: StorageSingleton<string | null>;
+  collection: IMutableCollection<T>;
+  activeIdSingleton: IMutableSingleton<string | null>;
   getId: (item: T) => string;
   onActiveItemChange?: (activeItem: T | null) => void;
   allowImplicitSelection?: boolean;
@@ -17,8 +31,8 @@ export interface ActiveItemManagerState<T> {
 }
 
 export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> implements IReadableStore<ActiveItemManagerState<T>> {
-  public collection: StorageCollection<T>;
-  public activeIdSingleton: StorageSingleton<string | null>;
+  public collection: IMutableCollection<T>;
+  public activeIdSingleton: IMutableSingleton<string | null>;
   private getId: (item: T) => string;
   private onActiveItemChange?: (activeItem: T | null) => void;
   private allowImplicitSelection: boolean;
