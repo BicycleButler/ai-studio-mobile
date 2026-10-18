@@ -26,7 +26,7 @@ import {
 } from "../services/keyVerification";
 import {
   saveAndActivateProject,
-  loadStoredProjects,
+  projectsManager,
 } from "../utils/storage";
 import {
   CURATED_MODELS,
@@ -72,7 +72,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   // Initialize or reset when opening with a new key
   useEffect(() => {
     if (isOpen) {
-      const projects = loadStoredProjects();
+      const projects = projectsManager.getItems();
       const defaultName = `AI Studio Project ${projects.length + 1}`;
       setProjectName(defaultName);
       setSelectedModel("gemini-2.5-flash");

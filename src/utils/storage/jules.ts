@@ -62,6 +62,7 @@ export const julesSessionsManager = new ActiveItemManager<JulesSession>({
   collection: julesSessionsCollection,
   activeIdSingleton: activeJulesSessionIdSingleton,
   getId: (s) => s.id,
+  allowImplicitSelection: false,
 });
 
 export function loadStoredJulesSessions(): JulesSession[] {

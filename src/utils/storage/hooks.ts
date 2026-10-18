@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useCallback } from "react";
-import { StorageBase } from "./StorageBase";
+import { IReadableStore } from "../observable";
 
 /**
  * A React hook that subscribes to a StorageBase instance (StorageCollection or StorageSingleton).
@@ -8,13 +8,13 @@ import { StorageBase } from "./StorageBase";
  * @param storageInstance The StorageBase instance to subscribe to
  * @returns The current state of the storage snapshot
  */
-export function useStorage<T>(storageInstance: StorageBase<T>): T {
+export function useStorage<T>(storageInstance: IReadableStore<T>): T {
   const subscribe = useCallback((listener: () => void) => {
     return storageInstance.subscribe(listener);
   }, [storageInstance]);
 
   const getSnapshot = useCallback(() => {
-    return storageInstance.getSnapshot();
+    return storageInstance.getSnapshot() as T;
   }, [storageInstance]);
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

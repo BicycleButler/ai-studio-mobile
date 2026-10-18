@@ -12,6 +12,10 @@ import {
   updateStoredJulesSession,
 } from "../utils/storage";
 import {
+  useStorage,
+  julesSessionsManager
+} from "../utils/storage";
+import {
   dispatchJulesTask,
   subscribeToJulesTask,
   approveJulesPlan,
@@ -20,8 +24,24 @@ import {
 
 export function useJules() {
   const [julesApiKey, setJulesApiKey] = useState<string>(() => loadStoredJulesApiKey());
-  const [julesSessions, setJulesSessions] = useState<JulesSession[]>(() => loadStoredJulesSessions());
-  const [activeJulesSession, setActiveJulesSession] = useState<JulesSession | null>(() => getActiveJulesSession());
+  const julesStore = useStorage(julesSessionsManager);
+  const julesSessions = julesStore.items;
+  const setJulesSessions: React.Dispatch<React.SetStateAction<JulesSession[]>> = (val) => {
+    if (typeof val === "function") {
+      julesSessionsManager.saveItems(val(julesSessions));
+    } else {
+      julesSessionsManager.saveItems(val);
+    }
+  };
+  const activeJulesSession = julesStore.activeItem;
+  const setActiveJulesSession: React.Dispatch<React.SetStateAction<JulesSession | null>> = (val) => {
+    if (typeof val === "function") {
+      const result = val(activeJulesSession);
+      julesSessionsManager.setActiveId(result ? result.id : null);
+    } else {
+      julesSessionsManager.setActiveId(val ? val.id : null);
+    }
+  };
   const [isJulesExecuting, setIsJulesExecuting] = useState(false);
   const [isApprovingJulesPlan, setIsApprovingJulesPlan] = useState(false);
   const [julesMessages, setJulesMessages] = useState<ChatMessage[]>(() => getActiveJulesSession()?.messages || []);
@@ -30,7 +50,7 @@ export function useJules() {
 
   useEffect(() => {
     fetchJulesSessionsFromServer().then((sessions) => {
-      setJulesSessions(sessions);
+
       const activeSession = getActiveJulesSession();
       setActiveJulesSession(activeSession);
       if (activeSession) {
@@ -311,10 +331,10 @@ export function useJules() {
 
     bulkDeleteJulesSessions(sessionIds);
 
-    setJulesSessions((prev) => prev.filter((s) => !sessionIds.includes(s.id)));
+
 
     if (activeJulesSession && sessionIds.includes(activeJulesSession.id)) {
-      setActiveJulesSession(null);
+
       setJulesMessages([]);
       setActiveJulesSessionId(null);
     }
@@ -335,7 +355,7 @@ export function useJules() {
         );
       }
     }
-  }, [julesMessages, activeJulesSession, setActiveJulesSession, setJulesSessions]);
+  }, [julesMessages, activeJulesSession, setActiveJulesSession]);
 
   return {
     julesApiKey,
