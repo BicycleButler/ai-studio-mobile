@@ -122,7 +122,7 @@ export function updateStoredProject(
   id: string,
   updates: Partial<Omit<ProjectInfo, "id" | "createdAt">>
 ): ProjectInfo | null {
-  const updated = projectsCollection.update(id, updates);
+  const updated = projectsCollection.update(id, { ...updates, updatedAt: Date.now() });
   if (!updated) return null;
 
   const activeId = getActiveProjectId();
