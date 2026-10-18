@@ -2,7 +2,7 @@ import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsS
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
 import { safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X,
@@ -146,6 +146,24 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 }) => {
   const { mode: themeMode, setThemeMode } = useTheme();
 
+  const handleSelectAudioEngine = (engine: "gemini" | "device") => {
+    onSaveSpeechSettings({ ...speechSettings, engine });
+  };
+  const handleSelectGeminiVoice = (voice: string) => {
+    onSaveSpeechSettings({ ...speechSettings, geminiVoice: voice });
+  };
+  const handleSelectDeviceVoice = (voiceId: string) => {
+    onSaveSpeechSettings({ ...speechSettings, deviceVoiceURI: voiceId });
+  };
+  const handleSelectRate = (rate: number) => {
+    onSaveSpeechSettings({ ...speechSettings, playbackRate: rate });
+  };
+  const stopPreview = () => {
+    const synth = getSafeWindowSpeechSynthesis();
+    if (synth) synth.cancel();
+  };
+
+
   // Normalize initialTab to canonical tabs
   const resolveTab = (
     tab?: SettingsTab
@@ -229,12 +247,12 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const [currentSpeechSettings, setCurrentSpeechSettings] = useState<SpeechSettings>(speechSettings);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
-  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
 
   useEffect(() => {
     setCurrentSpeechSettings(speechSettings);
