@@ -15,7 +15,7 @@ export const IncomingMessageSchema = z.object({
 
 // Schema for /api/generate request payload
 export const GenerateRequestSchema = z.object({
-  model: z.string().min(1).default("gemini-3.8-flash"),
+  model: z.string().min(1).default("gemini-2.5-flash"),
   messages: z
     .array(IncomingMessageSchema)
     .min(1, "At least one message is required in the messages array"),
@@ -52,7 +52,7 @@ export const GenerateRequestSchema = z.object({
 
 // Schema for /api/count-tokens
 export const CountTokensRequestSchema = z.object({
-  model: z.string().optional().default("gemini-3.8-flash"),
+  model: z.string().optional().default("gemini-2.5-flash"),
   contents: z.union([z.string(), z.record(z.string(), z.unknown()), z.array(z.unknown())]),
 });
 

@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import path from "path";
 import fs from "fs";
-import { GoogleGenAI, GenerateContentConfig } from "@google/genai";
+import { GenerateContentConfig } from "@google/genai";
 import dotenv from "dotenv";
 import {
   GenerateRequestSchema,
@@ -26,6 +26,8 @@ import {
   runCliCommand,
   stubsEvents,
 } from "./server/stubsService";
+import { getGenAIClient } from "./server/utils/genai";
+import { getErrorMessage } from "./src/utils/errorHandling";
 
 dotenv.config();
 
@@ -60,57 +62,6 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
-
-// Helper to get GoogleGenAI client
-function getGenAIClient(customApiKey?: string): GoogleGenAI {
-  const apiKey = customApiKey || process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "GEMINI_API_KEY is not configured. Please set GEMINI_API_KEY in your environment or provide it in the API Key settings."
-    );
-  }
-  return new GoogleGenAI({ apiKey });
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    const trimmed = error.message.trim();
-    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed?.error?.message) {
-          return String(parsed.error.message);
-        }
-      } catch {
-        // Fall back to raw message
-      }
-    }
-    return error.message;
-  }
-  if (typeof error === "string") {
-    const trimmed = error.trim();
-    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed?.error?.message) {
-          return String(parsed.error.message);
-        }
-      } catch {
-        // Fall back to raw string
-      }
-    }
-    return error;
-  }
-  if (typeof error === "object" && error !== null) {
-    const obj = error as Record<string, unknown>;
-    if (obj.error && typeof obj.error === "object" && obj.error !== null) {
-      const inner = obj.error as Record<string, unknown>;
-      if (typeof inner.message === "string") return inner.message;
-    }
-    if (typeof obj.message === "string") return obj.message;
-  }
-  return "An unexpected error occurred.";
-}
 
 function getErrorStatus(error: unknown): number {
   if (typeof error === "object" && error !== null) {
@@ -351,7 +302,7 @@ app.post("/api/auth/verify", async (req: Request, res: Response): Promise<void> 
     const customKey = req.headers["x-gemini-api-key"] as string | undefined;
     const ai = getGenAIClient(customKey);
     const countResult = await ai.models.countTokens({
-      model: "gemini-3.8-flash",
+      model: "gemini-2.5-flash",
       contents: "ping",
     });
     res.json({
@@ -384,7 +335,7 @@ app.post("/api/verify-key", async (req: Request, res: Response): Promise<void> =
     }
 
     const testModel = (typeof req.body === "object" && req.body?.model) ? String(req.body.model) : "gemini-2.5-flash";
-    const ai = new GoogleGenAI({ apiKey: candidateKey });
+    const ai = getGenAIClient(candidateKey);
 
     // Lightweight verification call
     const result = await ai.models.countTokens({
@@ -514,7 +465,7 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
       // Prioritize recommended models at top
       liveModels.sort((a, b) => {
         const priority = (id: string) => {
-          if (id === "gemini-3.8-flash") return 1;
+          if (id === "gemini-2.5-flash") return 1;
           if (id === "gemini-3.1-pro-preview") return 2;
           if (id === "gemini-3.1-flash-lite") return 3;
           if (id === "gemini-flash-latest") return 4;

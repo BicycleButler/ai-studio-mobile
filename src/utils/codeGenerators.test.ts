@@ -4,7 +4,7 @@ import { CODE_GENERATORS } from "./codeGenerators";
 
 // Verification that explicit 'any' is permitted in test files
 const mockConfig: PromptConfig = {
-  model: "gemini-3.8-flash",
+  model: "gemini-2.5-flash",
   systemInstruction: "You are an expert mobile Android engineer.",
   temperature: 0.7,
   topP: 0.9,

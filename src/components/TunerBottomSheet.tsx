@@ -100,7 +100,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
 
   const handleResetDefaults = () => {
     onChangeConfig({
-      model: "gemini-3.8-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: "",
       temperature: 1.0,
       topP: 0.95,
