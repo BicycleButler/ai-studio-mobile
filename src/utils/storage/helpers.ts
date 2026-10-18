@@ -61,6 +61,7 @@ export function deepFreeze<T>(obj: T): T {
 
   // We should clone the object deeply first to avoid freezing the original reference
   // if it's reused by the caller.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let clone: any;
   if (Array.isArray(obj)) {
     clone = [];
