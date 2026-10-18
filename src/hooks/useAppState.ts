@@ -1,5 +1,6 @@
 import { clearAllChatSessions } from "../services/chatHistoryService";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useStorage } from "../utils/storage";
 import { usePromptTemplates } from "./usePromptTemplates";
 import { useChatSession } from "./useChatSession";
 import {
@@ -38,6 +39,7 @@ import {
   saveDraftState,
   getActiveProject,
   loadStoredProjects,
+  projectsManager,
   setActiveProjectId,
   updateStoredProject,
   deleteStoredProject,
@@ -53,8 +55,25 @@ import { fetchServerHealth } from "../services/auth";
 
 export function useAppState() {
   // Phase 3: Active Project & Projects vault
-  const [projects, setProjects] = useState<ProjectInfo[]>(() => loadStoredProjects());
-  const [activeProject, setActiveProject] = useState<ProjectInfo | null>(() => getActiveProject());
+  const projectManagerStore = useStorage(projectsManager);
+  const projects = projectManagerStore.items;
+  const setProjects: React.Dispatch<React.SetStateAction<ProjectInfo[]>> = (val) => {
+    if (typeof val === "function") {
+      projectsManager.saveItems(val(projects));
+    } else {
+      projectsManager.saveItems(val);
+    }
+  };
+
+  const activeProject = projectManagerStore.activeItem;
+  const setActiveProject: React.Dispatch<React.SetStateAction<ProjectInfo | null>> = (val) => {
+    if (typeof val === "function") {
+      const result = val(activeProject);
+      projectsManager.setActiveId(result ? result.id : null);
+    } else {
+      projectsManager.setActiveId(val ? val.id : null);
+    }
+  };
 
   // Load project-scoped draft state for crash/reload recovery
   const initialDraft = loadDraftState(activeProject?.id);
@@ -180,7 +199,7 @@ export function useAppState() {
     }
 
     // Synchronize project list & clear transient toasts
-    setProjects(loadStoredProjects());
+
     setCandidateClipboardKey("");
     setClipboardToastKey(null);
     chatSession.setCurrentSessionId(`sess_${Date.now()}`);
@@ -199,10 +218,9 @@ export function useAppState() {
 
   const handleRenameProject = (id: string, newName: string) => {
     updateStoredProject(id, { name: newName });
-    const updated = loadStoredProjects();
-    setProjects(updated);
+    const updated = projectsManager.getItems();
     if (activeProject?.id === id) {
-      setActiveProject((prev) => (prev ? { ...prev, name: newName } : null));
+
     }
   };
 
@@ -213,13 +231,12 @@ export function useAppState() {
     } catch(e) {
       console.error("Failed to clean up chat sessions", e);
     }
-    const updated = loadStoredProjects();
-    setProjects(updated);
+    const updated = projectsManager.getItems();
     if (activeProject?.id === id) {
       if (updated.length > 0) {
         handleProjectActivated(updated[0], onStopStream);
       } else {
-        setActiveProject(null);
+
         setCustomApiKey("");
         saveStoredApiKey("");
         chatSession.setMessages([]);
@@ -234,14 +251,13 @@ export function useAppState() {
     } catch(e) {
       console.error("Failed to clean up chat sessions", e);
     }
-    const updated = loadStoredProjects();
-    setProjects(updated);
+    const updated = projectsManager.getItems();
 
     if (activeProject && ids.includes(activeProject.id)) {
       if (updated.length > 0) {
         handleProjectActivated(updated[0], onStopStream);
       } else {
-        setActiveProject(null);
+
         setCustomApiKey("");
         saveStoredApiKey("");
         chatSession.setMessages([]);

@@ -1,24 +1,70 @@
 import { StorageCollection } from "./StorageCollection";
 import { StorageSingleton } from "./StorageSingleton";
+import { Observable, IReadableStore } from "../observable";
 
 export interface ActiveItemManagerOptions<T> {
   collection: StorageCollection<T>;
   activeIdSingleton: StorageSingleton<string | null>;
   getId: (item: T) => string;
   onActiveItemChange?: (activeItem: T | null) => void;
+  allowImplicitSelection?: boolean;
 }
 
-export class ActiveItemManager<T> {
+export interface ActiveItemManagerState<T> {
+  items: T[];
+  activeId: string | null;
+  activeItem: T | null;
+}
+
+export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> implements IReadableStore<ActiveItemManagerState<T>> {
   public collection: StorageCollection<T>;
   public activeIdSingleton: StorageSingleton<string | null>;
   private getId: (item: T) => string;
   private onActiveItemChange?: (activeItem: T | null) => void;
+  private allowImplicitSelection: boolean;
 
   constructor(options: ActiveItemManagerOptions<T>) {
+    super({
+      items: options.collection.load(),
+      activeId: options.activeIdSingleton.load() ? options.activeIdSingleton.load() : null,
+      activeItem: null
+    });
     this.collection = options.collection;
     this.activeIdSingleton = options.activeIdSingleton;
     this.getId = options.getId;
     this.onActiveItemChange = options.onActiveItemChange;
+    this.allowImplicitSelection = options.allowImplicitSelection ?? true;
+
+    this.currentState!.activeItem = this.getActiveItem();
+
+    // Reactively update when underlying storage changes (e.g. from other tabs)
+    this.collection.subscribe(() => {
+      this.recomputeState();
+    });
+    this.activeIdSingleton.subscribe(() => {
+      this.recomputeState();
+    });
+  }
+
+  private recomputeState(): void {
+    const items = this.getItems();
+    const activeId = this.getActiveId();
+    let activeItem: T | null = null;
+    if (items.length > 0) {
+      if (activeId) {
+        const match = items.find((p) => this.getId(p) === activeId);
+        if (match) activeItem = match;
+        else activeItem = this.allowImplicitSelection ? items[0] : null;
+      } else {
+        activeItem = this.allowImplicitSelection ? items[0] : null;
+      }
+    }
+
+    this.notify({ items, activeId, activeItem });
+  }
+
+  public getSnapshot(): ActiveItemManagerState<T> {
+    return this.currentState!;
   }
 
   public getItems(): T[] {
@@ -47,19 +93,20 @@ export class ActiveItemManager<T> {
       const match = items.find((p) => this.getId(p) === activeId);
       if (match) return match;
     }
-    return items[0];
+    return this.allowImplicitSelection ? items[0] : null;
   }
 
   private notifyActiveItemChange(): void {
     if (this.onActiveItemChange) {
       this.onActiveItemChange(this.getActiveItem());
     }
+    this.recomputeState();
   }
 
   private syncActiveIdAfterDeletion(deletedIds: string[], remainingItems: T[]) {
     const activeId = this.getActiveId();
     if (activeId && deletedIds.includes(activeId)) {
-      if (remainingItems.length > 0) {
+      if (remainingItems.length > 0 && this.allowImplicitSelection) {
         this.setActiveId(this.getId(remainingItems[0]));
       } else {
         this.setActiveId(null);
@@ -76,7 +123,7 @@ export class ActiveItemManager<T> {
     if (activeId) {
       const match = items.find((p) => this.getId(p) === activeId);
       if (!match) {
-        if (items.length > 0) {
+        if (items.length > 0 && this.allowImplicitSelection) {
           this.setActiveId(this.getId(items[0]));
         } else {
           this.setActiveId(null);

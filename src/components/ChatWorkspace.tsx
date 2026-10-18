@@ -62,7 +62,7 @@ import { PromptTemplate } from "../types";
 import { fetchTTSAudioUrl } from "../services/speechVoices";
 
 import {
-  loadStoredJulesSessions,
+  julesSessionsManager,
   saveStoredJulesSessions,
 } from "../utils/storage";
 
@@ -157,7 +157,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   const [historySessions, setHistorySessions] = useState<ChatSession[]>(() => {
     if (isJulesMode) {
-      return loadStoredJulesSessions().map((js) => ({
+      return julesSessionsManager.getItems().map((js) => ({
         id: js.id,
         title: js.title || js.repository,
         messages: js.messages || [],
@@ -313,7 +313,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   useEffect(() => {
     if (isJulesMode) {
       setHistorySessions(
-        loadStoredJulesSessions().map((js) => ({
+        julesSessionsManager.getItems().map((js) => ({
           id: js.id,
           title: js.title || js.repository,
           messages: js.messages || [],
@@ -997,7 +997,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   const handleDeleteSession = (sessionId: string) => {
     if (isJulesMode) {
-      const all = loadStoredJulesSessions().filter((s) => s.id !== sessionId);
+      const all = julesSessionsManager.getItems().filter((s) => s.id !== sessionId);
       saveStoredJulesSessions(all);
       setHistorySessions(
         all.map((js) => ({
