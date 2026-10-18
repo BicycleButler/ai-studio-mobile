@@ -41,7 +41,7 @@ export const PromptTemplateItem: React.FC<PromptTemplateItemProps> = ({
           {/* Numbered Indicator for FIFO Order (Decision Question 2) */}
           {isSelected ? (
             <span
-              className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-mono font-bold flex items-center gap-1"
+              className="text-xs text-muted-foreground/70 font-medium ml-1.5"
               title={`Applied in position #${selectedIndex + 1}`}
             >
               #{selectedIndex + 1}

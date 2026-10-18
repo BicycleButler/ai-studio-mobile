@@ -508,7 +508,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                     key={t.id}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-primary/10 border border-primary/20 text-foreground text-xs"
                   >
-                    <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-mono font-bold flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
                       #{idx + 1}
                     </span>
                     <span className="font-medium">{t.title}</span>
