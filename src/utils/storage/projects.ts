@@ -2,6 +2,7 @@ import { ProjectInfo } from "../../types";
 import { generateUniqueId } from "../idGenerator";
 import { StorageCollection } from "./StorageCollection";
 import { StorageSingleton } from "./StorageSingleton";
+import { ActiveItemManager } from "./ActiveItemManager";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";
@@ -11,14 +12,6 @@ const projectsCollection = new StorageCollection<ProjectInfo>(STORAGE_KEYS.PROJE
   transformIn: (p) => ({ ...p, apiKey: encryptSecret(p.apiKey) }),
   transformOut: (p) => ({ ...p, apiKey: decryptSecret(p.apiKey) }),
 });
-
-export function loadStoredProjects(): ProjectInfo[] {
-  return projectsCollection.load();
-}
-
-export function saveStoredProjects(projects: ProjectInfo[]): void {
-  projectsCollection.save(projects);
-}
 
 const activeProjectIdSingleton = new StorageSingleton<string | null>(
   STORAGE_KEYS.ACTIVE_PROJECT_ID,
@@ -38,28 +31,33 @@ const activeProjectIdSingleton = new StorageSingleton<string | null>(
   }
 );
 
+export const projectsManager = new ActiveItemManager<ProjectInfo>({
+  collection: projectsCollection,
+  activeIdSingleton: activeProjectIdSingleton,
+  getId: (p) => p.id,
+  onActiveItemChange: (activeProject) => {
+    saveStoredApiKey(activeProject ? activeProject.apiKey : "");
+  }
+});
+
+export function loadStoredProjects(): ProjectInfo[] {
+  return projectsManager.getItems();
+}
+
+export function saveStoredProjects(projects: ProjectInfo[]): void {
+  projectsManager.saveItems(projects);
+}
+
 export function getActiveProjectId(): string | null {
-  const val = activeProjectIdSingleton.load();
-  return val ? val : null;
+  return projectsManager.getActiveId();
 }
 
 export function setActiveProjectId(id: string | null): void {
-  if (id) {
-    activeProjectIdSingleton.save(id);
-  } else {
-    activeProjectIdSingleton.clear();
-  }
+  projectsManager.setActiveId(id);
 }
 
 export function getActiveProject(): ProjectInfo | null {
-  const projects = loadStoredProjects();
-  if (projects.length === 0) return null;
-  const activeId = getActiveProjectId();
-  if (activeId) {
-    const match = projects.find((p) => p.id === activeId);
-    if (match) return match;
-  }
-  return projects[0];
+  return projectsManager.getActiveItem();
 }
 
 export function saveAndActivateProject(
@@ -71,7 +69,7 @@ export function saveAndActivateProject(
   const savedProject = {
     ...projectData,
     id,
-    name: projectData.name.trim() || `AI Studio Project ${projectsCollection.load().length + 1}`,
+    name: projectData.name.trim() || `AI Studio Project ${projectsManager.getItems().length + 1}`,
     apiKey: projectData.apiKey.trim(),
     defaultModel: projectData.defaultModel || "gemini-2.5-flash",
     createdAt: now,
@@ -80,54 +78,24 @@ export function saveAndActivateProject(
     isValid: projectData.isValid ?? true,
   } as ProjectInfo;
 
-  projectsCollection.upsert(savedProject, false);
-  setActiveProjectId(savedProject.id);
-  saveStoredApiKey(savedProject.apiKey);
+  projectsManager.upsert(savedProject, false);
+  projectsManager.setActiveId(savedProject.id);
 
   return savedProject;
 }
 
 export function deleteStoredProject(id: string): void {
-  const filtered = projectsCollection.delete(id);
-
-  const activeId = getActiveProjectId();
-  if (activeId === id) {
-    if (filtered.length > 0) {
-      setActiveProjectId(filtered[0].id);
-      saveStoredApiKey(filtered[0].apiKey);
-    } else {
-      setActiveProjectId(null);
-      saveStoredApiKey("");
-    }
-  }
+  projectsManager.delete(id);
 }
 
 export function bulkDeleteStoredProjects(ids: string[]): void {
   if (!ids || ids.length === 0) return;
-  const filtered = projectsCollection.bulkDelete(ids);
-
-  const activeId = getActiveProjectId();
-  if (activeId && ids.includes(activeId)) {
-    if (filtered.length > 0) {
-      setActiveProjectId(filtered[0].id);
-      saveStoredApiKey(filtered[0].apiKey);
-    } else {
-      setActiveProjectId(null);
-      saveStoredApiKey("");
-    }
-  }
+  projectsManager.bulkDelete(ids);
 }
 
 export function updateStoredProject(
   id: string,
   updates: Partial<Omit<ProjectInfo, "id" | "createdAt">>
 ): ProjectInfo | null {
-  const updated = projectsCollection.update(id, { ...updates, updatedAt: Date.now() });
-  if (!updated) return null;
-
-  const activeId = getActiveProjectId();
-  if (activeId === id && updates.apiKey) {
-    saveStoredApiKey(updates.apiKey);
-  }
-  return updated;
+  return projectsManager.update(id, { ...updates, updatedAt: Date.now() });
 }
