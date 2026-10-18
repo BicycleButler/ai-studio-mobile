@@ -104,11 +104,15 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     if (!updates || updates.length === 0) return this.load();
     return this.mutate((items) => {
       let changed = false;
-      const updatesMap = new Map(updates.map(u => [u.id, u.changes]));
+      const updatesMap = new Map<string, Partial<T>>();
+      for (const update of updates) {
+        updatesMap.set(update.id, update.changes);
+      }
       for (let i = 0; i < items.length; i++) {
         const id = this.keyExtractor(items[i]);
-        if (updatesMap.has(id)) {
-          items[i] = { ...items[i], ...updatesMap.get(id) } as T;
+        const changes = updatesMap.get(id);
+        if (changes !== undefined) {
+          items[i] = { ...items[i], ...changes } as T;
           changed = true;
         }
       }
@@ -123,8 +127,8 @@ export class StorageCollection<T> extends StorageBase<T[]> {
       const originalLength = items.length;
       const filtered = items.filter((item) => !idSet.has(this.keyExtractor(item)));
       if (filtered.length !== originalLength) {
-        items.length = 0;
-        items.push(...filtered);
+        // Use array splice instead of reassigning length and push for better robustness
+        items.splice(0, items.length, ...filtered);
         return true;
       }
       return false;
@@ -156,15 +160,30 @@ export class StorageCollection<T> extends StorageBase<T[]> {
   bulkUpsert(newItems: T[], prepend = false): T[] {
     if (!newItems || newItems.length === 0) return this.load();
     return this.mutate((items) => {
+      const indexMap = new Map<string, number>();
+      for (let i = 0; i < items.length; i++) {
+        indexMap.set(this.keyExtractor(items[i]), i);
+      }
+
       for (const item of newItems) {
         const id = this.keyExtractor(item);
-        const index = items.findIndex((i) => this.keyExtractor(i) === id);
+        const index = indexMap.get(id);
         const updatedItem = { ...item } as T;
 
-        if (index >= 0) {
+        if (index !== undefined) {
           items[index] = updatedItem;
         } else {
-          prepend ? items.unshift(updatedItem) : items.push(updatedItem);
+          if (prepend) {
+            items.unshift(updatedItem);
+            // Rebuild index map if prepending, as indices shift
+            indexMap.clear();
+            for (let i = 0; i < items.length; i++) {
+              indexMap.set(this.keyExtractor(items[i]), i);
+            }
+          } else {
+            items.push(updatedItem);
+            indexMap.set(id, items.length - 1);
+          }
         }
       }
       return true;
