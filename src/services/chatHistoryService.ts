@@ -82,7 +82,7 @@ class ChatHistoryManager {
   }
 
   public getChatSessions(projectId?: string): ChatSession[] {
-    return this.getChatCollection(projectId).load().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    return [...this.getChatCollection(projectId).load()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   }
 
   public saveChatSession(session: ChatSession, projectId?: string): void {

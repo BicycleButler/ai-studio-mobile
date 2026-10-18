@@ -1,5 +1,6 @@
 import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./core";
 import { StorageBase } from "./StorageBase";
+import { deepFreeze } from "./helpers";
 
 export class StorageSingleton<T> extends StorageBase<T> {
   private fallback: T;
@@ -58,11 +59,14 @@ export class StorageSingleton<T> extends StorageBase<T> {
         }
       }
 
-      this.cachedSnapshot = result;
-      return result;
+      const frozenResult = deepFreeze(result);
+      this.cachedSnapshot = frozenResult;
+      return frozenResult;
     } catch (err) {
       console.error(`StorageSingleton[${this.key}]: unhandled load error`, err);
-      return this.fallback;
+      const frozenFallback = deepFreeze(this.fallback);
+      this.cachedSnapshot = frozenFallback;
+      return frozenFallback;
     }
   }
 
