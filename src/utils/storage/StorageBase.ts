@@ -52,11 +52,14 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
     if (this.options.validate) {
       try {
         if (!this.options.validate(raw)) {
-          valid = this.options.fallback;
+          // If validation fails, return the fallback immediately.
+          // The fallback should not be subjected to transformOut,
+          // as it is already considered safe and valid in its natural form.
+          return deepFreeze(this.options.fallback);
         }
       } catch (err) {
         console.warn(`StorageBase[${this.key}]: validation error`, err);
-        valid = this.options.fallback;
+        return deepFreeze(this.options.fallback);
       }
     }
 
@@ -66,7 +69,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
         result = this.options.transformOut(valid);
       } catch (err) {
         console.warn(`StorageBase[${this.key}]: transformOut error`, err);
-        result = this.options.fallback;
+        return deepFreeze(this.options.fallback);
       }
     }
 
