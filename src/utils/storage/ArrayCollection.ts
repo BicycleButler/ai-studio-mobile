@@ -1,10 +1,6 @@
-export interface CollectionOperationResult<T> {
-  items: T[];
-  changed: boolean;
-  item?: T | null;
-}
+import { CollectionOperationResult, ICollectionEngine } from "./types";
 
-export class ArrayCollection<T> {
+export class ArrayCollection<T> implements ICollectionEngine<T> {
   private keyExtractor: (item: T) => string;
 
   constructor(keyExtractor: (item: T) => string) {
