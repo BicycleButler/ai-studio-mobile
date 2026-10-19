@@ -2,6 +2,7 @@ import { Observable, IReadableStore, Listener } from "../observable";
 import { isBrowserEnvironment, getSafeWindow } from "../platform";
 import { deepFreeze } from "./helpers";
 import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./core";
+import { IDisposable } from "./StorageRegistry";
 
 export interface StorageBaseOptions<T> {
   fallback: T;
@@ -14,7 +15,7 @@ export interface StorageBaseOptions<T> {
   onSave?: (items: T) => void;
 }
 
-export class StorageBase<T> implements IReadableStore<T> {
+export class StorageBase<T> implements IReadableStore<T>, IDisposable {
   protected observable = new Observable<T>();
   protected key: string;
   protected cachedSnapshot: T | undefined = undefined;

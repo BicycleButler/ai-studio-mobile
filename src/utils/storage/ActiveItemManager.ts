@@ -37,6 +37,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   private onActiveItemChange?: (activeItem: T | null) => void;
   private allowImplicitSelection: boolean;
   private lastActiveItemId: string | null = null;
+  private selfUnsubscribe: () => void;
 
   constructor(options: ActiveItemManagerOptions<T>) {
     const allowImplicitSelection = options.allowImplicitSelection ?? true;
@@ -56,11 +57,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
         }
       }
 
-      const state = { items, activeId, activeItem };
-
-      // We need a slight hack here since the superclass constructor calls compute() immediately
-      // before this.onActiveItemChange is assigned. We handle the callback in a separate method.
-      return state;
+      return { items, activeId, activeItem };
     });
 
     this.collection = options.collection;
@@ -74,7 +71,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     this.lastActiveItemId = initialState.activeItem ? this.getId(initialState.activeItem) : null;
 
     // Subscribe to self to trigger the side effect when state changes
-    this.subscribe((state) => {
+    this.selfUnsubscribe = this.subscribe((state) => {
       const currentActiveId = state.activeItem ? this.getId(state.activeItem) : null;
       if (this.lastActiveItemId !== currentActiveId) {
         this.lastActiveItemId = currentActiveId;
@@ -154,5 +151,10 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
 
   public update(id: string, updates: Partial<T>): T | null {
     return this.collection.update(id, updates);
+  }
+
+  public dispose() {
+    this.selfUnsubscribe();
+    super.dispose();
   }
 }

@@ -34,4 +34,8 @@ export class Observable<T> implements IReadableStore<T> {
   public getSnapshot(): T | undefined {
     return this.currentState;
   }
+
+  public clearListeners(): void {
+    this.listeners.clear();
+  }
 }
