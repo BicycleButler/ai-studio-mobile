@@ -1,10 +1,7 @@
-import { Observable } from "../observable";
-import { isBrowserEnvironment, getSafeWindow } from "../platform";
-import { IDisposable } from "./types";
 import { deepFreeze } from "./helpers";
 import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./core";
 
-export interface StorageBaseOptions<T> {
+export interface StorageEngineOptions<T> {
   fallback: T;
   transformIn?: (item: T) => T;
   transformOut?: (item: T) => T;
@@ -12,39 +9,20 @@ export interface StorageBaseOptions<T> {
   getter?: (key: string, fallback: T, storageInstance?: Storage) => T;
   setter?: (key: string, value: T, storageInstance?: Storage) => void;
   storageAdapter?: Storage;
-  onSave?: (items: T) => void;
 }
 
-export class StorageBase<T> extends Observable<T> implements IDisposable {
-  protected key: string;
-  private options: StorageBaseOptions<T>;
-  private boundHandleStorageEvent: (e: StorageEvent) => void;
+export class StorageEngine<T> {
+  private key: string;
+  private options: StorageEngineOptions<T>;
   private cachedSnapshot: T | undefined = undefined;
 
-  constructor(key: string, options: StorageBaseOptions<T>) {
-    super();
+  constructor(key: string, options: StorageEngineOptions<T>) {
     this.key = key;
     this.options = {
       ...options,
       getter: options.getter || safeGetStorage,
       setter: options.setter || safeSetStorage,
     };
-
-    this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
-
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      if (win) {
-        win.addEventListener("storage", this.boundHandleStorageEvent);
-      }
-    }
-  }
-
-  protected handleStorageEvent(e: StorageEvent): void {
-    if (e.key === this.key || e.key === null) {
-      this.cachedSnapshot = undefined;
-      this.notify(this.load());
-    }
   }
 
   private processRawValue(raw: T): T {
@@ -52,13 +30,10 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
     if (this.options.validate) {
       try {
         if (!this.options.validate(raw)) {
-          // If validation fails, return the fallback immediately.
-          // The fallback should not be subjected to transformOut,
-          // as it is already considered safe and valid in its natural form.
           return deepFreeze(this.options.fallback);
         }
       } catch (err) {
-        console.warn(`StorageBase[${this.key}]: validation error`, err);
+        console.warn(`StorageEngine[${this.key}]: validation error`, err);
         return deepFreeze(this.options.fallback);
       }
     }
@@ -68,7 +43,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
       try {
         result = this.options.transformOut(valid);
       } catch (err) {
-        console.warn(`StorageBase[${this.key}]: transformOut error`, err);
+        console.warn(`StorageEngine[${this.key}]: transformOut error`, err);
         return deepFreeze(this.options.fallback);
       }
     }
@@ -76,8 +51,8 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
     return deepFreeze(result);
   }
 
-  public getSnapshot(): T {
-    return this.load();
+  public invalidateCache(): void {
+    this.cachedSnapshot = undefined;
   }
 
   public load(): T {
@@ -90,14 +65,14 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
       this.cachedSnapshot = this.processRawValue(raw);
       return this.cachedSnapshot;
     } catch (err) {
-      console.error(`StorageBase[${this.key}]: unhandled load error`, err);
+      console.error(`StorageEngine[${this.key}]: unhandled load error`, err);
       const frozenFallback = deepFreeze(this.options.fallback);
       this.cachedSnapshot = frozenFallback;
       return frozenFallback;
     }
   }
 
-  public save(item: T): void {
+  public save(item: T): T {
     try {
       const toStore = this.options.transformIn ? this.options.transformIn(item) : item;
       const setter = this.options.setter!;
@@ -112,32 +87,16 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
           rawValueToCache = toStore; // Fallback if stringify fails but item is valid for storage
       }
       this.cachedSnapshot = this.processRawValue(rawValueToCache);
-      this.notify(this.cachedSnapshot);
-      if (this.options.onSave) {
-        try {
-          this.options.onSave(this.cachedSnapshot);
-        } catch (onSaveErr) {
-          console.error(`StorageBase[${this.key}]: error during onSave callback`, onSaveErr);
-        }
-      }
+      return this.cachedSnapshot;
     } catch (err) {
-      console.warn(`StorageBase[${this.key}]: save error`, err);
+      console.warn(`StorageEngine[${this.key}]: save error`, err);
+      return this.load(); // Return last known good state
     }
   }
 
-  public clear(): void {
+  public clear(): T {
     safeRemoveStorage(this.key, this.options.storageAdapter);
     this.cachedSnapshot = undefined;
-    this.notify(this.load());
-  }
-
-  public dispose(): void {
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      if (win) {
-        win.removeEventListener("storage", this.boundHandleStorageEvent);
-      }
-    }
-    this.clearListeners();
+    return this.load();
   }
 }

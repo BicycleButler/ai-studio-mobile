@@ -1,5 +1,7 @@
 import { ArrayCollection } from "./ArrayCollection";
-import { StorageBase, StorageBaseOptions } from "./StorageBase";
+import { StorageEngine, StorageEngineOptions } from "./StorageEngine";
+import { Observable } from "../observable";
+import { isBrowserEnvironment, getSafeWindow } from "../platform";
 import { safeGetStorage, safeSetStorage } from "./core";
 import { IMutableCollection, IDisposable, ICollectionEngine } from "./types";
 
@@ -16,14 +18,21 @@ export interface StorageCollectionOptions<T> {
   storageAdapter?: Storage;
 }
 
-export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCollection<T>, IDisposable {
-  private engine: ICollectionEngine<T>;
+export class StorageCollection<T> extends Observable<T[]> implements IMutableCollection<T>, IDisposable {
+  protected key: string;
+  private storageEngine: StorageEngine<T[]>;
+  private collectionEngine: ICollectionEngine<T>;
   private keyExtractor: (item: T) => string;
+  private boundHandleStorageEvent: (e: StorageEvent) => void;
+  private onSave?: (items: T[]) => void;
 
   constructor(
     key: string,
     options?: StorageCollectionOptions<T>
   ) {
+    super();
+    this.key = key;
+
     const arrayTransformIn = (items: T[]) => {
       let processed = options?.transformIn ? items.map(options.transformIn) : items;
       if (options?.maxItems !== undefined && processed.length > options.maxItems) {
@@ -49,20 +58,61 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
         }
       : undefined;
 
-    const baseOptions: StorageBaseOptions<T[]> = {
+    const engineOptions: StorageEngineOptions<T[]> = {
       fallback: [],
       transformIn: arrayTransformIn,
       transformOut: arrayTransformOut,
       getter: options?.getter || (safeGetStorage as unknown as (key: string, fallback: T[], storageInstance?: Storage) => T[]),
       setter: options?.setter || safeSetStorage,
       storageAdapter: options?.storageAdapter,
-      onSave: options?.onSave,
     };
 
-    super(key, baseOptions);
+    this.storageEngine = new StorageEngine(key, engineOptions);
+    this.onSave = options?.onSave;
 
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
-    this.engine = options?.engine || new ArrayCollection<T>(this.keyExtractor);
+    this.collectionEngine = options?.engine || new ArrayCollection<T>(this.keyExtractor);
+
+    this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
+
+    if (isBrowserEnvironment()) {
+      const win = getSafeWindow();
+      if (win) {
+        win.addEventListener("storage", this.boundHandleStorageEvent);
+      }
+    }
+  }
+
+  protected handleStorageEvent(e: StorageEvent): void {
+    if (e.key === this.key || e.key === null) {
+      this.storageEngine.invalidateCache();
+      this.notify(this.load());
+    }
+  }
+
+  public getSnapshot(): T[] {
+    return this.load();
+  }
+
+  public load(): T[] {
+    return this.storageEngine.load();
+  }
+
+  public save(items: T[]): void {
+    const saved = this.storageEngine.save(items);
+    this.notify(saved);
+    if (this.onSave) {
+      try {
+        this.onSave(saved);
+      } catch (onSaveErr) {
+        console.error(`StorageCollection[${this.key}]: error during onSave callback`, onSaveErr);
+      }
+    }
+  }
+
+  public clear(): void {
+    const cleared = this.storageEngine.clear();
+    this.notify(cleared);
   }
 
   private applyOperation<R extends { items: T[]; changed: boolean }>(
@@ -77,37 +127,43 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
 
   update(id: string, updates: Partial<T>): T | null {
     if (!id) return null;
-    return this.applyOperation((items) => this.engine.update(items, id, updates)).item || null;
+    return this.applyOperation((items) => this.collectionEngine.update(items, id, updates)).item || null;
   }
 
   bulkUpdate(updates: { id: string; changes: Partial<T> }[]): T[] {
     if (!updates || updates.length === 0) return this.load();
-    this.applyOperation((items) => this.engine.bulkUpdate(items, updates));
+    this.applyOperation((items) => this.collectionEngine.bulkUpdate(items, updates));
     return this.load();
   }
 
   bulkDelete(ids: string[]): T[] {
     if (!ids || ids.length === 0) return this.load();
-    this.applyOperation((items) => this.engine.bulkDelete(items, ids));
+    this.applyOperation((items) => this.collectionEngine.bulkDelete(items, ids));
     return this.load();
   }
 
   delete(id: string): T[] {
     if (!id) return this.load();
-    return this.applyOperation((items) => this.engine.delete(items, id)).items;
+    return this.applyOperation((items) => this.collectionEngine.delete(items, id)).items;
   }
 
   upsert(item: T, prepend = false): T {
-    return this.applyOperation((items) => this.engine.upsert(items, item, prepend)).item as T;
+    return this.applyOperation((items) => this.collectionEngine.upsert(items, item, prepend)).item as T;
   }
 
   bulkUpsert(newItems: T[], prepend = false): T[] {
     if (!newItems || newItems.length === 0) return this.load();
-    this.applyOperation((items) => this.engine.bulkUpsert(items, newItems, prepend));
+    this.applyOperation((items) => this.collectionEngine.bulkUpsert(items, newItems, prepend));
     return this.load();
   }
 
   public dispose(): void {
-    super.dispose();
+    if (isBrowserEnvironment()) {
+      const win = getSafeWindow();
+      if (win) {
+        win.removeEventListener("storage", this.boundHandleStorageEvent);
+      }
+    }
+    this.clearListeners();
   }
 }
