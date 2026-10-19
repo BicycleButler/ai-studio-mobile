@@ -36,8 +36,8 @@ export class StorageRegistry<TStore> {
   private disposeStore(store: TStore): void {
     if (this.disposer) {
       this.disposer(store);
-    } else if (store && typeof (store as any).dispose === 'function') {
-      (store as any).dispose();
+    } else if (store && typeof (store as { dispose?: () => void }).dispose === 'function') {
+      (store as unknown as { dispose: () => void }).dispose();
     }
   }
 
