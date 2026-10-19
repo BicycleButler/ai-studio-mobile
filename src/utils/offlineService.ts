@@ -117,7 +117,7 @@ export class OfflineService implements IOfflineService {
           }
         };
       }
-    } catch (e) {
+    } catch {
       // Ignore broadcast channel init errors
     }
     this.syncCacheFromStorage().catch(() => {});

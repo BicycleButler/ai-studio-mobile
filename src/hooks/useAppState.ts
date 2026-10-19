@@ -1,5 +1,5 @@
 import { clearAllChatSessions } from "../services/chatHistoryService";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useStorage } from "../utils/storage";
 import { usePromptTemplates } from "./usePromptTemplates";
 import { useChatSession } from "./useChatSession";
@@ -37,8 +37,6 @@ import {
   saveStoredApiKey,
   loadDraftState,
   saveDraftState,
-  getActiveProject,
-  loadStoredProjects,
   projectsManager,
   setActiveProjectId,
   updateStoredProject,
@@ -218,7 +216,6 @@ export function useAppState() {
 
   const handleRenameProject = (id: string, newName: string) => {
     updateStoredProject(id, { name: newName });
-    const updated = projectsManager.getItems();
     if (activeProject?.id === id) {
 
     }

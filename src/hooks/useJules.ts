@@ -5,7 +5,6 @@ import { JulesTaskPayload } from "../services/julesService";
 import {
   loadStoredJulesApiKey,
   saveStoredJulesApiKey,
-  loadStoredJulesSessions,
   fetchJulesSessionsFromServer,
   getActiveJulesSession,
   setActiveJulesSessionId,
@@ -49,7 +48,7 @@ export function useJules() {
   const julesPollingRef = useRef<{ stop: () => void } | null>(null);
 
   useEffect(() => {
-    fetchJulesSessionsFromServer().then((sessions) => {
+    fetchJulesSessionsFromServer().then(() => {
 
       const activeSession = getActiveJulesSession();
       setActiveJulesSession(activeSession);
