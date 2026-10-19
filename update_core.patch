@@ -1,0 +1,77 @@
+--- src/utils/storage/core.ts
++++ src/utils/storage/core.ts
+@@ -1,5 +1,6 @@
+ import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "../platform";
++import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
+
+ let _storageInstance: Storage | null = null;
+
+@@ -13,7 +14,7 @@
+         const testKey = "__storage_test__";
+         win.localStorage.setItem(testKey, testKey);
+         win.localStorage.removeItem(testKey);
+-        _storageInstance = win.localStorage;
++        _storageInstance = new FallbackStorageWrapper(win.localStorage);
+         return _storageInstance;
+       }
+     }
+@@ -62,19 +63,6 @@
+   }
+ }
+
+-function enforceStorageLimits(storage: Storage, key: string, value: string): boolean {
+-  try {
+-    storage.setItem(key, value);
+-    return true;
+-  } catch (err: unknown) {
+-    if (err && typeof err === "object" && "name" in err && err.name === "QuotaExceededError") {
+-      console.warn(`Storage quota exceeded when writing ${key}. Attempting emergency purge...`);
+-      return false;
+-    }
+-    console.warn(`Failed to stringify/write ${key} to storage:`, err);
+-    return false;
+-  }
+-}
+-
+ export function safeParseStorageItem<T>(
+   key: string,
+   raw: string,
+@@ -148,32 +136,8 @@
+ export function safeSetStorageString(key: string, value: string, storageInstance?: Storage): boolean {
+   try {
+     const storage = storageInstance || getStorageInstance();
+-    const result = enforceStorageLimits(storage, key, value);
+-
+-    // If the storage failed and we are not already using MemoryStorage, promote to MemoryStorage
+-    if (!result && !(storage instanceof MemoryStorage)) {
+-       // Promote to memory fallback directly on quota error, preserving existing items if possible
+-       if (storage === _storageInstance && !(_storageInstance instanceof MemoryStorage)) {
+-           const newMemoryStorage = new MemoryStorage();
+-           // Try to copy existing keys
+-           try {
+-             for (let i = 0; i < storage.length; i++) {
+-               const k = storage.key(i);
+-               if (k) {
+-                 const v = storage.getItem(k);
+-                 if (v !== null) {
+-                   newMemoryStorage.setItem(k, v);
+-                 }
+-               }
+-             }
+-           } catch (e) {
+-             console.warn("Could not copy existing storage items to memory fallback", e);
+-           }
+-           _storageInstance = newMemoryStorage;
+-           _storageInstance.setItem(key, value);
+-           return true;
+-       } else if (storage !== _storageInstance) {
+-          // If a specific, isolated storage instance was provided and failed, don't mutate global state.
+-          return false;
+-       }
+-    }
+-    return result;
++    storage.setItem(key, value);
++    return true;
+   } catch (err: unknown) {
+     console.warn(`Failed to write string ${key} to storage:`, err);
+     return false;
