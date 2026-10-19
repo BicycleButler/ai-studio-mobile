@@ -14,7 +14,7 @@ describe('ComputedStore', () => {
     expect(computed.getSnapshot()).toBe(3);
   });
 
-  it('should recompute state on dependency change', () => {
+  it('should recompute state on dependency change', async () => {
     const store1 = new Observable(1);
     const store2 = new Observable(2);
 
@@ -25,9 +25,11 @@ describe('ComputedStore', () => {
     expect(computed.getSnapshot()).toBe(3);
 
     store1.notify(5);
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(computed.getSnapshot()).toBe(7);
 
     store2.notify(10);
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(computed.getSnapshot()).toBe(15);
   });
 
@@ -85,15 +87,18 @@ describe('ComputedStore', () => {
 
     store1.notify(5);
 
+    // We must wait for Observable's microtask to mark computed as dirty
+    await new Promise(resolve => queueMicrotask(resolve));
+
     // Call getSnapshot synchronously while dirty
     expect(computed.getSnapshot()).toBe(10);
     expect(computeCount).toBe(1); // Evaluated synchronously
 
-    // But notification hasn't fired yet
+    // But ComputedStore notification hasn't fired yet
     expect(notifyCount).toBe(0);
 
-    // Wait for microtask
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // Wait for ComputedStore's microtask
+    await new Promise(resolve => queueMicrotask(resolve));
 
     // Notification should fire with the updated value
     expect(notifyCount).toBe(1);
