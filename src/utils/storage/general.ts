@@ -9,8 +9,11 @@ const apiKeySingleton = new StorageSingleton<string>(
   "",
   {
     transformIn: (key) => key.trim(),
-    getter: safeGetStorageString as (key: string, fallback: string) => string,
-    setter: safeSetStorageString as (key: string, value: string) => void,
+    adapter: {
+      get: (k, f) => safeGetStorageString(k, f as string),
+      set: (k, v) => safeSetStorageString(k, v),
+      remove: (k) => safeSetStorageString(k, ""),
+    }
   }
 );
 

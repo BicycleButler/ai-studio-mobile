@@ -1,3 +1,4 @@
+import { IStorageAdapter } from "./types";
 import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "../platform";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 
@@ -168,5 +169,21 @@ export function safeRemoveStorage(key: string, storageInstance?: Storage): boole
   } catch (err: unknown) {
     console.warn(`Failed to remove ${key} from storage:`, err);
     return false;
+  }
+}
+
+export class DefaultStorageAdapter<T> implements IStorageAdapter<T> {
+  constructor(private storageInstance?: Storage) {}
+
+  get(key: string, fallback: T): T {
+    return safeGetStorage(key, fallback, this.storageInstance);
+  }
+
+  set(key: string, value: T): void {
+    safeSetStorage(key, value, this.storageInstance);
+  }
+
+  remove(key: string): void {
+    safeRemoveStorage(key, this.storageInstance);
   }
 }
