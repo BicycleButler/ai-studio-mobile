@@ -42,3 +42,39 @@ describe('OfflineService', () => {
     expect(newQueueLength).toBe(0);
   });
 });
+
+import { FallbackAsyncStorage } from './offlineService';
+
+class FailingAsyncStorage implements AsyncStorage {
+  private _failNext = 0;
+  constructor(private fails: number) {
+      this._failNext = fails;
+  }
+  async getItem<T>(_key: string): Promise<T | undefined> {
+    return undefined;
+  }
+
+  async setItem<T>(_key: string, _value: T): Promise<void> {
+    if (this._failNext > 0) {
+        this._failNext--;
+        throw new Error('Storage failed');
+    }
+  }
+}
+
+describe('FallbackAsyncStorage', () => {
+    it('should retry all adapters', async () => {
+        const failStorage = new FailingAsyncStorage(1);
+        const memStorage = new MockAsyncStorage();
+        const fallback = new FallbackAsyncStorage([failStorage, memStorage]);
+
+        await fallback.setItem('k', 'v');
+        const v = await memStorage.getItem('k');
+        expect(v).toBe('v');
+
+        // Second time, failStorage should succeed and be used
+        await fallback.setItem('k', 'v2');
+        const v2 = await memStorage.getItem('k');
+        expect(v2).toBe('v'); // unchanged because it went to failStorage
+    });
+});

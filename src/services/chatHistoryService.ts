@@ -1,6 +1,6 @@
-import { isBrowserEnvironment, getSafeWindow } from "../utils/platform";
+import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection, StorageRegistry } from "../utils/storage";
+import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection, StorageRegistry, globalStorageQuotaObservable } from "../utils/storage";
 import { isMockSession } from "../utils/mockDefinitions";
 
 export interface IChatHistoryService {
@@ -18,16 +18,12 @@ export interface IChatHistoryService {
 }
 
 export class ChatHistoryService implements IChatHistoryService {
-  private boundHandleQuotaExceeded: () => void;
+  private unsubscribeQuota: () => void;
 
   constructor() {
-    this.boundHandleQuotaExceeded = this.handleQuotaExceeded.bind(this);
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      if (win) {
-        win.addEventListener("storage_quota_exceeded", this.boundHandleQuotaExceeded);
-      }
-    }
+    this.unsubscribeQuota = globalStorageQuotaObservable.subscribe(() => {
+      this.handleQuotaExceeded();
+    });
   }
 
   private handleQuotaExceeded(): void {

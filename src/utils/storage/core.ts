@@ -1,8 +1,10 @@
 import { IStorageAdapter } from "./types";
 import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "../platform";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
+import { Observable } from "../observable";
 
-let _storageInstance: Storage | null = null;
+let _storageInstance: FallbackStorageWrapper | MemoryStorage | null = null;
+export const globalStorageQuotaObservable = new Observable<void>();
 
 export function getStorageInstance(): Storage {
   if (_storageInstance) return _storageInstance;
@@ -15,7 +17,11 @@ export function getStorageInstance(): Storage {
         const testKey = "__storage_test__";
         win.localStorage.setItem(testKey, testKey);
         win.localStorage.removeItem(testKey);
-        _storageInstance = new FallbackStorageWrapper(win.localStorage);
+        const wrapper = new FallbackStorageWrapper(win.localStorage);
+        wrapper.quotaExceededEvent.subscribe(() => {
+            globalStorageQuotaObservable.notify();
+        });
+        _storageInstance = wrapper;
         return _storageInstance;
       }
     }
