@@ -1,3 +1,4 @@
+import { ArrayCollection } from "./ArrayCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { safeGetStorage, safeSetStorage } from "./core";
 
@@ -14,6 +15,7 @@ export interface StorageCollectionOptions<T> {
 }
 
 export class StorageCollection<T> extends StorageBase<T[]> {
+  private arrayCollection: ArrayCollection<T>;
   private keyExtractor: (item: T) => string;
 
   constructor(
@@ -58,6 +60,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     super(key, baseOptions);
 
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
+    this.arrayCollection = new ArrayCollection<T>(this.keyExtractor);
   }
 
   /**
@@ -77,11 +80,13 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     if (!id) return null;
     let updatedItem: T | null = null;
     this.mutate((items) => {
-      const index = items.findIndex((item) => this.keyExtractor(item) === id);
-      if (index === -1) return false;
-      updatedItem = { ...items[index], ...updates } as T;
-      items[index] = updatedItem;
-      return true;
+      const result = this.arrayCollection.update(items, id, updates);
+      if (result.changed) {
+        items.splice(0, items.length, ...result.items);
+        updatedItem = result.item;
+        return true;
+      }
+      return false;
     });
     return updatedItem;
   }
@@ -89,33 +94,21 @@ export class StorageCollection<T> extends StorageBase<T[]> {
   bulkUpdate(updates: { id: string; changes: Partial<T> }[]): T[] {
     if (!updates || updates.length === 0) return this.load();
     return this.mutate((items) => {
-      let changed = false;
-      const updatesMap = new Map<string, Partial<T>>();
-      for (const update of updates) {
-        const existing = updatesMap.get(update.id);
-        updatesMap.set(update.id, existing ? { ...existing, ...update.changes } : update.changes);
+      const result = this.arrayCollection.bulkUpdate(items, updates);
+      if (result.changed) {
+        items.splice(0, items.length, ...result.items);
+        return true;
       }
-      for (let i = 0; i < items.length; i++) {
-        const id = this.keyExtractor(items[i]);
-        const changes = updatesMap.get(id);
-        if (changes !== undefined) {
-          items[i] = { ...items[i], ...changes } as T;
-          changed = true;
-        }
-      }
-      return changed;
+      return false;
     });
   }
 
   bulkDelete(ids: string[]): T[] {
     if (!ids || ids.length === 0) return this.load();
-    const idSet = new Set(ids);
     return this.mutate((items) => {
-      const originalLength = items.length;
-      const filtered = items.filter((item) => !idSet.has(this.keyExtractor(item)));
-      if (filtered.length !== originalLength) {
-        // Use array splice instead of reassigning length and push for better robustness
-        items.splice(0, items.length, ...filtered);
+      const result = this.arrayCollection.bulkDelete(items, ids);
+      if (result.changed) {
+        items.splice(0, items.length, ...result.items);
         return true;
       }
       return false;
@@ -130,16 +123,13 @@ export class StorageCollection<T> extends StorageBase<T[]> {
   upsert(item: T, prepend = false): T {
     let updatedItem: T | null = null;
     this.mutate((items) => {
-      const id = this.keyExtractor(item);
-      const index = items.findIndex((i) => this.keyExtractor(i) === id);
-      updatedItem = { ...item } as T;
-
-      if (index >= 0) {
-        items[index] = updatedItem;
-      } else {
-        prepend ? items.unshift(updatedItem) : items.push(updatedItem);
+      const result = this.arrayCollection.upsert(items, item, prepend);
+      if (result.changed) {
+        items.splice(0, items.length, ...result.items);
+        updatedItem = result.item;
+        return true;
       }
-      return true;
+      return false;
     });
     return updatedItem!;
   }
@@ -147,44 +137,12 @@ export class StorageCollection<T> extends StorageBase<T[]> {
   bulkUpsert(newItems: T[], prepend = false): T[] {
     if (!newItems || newItems.length === 0) return this.load();
     return this.mutate((items) => {
-      const indexMap = new Map<string, number>();
-      for (let i = 0; i < items.length; i++) {
-        indexMap.set(this.keyExtractor(items[i]), i);
+      const result = this.arrayCollection.bulkUpsert(items, newItems, prepend);
+      if (result.changed) {
+        items.splice(0, items.length, ...result.items);
+        return true;
       }
-
-      // Track items that are completely new to avoid O(N*M) prepends
-      // First, collapse the new items so only the latest update for each id is kept
-      const collapsedNewItems = new Map<string, T>();
-      for (const item of newItems) {
-        const id = this.keyExtractor(item);
-        // Unlike updateMany, upsert replaces the object entirely.
-        // We only take the latest item if there are duplicates in the batch.
-        collapsedNewItems.set(id, { ...item });
-      }
-
-      const itemsToAdd: T[] = [];
-
-      for (const [id, updatedItem] of collapsedNewItems.entries()) {
-        const index = indexMap.get(id);
-
-        if (index !== undefined) {
-          // Replace entirely, don't shallow merge
-          items[index] = updatedItem;
-        } else {
-          itemsToAdd.push(updatedItem);
-        }
-      }
-
-      if (itemsToAdd.length > 0) {
-        if (prepend) {
-            // Unshifting the remaining new items all at once avoids O(N*M) performance penalty
-            items.unshift(...itemsToAdd);
-        } else {
-            items.push(...itemsToAdd);
-        }
-      }
-
-      return true;
+      return false;
     });
   }
 }
