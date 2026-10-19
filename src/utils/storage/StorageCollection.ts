@@ -63,31 +63,13 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     this.arrayCollection = new ArrayCollection<T>(this.keyExtractor);
   }
 
-  /**
-   * Internal helper to apply a mutation function to the collection.
-   * Reduces duplication of `this.load()` and `this.save()` calls.
-   */
-  private mutate(mutator: (items: T[]) => boolean): T[] {
-    const items = [...this.load()];
-    const shouldSave = mutator(items);
-    if (shouldSave) {
-      this.save(items);
-    }
-    return this.load();
-  }
-
   private applyOperation<R extends { items: T[]; changed: boolean }>(
     operation: (items: T[]) => R
   ): R {
-    let result!: R;
-    this.mutate((items) => {
-      result = operation(items);
-      if (result.changed) {
-        items.splice(0, items.length, ...result.items);
-        return true;
-      }
-      return false;
-    });
+    const result = operation(this.load());
+    if (result.changed) {
+      this.save(result.items);
+    }
     return result;
   }
 
