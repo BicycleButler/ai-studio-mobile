@@ -1,3 +1,16 @@
+## Architectural Decision: Delay Strategy Configuration Abstraction
+
+**Context:**
+`ExponentialBackoffRetryStrategy` previously checked if its injected strategy was an `ExponentialBackoffDelayStrategy` in order to dynamically inject the `baseDelayMs` parameter from `RetryConfig`. This violated the Open/Closed Principle and the Dependency Inversion Principle, as the generic retry orchestrator became tightly coupled to a specific delay implementation, and consumers' custom strategies would be ignored or clobbered.
+
+**Path 1: Strict Injection (Remove from Config)**
+Remove `baseDelayMs` from `RetryConfig`. The orchestrator only accepts an `IRetryStrategy` (which itself encapsulates an `IDelayStrategy`). Consumers are responsible for configuring their delay strategy when instantiating it, preserving perfect abstraction.
+
+**Path 2: Configuration Mutator Pattern**
+Add a `withBaseDelay(delay: number): IDelayStrategy` method to the `IDelayStrategy` interface. The retry orchestrator uses this to clone the strategy with the new configuration.
+
+**Recommendation:**
+**Path 1 (Strict Injection)** is the recommended path. It removes conflicting sources of truth (`RetryConfig` vs `IDelayStrategy` constructor) and ensures the orchestrator purely delegates to the injected strategy without needing to understand its configuration semantics.
 ## Architectural Decision: Storage Abstraction
 
 **Context:**

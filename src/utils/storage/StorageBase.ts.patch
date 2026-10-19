@@ -1,0 +1,17 @@
+--- src/utils/storage/StorageBase.ts
++++ src/utils/storage/StorageBase.ts
+@@ -102,7 +102,12 @@
+       const toStore = this.options.transformIn ? this.options.transformIn(item) : item;
+       this.adapter.set(this.key, toStore);
+       // Write-through caching: bypass I/O round-trip
+-      this.cachedSnapshot = this.processRawValue(structuredClone(toStore));
++      let rawValueToCache: T;
++      try {
++          rawValueToCache = structuredClone(toStore);
++      } catch {
++          rawValueToCache = toStore; // Fallback if structuredClone fails but item is valid for storage
++      }
++      this.cachedSnapshot = this.processRawValue(rawValueToCache);
+       savedSnapshot = this.cachedSnapshot;
+     } catch (err) {
+       console.warn(`StorageBase[${this.key}]: save error`, err);

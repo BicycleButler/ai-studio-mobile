@@ -4,7 +4,6 @@ import { IDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy
 export interface RetryConfig {
   retryableStatusCodes?: Set<number>;
   retries?: number;
-  baseDelayMs?: number;
   fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   retryStrategy?: IRetryStrategy;
 }
@@ -13,7 +12,7 @@ export interface IRetryStrategy {
   execute(
     url: string,
     options: RequestInit,
-    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryableStatusCodes?: Set<number> }
+    config: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryableStatusCodes?: Set<number> }
   ): Promise<Response>;
 }
 
@@ -29,19 +28,12 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
   async execute(
     url: string,
     options: RequestInit,
-    config: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryableStatusCodes?: Set<number> }
+    config: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryableStatusCodes?: Set<number> }
   ): Promise<Response> {
-    const { retries, baseDelayMs, fetcher } = config;
+    const { retries, fetcher } = config;
     const retryableCodes = config.retryableStatusCodes || RETRYABLE_STATUS_CODES;
 
-    // Override the base delay on the strategy if it's explicitly passed in config to preserve API.
-    // We try to use the injected strategy if it supports being re-initialized, but since our IDelayStrategy
-    // doesn't have a setter, we dynamically create an override if baseDelayMs differs from the default,
-    // otherwise we use the composed strategy.
     let effectiveStrategy = this.delayStrategy;
-    if (baseDelayMs !== 1000 && this.delayStrategy instanceof ExponentialBackoffDelayStrategy) {
-       effectiveStrategy = new ExponentialBackoffDelayStrategy(baseDelayMs, 10000, 2, baseDelayMs);
-    }
 
     let attempt = 0;
     let lastError: unknown;
