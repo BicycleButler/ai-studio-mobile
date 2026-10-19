@@ -30,6 +30,7 @@ export class MemoryAsyncStorage implements AsyncStorage {
 
 export class FallbackAsyncStorage implements AsyncStorage {
   private adapters: AsyncStorage[];
+  private activeAdapterIndex = 0;
 
   constructor(adapters: AsyncStorage[]) {
     this.adapters = adapters;
@@ -37,9 +38,9 @@ export class FallbackAsyncStorage implements AsyncStorage {
 
   async getItem<T>(key: string): Promise<T | undefined> {
     let lastError: unknown;
-    for (const adapter of this.adapters) {
+    for (let i = this.activeAdapterIndex; i < this.adapters.length; i++) {
       try {
-        return await adapter.getItem<T>(key);
+        return await this.adapters[i].getItem<T>(key);
       } catch (e) {
         lastError = e;
         // Continue to the next adapter
@@ -51,9 +52,10 @@ export class FallbackAsyncStorage implements AsyncStorage {
 
   async setItem<T>(key: string, value: T): Promise<void> {
     let lastError: unknown;
-    for (const adapter of this.adapters) {
+    for (let i = this.activeAdapterIndex; i < this.adapters.length; i++) {
       try {
-        await adapter.setItem<T>(key, value);
+        await this.adapters[i].setItem<T>(key, value);
+        this.activeAdapterIndex = i; // Save the working adapter index
         return; // Success, stop trying other adapters
       } catch (e) {
         lastError = e;
