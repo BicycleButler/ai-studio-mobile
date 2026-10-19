@@ -1,7 +1,14 @@
+export interface IDisposable {
+  dispose(): void;
+}
+
 export class StorageRegistry<TStore> {
   private cache = new Map<string, TStore>();
+  private disposer?: (store: TStore) => void;
 
-  constructor(private factory: (key: string) => TStore) {}
+  constructor(private factory: (key: string) => TStore, disposer?: (store: TStore) => void) {
+    this.disposer = disposer;
+  }
 
   public get(key: string): TStore {
     if (!this.cache.has(key)) {
@@ -10,8 +17,28 @@ export class StorageRegistry<TStore> {
     return this.cache.get(key)!;
   }
 
+  public delete(key: string): boolean {
+    const store = this.cache.get(key);
+    if (store) {
+      this.disposeStore(store);
+      return this.cache.delete(key);
+    }
+    return false;
+  }
+
   public clear(): void {
+    for (const store of this.cache.values()) {
+      this.disposeStore(store);
+    }
     this.cache.clear();
+  }
+
+  private disposeStore(store: TStore): void {
+    if (this.disposer) {
+      this.disposer(store);
+    } else if (store && typeof (store as any).dispose === 'function') {
+      (store as any).dispose();
+    }
   }
 
   public get keys(): string[] {

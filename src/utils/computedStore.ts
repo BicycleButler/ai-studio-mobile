@@ -28,5 +28,6 @@ export class ComputedStore<T> extends Observable<T> {
       unsub();
     }
     this.unsubscribes = [];
+    this.clearListeners();
   }
 }
