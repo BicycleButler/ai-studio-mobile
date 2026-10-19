@@ -15,4 +15,4 @@ import { StorageSingleton } from "./StorageSingleton";
 import { StorageRegistry } from "./StorageRegistry";
 export { StorageCollection, StorageSingleton, StorageRegistry, ArrayCollection };
 export * from "./ActiveItemManager";
-export * from "./StorageEngine";
+export * from "./StorageBase";
