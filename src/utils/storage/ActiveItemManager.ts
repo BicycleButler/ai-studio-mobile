@@ -1,4 +1,5 @@
-import { IReadableStore, Observable } from "../observable";
+import { IReadableStore } from "../observable";
+import { ComputedStore } from "../computedStore";
 
 export interface IMutableCollection<T> extends IReadableStore<T[]> {
   save: (items: T[]) => void;
@@ -15,7 +16,6 @@ export interface IMutableSingleton<T> extends IReadableStore<T> {
   load: () => T;
 }
 
-
 export interface ActiveItemManagerOptions<T> {
   collection: IMutableCollection<T>;
   activeIdSingleton: IMutableSingleton<string | null>;
@@ -30,33 +30,37 @@ export interface ActiveItemManagerState<T> {
   activeItem: T | null;
 }
 
-export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> implements IReadableStore<ActiveItemManagerState<T>> {
+export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T>> implements IReadableStore<ActiveItemManagerState<T>> {
   public collection: IMutableCollection<T>;
   public activeIdSingleton: IMutableSingleton<string | null>;
   private getId: (item: T) => string;
   private onActiveItemChange?: (activeItem: T | null) => void;
   private allowImplicitSelection: boolean;
+  private lastActiveItemId: string | null = null;
 
   constructor(options: ActiveItemManagerOptions<T>) {
-    const items = options.collection.load();
-    const activeId = options.activeIdSingleton.load() ? options.activeIdSingleton.load() : null;
     const allowImplicitSelection = options.allowImplicitSelection ?? true;
 
-    let activeItem: T | null = null;
-    if (items.length > 0) {
-      if (activeId) {
-        const match = items.find((p) => options.getId(p) === activeId);
-        if (match) activeItem = match;
-        else activeItem = allowImplicitSelection ? items[0] : null;
-      } else {
-        activeItem = allowImplicitSelection ? items[0] : null;
-      }
-    }
+    super([options.collection, options.activeIdSingleton], () => {
+      const items = options.collection.load() || [];
+      const activeId = options.activeIdSingleton.load() || null;
 
-    super({
-      items,
-      activeId,
-      activeItem
+      let activeItem: T | null = null;
+      if (items.length > 0) {
+        if (activeId) {
+          const match = items.find((p) => options.getId(p) === activeId);
+          if (match) activeItem = match;
+          else activeItem = allowImplicitSelection ? items[0] : null;
+        } else {
+          activeItem = allowImplicitSelection ? items[0] : null;
+        }
+      }
+
+      const state = { items, activeId, activeItem };
+
+      // We need a slight hack here since the superclass constructor calls compute() immediately
+      // before this.onActiveItemChange is assigned. We handle the callback in a separate method.
+      return state;
     });
 
     this.collection = options.collection;
@@ -65,30 +69,20 @@ export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> 
     this.onActiveItemChange = options.onActiveItemChange;
     this.allowImplicitSelection = allowImplicitSelection;
 
-    // Reactively update when underlying storage changes (e.g. from other tabs)
-    this.collection.subscribe(() => {
-      this.recomputeState();
-    });
-    this.activeIdSingleton.subscribe(() => {
-      this.recomputeState();
-    });
-  }
+    // Call it initially
+    const initialState = this.getSnapshot();
+    this.lastActiveItemId = initialState.activeItem ? this.getId(initialState.activeItem) : null;
 
-  private recomputeState(): void {
-    const items = this.getItems();
-    const activeId = this.getActiveId();
-    let activeItem: T | null = null;
-    if (items.length > 0) {
-      if (activeId) {
-        const match = items.find((p) => this.getId(p) === activeId);
-        if (match) activeItem = match;
-        else activeItem = this.allowImplicitSelection ? items[0] : null;
-      } else {
-        activeItem = this.allowImplicitSelection ? items[0] : null;
+    // Subscribe to self to trigger the side effect when state changes
+    this.subscribe((state) => {
+      const currentActiveId = state.activeItem ? this.getId(state.activeItem) : null;
+      if (this.lastActiveItemId !== currentActiveId) {
+        this.lastActiveItemId = currentActiveId;
+        if (this.onActiveItemChange) {
+          this.onActiveItemChange(state.activeItem);
+        }
       }
-    }
-
-    this.notify({ items, activeId, activeItem });
+    });
   }
 
   public getSnapshot(): ActiveItemManagerState<T> {
@@ -110,25 +104,10 @@ export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> 
     } else {
       this.activeIdSingleton.clear();
     }
-    this.notifyActiveItemChange();
   }
 
   public getActiveItem(): T | null {
-    const items = this.getItems();
-    if (items.length === 0) return null;
-    const activeId = this.getActiveId();
-    if (activeId) {
-      const match = items.find((p) => this.getId(p) === activeId);
-      if (match) return match;
-    }
-    return this.allowImplicitSelection ? items[0] : null;
-  }
-
-  private notifyActiveItemChange(): void {
-    if (this.onActiveItemChange) {
-      this.onActiveItemChange(this.getActiveItem());
-    }
-    this.recomputeState();
+    return this.getSnapshot().activeItem;
   }
 
   private syncActiveIdAfterDeletion(deletedIds: string[], remainingItems: T[]) {
@@ -139,9 +118,6 @@ export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> 
       } else {
         this.setActiveId(null);
       }
-    } else if (!activeId && deletedIds.length > 0) {
-      // If there's no active ID, getActiveItem() might have returned something that was deleted.
-      this.notifyActiveItemChange();
     }
   }
 
@@ -156,11 +132,7 @@ export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> 
         } else {
           this.setActiveId(null);
         }
-      } else {
-        this.notifyActiveItemChange();
       }
-    } else {
-      this.notifyActiveItemChange();
     }
   }
 
@@ -177,26 +149,10 @@ export class ActiveItemManager<T> extends Observable<ActiveItemManagerState<T>> 
   }
 
   public upsert(item: T, prepend = false): T {
-    const result = this.collection.upsert(item, prepend);
-    if (this.getActiveId() === this.getId(item)) {
-      this.notifyActiveItemChange();
-    } else if (!this.getActiveId()) {
-      this.notifyActiveItemChange();
-    }
-    return result;
+    return this.collection.upsert(item, prepend);
   }
 
   public update(id: string, updates: Partial<T>): T | null {
-    const updated = this.collection.update(id, updates);
-    if (updated && this.getActiveId() === id) {
-      this.notifyActiveItemChange();
-    } else if (!this.getActiveId()) {
-      // In case the implicit active item was updated
-      const activeItem = this.getActiveItem();
-      if (activeItem && this.getId(activeItem) === id) {
-        this.notifyActiveItemChange();
-      }
-    }
-    return updated;
+    return this.collection.update(id, updates);
   }
 }
