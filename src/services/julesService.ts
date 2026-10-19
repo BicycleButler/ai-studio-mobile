@@ -1,5 +1,5 @@
 import { apiFetch } from "../utils/apiClient";
-import { startPolling } from "../utils/polling";
+import { startPolling, ExponentialBackoffPollingStrategy } from "../utils/polling";
 import {
   JulesSession,
   JulesRepository,
@@ -241,7 +241,7 @@ export function subscribeToJulesTask(
         "Failed to poll task"
       ),
     {
-      intervalMs,
+      strategy: new ExponentialBackoffPollingStrategy(intervalMs, 30000, 1.5),
       onUpdate: (data) => {
         if (data.task) onUpdate(data.task);
       },
