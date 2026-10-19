@@ -99,12 +99,20 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
       const toStore = this.options.transformIn ? this.options.transformIn(item) : item;
       const setter = this.options.setter!;
       setter(this.key, toStore, this.options.storageAdapter);
-      this.cachedSnapshot = undefined;
-      const loaded = this.load();
-      this.notify(loaded);
+      // Write-through caching: bypass I/O round-trip
+      // Simulate the serialization boundary to ensure proper data transformations
+      let rawValueToCache: T;
+      try {
+          const serialized = JSON.stringify(toStore);
+          rawValueToCache = JSON.parse(serialized);
+      } catch {
+          rawValueToCache = toStore; // Fallback if stringify fails but item is valid for storage
+      }
+      this.cachedSnapshot = this.processRawValue(rawValueToCache);
+      this.notify(this.cachedSnapshot);
       if (this.options.onSave) {
         try {
-          this.options.onSave(loaded);
+          this.options.onSave(this.cachedSnapshot);
         } catch (onSaveErr) {
           console.error(`StorageBase[${this.key}]: error during onSave callback`, onSaveErr);
         }
