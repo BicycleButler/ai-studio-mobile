@@ -23,7 +23,6 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   private onActiveItemChange?: (activeItem: T | null) => void;
   private allowImplicitSelection: boolean;
   private lastActiveItemId: string | null = null;
-  private selfUnsubscribe: () => void;
   private collectionUnsubscribe: () => void;
 
   constructor(options: ActiveItemManagerOptions<T>) {
@@ -57,17 +56,6 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     const initialState = this.getSnapshot();
     this.lastActiveItemId = initialState.activeItem ? this.getId(initialState.activeItem) : null;
 
-    // Subscribe to self to trigger the side effect when state changes
-    this.selfUnsubscribe = this.subscribe((state) => {
-      const currentActiveId = state.activeItem ? this.getId(state.activeItem) : null;
-      if (this.lastActiveItemId !== currentActiveId) {
-        this.lastActiveItemId = currentActiveId;
-        if (this.onActiveItemChange) {
-          this.onActiveItemChange(state.activeItem);
-        }
-      }
-    });
-
     // Subscribe to collection changes to sync active ID if the active item was deleted
     this.collectionUnsubscribe = this.collection.subscribe((items) => {
       const activeId = this.getActiveId();
@@ -85,6 +73,17 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
         this.setActiveId(this.getId(items[0]));
       }
     });
+  }
+
+  public notify(state: ActiveItemManagerState<T>): void {
+    super.notify(state);
+    const currentActiveId = state.activeItem ? this.getId(state.activeItem) : null;
+    if (this.lastActiveItemId !== currentActiveId) {
+      this.lastActiveItemId = currentActiveId;
+      if (this.onActiveItemChange) {
+        this.onActiveItemChange(state.activeItem);
+      }
+    }
   }
 
   public getSnapshot(): ActiveItemManagerState<T> {
@@ -113,7 +112,6 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   }
 
   public dispose() {
-    this.selfUnsubscribe();
     this.collectionUnsubscribe();
     super.dispose();
   }
