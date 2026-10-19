@@ -404,7 +404,14 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
       <FloatingBatchActionBar
         isVisible={!!(selectedProjectIds && selectedProjectIds.size > 0)}
         selectedCount={selectedProjectIds?.size || 0}
-        onDelete={() => setShowBulkDeleteProjectsConfirm && setShowBulkDeleteProjectsConfirm(true)}
+        actions={[
+          {
+            label: 'Delete',
+            icon: <Trash2 />,
+            onClick: () => setShowBulkDeleteProjectsConfirm && setShowBulkDeleteProjectsConfirm(true),
+            variant: 'destructive'
+          }
+        ]}
         onClearSelection={() => clearProjectSelection && clearProjectSelection()}
       />
 

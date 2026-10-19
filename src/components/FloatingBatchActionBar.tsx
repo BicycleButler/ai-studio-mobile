@@ -1,11 +1,18 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trash2, X } from 'lucide-react';
+import { X } from 'lucide-react';
+
+export interface BatchAction {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  variant?: 'default' | 'destructive';
+}
 
 export interface FloatingBatchActionBarProps {
   isVisible: boolean;
   selectedCount: number;
-  onDelete?: () => void;
+  actions?: BatchAction[];
   onClearSelection: () => void;
   children?: React.ReactNode;
   className?: string;
@@ -14,7 +21,7 @@ export interface FloatingBatchActionBarProps {
 export const FloatingBatchActionBar: React.FC<FloatingBatchActionBarProps> = ({
   isVisible,
   selectedCount,
-  onDelete,
+  actions = [],
   onClearSelection,
   children,
   className
@@ -35,16 +42,23 @@ export const FloatingBatchActionBar: React.FC<FloatingBatchActionBarProps> = ({
 
           {children}
 
-          {onDelete && (
+          {actions.map((action, index) => (
             <button
+              key={index}
               type="button"
-              onClick={onDelete}
-              className="px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              onClick={action.onClick}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                action.variant === 'destructive'
+                  ? 'text-destructive hover:bg-destructive/10'
+                  : 'text-foreground hover:bg-muted'
+              }`}
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete
+              <span className="flex items-center justify-center [&>svg]:w-3.5 [&>svg]:h-3.5">
+                {action.icon}
+              </span>
+              {action.label}
             </button>
-          )}
+          ))}
 
           <button
             type="button"

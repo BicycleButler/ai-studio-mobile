@@ -323,7 +323,14 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       <FloatingBatchActionBar
         isVisible={selectedPromptIds.size > 0}
         selectedCount={selectedPromptIds.size}
-        onDelete={() => setShowBulkDeleteConfirm(true)}
+        actions={[
+          {
+            label: 'Delete',
+            icon: <Trash2 />,
+            onClick: () => setShowBulkDeleteConfirm(true),
+            variant: 'destructive'
+          }
+        ]}
         onClearSelection={clearSelection}
       />
 
