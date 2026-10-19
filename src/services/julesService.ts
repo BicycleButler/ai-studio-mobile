@@ -66,6 +66,191 @@ export class JulesClient {
   public getSettings(): { autoApprovePlans: boolean; defaultBranch: string } {
     return this.config.getSettings();
   }
+
+  public async verifyApiKey(apiKey: string): Promise<JulesVerificationResult> {
+    const cleanKey = apiKey.trim();
+    if (!cleanKey) {
+      return { valid: false, error: "Jules API key cannot be blank." };
+    }
+
+    try {
+      const data = await apiFetch<{ valid?: boolean; error?: string; status?: string }>("/api/jules/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: cleanKey }),
+      }, "Failed to verify Jules key");
+
+      return {
+        valid: !!data.valid,
+        error: data.error,
+        status: data.status,
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Network error verifying Jules key.";
+      return { valid: false, error: msg };
+    }
+  }
+
+  public async fetchRepositories(apiKeyOverride?: string): Promise<JulesRepository[]> {
+    const key = this.resolveApiKey(apiKeyOverride);
+    if (!key) return [];
+
+    try {
+      const data = await apiFetch<{ repositories?: JulesRepositoryItem[] }>("/api/jules/repos", {
+        headers: { "x-jules-api-key": key },
+      });
+      if (Array.isArray(data.repositories)) {
+        return data.repositories.map((repo: JulesRepositoryItem, index: number) => ({
+          id: repo.id || repo.fullName || `repo-${index}`,
+          fullName: repo.fullName || repo.name || "workspace/repo",
+          owner: repo.owner || (repo.fullName ? repo.fullName.split("/")[0] : "workspace"),
+          name: repo.name || (repo.fullName ? repo.fullName.split("/")[1] : "repo"),
+          defaultBranch: repo.defaultBranch || "main",
+          isPrivate: !!repo.isPrivate,
+          description: repo.description,
+        }));
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async createTask(
+    params: CreateJulesTaskParams
+  ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
+    const key = this.resolveApiKey(params.apiKey);
+    if (!key) {
+      return { task: null, error: "Jules API key is required. Please set it in Settings." };
+    }
+
+    try {
+      const settings = this.getSettings();
+      const autoApprove = params.autoApprove ?? settings.autoApprovePlans;
+
+      const data = await apiFetch<{ task: JulesTaskPayload }>("/api/jules/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-jules-api-key": key,
+        },
+        body: JSON.stringify({
+          repository: params.repository,
+          branch: params.branch || settings.defaultBranch || "main",
+          prompt: params.prompt,
+          autoApprove,
+        }),
+      }, "Failed to create Jules task.");
+
+      return { task: data.task };
+    } catch (err: unknown) {
+      return {
+        task: null,
+        error: err instanceof Error ? err.message : "Network error creating task.",
+      };
+    }
+  }
+
+  public async dispatchTask(
+    apiKey: string,
+    params: {
+      repository: string;
+      prompt: string;
+      branch?: string;
+      autoApprove?: boolean;
+    }
+  ): Promise<JulesTaskPayload> {
+    const result = await this.createTask({
+      repository: params.repository,
+      prompt: params.prompt,
+      branch: params.branch || "main",
+      autoApprove: params.autoApprove,
+      apiKey,
+    });
+    if (result.error || !result.task) {
+      throw new Error(result.error || "Failed to create Jules task");
+    }
+    return result.task;
+  }
+
+  public subscribeToTask(
+    apiKey: string,
+    taskId: string,
+    onUpdate: (task: JulesTaskPayload) => void,
+    onError?: (error: unknown) => void,
+    intervalMs: number = 2500
+  ): { stop: () => void } {
+    const poller = startPolling<{ task: JulesTaskPayload }>(
+      (signal) =>
+        apiFetch<{ task: JulesTaskPayload }>(
+          `/api/jules/tasks/${encodeURIComponent(taskId)}`,
+          {
+            headers: { "x-jules-api-key": apiKey || "" },
+            signal,
+          },
+          "Failed to poll task"
+        ),
+      {
+        strategy: new ExponentialBackoffPollingStrategy(intervalMs, 30000, 1.5),
+        onUpdate: (data) => {
+          if (data.task) onUpdate(data.task);
+        },
+        onError: (err) => {
+          if (onError) onError(err instanceof Error ? err : new Error(String(err)));
+        },
+        isComplete: (data) =>
+          !!data.task && (data.task.status === "completed" || data.task.status === "failed"),
+      }
+    );
+
+    return { stop: poller.stop };
+  }
+
+  public async fetchTask(
+    taskId: string,
+    apiKeyOverride?: string
+  ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
+    const apiKey = this.resolveApiKey(apiKeyOverride);
+
+    try {
+      const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
+        headers: { "x-jules-api-key": apiKey || "" },
+      }, "Failed to fetch Jules task.");
+
+      return { task: data.task };
+    } catch (err: unknown) {
+      return {
+        task: null,
+        error: err instanceof Error ? err.message : "Fetching task failed.",
+      };
+    }
+  }
+
+  public async approvePlan(
+    taskId: string,
+    approved: boolean = true,
+    apiKeyOverride?: string
+  ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
+    const key = this.resolveApiKey(apiKeyOverride);
+
+    try {
+      const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}/approve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-jules-api-key": key || "",
+        },
+        body: JSON.stringify({ approved }),
+      }, "Failed to approve Jules plan.");
+
+      return { task: data.task };
+    } catch (err: unknown) {
+      return {
+        task: null,
+        error: err instanceof Error ? err.message : "Approval request failed.",
+      };
+    }
+  }
 }
 
 // Default singleton instance for backward compatibility
@@ -106,55 +291,14 @@ export interface CreateJulesTaskParams {
  * Validates a Jules API key through the backend gateway
  */
 export async function verifyJulesApiKey(apiKey: string): Promise<JulesVerificationResult> {
-  const cleanKey = apiKey.trim();
-  if (!cleanKey) {
-    return { valid: false, error: "Jules API key cannot be blank." };
-  }
-
-  try {
-    const data = await apiFetch<{ valid?: boolean; error?: string; status?: string }>("/api/jules/auth/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey: cleanKey }),
-    }, "Failed to verify Jules key");
-
-    return {
-      valid: !!data.valid,
-      error: data.error,
-      status: data.status,
-    };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Network error verifying Jules key.";
-    return { valid: false, error: msg };
-  }
+  return defaultJulesClient.verifyApiKey(apiKey);
 }
 
 /**
  * Discovers authorized repositories for the configured Jules API key
  */
 export async function fetchJulesRepositories(apiKeyOverride?: string): Promise<JulesRepository[]> {
-  const key = defaultJulesClient.resolveApiKey(apiKeyOverride);
-  if (!key) return [];
-
-  try {
-    const data = await apiFetch<{ repositories?: JulesRepositoryItem[] }>("/api/jules/repos", {
-      headers: { "x-jules-api-key": key },
-    });
-    if (Array.isArray(data.repositories)) {
-      return data.repositories.map((repo: JulesRepositoryItem, index: number) => ({
-        id: repo.id || repo.fullName || `repo-${index}`,
-        fullName: repo.fullName || repo.name || "workspace/repo",
-        owner: repo.owner || (repo.fullName ? repo.fullName.split("/")[0] : "workspace"),
-        name: repo.name || (repo.fullName ? repo.fullName.split("/")[1] : "repo"),
-        defaultBranch: repo.defaultBranch || "main",
-        isPrivate: !!repo.isPrivate,
-        description: repo.description,
-      }));
-    }
-    return [];
-  } catch {
-    return [];
-  }
+  return defaultJulesClient.fetchRepositories(apiKeyOverride);
 }
 
 /**
@@ -163,36 +307,7 @@ export async function fetchJulesRepositories(apiKeyOverride?: string): Promise<J
 export async function createJulesTask(
   params: CreateJulesTaskParams
 ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
-  const key = defaultJulesClient.resolveApiKey(params.apiKey);
-  if (!key) {
-    return { task: null, error: "Jules API key is required. Please set it in Settings." };
-  }
-
-  try {
-    const settings = defaultJulesClient.getSettings();
-    const autoApprove = params.autoApprove ?? settings.autoApprovePlans;
-
-    const data = await apiFetch<{ task: JulesTaskPayload }>("/api/jules/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-jules-api-key": key,
-      },
-      body: JSON.stringify({
-        repository: params.repository,
-        branch: params.branch || settings.defaultBranch || "main",
-        prompt: params.prompt,
-        autoApprove,
-      }),
-    }, "Failed to create Jules task.");
-
-    return { task: data.task };
-  } catch (err: unknown) {
-    return {
-      task: null,
-      error: err instanceof Error ? err.message : "Network error creating task.",
-    };
-  }
+  return defaultJulesClient.createTask(params);
 }
 
 /**
@@ -207,17 +322,7 @@ export async function dispatchJulesTask(
     autoApprove?: boolean;
   }
 ): Promise<JulesTaskPayload> {
-  const result = await createJulesTask({
-    repository: params.repository,
-    prompt: params.prompt,
-    branch: params.branch || "main",
-    autoApprove: params.autoApprove,
-    apiKey,
-  });
-  if (result.error || !result.task) {
-    throw new Error(result.error || "Failed to create Jules task");
-  }
-  return result.task;
+  return defaultJulesClient.dispatchTask(apiKey, params);
 }
 
 /**
@@ -230,30 +335,7 @@ export function subscribeToJulesTask(
   onError?: (error: unknown) => void,
   intervalMs: number = 2500
 ): { stop: () => void } {
-  const poller = startPolling<{ task: JulesTaskPayload }>(
-    (signal) =>
-      apiFetch<{ task: JulesTaskPayload }>(
-        `/api/jules/tasks/${encodeURIComponent(taskId)}`,
-        {
-          headers: { "x-jules-api-key": apiKey || "" },
-          signal,
-        },
-        "Failed to poll task"
-      ),
-    {
-      strategy: new ExponentialBackoffPollingStrategy(intervalMs, 30000, 1.5),
-      onUpdate: (data) => {
-        if (data.task) onUpdate(data.task);
-      },
-      onError: (err) => {
-        if (onError) onError(err instanceof Error ? err : new Error(String(err)));
-      },
-      isComplete: (data) =>
-        !!data.task && (data.task.status === "completed" || data.task.status === "failed"),
-    }
-  );
-
-  return { stop: poller.stop };
+  return defaultJulesClient.subscribeToTask(apiKey, taskId, onUpdate, onError, intervalMs);
 }
 
 /**
@@ -263,20 +345,7 @@ export async function fetchJulesTask(
   taskId: string,
   apiKeyOverride?: string
 ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
-  const apiKey = defaultJulesClient.resolveApiKey(apiKeyOverride);
-
-  try {
-    const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
-      headers: { "x-jules-api-key": apiKey || "" },
-    }, "Failed to fetch Jules task.");
-
-    return { task: data.task };
-  } catch (err: unknown) {
-    return {
-      task: null,
-      error: err instanceof Error ? err.message : "Fetching task failed.",
-    };
-  }
+  return defaultJulesClient.fetchTask(taskId, apiKeyOverride);
 }
 
 /**
@@ -287,25 +356,7 @@ export async function approveJulesPlan(
   approved: boolean = true,
   apiKeyOverride?: string
 ): Promise<{ task: JulesTaskPayload | null; error?: string }> {
-  const key = defaultJulesClient.resolveApiKey(apiKeyOverride);
-
-  try {
-    const data = await apiFetch<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}/approve`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-jules-api-key": key || "",
-      },
-      body: JSON.stringify({ approved }),
-    }, "Failed to approve Jules plan.");
-
-    return { task: data.task };
-  } catch (err: unknown) {
-    return {
-      task: null,
-      error: err instanceof Error ? err.message : "Approval request failed.",
-    };
-  }
+  return defaultJulesClient.approvePlan(taskId, approved, apiKeyOverride);
 }
 
 /**
