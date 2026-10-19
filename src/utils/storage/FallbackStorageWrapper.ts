@@ -46,7 +46,7 @@ export class FallbackStorageWrapper implements Storage {
     try {
       this.activeStorage.setItem(key, value);
     } catch (e) {
-      if (e && typeof e === "object" && "name" in e && e.name === "QuotaExceededError") {
+      if (e && typeof e === "object" && "name" in e && (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED")) {
         console.warn(`Storage quota exceeded when writing ${key}. Attempting emergency purge...`);
         const win = getSafeWindow();
         if (win) {
