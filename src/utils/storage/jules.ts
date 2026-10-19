@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from "./constants";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
+import { apiFetch } from "../apiClient";
 
 const julesApiKeySingleton = new StorageSingleton<string>(
   STORAGE_KEYS.JULES_API_KEY,
@@ -39,7 +40,7 @@ const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS
       const isOnline = win && typeof win.navigator.onLine === "boolean" ? win.navigator.onLine : true;
 
       if (isOnline) {
-        fetch("/api/jules/sessions", {
+        apiFetch("/api/jules/sessions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -75,33 +76,30 @@ export function saveStoredJulesSessions(sessions: JulesSession[]): void {
 
 export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
   try {
-    const res = await fetch("/api/jules/sessions");
-    if (res.ok) {
-      const data = await res.json();
-      const cleanServerSessions = Array.isArray(data) ? cleanMockData(data, "jules") as JulesSession[] : [];
+    const data = await apiFetch<unknown>("/api/jules/sessions");
+    const cleanServerSessions = Array.isArray(data) ? cleanMockData(data, "jules") as JulesSession[] : [];
 
-      const localSessions = loadStoredJulesSessions();
-      const localSessionMap = new Map(localSessions.map(s => [s.id, s]));
+    const localSessions = loadStoredJulesSessions();
+    const localSessionMap = new Map(localSessions.map(s => [s.id, s]));
 
-      // Merge server sessions with local ones, preferring local modifications if they are newer
-      const mergedSessions = cleanServerSessions.map(serverSession => {
-        const localSession = localSessionMap.get(serverSession.id);
-        if (localSession && (localSession.updatedAt || 0) > (serverSession.updatedAt || 0)) {
-          return localSession;
-        }
-        return serverSession;
-      });
-
-      // Add any local sessions that aren't on the server yet
-      for (const localSession of localSessions) {
-        if (!mergedSessions.some(s => s.id === localSession.id)) {
-          mergedSessions.push(localSession);
-        }
+    // Merge server sessions with local ones, preferring local modifications if they are newer
+    const mergedSessions = cleanServerSessions.map(serverSession => {
+      const localSession = localSessionMap.get(serverSession.id);
+      if (localSession && (localSession.updatedAt || 0) > (serverSession.updatedAt || 0)) {
+        return localSession;
       }
+      return serverSession;
+    });
 
-      julesSessionsManager.collection.save(mergedSessions);
-      return mergedSessions;
+    // Add any local sessions that aren't on the server yet
+    for (const localSession of localSessions) {
+      if (!mergedSessions.some(s => s.id === localSession.id)) {
+        mergedSessions.push(localSession);
+      }
     }
+
+    julesSessionsManager.collection.save(mergedSessions);
+    return mergedSessions;
   } catch (e) {
     console.error("Failed to fetch Jules sessions from server", e);
   }

@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "../utils/platform";
+import { isBrowserEnvironment, getSafeWindow } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
 import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection, StorageRegistry } from "../utils/storage";
 import { isMockSession } from "../utils/mockDefinitions";
@@ -18,6 +18,43 @@ export interface IChatHistoryService {
 }
 
 export class ChatHistoryService implements IChatHistoryService {
+  private boundHandleQuotaExceeded: () => void;
+
+  constructor() {
+    this.boundHandleQuotaExceeded = this.handleQuotaExceeded.bind(this);
+    if (isBrowserEnvironment()) {
+      const win = getSafeWindow();
+      if (win) {
+        win.addEventListener("storage_quota_exceeded", this.boundHandleQuotaExceeded);
+      }
+    }
+  }
+
+  private handleQuotaExceeded(): void {
+    console.warn("ChatHistoryService: Storage quota exceeded. Evicting old chat histories to recover space.");
+    try {
+      const keysToClean = safeGetStorageKeys(STORAGE_KEYS.CHAT_SESSIONS_PREFIX);
+      keysToClean.forEach((key) => {
+        const collection = this.getChatCollectionByKey(key);
+        let sessions = collection.load();
+
+        // Sort by updatedAt descending
+        sessions = [...sessions].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+        // Keep only top 10
+        if (sessions.length > 10) {
+            const retained = sessions.slice(0, 10);
+            // We use raw setter here to bypass the write-through pipeline temporarily or just use the collection
+            // We must be careful not to trigger another quota error, but we are *shrinking* the data.
+            collection.save(retained);
+            console.log(`ChatHistoryService: Evicted ${sessions.length - 10} sessions from ${key}`);
+        }
+      });
+    } catch (e) {
+      console.error("ChatHistoryService: Failed to handle quota exceeded event", e);
+    }
+  }
+
   private collectionRegistry = new StorageRegistry<StorageCollection<ChatSession>>((key) => {
     return new StorageCollection<ChatSession>(key, {
       keyExtractor: (item) => String(item.id || ""),
