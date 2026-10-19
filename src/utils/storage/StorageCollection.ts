@@ -2,8 +2,8 @@ import { ArrayCollection } from "./ArrayCollection";
 import { StorageEngine, StorageEngineOptions } from "./StorageEngine";
 import { Observable } from "../observable";
 import { isBrowserEnvironment, getSafeWindow } from "../platform";
-import { safeGetStorage, safeSetStorage } from "./core";
-import { IMutableCollection, IDisposable, ICollectionEngine } from "./types";
+
+import { IMutableCollection, IDisposable, ICollectionEngine, IStorageAdapter } from "./types";
 
 export interface StorageCollectionOptions<T> {
   engine?: ICollectionEngine<T>;
@@ -12,9 +12,8 @@ export interface StorageCollectionOptions<T> {
   transformOut?: (item: T) => T;
   validate?: (item: unknown) => boolean;
   maxItems?: number;
-  getter?: (key: string, fallback: T[]) => T[];
-  setter?: (key: string, value: T[]) => boolean;
-  onSave?: (items: T[]) => void;
+  adapter?: IStorageAdapter<T[]>;
+      onSave?: (items: T[]) => void;
   storageAdapter?: Storage;
 }
 
@@ -59,12 +58,11 @@ export class StorageCollection<T> extends Observable<T[]> implements IMutableCol
       : undefined;
 
     const engineOptions: StorageEngineOptions<T[]> = {
+      adapter: options?.adapter,
       fallback: [],
       transformIn: arrayTransformIn,
       transformOut: arrayTransformOut,
-      getter: options?.getter || (safeGetStorage as unknown as (key: string, fallback: T[], storageInstance?: Storage) => T[]),
-      setter: options?.setter || safeSetStorage,
-      storageAdapter: options?.storageAdapter,
+                  storageAdapter: options?.storageAdapter,
     };
 
     this.storageEngine = new StorageEngine(key, engineOptions);

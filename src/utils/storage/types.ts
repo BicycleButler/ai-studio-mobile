@@ -35,3 +35,9 @@ export interface IMutableSingleton<T> extends IReadableStore<T> {
   clear: () => void;
   load: () => T;
 }
+
+export interface IStorageAdapter<T> {
+  get(key: string, fallback: T): T;
+  set(key: string, value: T): void;
+  remove(key: string): void;
+}

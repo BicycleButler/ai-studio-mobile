@@ -88,7 +88,7 @@ describe('ComputedStore', () => {
     store1.notify(5);
 
     // We must wait for Observable's microtask to mark computed as dirty
-    await new Promise(resolve => queueMicrotask(resolve));
+    await new Promise(resolve => queueMicrotask(() => resolve(undefined)));
 
     // Call getSnapshot synchronously while dirty
     expect(computed.getSnapshot()).toBe(10);
@@ -98,7 +98,7 @@ describe('ComputedStore', () => {
     expect(notifyCount).toBe(0);
 
     // Wait for ComputedStore's microtask
-    await new Promise(resolve => queueMicrotask(resolve));
+    await new Promise(resolve => queueMicrotask(() => resolve(undefined)));
 
     // Notification should fire with the updated value
     expect(notifyCount).toBe(1);

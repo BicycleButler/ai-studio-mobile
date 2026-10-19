@@ -23,7 +23,7 @@ function assert(condition: boolean, message: string): void {
 }
 
 describe('testKeyVerificationSubsystem', () => {
-  test('main', () => {
+  test('main', async () => {
   // Test 1: Standard Google API Key pattern validation (AIza + 35 characters = 39 chars total)
   const validStandardKey = "AIzaSyD" + "A".repeat(32); // 4 + 35 = 39 chars
   assert(validStandardKey.length === 39, "Standard key must be 39 chars long");
@@ -88,6 +88,7 @@ describe('testKeyVerificationSubsystem', () => {
   assert(testProject.id.startsWith("proj_"), "Project must have generated id");
   assert(testProject.defaultModel === "gemini-2.5-flash", "Project default model must be gemini-2.5-flash");
 
+  await Promise.resolve();
   const active = projectsManager.getActiveItem();
   assert(active !== null, "Active project must exist");
   assert(active?.id === testProject.id, "Active project ID must match newly activated project");
@@ -98,6 +99,7 @@ describe('testKeyVerificationSubsystem', () => {
 
   // Cleanup test project
   projectsManager.collection.delete(testProject.id);
+  await Promise.resolve(); // wait for cleanup
 
 
   });

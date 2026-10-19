@@ -1,28 +1,26 @@
 import { deepFreeze } from "./helpers";
-import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./core";
+import { DefaultStorageAdapter } from "./core";
+import { IStorageAdapter } from "./types";
 
 export interface StorageEngineOptions<T> {
   fallback: T;
   transformIn?: (item: T) => T;
   transformOut?: (item: T) => T;
   validate?: (item: unknown) => boolean;
-  getter?: (key: string, fallback: T, storageInstance?: Storage) => T;
-  setter?: (key: string, value: T, storageInstance?: Storage) => void;
+  adapter?: IStorageAdapter<T>;
   storageAdapter?: Storage;
 }
 
 export class StorageEngine<T> {
   private key: string;
   private options: StorageEngineOptions<T>;
+  private adapter: IStorageAdapter<T>;
   private cachedSnapshot: T | undefined = undefined;
 
   constructor(key: string, options: StorageEngineOptions<T>) {
     this.key = key;
-    this.options = {
-      ...options,
-      getter: options.getter || safeGetStorage,
-      setter: options.setter || safeSetStorage,
-    };
+    this.options = options;
+    this.adapter = options.adapter || new DefaultStorageAdapter<T>(options.storageAdapter);
   }
 
   private processRawValue(raw: T): T {
@@ -60,8 +58,7 @@ export class StorageEngine<T> {
       return this.cachedSnapshot;
     }
     try {
-      const getter = this.options.getter!;
-      const raw = getter(this.key, this.options.fallback, this.options.storageAdapter);
+      const raw = this.adapter.get(this.key, this.options.fallback);
       this.cachedSnapshot = this.processRawValue(raw);
       return this.cachedSnapshot;
     } catch (err) {
@@ -75,8 +72,7 @@ export class StorageEngine<T> {
   public save(item: T): T {
     try {
       const toStore = this.options.transformIn ? this.options.transformIn(item) : item;
-      const setter = this.options.setter!;
-      setter(this.key, toStore, this.options.storageAdapter);
+      this.adapter.set(this.key, toStore);
       // Write-through caching: bypass I/O round-trip
       // Simulate the serialization boundary to ensure proper data transformations
       let rawValueToCache: T;
@@ -95,7 +91,7 @@ export class StorageEngine<T> {
   }
 
   public clear(): T {
-    safeRemoveStorage(this.key, this.options.storageAdapter);
+    this.adapter.remove(this.key);
     this.cachedSnapshot = undefined;
     return this.load();
   }
