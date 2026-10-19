@@ -64,7 +64,7 @@ import { fetchTTSAudioUrl } from "../services/speechVoices";
 
 import {
   julesSessionsManager,
-  saveStoredJulesSessions,
+
 } from "../utils/storage";
 
 interface ChatWorkspaceProps {
@@ -999,7 +999,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const handleDeleteSession = (sessionId: string) => {
     if (isJulesMode) {
       const all = julesSessionsManager.getItems().filter((s) => s.id !== sessionId);
-      saveStoredJulesSessions(all);
+      julesSessionsManager.collection.save(all);
       setHistorySessions(
         all.map((js) => ({
           id: js.id,

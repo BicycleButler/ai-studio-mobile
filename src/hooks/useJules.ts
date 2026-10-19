@@ -6,9 +6,9 @@ import {
   loadStoredJulesApiKey,
   saveStoredJulesApiKey,
   fetchJulesSessionsFromServer,
-  getActiveJulesSession,
-  setActiveJulesSessionId,
-  updateStoredJulesSession,
+
+
+
 } from "../utils/storage";
 import {
   useStorage,
@@ -43,14 +43,14 @@ export function useJules() {
   };
   const [isJulesExecuting, setIsJulesExecuting] = useState(false);
   const [isApprovingJulesPlan, setIsApprovingJulesPlan] = useState(false);
-  const [julesMessages, setJulesMessages] = useState<ChatMessage[]>(() => getActiveJulesSession()?.messages || []);
+  const [julesMessages, setJulesMessages] = useState<ChatMessage[]>(() => julesSessionsManager.getActiveItem()?.messages || []);
 
   const julesPollingRef = useRef<{ stop: () => void } | null>(null);
 
   useEffect(() => {
     fetchJulesSessionsFromServer().then(() => {
 
-      const activeSession = getActiveJulesSession();
+      const activeSession = julesSessionsManager.getActiveItem();
       setActiveJulesSession(activeSession);
       if (activeSession) {
         setJulesMessages(activeSession.messages || []);
@@ -76,7 +76,7 @@ export function useJules() {
     setJulesMessages([]);
     if (activeJulesSession) {
       const updated = { ...activeJulesSession, messages: [], updatedAt: Date.now() };
-      updateStoredJulesSession(updated);
+      julesSessionsManager.collection.upsert(updated);
       setActiveJulesSession(updated);
     }
   }, [activeJulesSession, handleStopJulesPolling]);
@@ -141,7 +141,7 @@ export function useJules() {
         messages: updatedMessages,
         updatedAt: Date.now(),
       };
-      updateStoredJulesSession(sessionWithMessages);
+      julesSessionsManager.collection.upsert(sessionWithMessages);
       setActiveJulesSession(sessionWithMessages);
       setJulesSessions((prev) =>
         prev.map((s) => (s.id === sessionWithMessages.id ? sessionWithMessages : s))
@@ -319,7 +319,7 @@ export function useJules() {
   const handleSelectSession = useCallback((sess: Partial<JulesSession>) => {
     const jSession = julesSessions.find((s) => s.id === sess.id);
     if (jSession) {
-      setActiveJulesSessionId(jSession.id);
+      julesSessionsManager.setActiveId(jSession.id);
       setActiveJulesSession(jSession);
       setJulesMessages(jSession.messages || []);
     }
@@ -335,7 +335,7 @@ export function useJules() {
     if (activeJulesSession && sessionIds.includes(activeJulesSession.id)) {
 
       setJulesMessages([]);
-      setActiveJulesSessionId(null);
+      julesSessionsManager.setActiveId(null);
     }
   }, [activeJulesSession]);
 
@@ -345,7 +345,7 @@ export function useJules() {
       const hasMessagesChanged = activeJulesSession.messages !== julesMessages;
       if (hasMessagesChanged) {
         const updatedSess = { ...activeJulesSession, messages: julesMessages, updatedAt: Date.now() };
-        updateStoredJulesSession(updatedSess);
+        julesSessionsManager.collection.upsert(updatedSess);
 
         setActiveJulesSession(updatedSess);
 

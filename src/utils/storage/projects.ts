@@ -56,9 +56,10 @@ export function setActiveProjectId(id: string | null): void {
   projectsManager.setActiveId(id);
 }
 
-export function getActiveProject(): ProjectInfo | null {
-  return projectsManager.getActiveItem();
-}
+
+
+
+
 
 export function saveAndActivateProject(
   projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
@@ -82,20 +83,4 @@ export function saveAndActivateProject(
   projectsManager.setActiveId(savedProject.id);
 
   return savedProject;
-}
-
-export function deleteStoredProject(id: string): void {
-  projectsManager.collection.delete(id);
-}
-
-export function bulkDeleteStoredProjects(ids: string[]): void {
-  if (!ids || ids.length === 0) return;
-  projectsManager.collection.bulkDelete(ids);
-}
-
-export function updateStoredProject(
-  id: string,
-  updates: Partial<Omit<ProjectInfo, "id" | "createdAt">>
-): ProjectInfo | null {
-  return projectsManager.collection.update(id, { ...updates, updatedAt: Date.now() });
 }

@@ -11,8 +11,9 @@ import {
   decryptSecret,
   loadStoredProjects,
   saveAndActivateProject,
-  getActiveProject,
-  deleteStoredProject,
+
+
+  projectsManager,
 } from "../utils/storage";
 
 function assert(condition: boolean, message: string): void {
@@ -87,7 +88,7 @@ describe('testKeyVerificationSubsystem', () => {
   assert(testProject.id.startsWith("proj_"), "Project must have generated id");
   assert(testProject.defaultModel === "gemini-2.5-flash", "Project default model must be gemini-2.5-flash");
 
-  const active = getActiveProject();
+  const active = projectsManager.getActiveItem();
   assert(active !== null, "Active project must exist");
   assert(active?.id === testProject.id, "Active project ID must match newly activated project");
   assert(active?.apiKey === validStandardKey, "Active project decrypted API key must match");
@@ -96,7 +97,7 @@ describe('testKeyVerificationSubsystem', () => {
   assert(projects.some((p) => p.id === testProject.id), "Project must be present in stored projects list");
 
   // Cleanup test project
-  deleteStoredProject(testProject.id);
+  projectsManager.collection.delete(testProject.id);
 
 
   });

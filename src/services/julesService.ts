@@ -9,13 +9,14 @@ import {
 } from "../types";
 import {
   loadStoredJulesApiKey,
-  loadStoredJulesSessions,
+
   loadStoredJulesSettings,
-  updateStoredJulesSession,
-  deleteStoredJulesSession,
-  bulkDeleteStoredJulesSessions,
+
+
+
 } from "../utils/storage";
 import { generateUniqueId } from "../utils/idGenerator";
+import { julesSessionsManager } from "../utils/storage";
 
 export interface JulesTaskPayload {
   id: string;
@@ -363,20 +364,20 @@ export async function approveJulesPlan(
  * Session storage management for Jules sessions
  */
 export function getStoredJulesSessions(): JulesSession[] {
-  return loadStoredJulesSessions();
+  return julesSessionsManager.getItems();
 }
 
 export function saveJulesSession(session: JulesSession): void {
-  updateStoredJulesSession(session);
+  julesSessionsManager.collection.upsert(session);
 }
 
 export function deleteJulesSession(sessionId: string): void {
-  deleteStoredJulesSession(sessionId);
+  julesSessionsManager.collection.delete(sessionId);
 }
 
 export function bulkDeleteJulesSessions(sessionIds: string[]): void {
   if (!sessionIds || sessionIds.length === 0) return;
-  bulkDeleteStoredJulesSessions(sessionIds);
+  julesSessionsManager.collection.bulkDelete(sessionIds);
 }
 
 export function createNewJulesSession(
