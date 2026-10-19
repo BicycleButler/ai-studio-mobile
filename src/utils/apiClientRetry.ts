@@ -1,4 +1,5 @@
 import { RETRYABLE_STATUS_CODES, BaseApiError, isAbortError } from "./apiClientErrors";
+import { IDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
 
 export interface RetryConfig {
   retryableStatusCodes?: Set<number>;
@@ -17,6 +18,14 @@ export interface IRetryStrategy {
 }
 
 export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
+  private delayStrategy: IDelayStrategy;
+
+  constructor(delayStrategy?: IDelayStrategy) {
+    // By default, start with baseDelayMs, max limit isn't strictly needed for small retry counts
+    // but the strategy takes base, max, multiplier.
+    this.delayStrategy = delayStrategy || new ExponentialBackoffDelayStrategy(1000, 10000, 2, 500);
+  }
+
   async execute(
     url: string,
     options: RequestInit,
@@ -24,6 +33,16 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
   ): Promise<Response> {
     const { retries, baseDelayMs, fetcher } = config;
     const retryableCodes = config.retryableStatusCodes || RETRYABLE_STATUS_CODES;
+
+    // Override the base delay on the strategy if it's explicitly passed in config to preserve API.
+    // We try to use the injected strategy if it supports being re-initialized, but since our IDelayStrategy
+    // doesn't have a setter, we dynamically create an override if baseDelayMs differs from the default,
+    // otherwise we use the composed strategy.
+    let effectiveStrategy = this.delayStrategy;
+    if (baseDelayMs !== 1000 && this.delayStrategy instanceof ExponentialBackoffDelayStrategy) {
+       effectiveStrategy = new ExponentialBackoffDelayStrategy(baseDelayMs, 10000, 2, baseDelayMs);
+    }
+
     let attempt = 0;
     let lastError: unknown;
     let lastResponse: Response | undefined;
@@ -35,7 +54,7 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
           return res;
         }
         lastResponse = res;
-        lastError = undefined;
+        lastError = new Error(`Request failed with status ${res.status}`); // For the delay calculation
       } catch (err: unknown) {
         if (isAbortError(err)) throw err;
         lastError = err;
@@ -52,7 +71,7 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
         break;
       }
 
-      const delay = Math.pow(2, attempt) * baseDelayMs + Math.random() * baseDelayMs;
+      const delay = effectiveStrategy.getNextDelayMs(attempt + 1, lastError);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
 

@@ -1,9 +1,10 @@
 import { ArrayCollection } from "./ArrayCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { safeGetStorage, safeSetStorage } from "./core";
-import { IMutableCollection, IDisposable } from "./types";
+import { IMutableCollection, IDisposable, ICollectionEngine } from "./types";
 
 export interface StorageCollectionOptions<T> {
+  engine?: ICollectionEngine<T>;
   keyExtractor?: (item: T) => string;
   transformIn?: (item: T) => T;
   transformOut?: (item: T) => T;
@@ -16,7 +17,7 @@ export interface StorageCollectionOptions<T> {
 }
 
 export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCollection<T>, IDisposable {
-  private arrayCollection: ArrayCollection<T>;
+  private engine: ICollectionEngine<T>;
   private keyExtractor: (item: T) => string;
 
   constructor(
@@ -61,7 +62,7 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
     super(key, baseOptions);
 
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
-    this.arrayCollection = new ArrayCollection<T>(this.keyExtractor);
+    this.engine = options?.engine || new ArrayCollection<T>(this.keyExtractor);
   }
 
   private applyOperation<R extends { items: T[]; changed: boolean }>(
@@ -76,33 +77,33 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
 
   update(id: string, updates: Partial<T>): T | null {
     if (!id) return null;
-    return this.applyOperation((items) => this.arrayCollection.update(items, id, updates)).item || null;
+    return this.applyOperation((items) => this.engine.update(items, id, updates)).item || null;
   }
 
   bulkUpdate(updates: { id: string; changes: Partial<T> }[]): T[] {
     if (!updates || updates.length === 0) return this.load();
-    this.applyOperation((items) => this.arrayCollection.bulkUpdate(items, updates));
+    this.applyOperation((items) => this.engine.bulkUpdate(items, updates));
     return this.load();
   }
 
   bulkDelete(ids: string[]): T[] {
     if (!ids || ids.length === 0) return this.load();
-    this.applyOperation((items) => this.arrayCollection.bulkDelete(items, ids));
+    this.applyOperation((items) => this.engine.bulkDelete(items, ids));
     return this.load();
   }
 
   delete(id: string): T[] {
     if (!id) return this.load();
-    return this.bulkDelete([id]);
+    return this.applyOperation((items) => this.engine.delete(items, id)).items;
   }
 
   upsert(item: T, prepend = false): T {
-    return this.applyOperation((items) => this.arrayCollection.upsert(items, item, prepend)).item as T;
+    return this.applyOperation((items) => this.engine.upsert(items, item, prepend)).item as T;
   }
 
   bulkUpsert(newItems: T[], prepend = false): T[] {
     if (!newItems || newItems.length === 0) return this.load();
-    this.applyOperation((items) => this.arrayCollection.bulkUpsert(items, newItems, prepend));
+    this.applyOperation((items) => this.engine.bulkUpsert(items, newItems, prepend));
     return this.load();
   }
 

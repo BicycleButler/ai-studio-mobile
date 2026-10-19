@@ -1,33 +1,10 @@
-export interface IPollingStrategy {
-  getNextDelayMs(attempt: number, lastError?: unknown): number;
-}
+import { IDelayStrategy, FixedIntervalDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
 
-export class FixedIntervalPollingStrategy implements IPollingStrategy {
-  constructor(private intervalMs: number = 2500) {}
+export interface IPollingStrategy extends IDelayStrategy {}
 
-  getNextDelayMs(_attempt: number, _lastError?: unknown): number {
-    return this.intervalMs;
-  }
-}
+export class FixedIntervalPollingStrategy extends FixedIntervalDelayStrategy implements IPollingStrategy {}
 
-export class ExponentialBackoffPollingStrategy implements IPollingStrategy {
-  constructor(
-    private baseDelayMs: number = 2500,
-    private maxDelayMs: number = 30000,
-    private multiplier: number = 2
-  ) {}
-
-  getNextDelayMs(attempt: number, lastError?: unknown): number {
-    if (lastError) {
-      // If there's an error, apply exponential backoff
-      const backoff = this.baseDelayMs * Math.pow(this.multiplier, attempt - 1);
-      const delay = Math.min(backoff, this.maxDelayMs);
-      return delay + Math.random() * 500; // Add jitter
-    }
-    // No error, keep the base delay
-    return this.baseDelayMs;
-  }
-}
+export class ExponentialBackoffPollingStrategy extends ExponentialBackoffDelayStrategy implements IPollingStrategy {}
 
 export interface PollingOptions<T> {
   intervalMs?: number; // Kept for backwards compatibility
