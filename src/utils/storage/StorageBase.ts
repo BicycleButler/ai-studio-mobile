@@ -1,4 +1,4 @@
-import { Observable } from "../observable";
+import { Observable, IObservable } from "../observable";
 import { isBrowserEnvironment, getSafeWindow } from "../platform";
 import { IDisposable } from "./StorageRegistry";
 import { deepFreeze } from "./helpers";

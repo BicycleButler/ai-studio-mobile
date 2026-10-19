@@ -1,7 +1,7 @@
 import { get, set } from "idb-keyval";
 import { generateUniqueId } from "./idGenerator";
 import { Mutex } from "./mutex";
-import { Observable } from "./observable";
+import { Observable, IObservable } from "./observable";
 
 export interface AsyncStorage {
   getItem<T>(key: string): Promise<T | undefined>;
@@ -86,7 +86,7 @@ export type SyncHandler = (mutation: OfflineMutation) => Promise<{ success: bool
 export const OFFLINE_QUEUE_KEY = "ai_studio_offline_mutations";
 
 export interface IOfflineService {
-  queueObservable: Observable<OfflineMutation[]>;
+  queueObservable: IObservable<OfflineMutation[]>;
   registerSyncHandler(type: string, handler: SyncHandler): void;
   enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void>;
   removeOfflineMutation(id: string): Promise<void>;
@@ -99,7 +99,7 @@ export interface IOfflineService {
 export class OfflineService implements IOfflineService {
   private syncRegistry: Record<string, SyncHandler> = {};
   private queueMutex = new Mutex();
-  public queueObservable = new Observable<OfflineMutation[]>();
+  public queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>();
   private cachedQueue: OfflineMutation[] = [];
   private channel?: BroadcastChannel;
 
