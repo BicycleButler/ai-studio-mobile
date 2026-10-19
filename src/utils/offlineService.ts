@@ -225,7 +225,8 @@ export class OfflineService implements IOfflineService {
     const conflicts: ConflictData[] = [];
     let processSuccess = true;
 
-    for (const mutation of queue) {
+    for (let i = 0; i < queue.length; i++) {
+      const mutation = queue[i];
       let success = false;
       try {
         const handler = this.syncRegistry[mutation.type];
@@ -243,8 +244,13 @@ export class OfflineService implements IOfflineService {
       }
 
       if (!success) {
-        remainingQueue.push(mutation);
+        // Strict FIFO Halting: Break out of the processing loop entirely on the first failure.
+        // This ensures causal consistency (e.g. don't try to sync an "update" if the "create" failed).
         processSuccess = false;
+
+        // Push the failed mutation and ALL subsequent mutations to the remaining queue
+        remainingQueue.push(...queue.slice(i));
+        break;
       }
     }
 
