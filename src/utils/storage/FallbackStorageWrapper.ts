@@ -1,4 +1,5 @@
 import { MemoryStorage } from "./core";
+import { getSafeWindow } from "../platform";
 
 export class FallbackStorageWrapper implements Storage {
   private activeStorage: Storage;
@@ -47,6 +48,18 @@ export class FallbackStorageWrapper implements Storage {
     } catch (e) {
       if (e && typeof e === "object" && "name" in e && e.name === "QuotaExceededError") {
         console.warn(`Storage quota exceeded when writing ${key}. Attempting emergency purge...`);
+        const win = getSafeWindow();
+        if (win) {
+          try {
+             win.dispatchEvent(new CustomEvent("storage_quota_exceeded"));
+             // Retry write after synchronous event dispatch which may have cleared space
+             this.activeStorage.setItem(key, value);
+             console.log(`Successfully recovered storage quota for write to ${key}`);
+             return;
+          } catch (retryError) {
+             console.warn(`Retry failed after emergency purge for ${key}:`, retryError);
+          }
+        }
       } else {
         console.warn(`Failed to stringify/write ${key} to storage:`, e);
       }

@@ -104,7 +104,13 @@ export class ApiClient implements IApiClient {
 
     const contentType = res.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
-      return res.json() as Promise<T>;
+      try {
+        return await res.json() as T;
+      } catch (err: unknown) {
+        const headersRecord: Record<string, string> = {};
+        res.headers.forEach((value, key) => { headersRecord[key] = value; });
+        throw BaseApiError.fromResponse("Invalid JSON response from server", res.status, headersRecord, endpoint, err);
+      }
     }
 
     const text = await res.text();
