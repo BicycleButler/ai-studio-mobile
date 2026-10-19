@@ -13,6 +13,7 @@ export interface IObservable<T> extends IReadableStore<T> {
 export class Observable<T> implements IObservable<T> {
   protected listeners = new Set<Listener<T>>();
   protected currentState?: T;
+  private isNotificationPending = false;
 
   constructor(initialState?: T) {
     this.currentState = initialState;
@@ -27,12 +28,22 @@ export class Observable<T> implements IObservable<T> {
 
   public notify(state: T): void {
     this.currentState = state;
-    for (const listener of this.listeners) {
-      try {
-        listener(state);
-      } catch (err: unknown) {
-        console.error("Error in listener:", err);
-      }
+
+    // Batch notifications via microtask to prevent render thrashing
+    // if multiple synchronous updates occur in the same tick.
+    if (!this.isNotificationPending) {
+      this.isNotificationPending = true;
+      queueMicrotask(() => {
+        this.isNotificationPending = false;
+        const snapshot = this.currentState as T;
+        for (const listener of this.listeners) {
+          try {
+            listener(snapshot);
+          } catch (err: unknown) {
+            console.error("Error in listener:", err);
+          }
+        }
+      });
     }
   }
 
