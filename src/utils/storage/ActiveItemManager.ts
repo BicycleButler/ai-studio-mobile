@@ -23,7 +23,6 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   private onActiveItemChange?: (activeItem: T | null) => void;
   private allowImplicitSelection: boolean;
   private lastActiveItemId: string | null = null;
-  private collectionUnsubscribe: () => void;
 
   constructor(options: ActiveItemManagerOptions<T>) {
     const allowImplicitSelection = options.allowImplicitSelection ?? true;
@@ -55,24 +54,6 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     // Call it initially
     const initialState = this.getSnapshot();
     this.lastActiveItemId = initialState.activeItem ? this.getId(initialState.activeItem) : null;
-
-    // Subscribe to collection changes to sync active ID if the active item was deleted
-    this.collectionUnsubscribe = this.collection.subscribe((items) => {
-      const activeId = this.getActiveId();
-      if (activeId && items) {
-        const stillExists = items.some(p => this.getId(p) === activeId);
-        if (!stillExists) {
-          if (items.length > 0 && this.allowImplicitSelection) {
-            this.setActiveId(this.getId(items[0]));
-          } else {
-            this.setActiveId(null);
-          }
-        }
-      } else if (!activeId && items && items.length > 0 && this.allowImplicitSelection) {
-        // If there's no active ID but items exist, auto-select the first one
-        this.setActiveId(this.getId(items[0]));
-      }
-    });
   }
 
   public notify(state: ActiveItemManagerState<T>): void {
@@ -95,8 +76,8 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   }
 
   public getActiveId(): string | null {
-    const val = this.activeIdSingleton.load();
-    return val ? val : null;
+    const state = this.getSnapshot();
+    return state.activeItem ? this.getId(state.activeItem) : null;
   }
 
   public setActiveId(id: string | null): void {
@@ -112,7 +93,6 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   }
 
   public dispose() {
-    this.collectionUnsubscribe();
     super.dispose();
   }
 }
