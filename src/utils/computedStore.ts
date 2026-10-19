@@ -1,4 +1,4 @@
-import { Observable, IReadableStore, IObservable } from "./observable";
+import { Observable, IReadableStore } from "./observable";
 
 export class ComputedStore<T> extends Observable<T> {
   private unsubscribes: Array<() => void> = [];

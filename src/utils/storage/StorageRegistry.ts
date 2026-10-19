@@ -1,7 +1,3 @@
-export interface IDisposable {
-  dispose(): void;
-}
-
 export class StorageRegistry<TStore> {
   private cache = new Map<string, TStore>();
   private disposer?: (store: TStore) => void;

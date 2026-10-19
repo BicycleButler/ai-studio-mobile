@@ -1,6 +1,5 @@
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
-import { IMutableSingleton } from "./types";
-import { IDisposable } from "./StorageRegistry";
+import { IMutableSingleton, IDisposable } from "./types";
 
 export class StorageSingleton<T> extends StorageBase<T> implements IMutableSingleton<T>, IDisposable {
   constructor(
