@@ -1,6 +1,5 @@
-import { Observable } from "../observable";
 import { ArrayCollection } from "./ArrayCollection";
-import { StorageEngine, StorageEngineOptions } from "./StorageEngine";
+import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { safeGetStorage, safeSetStorage } from "./core";
 import { IMutableCollection } from "./types";
 import { IDisposable } from "./StorageRegistry";
@@ -17,9 +16,7 @@ export interface StorageCollectionOptions<T> {
   storageAdapter?: Storage;
 }
 
-export class StorageCollection<T> extends Observable<T[]> implements IMutableCollection<T>, IDisposable {
-  private engine: StorageEngine<T[]>;
-  private unsubscribeEngine: () => void;
+export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCollection<T>, IDisposable {
   private arrayCollection: ArrayCollection<T>;
   private keyExtractor: (item: T) => string;
 
@@ -27,8 +24,6 @@ export class StorageCollection<T> extends Observable<T[]> implements IMutableCol
     key: string,
     options?: StorageCollectionOptions<T>
   ) {
-    super();
-
     const arrayTransformIn = (items: T[]) => {
       let processed = options?.transformIn ? items.map(options.transformIn) : items;
       if (options?.maxItems !== undefined && processed.length > options.maxItems) {
@@ -54,7 +49,7 @@ export class StorageCollection<T> extends Observable<T[]> implements IMutableCol
         }
       : undefined;
 
-    const engineOptions: StorageEngineOptions<T[]> = {
+    const baseOptions: StorageBaseOptions<T[]> = {
       fallback: [],
       transformIn: arrayTransformIn,
       transformOut: arrayTransformOut,
@@ -64,29 +59,10 @@ export class StorageCollection<T> extends Observable<T[]> implements IMutableCol
       onSave: options?.onSave,
     };
 
-    this.engine = new StorageEngine(key, engineOptions);
-    this.unsubscribeEngine = this.engine.subscribe((state) => {
-      this.notify(state);
-    });
+    super(key, baseOptions);
 
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
     this.arrayCollection = new ArrayCollection<T>(this.keyExtractor);
-  }
-
-  public getSnapshot(): T[] {
-    return this.engine.getSnapshot();
-  }
-
-  public load(): T[] {
-    return this.engine.load();
-  }
-
-  public save(items: T[]): void {
-    this.engine.save(items);
-  }
-
-  public clear(): void {
-    this.engine.clear();
   }
 
   private applyOperation<R extends { items: T[]; changed: boolean }>(
@@ -132,8 +108,6 @@ export class StorageCollection<T> extends Observable<T[]> implements IMutableCol
   }
 
   public dispose(): void {
-    this.unsubscribeEngine();
-    this.engine.dispose();
-    this.clearListeners();
+    super.dispose();
   }
 }
