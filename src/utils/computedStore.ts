@@ -4,12 +4,14 @@ export class ComputedStore<T> extends Observable<T> {
   private unsubscribes: Array<() => void> = [];
   private isDirty = false;
   private microtaskQueued = false;
+  private lastKnownDependencies: unknown[] = [];
 
   constructor(
     private stores: IReadableStore<unknown>[],
     private compute: () => T
   ) {
     super(compute());
+    this.updateLastKnownDependencies();
 
     // Subscribe to all dependencies
     for (const store of this.stores) {
@@ -21,6 +23,19 @@ export class ComputedStore<T> extends Observable<T> {
     }
   }
 
+  private updateLastKnownDependencies() {
+    this.lastKnownDependencies = this.stores.map((s) => s.getSnapshot());
+  }
+
+  private checkDependenciesChanged(): boolean {
+    for (let i = 0; i < this.stores.length; i++) {
+      if (this.stores[i].getSnapshot() !== this.lastKnownDependencies[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private markDirty() {
     this.isDirty = true;
     if (!this.microtaskQueued) {
@@ -30,6 +45,7 @@ export class ComputedStore<T> extends Observable<T> {
         if (this.isDirty) {
           this.currentState = this.compute();
           this.isDirty = false;
+          this.updateLastKnownDependencies();
         }
         this.microtaskQueued = false;
 
@@ -42,12 +58,14 @@ export class ComputedStore<T> extends Observable<T> {
   }
 
   public override getSnapshot(): T | undefined {
-    if (this.isDirty) {
+    // Only check for dependencies changing dynamically if we are still active (not disposed)
+    if (this.isDirty || (this.unsubscribes.length > 0 && this.checkDependenciesChanged())) {
       // Recompute state synchronously for the reader,
       // but leave `microtaskQueued` true so the notification
       // still fires asynchronously to subscribers.
       this.currentState = this.compute();
       this.isDirty = false;
+      this.updateLastKnownDependencies();
     }
     return super.getSnapshot();
   }
