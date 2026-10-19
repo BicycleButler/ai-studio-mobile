@@ -24,7 +24,8 @@ import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
 import { useWindowSecurity } from "./hooks/useWindowSecurity";
 import { clearClipboardSafe } from "./services/keyVerification";
 import {
-  updateStoredProject,
+
+  projectsManager,
 } from "./utils/storage";
 import { saveSpeechSettings } from "./services/speechVoices";
 import { OfflineIndicator } from "./components/OfflineIndicator";
@@ -130,7 +131,7 @@ export default function App() {
     onError: (err) => {
       if (err.isKeyInvalid || err.isAuthError || err.isRevoked) {
         if (activeProject) {
-          updateStoredProject(activeProject.id, {
+          projectsManager.collection.update(activeProject.id, {
             isValid: false,
             status: "invalid_key",
             statusMessage: "Key expired or revoked",

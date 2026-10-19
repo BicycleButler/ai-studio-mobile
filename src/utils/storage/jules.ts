@@ -66,20 +66,14 @@ export const julesSessionsManager = new ActiveItemManager<JulesSession>({
   allowImplicitSelection: false,
 });
 
-export function loadStoredJulesSessions(): JulesSession[] {
-  return julesSessionsManager.getItems();
-}
 
-export function saveStoredJulesSessions(sessions: JulesSession[]): void {
-  julesSessionsManager.collection.save(sessions);
-}
 
 export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
   try {
     const data = await apiFetch<unknown>("/api/jules/sessions");
     const cleanServerSessions = Array.isArray(data) ? cleanMockData(data, "jules") as JulesSession[] : [];
 
-    const localSessions = loadStoredJulesSessions();
+    const localSessions = julesSessionsManager.getItems();
     const localSessionMap = new Map(localSessions.map(s => [s.id, s]));
 
     // Merge server sessions with local ones, preferring local modifications if they are newer
@@ -103,7 +97,7 @@ export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
   } catch (e) {
     console.error("Failed to fetch Jules sessions from server", e);
   }
-  return loadStoredJulesSessions();
+  return julesSessionsManager.getItems();
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {
@@ -124,27 +118,8 @@ export function saveStoredJulesSettings(settings: JulesSettings): void {
   julesSettingsSingleton.save(settings);
 }
 
-export function getActiveJulesSessionId(): string | null {
-  return julesSessionsManager.getActiveId();
-}
 
-export function setActiveJulesSessionId(id: string | null): void {
-  julesSessionsManager.setActiveId(id);
-}
 
-export function getActiveJulesSession(): JulesSession | null {
-  return julesSessionsManager.getActiveItem();
-}
 
-export function updateStoredJulesSession(session: JulesSession): JulesSession {
-  const updatedSession = { ...session, updatedAt: Date.now() };
-  return julesSessionsManager.collection.upsert(updatedSession, true);
-}
 
-export function deleteStoredJulesSession(id: string): void {
-  julesSessionsManager.collection.delete(id);
-}
 
-export function bulkDeleteStoredJulesSessions(ids: string[]): void {
-  julesSessionsManager.collection.bulkDelete(ids);
-}

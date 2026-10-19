@@ -39,9 +39,9 @@ import {
   saveDraftState,
   projectsManager,
   setActiveProjectId,
-  updateStoredProject,
-  deleteStoredProject,
-  bulkDeleteStoredProjects,
+
+
+
 } from "../utils/storage";
 import {
   SpeechSettings,
@@ -215,14 +215,14 @@ export function useAppState() {
   };
 
   const handleRenameProject = (id: string, newName: string) => {
-    updateStoredProject(id, { name: newName });
+    projectsManager.collection.update(id, { name: newName });
     if (activeProject?.id === id) {
 
     }
   };
 
   const handleDeleteProject = (id: string, onStopStream?: () => void) => {
-    deleteStoredProject(id);
+    projectsManager.collection.delete(id);
     try {
       clearAllChatSessions(id);
     } catch(e) {
@@ -242,7 +242,7 @@ export function useAppState() {
   };
 
   const handleBulkDeleteProjects = (ids: string[], onStopStream?: () => void) => {
-    bulkDeleteStoredProjects(ids);
+    projectsManager.collection.bulkDelete(ids);
     try {
       ids.forEach(id => clearAllChatSessions(id));
     } catch(e) {
