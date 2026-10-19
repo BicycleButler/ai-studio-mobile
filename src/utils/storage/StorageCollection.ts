@@ -1,8 +1,7 @@
 import { ArrayCollection } from "./ArrayCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { safeGetStorage, safeSetStorage } from "./core";
-import { IMutableCollection } from "./types";
-import { IDisposable } from "./StorageRegistry";
+import { IMutableCollection, IDisposable } from "./types";
 
 export interface StorageCollectionOptions<T> {
   keyExtractor?: (item: T) => string;
