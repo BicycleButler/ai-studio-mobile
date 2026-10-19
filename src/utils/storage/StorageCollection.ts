@@ -76,43 +76,36 @@ export class StorageCollection<T> extends StorageBase<T[]> {
     return this.load();
   }
 
-  update(id: string, updates: Partial<T>): T | null {
-    if (!id) return null;
-    let updatedItem: T | null = null;
+  private applyOperation<R extends { items: T[]; changed: boolean }>(
+    operation: (items: T[]) => R
+  ): R {
+    let result!: R;
     this.mutate((items) => {
-      const result = this.arrayCollection.update(items, id, updates);
+      result = operation(items);
       if (result.changed) {
         items.splice(0, items.length, ...result.items);
-        updatedItem = result.item;
         return true;
       }
       return false;
     });
-    return updatedItem;
+    return result;
+  }
+
+  update(id: string, updates: Partial<T>): T | null {
+    if (!id) return null;
+    return this.applyOperation((items) => this.arrayCollection.update(items, id, updates)).item;
   }
 
   bulkUpdate(updates: { id: string; changes: Partial<T> }[]): T[] {
     if (!updates || updates.length === 0) return this.load();
-    return this.mutate((items) => {
-      const result = this.arrayCollection.bulkUpdate(items, updates);
-      if (result.changed) {
-        items.splice(0, items.length, ...result.items);
-        return true;
-      }
-      return false;
-    });
+    this.applyOperation((items) => this.arrayCollection.bulkUpdate(items, updates));
+    return this.load();
   }
 
   bulkDelete(ids: string[]): T[] {
     if (!ids || ids.length === 0) return this.load();
-    return this.mutate((items) => {
-      const result = this.arrayCollection.bulkDelete(items, ids);
-      if (result.changed) {
-        items.splice(0, items.length, ...result.items);
-        return true;
-      }
-      return false;
-    });
+    this.applyOperation((items) => this.arrayCollection.bulkDelete(items, ids));
+    return this.load();
   }
 
   delete(id: string): T[] {
@@ -121,28 +114,12 @@ export class StorageCollection<T> extends StorageBase<T[]> {
   }
 
   upsert(item: T, prepend = false): T {
-    let updatedItem: T | null = null;
-    this.mutate((items) => {
-      const result = this.arrayCollection.upsert(items, item, prepend);
-      if (result.changed) {
-        items.splice(0, items.length, ...result.items);
-        updatedItem = result.item;
-        return true;
-      }
-      return false;
-    });
-    return updatedItem!;
+    return this.applyOperation((items) => this.arrayCollection.upsert(items, item, prepend)).item;
   }
 
   bulkUpsert(newItems: T[], prepend = false): T[] {
     if (!newItems || newItems.length === 0) return this.load();
-    return this.mutate((items) => {
-      const result = this.arrayCollection.bulkUpsert(items, newItems, prepend);
-      if (result.changed) {
-        items.splice(0, items.length, ...result.items);
-        return true;
-      }
-      return false;
-    });
+    this.applyOperation((items) => this.arrayCollection.bulkUpsert(items, newItems, prepend));
+    return this.load();
   }
 }
