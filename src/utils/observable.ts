@@ -5,7 +5,12 @@ export interface IReadableStore<T> {
   getSnapshot(): T | undefined;
 }
 
-export class Observable<T> implements IReadableStore<T> {
+export interface IObservable<T> extends IReadableStore<T> {
+  notify(state: T): void;
+  clearListeners(): void;
+}
+
+export class Observable<T> implements IObservable<T> {
   protected listeners = new Set<Listener<T>>();
   protected currentState?: T;
 

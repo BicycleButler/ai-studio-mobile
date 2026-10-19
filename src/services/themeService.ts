@@ -5,7 +5,7 @@ import { isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListene
  */
 
 import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
-import { Observable } from "../utils/observable";
+import { Observable, IObservable } from "../utils/observable";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -17,7 +17,7 @@ export interface ThemeState {
 
 export type ThemeListener = (state: ThemeState) => void;
 
-const themeObservable = new Observable<ThemeState>();
+const themeObservable: IObservable<ThemeState> = new Observable<ThemeState>();
 let currentMode: ThemeMode = "system";
 let currentResolved: ResolvedTheme = "dark";
 let initialized = false;
