@@ -1,47 +1,18 @@
-import { Observable, IReadableStore, Listener } from "../observable";
+import { IReadableStore, Listener } from "../observable";
 import { isBrowserEnvironment, getSafeWindow } from "../platform";
-import { deepFreeze } from "./helpers";
-import { safeGetStorage, safeSetStorage, safeRemoveStorage } from "./core";
 import { IDisposable } from "./StorageRegistry";
+import { StorageEngine, StorageEngineOptions } from "./StorageEngine";
 
-export interface StorageBaseOptions<T> {
-  fallback: T;
-  transformIn?: (item: T) => T;
-  transformOut?: (item: T) => T;
-  validate?: (item: unknown) => boolean;
-  getter?: (key: string, fallback: T, storageInstance?: Storage) => T;
-  setter?: (key: string, value: T, storageInstance?: Storage) => void;
-  storageAdapter?: Storage;
-  onSave?: (items: T) => void;
-}
+export type StorageBaseOptions<T> = StorageEngineOptions<T>;
 
 export class StorageBase<T> implements IReadableStore<T>, IDisposable {
-  protected observable = new Observable<T>();
+  protected engine: StorageEngine<T>;
   protected key: string;
-  protected cachedSnapshot: T | undefined = undefined;
-  protected storageAdapter?: Storage;
   private boundHandleStorageEvent: (e: StorageEvent) => void;
-
-  protected fallback: T;
-  protected transformIn?: (item: T) => T;
-  protected transformOut?: (item: T) => T;
-  protected validate?: (item: unknown) => boolean;
-  protected getter: (key: string, fallback: T, storageInstance?: Storage) => T;
-  protected setter: (key: string, value: T, storageInstance?: Storage) => void;
-  protected onSave?: (item: T) => void;
 
   constructor(key: string, options: StorageBaseOptions<T>) {
     this.key = key;
-    this.storageAdapter = options.storageAdapter;
-
-    this.fallback = options.fallback;
-    this.transformIn = options.transformIn;
-    this.transformOut = options.transformOut;
-    this.validate = options.validate;
-    this.getter = options.getter || safeGetStorage;
-    this.setter = options.setter || safeSetStorage;
-    this.onSave = options.onSave;
-
+    this.engine = new StorageEngine(key, options);
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 
     if (isBrowserEnvironment()) {
@@ -53,84 +24,27 @@ export class StorageBase<T> implements IReadableStore<T>, IDisposable {
   }
 
   protected handleStorageEvent(e: StorageEvent): void {
-    if (e.key === this.key || e.key === null) {
-      this.cachedSnapshot = undefined;
-      this.observable.notify(this.load());
-    }
+    this.engine.handleStorageEvent(e);
   }
 
   public subscribe(listener: Listener<T>): () => void {
-    return this.observable.subscribe(listener);
+    return this.engine.subscribe(listener);
   }
 
   public getSnapshot(): T {
-    return this.load();
-  }
-
-  protected processRawValue(raw: T): T {
-    let valid = raw;
-    if (this.validate) {
-      try {
-        if (!this.validate(raw)) {
-          valid = this.fallback;
-        }
-      } catch (err) {
-        console.warn(`StorageBase[${this.key}]: validation error`, err);
-        valid = this.fallback;
-      }
-    }
-
-    let result = valid;
-    if (this.transformOut) {
-      try {
-        result = this.transformOut(valid);
-      } catch (err) {
-        console.warn(`StorageBase[${this.key}]: transformOut error`, err);
-        result = this.fallback;
-      }
-    }
-
-    return deepFreeze(result);
+    return this.engine.load();
   }
 
   public load(): T {
-    if (this.cachedSnapshot !== undefined) {
-      return this.cachedSnapshot;
-    }
-    try {
-      const raw = this.getter(this.key, this.fallback, this.storageAdapter);
-      this.cachedSnapshot = this.processRawValue(raw);
-      return this.cachedSnapshot;
-    } catch (err) {
-      console.error(`StorageBase[${this.key}]: unhandled load error`, err);
-      const frozenFallback = deepFreeze(this.fallback);
-      this.cachedSnapshot = frozenFallback;
-      return frozenFallback;
-    }
+    return this.engine.load();
   }
 
   public save(item: T): void {
-    try {
-      const toStore = this.transformIn ? this.transformIn(item) : item;
-      this.setter(this.key, toStore, this.storageAdapter);
-      this.cachedSnapshot = undefined;
-      this.observable.notify(this.load());
-      if (this.onSave) {
-        try {
-          this.onSave(this.load());
-        } catch (onSaveErr) {
-          console.error(`StorageBase[${this.key}]: error during onSave callback`, onSaveErr);
-        }
-      }
-    } catch (err) {
-      console.warn(`StorageBase[${this.key}]: save error`, err);
-    }
+    this.engine.save(item);
   }
 
   public clear(): void {
-    safeRemoveStorage(this.key, this.storageAdapter);
-    this.cachedSnapshot = undefined;
-    this.observable.notify(this.load());
+    this.engine.clear();
   }
 
   public dispose(): void {
@@ -140,8 +54,6 @@ export class StorageBase<T> implements IReadableStore<T>, IDisposable {
         win.removeEventListener("storage", this.boundHandleStorageEvent);
       }
     }
-    // Note: since observable encapsulates listeners, we recreate it to clear them.
-    // Alternatively, we could add a `clear` method to Observable if we needed to retain the instance.
-    this.observable = new Observable<T>();
+    this.engine.dispose();
   }
 }
