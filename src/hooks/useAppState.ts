@@ -57,9 +57,9 @@ export function useAppState() {
   const projects = projectManagerStore.items;
   const setProjects: React.Dispatch<React.SetStateAction<ProjectInfo[]>> = (val) => {
     if (typeof val === "function") {
-      projectsManager.saveItems(val(projects));
+      projectsManager.collection.save(val(projects));
     } else {
-      projectsManager.saveItems(val);
+      projectsManager.collection.save(val);
     }
   };
 

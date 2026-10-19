@@ -70,7 +70,7 @@ export function loadStoredJulesSessions(): JulesSession[] {
 }
 
 export function saveStoredJulesSessions(sessions: JulesSession[]): void {
-  julesSessionsManager.saveItems(sessions);
+  julesSessionsManager.collection.save(sessions);
 }
 
 export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
@@ -99,7 +99,7 @@ export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
         }
       }
 
-      julesSessionsManager.saveItems(mergedSessions);
+      julesSessionsManager.collection.save(mergedSessions);
       return mergedSessions;
     }
   } catch (e) {
@@ -140,13 +140,13 @@ export function getActiveJulesSession(): JulesSession | null {
 
 export function updateStoredJulesSession(session: JulesSession): JulesSession {
   const updatedSession = { ...session, updatedAt: Date.now() };
-  return julesSessionsManager.upsert(updatedSession, true);
+  return julesSessionsManager.collection.upsert(updatedSession, true);
 }
 
 export function deleteStoredJulesSession(id: string): void {
-  julesSessionsManager.delete(id);
+  julesSessionsManager.collection.delete(id);
 }
 
 export function bulkDeleteStoredJulesSessions(ids: string[]): void {
-  julesSessionsManager.bulkDelete(ids);
+  julesSessionsManager.collection.bulkDelete(ids);
 }

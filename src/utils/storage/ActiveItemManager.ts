@@ -24,6 +24,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   private allowImplicitSelection: boolean;
   private lastActiveItemId: string | null = null;
   private selfUnsubscribe: () => void;
+  private collectionUnsubscribe: () => void;
 
   constructor(options: ActiveItemManagerOptions<T>) {
     const allowImplicitSelection = options.allowImplicitSelection ?? true;
@@ -66,6 +67,24 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
         }
       }
     });
+
+    // Subscribe to collection changes to sync active ID if the active item was deleted
+    this.collectionUnsubscribe = this.collection.subscribe((items) => {
+      const activeId = this.getActiveId();
+      if (activeId && items) {
+        const stillExists = items.some(p => this.getId(p) === activeId);
+        if (!stillExists) {
+          if (items.length > 0 && this.allowImplicitSelection) {
+            this.setActiveId(this.getId(items[0]));
+          } else {
+            this.setActiveId(null);
+          }
+        }
+      } else if (!activeId && items && items.length > 0 && this.allowImplicitSelection) {
+        // If there's no active ID but items exist, auto-select the first one
+        this.setActiveId(this.getId(items[0]));
+      }
+    });
   }
 
   public getSnapshot(): ActiveItemManagerState<T> {
@@ -93,54 +112,9 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     return this.getSnapshot().activeItem;
   }
 
-  private syncActiveIdAfterDeletion(deletedIds: string[], remainingItems: T[]) {
-    const activeId = this.getActiveId();
-    if (activeId && deletedIds.includes(activeId)) {
-      if (remainingItems.length > 0 && this.allowImplicitSelection) {
-        this.setActiveId(this.getId(remainingItems[0]));
-      } else {
-        this.setActiveId(null);
-      }
-    }
-  }
-
-  public saveItems(items: T[]): void {
-    this.collection.save(items);
-    const activeId = this.getActiveId();
-    if (activeId) {
-      const match = items.find((p) => this.getId(p) === activeId);
-      if (!match) {
-        if (items.length > 0 && this.allowImplicitSelection) {
-          this.setActiveId(this.getId(items[0]));
-        } else {
-          this.setActiveId(null);
-        }
-      }
-    }
-  }
-
-  public delete(id: string): T[] {
-    const filtered = this.collection.delete(id);
-    this.syncActiveIdAfterDeletion([id], filtered);
-    return filtered;
-  }
-
-  public bulkDelete(ids: string[]): T[] {
-    const filtered = this.collection.bulkDelete(ids);
-    this.syncActiveIdAfterDeletion(ids, filtered);
-    return filtered;
-  }
-
-  public upsert(item: T, prepend = false): T {
-    return this.collection.upsert(item, prepend);
-  }
-
-  public update(id: string, updates: Partial<T>): T | null {
-    return this.collection.update(id, updates);
-  }
-
   public dispose() {
     this.selfUnsubscribe();
+    this.collectionUnsubscribe();
     super.dispose();
   }
 }

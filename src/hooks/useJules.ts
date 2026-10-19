@@ -27,9 +27,9 @@ export function useJules() {
   const julesSessions = julesStore.items;
   const setJulesSessions: React.Dispatch<React.SetStateAction<JulesSession[]>> = (val) => {
     if (typeof val === "function") {
-      julesSessionsManager.saveItems(val(julesSessions));
+      julesSessionsManager.collection.save(val(julesSessions));
     } else {
-      julesSessionsManager.saveItems(val);
+      julesSessionsManager.collection.save(val);
     }
   };
   const activeJulesSession = julesStore.activeItem;
