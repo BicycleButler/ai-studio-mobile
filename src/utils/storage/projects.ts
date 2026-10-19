@@ -45,7 +45,7 @@ export function loadStoredProjects(): ProjectInfo[] {
 }
 
 export function saveStoredProjects(projects: ProjectInfo[]): void {
-  projectsManager.saveItems(projects);
+  projectsManager.collection.save(projects);
 }
 
 export function getActiveProjectId(): string | null {
@@ -78,24 +78,24 @@ export function saveAndActivateProject(
     isValid: projectData.isValid ?? true,
   } as ProjectInfo;
 
-  projectsManager.upsert(savedProject, false);
+  projectsManager.collection.upsert(savedProject, false);
   projectsManager.setActiveId(savedProject.id);
 
   return savedProject;
 }
 
 export function deleteStoredProject(id: string): void {
-  projectsManager.delete(id);
+  projectsManager.collection.delete(id);
 }
 
 export function bulkDeleteStoredProjects(ids: string[]): void {
   if (!ids || ids.length === 0) return;
-  projectsManager.bulkDelete(ids);
+  projectsManager.collection.bulkDelete(ids);
 }
 
 export function updateStoredProject(
   id: string,
   updates: Partial<Omit<ProjectInfo, "id" | "createdAt">>
 ): ProjectInfo | null {
-  return projectsManager.update(id, { ...updates, updatedAt: Date.now() });
+  return projectsManager.collection.update(id, { ...updates, updatedAt: Date.now() });
 }
