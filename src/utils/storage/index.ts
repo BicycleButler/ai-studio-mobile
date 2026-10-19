@@ -10,7 +10,8 @@ export * from "./core";
 export * from "./hooks";
 
 import { StorageCollection } from "./StorageCollection";
+import { ArrayCollection } from "./ArrayCollection";
 import { StorageSingleton } from "./StorageSingleton";
 import { StorageRegistry } from "./StorageRegistry";
-export { StorageCollection, StorageSingleton, StorageRegistry };
+export { StorageCollection, StorageSingleton, StorageRegistry, ArrayCollection };
 export * from "./ActiveItemManager";
