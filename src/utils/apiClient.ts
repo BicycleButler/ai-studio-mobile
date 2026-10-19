@@ -22,13 +22,12 @@ export interface IApiClient {
 
 export class ApiClient implements IApiClient {
   private interceptorManager: InterceptorManager;
-  public retryConfig: Required<Pick<RetryConfig, "retries" | "baseDelayMs" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
+  public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
 
   constructor(retryConfig: RetryConfig = {}) {
     this.interceptorManager = new InterceptorManager();
     this.retryConfig = {
       retries: retryConfig.retries ?? 3,
-      baseDelayMs: retryConfig.baseDelayMs ?? 1000,
       fetcher: retryConfig.fetcher ?? fetch,
       retryStrategy: retryConfig.retryStrategy ?? new ExponentialBackoffRetryStrategy(),
       retryableStatusCodes: retryConfig.retryableStatusCodes,
@@ -57,7 +56,6 @@ export class ApiClient implements IApiClient {
   private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
     return this.retryConfig.retryStrategy.execute(url, options, {
       retries: this.retryConfig.retries,
-      baseDelayMs: this.retryConfig.baseDelayMs,
       fetcher: this.retryConfig.fetcher,
       retryableStatusCodes: this.retryConfig.retryableStatusCodes,
     });

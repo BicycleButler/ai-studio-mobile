@@ -103,10 +103,9 @@ export abstract class StorageBase<T> extends Observable<T> implements IDisposabl
       // Simulate the serialization boundary to ensure proper data transformations
       let rawValueToCache: T;
       try {
-          const serialized = JSON.stringify(toStore);
-          rawValueToCache = JSON.parse(serialized);
+          rawValueToCache = structuredClone(toStore);
       } catch {
-          rawValueToCache = toStore; // Fallback if stringify fails but item is valid for storage
+          rawValueToCache = toStore; // Fallback if structuredClone fails but item is valid for storage
       }
       this.cachedSnapshot = this.processRawValue(rawValueToCache);
       savedSnapshot = this.cachedSnapshot;
