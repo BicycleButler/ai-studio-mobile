@@ -21,6 +21,7 @@ import {
   Mic,
   Maximize2,
   Minimize2,
+  Trash2,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
@@ -1118,7 +1119,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         <FloatingBatchActionBar
           isVisible={selectedHistoryIds.size > 0 && isHistoryOpen}
           selectedCount={selectedHistoryIds.size}
-          onDelete={() => setShowBulkDeleteHistoryConfirm(true)}
+          actions={[
+            {
+              label: 'Delete',
+              icon: <Trash2 />,
+              onClick: () => setShowBulkDeleteHistoryConfirm(true),
+              variant: 'destructive'
+            }
+          ]}
           onClearSelection={clearHistorySelection}
         />
 

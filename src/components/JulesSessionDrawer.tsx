@@ -585,7 +585,14 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
         <FloatingBatchActionBar
           isVisible={selectedSessionIds.size > 0}
           selectedCount={selectedSessionIds.size}
-          onDelete={() => setShowBulkDeleteConfirm(true)}
+          actions={[
+            {
+              label: 'Delete',
+              icon: <Trash2 />,
+              onClick: () => setShowBulkDeleteConfirm(true),
+              variant: 'destructive'
+            }
+          ]}
           onClearSelection={clearSelection}
         />
 
