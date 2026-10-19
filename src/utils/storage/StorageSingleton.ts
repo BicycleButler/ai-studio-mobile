@@ -1,6 +1,7 @@
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
+import { IMutableSingleton } from "./types";
 
-export class StorageSingleton<T> extends StorageBase<T> {
+export class StorageSingleton<T> extends StorageBase<T> implements IMutableSingleton<T> {
   constructor(
     key: string,
     fallback: T,

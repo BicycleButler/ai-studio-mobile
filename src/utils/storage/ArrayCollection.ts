@@ -1,3 +1,9 @@
+export interface CollectionOperationResult<T> {
+  items: T[];
+  changed: boolean;
+  item?: T | null;
+}
+
 export class ArrayCollection<T> {
   private keyExtractor: (item: T) => string;
 
@@ -5,7 +11,7 @@ export class ArrayCollection<T> {
     this.keyExtractor = keyExtractor;
   }
 
-  update(items: T[], id: string, updates: Partial<T>): { items: T[], changed: boolean, item: T | null } {
+  update(items: T[], id: string, updates: Partial<T>): CollectionOperationResult<T> {
     const index = items.findIndex((item) => this.keyExtractor(item) === id);
     if (index === -1) return { items, changed: false, item: null };
 
@@ -15,7 +21,7 @@ export class ArrayCollection<T> {
     return { items: newItems, changed: true, item: updatedItem };
   }
 
-  bulkUpdate(items: T[], updates: { id: string; changes: Partial<T> }[]): { items: T[], changed: boolean } {
+  bulkUpdate(items: T[], updates: { id: string; changes: Partial<T> }[]): CollectionOperationResult<T> {
     if (!updates || updates.length === 0) return { items, changed: false };
 
     let changed = false;
@@ -37,7 +43,7 @@ export class ArrayCollection<T> {
     return { items: newItems, changed };
   }
 
-  bulkDelete(items: T[], ids: string[]): { items: T[], changed: boolean } {
+  bulkDelete(items: T[], ids: string[]): CollectionOperationResult<T> {
     if (!ids || ids.length === 0) return { items, changed: false };
 
     const idSet = new Set(ids);
@@ -46,11 +52,11 @@ export class ArrayCollection<T> {
     return { items: filtered, changed: filtered.length !== originalLength };
   }
 
-  delete(items: T[], id: string): { items: T[], changed: boolean } {
+  delete(items: T[], id: string): CollectionOperationResult<T> {
     return this.bulkDelete(items, [id]);
   }
 
-  upsert(items: T[], item: T, prepend = false): { items: T[], changed: boolean, item: T } {
+  upsert(items: T[], item: T, prepend = false): CollectionOperationResult<T> {
     const id = this.keyExtractor(item);
     const index = items.findIndex((i) => this.keyExtractor(i) === id);
     const updatedItem = { ...item } as T;
@@ -64,7 +70,7 @@ export class ArrayCollection<T> {
     return { items: newItems, changed: true, item: updatedItem };
   }
 
-  bulkUpsert(items: T[], newItems: T[], prepend = false): { items: T[], changed: boolean } {
+  bulkUpsert(items: T[], newItems: T[], prepend = false): CollectionOperationResult<T> {
     if (!newItems || newItems.length === 0) return { items, changed: false };
 
     const indexMap = new Map<string, number>();

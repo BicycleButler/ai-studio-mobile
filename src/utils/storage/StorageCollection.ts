@@ -1,6 +1,7 @@
 import { ArrayCollection } from "./ArrayCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { safeGetStorage, safeSetStorage } from "./core";
+import { IMutableCollection } from "./types";
 
 export interface StorageCollectionOptions<T> {
   keyExtractor?: (item: T) => string;
@@ -14,7 +15,7 @@ export interface StorageCollectionOptions<T> {
   storageAdapter?: Storage;
 }
 
-export class StorageCollection<T> extends StorageBase<T[]> {
+export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCollection<T> {
   private arrayCollection: ArrayCollection<T>;
   private keyExtractor: (item: T) => string;
 
@@ -75,7 +76,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
 
   update(id: string, updates: Partial<T>): T | null {
     if (!id) return null;
-    return this.applyOperation((items) => this.arrayCollection.update(items, id, updates)).item;
+    return this.applyOperation((items) => this.arrayCollection.update(items, id, updates)).item || null;
   }
 
   bulkUpdate(updates: { id: string; changes: Partial<T> }[]): T[] {
@@ -96,7 +97,7 @@ export class StorageCollection<T> extends StorageBase<T[]> {
   }
 
   upsert(item: T, prepend = false): T {
-    return this.applyOperation((items) => this.arrayCollection.upsert(items, item, prepend)).item;
+    return this.applyOperation((items) => this.arrayCollection.upsert(items, item, prepend)).item as T;
   }
 
   bulkUpsert(newItems: T[], prepend = false): T[] {
