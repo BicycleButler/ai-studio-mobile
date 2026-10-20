@@ -18,3 +18,4 @@ export * from "./ActiveItemManager";
 export * from "./ActiveItemManagerFactory";
 export * from "./StorageBase";
 export * from "./syncAdapter";
+export * from "./offlineRetryStrategy";

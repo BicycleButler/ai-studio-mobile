@@ -258,3 +258,17 @@ Extend the `INetworkStatusProvider` with `onStatusChange(callback: (status: Netw
 
 **Recommendation:**
 **Path 1 (Event-Driven Network Status Provider Abstraction)** was implemented. It perfectly unifies the synchronous and reactive network status APIs into a single cohesive provider, adheres strictly to the existing `Observable` patterns used throughout the codebase, and fully decouples the React layer from DOM networking events.
+
+## Architectural Decision: Offline Queue Enqueue Strategy
+
+**Context:**
+`NetworkStorageSyncAdapter` previously blindly caught all errors from `apiClient.fetch` and enqueued the mutation into the offline queue. If the API returned a 4xx client error (e.g., 400 Bad Request due to validation failure), the mutation was queued anyway. The offline sync loop would repeatedly attempt to sync the invalid mutation and constantly halt (Strict FIFO Halting), poisoning the queue indefinitely and blocking valid syncs.
+
+**Path 1: Status Code Inspection (Robustness)**
+Update `NetworkStorageSyncAdapter` to inspect the error. If it's a `BaseApiError`, check the status code. Only enqueue the mutation if the error is a network error (status 0) or a retryable server error (e.g., 5xx, 408, 429). If it's a non-retryable client error, drop the sync to prevent queue poisoning.
+
+**Path 2: Generic Retry Strategy Interface (Composition)**
+Instead of hardcoding status code checks in the adapter, define an `IOfflineRetryStrategy` with a `shouldEnqueue(error)` method. Inject this strategy into `NetworkStorageSyncAdapter`, allowing consumers to define exactly what constitutes a queueable failure for their domain.
+
+**Recommendation:**
+**Path 2 (Generic Retry Strategy Interface)** was implemented. We provide a `DefaultOfflineRetryStrategy` that evaluates `BaseApiError` status codes (retrying 0, 5xx, 429, 408), satisfying Path 1 while strictly preserving abstraction and dependency inversion. This greatly improves robustness by preventing bad data from halting the sync engine permanently.

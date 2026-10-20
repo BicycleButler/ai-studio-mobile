@@ -83,4 +83,31 @@ describe('NetworkStorageSyncAdapter', () => {
 
         expect(mockOfflineService.enqueueOfflineMutation).toHaveBeenCalledWith('test_mutation', item);
     });
+
+    it('should NOT enqueue offline mutation if retryStrategy drops the error', async () => {
+        const mockNetworkStatusProvider: INetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true),
+            getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
+        };
+
+        const mockRetryStrategy = {
+            shouldEnqueue: vi.fn().mockReturnValue(false)
+        };
+
+        const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService, mockNetworkStatusProvider, mockRetryStrategy);
+        const item = { id: 1, name: 'test' };
+
+        const testError = new Error('Validation failure');
+        mockApiClient.fetch.mockRejectedValueOnce(testError);
+
+        adapter.syncItem(item, '/api/test', 'test_mutation');
+
+        expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
+        expect(mockApiClient.fetch).toHaveBeenCalled();
+
+        await new Promise(process.nextTick);
+
+        expect(mockRetryStrategy.shouldEnqueue).toHaveBeenCalledWith(testError);
+        expect(mockOfflineService.enqueueOfflineMutation).not.toHaveBeenCalled();
+    });
 });
