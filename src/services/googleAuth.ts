@@ -1,18 +1,9 @@
 import { GoogleUser } from "../types";
 import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
 import { apiFetch } from "../utils/apiClient";
-import {
-  getAuth,
-  signInWithPopup,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signOut as firebaseSignOut,
-  User as FirebaseUser,
-  Auth
-} from "firebase/auth";
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { isBrowserEnvironment, getSafeWindow, safeAddEventListener } from "../utils/platform";
-import firebaseConfig from "../../firebase-applet-config.json";
+import { IAuthProvider } from "./authProvider";
+import { FirebaseAuthProvider } from "./firebaseAuthProvider";
 
 const googleUserSingleton = new StorageSingleton<GoogleUser | null>(
   STORAGE_KEYS.GOOGLE_USER,
@@ -21,39 +12,12 @@ const googleUserSingleton = new StorageSingleton<GoogleUser | null>(
 
 let cachedAccessToken: string | null = null;
 let isSigningIn = false;
-let firebaseAppInstance: FirebaseApp | null = null;
-let firebaseAuthInstance: Auth | null = null;
-let googleAuthProviderInstance: GoogleAuthProvider | null = null;
 
-export function getFirebaseAuth(): Auth | null {
-  if (firebaseAuthInstance) return firebaseAuthInstance;
+// Injectable Auth Provider. Defaulting to Firebase Auth.
+let currentAuthProvider: IAuthProvider = new FirebaseAuthProvider();
 
-  try {
-    if (!isBrowserEnvironment()) {
-      return null;
-    }
-
-    if (!firebaseAppInstance) {
-      firebaseAppInstance = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    }
-    firebaseAuthInstance = getAuth(firebaseAppInstance);
-    return firebaseAuthInstance;
-  } catch (err: unknown) {
-    console.error("Failed to initialize Firebase Auth:", err);
-    return null;
-  }
-}
-
-export function getGoogleAuthProvider(): GoogleAuthProvider {
-  if (!googleAuthProviderInstance) {
-    googleAuthProviderInstance = new GoogleAuthProvider();
-    googleAuthProviderInstance.addScope("https://www.googleapis.com/auth/userinfo.email");
-    googleAuthProviderInstance.addScope("https://www.googleapis.com/auth/userinfo.profile");
-    googleAuthProviderInstance.setCustomParameters({
-      prompt: "select_account",
-    });
-  }
-  return googleAuthProviderInstance;
+export function setAuthProvider(provider: IAuthProvider) {
+  currentAuthProvider = provider;
 }
 
 export const getAccessToken = async (): Promise<string | null> => {
@@ -116,50 +80,17 @@ export function parseGoogleJwtPayload(
 }
 
 export async function googleSignIn(): Promise<{ user: GoogleUser; accessToken: string }> {
-  const auth = getFirebaseAuth();
-  if (!auth) {
-    throw new Error("Google authentication is not available in this environment.");
-  }
-
   isSigningIn = true;
   try {
-    const provider = getGoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-
-    cachedAccessToken = credential?.accessToken || null;
-
-    const email = result.user.email;
-    if (!email) {
-      throw new Error("No verified email address found on the Google account.");
-    }
-
-    const name = result.user.displayName || email.split("@")[0];
-    const picture = result.user.photoURL || undefined;
-    const sub = result.user.uid;
+    const { user, accessToken } = await currentAuthProvider.signIn();
+    cachedAccessToken = accessToken;
 
     const syncedUser = await syncGoogleUserWithBackend({
-      email,
-      name,
-      picture,
-      sub,
+      ...user,
       authSource: "google_oauth",
     });
 
     return { user: syncedUser, accessToken: cachedAccessToken || "" };
-  } catch (error: unknown) {
-    const errObj = error as { code?: string; message?: string };
-    if (
-      errObj?.code === "auth/popup-closed-by-user" ||
-      errObj?.code === "auth/cancelled-popup-request"
-    ) {
-      throw new Error("Sign-in popup was closed before completing authentication.");
-    }
-    if (errObj?.code === "auth/popup-blocked") {
-      throw new Error("Sign-in popup was blocked by the browser. Please allow popups for this site and try again.");
-    }
-    console.error("Google sign in error:", error);
-    throw error instanceof Error ? error : new Error(String(error));
   } finally {
     isSigningIn = false;
   }
@@ -190,31 +121,20 @@ export const initAuth = (
   onAuthSuccess?: (user: GoogleUser, token: string | null) => void,
   onAuthFailure?: () => void
 ): (() => void) => {
-  const auth = getFirebaseAuth();
-  if (!auth) return () => {};
-
-  return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-    if (firebaseUser && firebaseUser.email) {
-      const email = firebaseUser.email;
-      const name = firebaseUser.displayName || email.split("@")[0];
-      const picture = firebaseUser.photoURL || undefined;
-      const sub = firebaseUser.uid;
-
+  return currentAuthProvider.onAuthStateChanged(async (user: Partial<GoogleUser> | null, _accessToken: string | null) => {
+    if (user && user.email) {
       try {
         const synced = await syncGoogleUserWithBackend({
-          email,
-          name,
-          picture,
-          sub,
+          ...user,
           authSource: "google_oauth",
         });
         if (onAuthSuccess) onAuthSuccess(synced, cachedAccessToken);
       } catch {
         const localUser: GoogleUser = {
-          email,
-          name,
-          picture,
-          sub,
+          email: user.email,
+          name: user.name || user.email.split("@")[0],
+          picture: user.picture,
+          sub: user.sub,
           authSource: "google_oauth",
           authenticatedAt: Date.now(),
           aiStudioSynced: true,
@@ -249,12 +169,9 @@ export const getStoredGoogleUser = loadStoredGoogleUser;
 
 export async function logoutGoogleUser(): Promise<void> {
   try {
-    const auth = getFirebaseAuth();
-    if (auth) {
-      await firebaseSignOut(auth);
-    }
+    await currentAuthProvider.signOut();
   } catch (err: unknown) {
-    console.warn("Firebase signout error:", err);
+    console.warn("Auth provider signout error:", err);
   }
   cachedAccessToken = null;
   try {

@@ -147,6 +147,20 @@ Remove `JulesClient` entirely and change every standalone function to explicitly
 **Recommendation:**
 **Path 1 (Instance Methods on JulesClient)** was implemented. This solidifies `JulesClient` as a robust, fully-encapsulated class handling Jules orchestration, preserving the existing component API (via wrapper proxies) while resolving the tight module-level variable coupling. It greatly enhances Reusability (a new client can be trivially minted) and Generality.
 
+## Architectural Decision: Auth Provider Decoupling
+
+**Context:**
+`src/services/googleAuth.ts` was tightly coupled to Firebase Authentication, importing `firebase/auth` and directly invoking `signInWithPopup` and `onAuthStateChanged`. This violated the Dependency Inversion Principle, making it difficult to swap Firebase for another auth provider (e.g., standard OAuth or Auth0) or to mock authentication in tests without mocking the entire `firebase/auth` module.
+
+**Path 1: Extract an `IAuthProvider` Interface (Composition)**
+Create an `IAuthProvider` interface with methods like `signIn()`, `signOut()`, and `onAuthStateChanged()`. Implement a `FirebaseAuthProvider` that implements this interface. Inject the provider into the auth service.
+
+**Path 2: Event-Driven Auth Orchestration**
+Decouple the auth UI from Firebase by firing generic window events (`AUTH_REQUESTED`, `AUTH_SIGNOUT`). An independent Firebase module listens to these events and performs the actions.
+
+**Recommendation:**
+**Path 1 (Extract `IAuthProvider` Interface)** was implemented. It explicitly defines the authentication contract required by the application, allows seamless substitution of the auth mechanism, and adheres to strict dependency inversion without relying on global event buses.
+
 ## Architectural Decision: Observable Notification Batching
 
 **Context:**
