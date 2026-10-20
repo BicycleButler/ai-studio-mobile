@@ -1,6 +1,7 @@
 import { ArrayCollection } from "./ArrayCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { IMutableCollection, ICollectionEngine, IStorageAdapter } from "./types";
+import { IObservable } from "../observable";
 
 export interface StorageCollectionOptions<T> {
   engine?: ICollectionEngine<T>;
@@ -12,6 +13,7 @@ export interface StorageCollectionOptions<T> {
   adapter?: IStorageAdapter<T[]>;
   onSave?: (items: T[]) => void;
   storageAdapter?: Storage;
+  storageEventObservable?: IObservable<StorageEvent>;
 }
 
 export class StorageCollection<T> implements IMutableCollection<T> {
@@ -55,6 +57,7 @@ export class StorageCollection<T> implements IMutableCollection<T> {
       transformOut: arrayTransformOut,
       storageAdapter: options?.storageAdapter,
       onSave: options?.onSave,
+      storageEventObservable: options?.storageEventObservable,
     };
 
     this.baseStorage = new StorageBase<T[]>(key, baseOptions);

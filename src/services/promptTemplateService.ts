@@ -1,5 +1,6 @@
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
 import { STORAGE_KEYS, StorageCollection } from "../utils/storage";
+import { IMutableCollection } from "../utils/storage/types";
 import { generateUniqueId } from "../utils/idGenerator";
 
 export interface IPromptTemplateService {
@@ -77,8 +78,16 @@ export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
   },
 ];
 
+export interface PromptTemplateServiceConfig {
+  customTemplatesCollection?: IMutableCollection<PromptTemplate>;
+}
+
 export class PromptTemplateService implements IPromptTemplateService {
-  private customTemplatesCollection = new StorageCollection<PromptTemplate>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
+  private customTemplatesCollection: IMutableCollection<PromptTemplate>;
+
+  constructor(config?: PromptTemplateServiceConfig) {
+    this.customTemplatesCollection = config?.customTemplatesCollection || new StorageCollection<PromptTemplate>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
+  }
 
   public getBuiltinTemplates(): PromptTemplate[] {
     return [...BUILTIN_PROMPT_TEMPLATES];

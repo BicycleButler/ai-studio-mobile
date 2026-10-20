@@ -1,6 +1,12 @@
 export type Interceptor = (url: string, options: RequestInit) => Promise<[string, RequestInit]>;
 
-export class InterceptorManager {
+export interface IInterceptorManager {
+  addInterceptor(interceptor: Interceptor): void;
+  clearInterceptors(): void;
+  applyInterceptors(url: string, options: RequestInit): Promise<{ url: string; fetchOptions: RequestInit }>;
+}
+
+export class InterceptorManager implements IInterceptorManager {
   private interceptors: Interceptor[] = [];
 
   public addInterceptor(interceptor: Interceptor): void {
