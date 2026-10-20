@@ -2,7 +2,6 @@ import { deepFreeze } from "./helpers";
 import { DefaultStorageAdapter, globalStorageEventObservable } from "./core";
 import { IStorageAdapter, IDisposable } from "./types";
 import { Observable } from "../observable";
-import { isBrowserEnvironment, getSafeWindow } from "../platform";
 
 export interface StorageBaseOptions<T> {
   fallback: T;

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useSyncExternalStore, useCallback } from "react";
 import { isBrowserEnvironment, getPlatformCapabilities, safeAddEventListener } from "../utils/platform";
 
 export interface BeforeInstallPromptEvent extends Event {
@@ -10,65 +10,92 @@ export interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+export interface PWAInstallState {
+  deferredPrompt: BeforeInstallPromptEvent | null;
+  isInstalled: boolean;
+  isIOS: boolean;
+  isNativeCapacitor: boolean;
+}
+
+const caps = getPlatformCapabilities();
+
+let currentState: PWAInstallState = {
+  deferredPrompt: null,
+  isInstalled: caps.isNative || caps.isPWA,
+  isIOS: caps.isIOS,
+  isNativeCapacitor: caps.isNative,
+};
+
+let listeners = new Set<() => void>();
+let isInitialized = false;
+
+function notify() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+function initPWAInstallListeners() {
+  if (!isBrowserEnvironment() || isInitialized) return;
+  isInitialized = true;
+
+  const caps = getPlatformCapabilities();
+  currentState = {
+    ...currentState,
+    isNativeCapacitor: caps.isNative,
+    isInstalled: caps.isNative || caps.isPWA,
+    isIOS: caps.isIOS,
+  };
+  notify();
+
+  safeAddEventListener("beforeinstallprompt" as keyof WindowEventMap, ((e: Event) => {
+    e.preventDefault();
+    currentState = { ...currentState, deferredPrompt: e as BeforeInstallPromptEvent };
+    notify();
+  }) as EventListener);
+
+  safeAddEventListener("appinstalled" as keyof WindowEventMap, (() => {
+    currentState = { ...currentState, isInstalled: true, deferredPrompt: null };
+    notify();
+  }) as EventListener);
+}
+
+function subscribe(listener: () => void) {
+  initPWAInstallListeners();
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot() {
+  return currentState;
+}
+
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-
-  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
-    const caps = getPlatformCapabilities();
-    return caps.isNative || caps.isPWA;
-  });
-
-  const [isIOS, setIsIOS] = useState<boolean>(() => getPlatformCapabilities().isIOS);
-  const [isNativeCapacitor, setIsNativeCapacitor] = useState<boolean>(() => getPlatformCapabilities().isNative);
-
-  useEffect(() => {
-    if (!isBrowserEnvironment()) return;
-
-    const caps = getPlatformCapabilities();
-    setIsNativeCapacitor(caps.isNative);
-    setIsInstalled(caps.isNative || caps.isPWA);
-    setIsIOS(caps.isIOS);
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-    };
-
-    const removePrompt = safeAddEventListener("beforeinstallprompt" as keyof WindowEventMap, handleBeforeInstallPrompt as EventListener);
-    const removeInstalled = safeAddEventListener("appinstalled" as keyof WindowEventMap, handleAppInstalled as EventListener);
-
-    return () => {
-      removePrompt();
-      removeInstalled();
-    };
-  }, []);
+  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const install = useCallback(async (): Promise<boolean> => {
-    if (!deferredPrompt) return false;
+    if (!state.deferredPrompt) return false;
     try {
-      await deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
+      await state.deferredPrompt.prompt();
+      const choiceResult = await state.deferredPrompt.userChoice;
       if (choiceResult.outcome === "accepted") {
-        setIsInstalled(true);
-        setDeferredPrompt(null);
+        currentState = { ...currentState, isInstalled: true, deferredPrompt: null };
+        notify();
         return true;
       }
       return false;
     } catch {
       return false;
     }
-  }, [deferredPrompt]);
+  }, [state.deferredPrompt]);
 
   return {
-    isInstallable: Boolean(deferredPrompt),
-    isInstalled,
-    isIOS,
-    isCapacitor: isNativeCapacitor,
+    isInstallable: Boolean(state.deferredPrompt),
+    isInstalled: state.isInstalled,
+    isIOS: state.isIOS,
+    isCapacitor: state.isNativeCapacitor,
     install,
   };
 }
