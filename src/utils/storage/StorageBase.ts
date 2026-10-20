@@ -1,5 +1,5 @@
 import { deepFreeze } from "./helpers";
-import { DefaultStorageAdapter } from "./core";
+import { DefaultStorageAdapter, globalStorageEventObservable } from "./core";
 import { IStorageAdapter, IDisposable } from "./types";
 import { Observable } from "../observable";
 import { isBrowserEnvironment, getSafeWindow } from "../platform";
@@ -19,6 +19,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
   protected options: StorageBaseOptions<T>;
   protected adapter: IStorageAdapter<T>;
   private boundHandleStorageEvent: (e: StorageEvent) => void;
+  private globalUnsubscribe?: () => void;
   private cachedSnapshot: T | undefined = undefined;
 
   constructor(key: string, options: StorageBaseOptions<T>) {
@@ -29,12 +30,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
 
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      if (win) {
-        win.addEventListener("storage", this.boundHandleStorageEvent);
-      }
-    }
+    this.globalUnsubscribe = globalStorageEventObservable.subscribe(this.boundHandleStorageEvent);
   }
 
   protected handleStorageEvent(e: StorageEvent): void {
@@ -132,11 +128,8 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
   }
 
   public dispose(): void {
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      if (win) {
-        win.removeEventListener("storage", this.boundHandleStorageEvent);
-      }
+    if (this.globalUnsubscribe) {
+      this.globalUnsubscribe();
     }
     this.clearListeners();
   }
