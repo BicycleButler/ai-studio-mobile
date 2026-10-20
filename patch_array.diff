@@ -1,0 +1,261 @@
+<<<<<<< SEARCH
+export class ArrayCollection<T> implements ICollectionEngine<T> {
+  private keyExtractor: (item: T) => string;
+
+  constructor(keyExtractor: (item: T) => string) {
+    this.keyExtractor = keyExtractor;
+  }
+
+  update(items: T[], id: string, updates: Partial<T>): CollectionOperationResult<T> {
+    const index = items.findIndex((item) => this.keyExtractor(item) === id);
+    if (index === -1) return { items, changed: false, item: null };
+
+    const existing = items[index];
+    const updatedItem = { ...existing, ...updates } as T;
+
+    if (fastDeepEqual(existing, updatedItem)) {
+      return { items, changed: false, item: existing };
+    }
+
+    const newItems = [...items];
+    newItems[index] = updatedItem;
+    return { items: newItems, changed: true, item: updatedItem };
+  }
+
+  bulkUpdate(items: T[], updates: { id: string; changes: Partial<T> }[]): CollectionOperationResult<T> {
+    if (!updates || updates.length === 0) return { items, changed: false };
+
+    let changed = false;
+    const updatesMap = new Map<string, Partial<T>>();
+    for (const update of updates) {
+      const existing = updatesMap.get(update.id);
+      updatesMap.set(update.id, existing ? { ...existing, ...update.changes } : update.changes);
+    }
+
+    const newItems = [...items];
+    for (let i = 0; i < newItems.length; i++) {
+      const id = this.keyExtractor(newItems[i]);
+      const changes = updatesMap.get(id);
+      if (changes !== undefined) {
+        const updatedItem = { ...newItems[i], ...changes } as T;
+        if (!fastDeepEqual(newItems[i], updatedItem)) {
+           newItems[i] = updatedItem;
+           changed = true;
+        }
+      }
+    }
+    return { items: changed ? newItems : items, changed };
+  }
+
+  bulkDelete(items: T[], ids: string[]): CollectionOperationResult<T> {
+    if (!ids || ids.length === 0) return { items, changed: false };
+
+    const idSet = new Set(ids);
+    const originalLength = items.length;
+    const filtered = items.filter((item) => !idSet.has(this.keyExtractor(item)));
+    return { items: filtered, changed: filtered.length !== originalLength };
+  }
+
+  delete(items: T[], id: string): CollectionOperationResult<T> {
+    return this.bulkDelete(items, [id]);
+  }
+
+  upsert(items: T[], item: T, prepend = false): CollectionOperationResult<T> {
+    const id = this.keyExtractor(item);
+    const index = items.findIndex((i) => this.keyExtractor(i) === id);
+    const updatedItem = { ...item } as T;
+
+    if (index >= 0) {
+      if (fastDeepEqual(items[index], updatedItem)) {
+        return { items, changed: false, item: items[index] };
+      }
+      const newItems = [...items];
+      newItems[index] = updatedItem;
+      return { items: newItems, changed: true, item: updatedItem };
+    }
+
+    const newItems = [...items];
+    prepend ? newItems.unshift(updatedItem) : newItems.push(updatedItem);
+    return { items: newItems, changed: true, item: updatedItem };
+  }
+
+  bulkUpsert(items: T[], newItems: T[], prepend = false): CollectionOperationResult<T> {
+    if (!newItems || newItems.length === 0) return { items, changed: false };
+
+    const indexMap = new Map<string, number>();
+    for (let i = 0; i < items.length; i++) {
+      indexMap.set(this.keyExtractor(items[i]), i);
+    }
+
+    const collapsedNewItems = new Map<string, T>();
+    for (const item of newItems) {
+      const id = this.keyExtractor(item);
+      collapsedNewItems.set(id, { ...item });
+    }
+
+    const nextItems = [...items];
+    const itemsToAdd: T[] = [];
+    let changed = false;
+
+    for (const [id, updatedItem] of collapsedNewItems.entries()) {
+      const index = indexMap.get(id);
+      if (index !== undefined) {
+        if (!fastDeepEqual(nextItems[index], updatedItem)) {
+          nextItems[index] = updatedItem;
+          changed = true;
+        }
+      } else {
+        itemsToAdd.push(updatedItem);
+        changed = true;
+      }
+    }
+
+    if (itemsToAdd.length > 0) {
+      if (prepend) {
+          nextItems.unshift(...itemsToAdd);
+      } else {
+          nextItems.push(...itemsToAdd);
+      }
+    }
+
+    return { items: changed ? nextItems : items, changed };
+  }
+}
+=======
+export class ArrayCollection<T> implements ICollectionEngine<T> {
+  private keyExtractor: (item: T) => string;
+
+  constructor(keyExtractor: (item: T) => string) {
+    this.keyExtractor = keyExtractor;
+  }
+
+  private abstractMapMutate(
+    items: T[],
+    mutator: (item: T, id: string) => T | undefined,
+    appendItems?: T[],
+    prepend = false
+  ): CollectionOperationResult<T> {
+    let changed = false;
+    const nextItems = [...items];
+    let singleUpdatedItem: T | null | undefined = undefined;
+
+    for (let i = 0; i < nextItems.length; i++) {
+      const existing = nextItems[i];
+      const id = this.keyExtractor(existing);
+      const mutated = mutator(existing, id);
+
+      if (mutated !== undefined && !fastDeepEqual(existing, mutated)) {
+        nextItems[i] = mutated;
+        changed = true;
+        singleUpdatedItem = mutated; // store for non-bulk single return
+      } else if (mutated !== undefined) {
+         // mutated but deeply equal
+         singleUpdatedItem = mutated;
+      }
+    }
+
+    if (appendItems && appendItems.length > 0) {
+      changed = true;
+      singleUpdatedItem = appendItems[0];
+      if (prepend) {
+        nextItems.unshift(...appendItems);
+      } else {
+        nextItems.push(...appendItems);
+      }
+    }
+
+    return {
+      items: changed ? nextItems : items,
+      changed,
+      item: singleUpdatedItem === undefined ? null : singleUpdatedItem
+    };
+  }
+
+  update(items: T[], id: string, updates: Partial<T>): CollectionOperationResult<T> {
+    return this.abstractMapMutate(items, (item, currentId) => {
+      if (currentId === id) {
+        return { ...item, ...updates } as T;
+      }
+      return undefined; // no mutation
+    });
+  }
+
+  bulkUpdate(items: T[], updates: { id: string; changes: Partial<T> }[]): CollectionOperationResult<T> {
+    if (!updates || updates.length === 0) return { items, changed: false };
+
+    const updatesMap = new Map<string, Partial<T>>();
+    for (const update of updates) {
+      const existing = updatesMap.get(update.id);
+      updatesMap.set(update.id, existing ? { ...existing, ...update.changes } : update.changes);
+    }
+
+    return this.abstractMapMutate(items, (item, currentId) => {
+      const changes = updatesMap.get(currentId);
+      if (changes !== undefined) {
+        return { ...item, ...changes } as T;
+      }
+      return undefined;
+    });
+  }
+
+  bulkDelete(items: T[], ids: string[]): CollectionOperationResult<T> {
+    if (!ids || ids.length === 0) return { items, changed: false };
+
+    const idSet = new Set(ids);
+    const originalLength = items.length;
+    const filtered = items.filter((item) => !idSet.has(this.keyExtractor(item)));
+    return { items: filtered, changed: filtered.length !== originalLength };
+  }
+
+  delete(items: T[], id: string): CollectionOperationResult<T> {
+    return this.bulkDelete(items, [id]);
+  }
+
+  upsert(items: T[], item: T, prepend = false): CollectionOperationResult<T> {
+    const id = this.keyExtractor(item);
+    const index = items.findIndex((i) => this.keyExtractor(i) === id);
+
+    if (index >= 0) {
+       return this.update(items, id, item as Partial<T>);
+    }
+
+    return this.abstractMapMutate(items, () => undefined, [item], prepend);
+  }
+
+  bulkUpsert(items: T[], newItems: T[], prepend = false): CollectionOperationResult<T> {
+    if (!newItems || newItems.length === 0) return { items, changed: false };
+
+    const collapsedNewItems = new Map<string, T>();
+    for (const item of newItems) {
+      const id = this.keyExtractor(item);
+      collapsedNewItems.set(id, { ...item }); // collapse duplicates
+    }
+
+    const itemsToAdd: T[] = [];
+
+    const result = this.abstractMapMutate(items, (item, currentId) => {
+       const updatedItem = collapsedNewItems.get(currentId);
+       if (updatedItem !== undefined) {
+           collapsedNewItems.delete(currentId);
+           return updatedItem;
+       }
+       return undefined;
+    });
+
+    for (const item of collapsedNewItems.values()) {
+        itemsToAdd.push(item);
+    }
+
+    if (itemsToAdd.length > 0) {
+      if (prepend) {
+        result.items = [...itemsToAdd, ...result.items];
+      } else {
+        result.items = [...result.items, ...itemsToAdd];
+      }
+      result.changed = true;
+    }
+
+    return result;
+  }
+}
+>>>>>>> REPLACE
