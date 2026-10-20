@@ -428,6 +428,7 @@ export default function App() {
           structuredExamples,
           onSwitchToPrompt: () => { setPromptType("chat"); }
         }}
+        stubsProps={{}}
         julesProps={{
           activeJulesSession,
           onOpenJulesSessions: () => setShowJulesDrawer(true),
