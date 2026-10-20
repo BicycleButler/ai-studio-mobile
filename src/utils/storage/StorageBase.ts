@@ -14,7 +14,7 @@ export interface StorageBaseOptions<T> {
   onSave?: (items: T) => void;
 }
 
-export abstract class StorageBase<T> extends Observable<T> implements IDisposable {
+export class StorageBase<T> extends Observable<T> implements IDisposable {
   protected key: string;
   protected options: StorageBaseOptions<T>;
   protected adapter: IStorageAdapter<T>;
