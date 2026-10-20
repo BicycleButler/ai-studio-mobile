@@ -1,102 +1,86 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NetworkStorageSyncAdapter } from './syncAdapter';
+import { IApiClient } from '../apiClient';
+import { IOfflineService } from '../offlineService';
+import { INetworkStatusProvider, NetworkStatus } from '../networkStatus';
+import { Observable } from '../observable';
 
 describe('NetworkStorageSyncAdapter', () => {
-    it('should sync to online if connected and successful', async () => {
-        const mockApiClient = {
-            addInterceptor: vi.fn(),
-            clearInterceptors: vi.fn(),
-            fetch: vi.fn().mockResolvedValue({}),
-            fetchStream: vi.fn()
-        };
-        const mockOfflineService = {
-            queueObservable: {} as any,
-            registerSyncHandler: vi.fn(),
-            enqueueOfflineMutation: vi.fn().mockResolvedValue(undefined),
-            removeOfflineMutation: vi.fn(),
-            getOfflineQueueLength: vi.fn(),
-            clearOfflineMutations: vi.fn(),
-            processOfflineMutations: vi.fn(),
-            getOfflineQueue: vi.fn()
-        };
-        const mockNetworkStatusProvider = {
-            isOnline: vi.fn().mockReturnValue(true)
+    let mockApiClient: any;
+    let mockOfflineService: any;
+
+    beforeEach(() => {
+        mockApiClient = {
+            fetch: vi.fn(),
+        } as unknown as IApiClient;
+
+        mockOfflineService = {
+            enqueueOfflineMutation: vi.fn(),
+        } as unknown as IOfflineService;
+    });
+
+    it('should call apiClient.fetch when online', async () => {
+        const mockNetworkStatusProvider: INetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true),
+            getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
         };
 
         const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService, mockNetworkStatusProvider);
+        const item = { id: 1, name: 'test' };
 
-        adapter.syncItem({ id: 1 }, '/api/test', 'test_mutation');
+        mockApiClient.fetch.mockResolvedValueOnce({ ok: true });
 
-        expect(mockApiClient.fetch).toHaveBeenCalledWith('/api/test', expect.objectContaining({
+        adapter.syncItem(item, '/api/test', 'test_mutation');
+
+        expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
+        expect(mockApiClient.fetch).toHaveBeenCalledWith('/api/test', {
             method: 'POST',
-            body: JSON.stringify({ id: 1 })
-        }));
-
-        // Let promises resolve
-        await new Promise(r => setTimeout(r, 0));
-
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(item),
+        });
         expect(mockOfflineService.enqueueOfflineMutation).not.toHaveBeenCalled();
     });
 
-    it('should fallback to offline queue if offline', async () => {
-        const mockApiClient = {
-            addInterceptor: vi.fn(),
-            clearInterceptors: vi.fn(),
-            fetch: vi.fn(),
-            fetchStream: vi.fn()
-        };
-        const mockOfflineService = {
-            queueObservable: {} as any,
-            registerSyncHandler: vi.fn(),
-            enqueueOfflineMutation: vi.fn().mockResolvedValue(undefined),
-            removeOfflineMutation: vi.fn(),
-            getOfflineQueueLength: vi.fn(),
-            clearOfflineMutations: vi.fn(),
-            processOfflineMutations: vi.fn(),
-            getOfflineQueue: vi.fn()
-        };
-        const mockNetworkStatusProvider = {
-            isOnline: vi.fn().mockReturnValue(false)
+    it('should enqueue offline mutation when offline', async () => {
+        const mockNetworkStatusProvider: INetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(false),
+            getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: false, wasOffline: true }))
         };
 
         const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService, mockNetworkStatusProvider);
+        const item = { id: 1, name: 'test' };
 
-        adapter.syncItem({ id: 1 }, '/api/test', 'test_mutation');
+        mockOfflineService.enqueueOfflineMutation.mockResolvedValueOnce(undefined);
 
+        adapter.syncItem(item, '/api/test', 'test_mutation');
+
+        expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).not.toHaveBeenCalled();
-        expect(mockOfflineService.enqueueOfflineMutation).toHaveBeenCalledWith('test_mutation', { id: 1 });
+        expect(mockOfflineService.enqueueOfflineMutation).toHaveBeenCalledWith('test_mutation', item);
     });
 
     it('should fallback to offline queue if online fetch fails', async () => {
-        const mockApiClient = {
-            addInterceptor: vi.fn(),
-            clearInterceptors: vi.fn(),
-            fetch: vi.fn().mockRejectedValue(new Error('Network failure')),
-            fetchStream: vi.fn()
-        };
-        const mockOfflineService = {
-            queueObservable: {} as any,
-            registerSyncHandler: vi.fn(),
-            enqueueOfflineMutation: vi.fn().mockResolvedValue(undefined),
-            removeOfflineMutation: vi.fn(),
-            getOfflineQueueLength: vi.fn(),
-            clearOfflineMutations: vi.fn(),
-            processOfflineMutations: vi.fn(),
-            getOfflineQueue: vi.fn()
-        };
-        const mockNetworkStatusProvider = {
-            isOnline: vi.fn().mockReturnValue(true)
+        const mockNetworkStatusProvider: INetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true),
+            getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
         };
 
         const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService, mockNetworkStatusProvider);
+        const item = { id: 1, name: 'test' };
 
-        adapter.syncItem({ id: 1 }, '/api/test', 'test_mutation');
+        mockApiClient.fetch.mockRejectedValueOnce(new Error('Network failure'));
+        mockOfflineService.enqueueOfflineMutation.mockResolvedValueOnce(undefined);
 
+        adapter.syncItem(item, '/api/test', 'test_mutation');
+
+        expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).toHaveBeenCalled();
 
-        // Let promises resolve
-        await new Promise(r => setTimeout(r, 0));
+        // Wait for the catch block to execute
+        await new Promise(process.nextTick);
 
-        expect(mockOfflineService.enqueueOfflineMutation).toHaveBeenCalledWith('test_mutation', { id: 1 });
+        expect(mockOfflineService.enqueueOfflineMutation).toHaveBeenCalledWith('test_mutation', item);
     });
 });

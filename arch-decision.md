@@ -244,3 +244,17 @@ Simply update the existing logic to assume `isOnline = true` if `isBrowserEnviro
 
 **Recommendation:**
 **Path 1 (Network Status Provider Abstraction)** was implemented. It strictly decouples the adapter from the DOM, makes unit testing trivial and deterministic without mocking globals, and improves robustness in varying runtime environments.
+
+## Architectural Decision: Event-Driven Network Status Provider Abstraction
+
+**Context:**
+While the `INetworkStatusProvider` interface successfully abstracted the `isOnline()` check, the `useNetworkStatus` hook remained tightly coupled to the DOM via hardcoded `safeAddEventListener` calls and a hardcoded `networkStatusObservable`. This violated the Open/Closed Principle and the Dependency Inversion Principle, making it difficult to inject custom network status detection mechanisms (e.g., Cordova plugins, WebSocket pings, or test mocks) that require reactive updates.
+
+**Path 1: Event-Driven Network Status Provider Abstraction (Composition)**
+Extend the `INetworkStatusProvider` interface to include a `getObservable(): Observable<NetworkStatus>` method. Update `BrowserNetworkStatusProvider` to encapsulate both the synchronous DOM checks and the reactive DOM event listeners (`online`/`offline`). The `useNetworkStatus` hook then simply consumes the observable provided by an injected `INetworkStatusProvider`.
+
+**Path 2: Callback Registration inside Provider**
+Extend the `INetworkStatusProvider` with `onStatusChange(callback: (status: NetworkStatus) => void): () => void`. Update the hook to use `useSyncExternalStore` directly with this callback.
+
+**Recommendation:**
+**Path 1 (Event-Driven Network Status Provider Abstraction)** was implemented. It perfectly unifies the synchronous and reactive network status APIs into a single cohesive provider, adheres strictly to the existing `Observable` patterns used throughout the codebase, and fully decouples the React layer from DOM networking events.
