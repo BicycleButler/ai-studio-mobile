@@ -1,4 +1,5 @@
 import { CollectionOperationResult, ICollectionEngine } from "./types";
+import { fastShallowEqual } from "./helpers";
 
 export class ArrayCollection<T> implements ICollectionEngine<T> {
   private keyExtractor: (item: T) => string;
@@ -11,8 +12,14 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
     const index = items.findIndex((item) => this.keyExtractor(item) === id);
     if (index === -1) return { items, changed: false, item: null };
 
+    const existing = items[index];
+    const updatedItem = { ...existing, ...updates } as T;
+
+    if (fastShallowEqual(existing, updatedItem)) {
+      return { items, changed: false, item: existing };
+    }
+
     const newItems = [...items];
-    const updatedItem = { ...newItems[index], ...updates } as T;
     newItems[index] = updatedItem;
     return { items: newItems, changed: true, item: updatedItem };
   }
@@ -32,11 +39,14 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
       const id = this.keyExtractor(newItems[i]);
       const changes = updatesMap.get(id);
       if (changes !== undefined) {
-        newItems[i] = { ...newItems[i], ...changes } as T;
-        changed = true;
+        const updatedItem = { ...newItems[i], ...changes } as T;
+        if (!fastShallowEqual(newItems[i], updatedItem)) {
+           newItems[i] = updatedItem;
+           changed = true;
+        }
       }
     }
-    return { items: newItems, changed };
+    return { items: changed ? newItems : items, changed };
   }
 
   bulkDelete(items: T[], ids: string[]): CollectionOperationResult<T> {
@@ -57,12 +67,17 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
     const index = items.findIndex((i) => this.keyExtractor(i) === id);
     const updatedItem = { ...item } as T;
 
-    const newItems = [...items];
     if (index >= 0) {
+      if (fastShallowEqual(items[index], updatedItem)) {
+        return { items, changed: false, item: items[index] };
+      }
+      const newItems = [...items];
       newItems[index] = updatedItem;
-    } else {
-      prepend ? newItems.unshift(updatedItem) : newItems.push(updatedItem);
+      return { items: newItems, changed: true, item: updatedItem };
     }
+
+    const newItems = [...items];
+    prepend ? newItems.unshift(updatedItem) : newItems.push(updatedItem);
     return { items: newItems, changed: true, item: updatedItem };
   }
 
@@ -82,13 +97,18 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
 
     const nextItems = [...items];
     const itemsToAdd: T[] = [];
+    let changed = false;
 
     for (const [id, updatedItem] of collapsedNewItems.entries()) {
       const index = indexMap.get(id);
       if (index !== undefined) {
-        nextItems[index] = updatedItem;
+        if (!fastShallowEqual(nextItems[index], updatedItem)) {
+          nextItems[index] = updatedItem;
+          changed = true;
+        }
       } else {
         itemsToAdd.push(updatedItem);
+        changed = true;
       }
     }
 
@@ -100,6 +120,6 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
       }
     }
 
-    return { items: nextItems, changed: true };
+    return { items: changed ? nextItems : items, changed };
   }
 }
