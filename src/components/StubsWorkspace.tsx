@@ -34,21 +34,17 @@ import { useStubsData } from "../hooks/stubs/useStubsData";
 import { useStubsSpecs } from "../hooks/stubs/useStubsSpecs";
 import { fetchJulesRepositories } from "../services/julesService";
 
-import { SharedWorkspaceProps } from "./WorkspaceRouter";
 
-interface StubsWorkspaceProps extends SharedWorkspaceProps {
-
-
+export interface StubsWorkspaceProps {
+  onOpenBottomNav?: () => void;
+  onOpenParameters?: () => void;
 }
 
 type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal";
 
 
-export const StubsWorkspace: React.FC<StubsWorkspaceProps> = (props) => {
-  const { onOpenBottomNav: _onOpenBottomNav, onOpenParameters: _onOpenParameters } = props;
-
-
-  // Navigation & Sub-views
+export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
+    // Navigation & Sub-views
   const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<string>("Active Workspace (ai-studio-mobile)");

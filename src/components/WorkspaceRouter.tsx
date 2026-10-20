@@ -74,12 +74,15 @@ export interface JulesWorkspaceProps extends SharedWorkspaceProps {
   onRegenerate: () => void;
 }
 
+import { StubsWorkspaceProps } from "./StubsWorkspace";
+
 export interface WorkspaceRouterProps {
   promptType: PromptType;
   sharedProps: SharedWorkspaceProps;
   chatProps: Omit<ChatWorkspaceProps, keyof SharedWorkspaceProps>;
   ideProps: Omit<IDEWorkspaceProps, keyof SharedWorkspaceProps>;
   julesProps: Omit<JulesWorkspaceProps, keyof SharedWorkspaceProps>;
+  stubsProps?: StubsWorkspaceProps;
 }
 
 export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
@@ -88,6 +91,7 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
   chatProps,
   ideProps,
   julesProps,
+  stubsProps,
 }) => {
   return (
     <main className="flex-1 flex flex-col overflow-hidden relative">
@@ -101,7 +105,7 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
         <ChatWorkspace isJulesMode={true} {...sharedProps} {...julesProps} />
       )}
       {promptType === "stubs" && (
-        <StubsWorkspace {...sharedProps} />
+        <StubsWorkspace {...stubsProps} />
       )}
     </main>
   );
