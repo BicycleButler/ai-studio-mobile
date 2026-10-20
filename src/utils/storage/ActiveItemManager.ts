@@ -16,7 +16,17 @@ export interface ActiveItemManagerState<T> {
   activeItem: T | null;
 }
 
-export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T>> implements IReadableStore<ActiveItemManagerState<T>> {
+export interface IActiveItemManager<T> extends IReadableStore<ActiveItemManagerState<T>> {
+  collection: IMutableCollection<T>;
+  activeIdSingleton: IMutableSingleton<string | null>;
+  getItems(): T[];
+  getActiveId(): string | null;
+  setActiveId(id: string | null): void;
+  getActiveItem(): T | null;
+  dispose(): void;
+}
+
+export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T>> implements IActiveItemManager<T> {
   public collection: IMutableCollection<T>;
   public activeIdSingleton: IMutableSingleton<string | null>;
   private getId: (item: T) => string;

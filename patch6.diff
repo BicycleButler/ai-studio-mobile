@@ -1,0 +1,6 @@
+<<<<<<< SEARCH
+export { StorageCollection, StorageSingleton, StorageRegistry, ArrayCollection };
+=======
+export * from "./StorageRegistry";
+export { StorageCollection, StorageSingleton, ArrayCollection };
+>>>>>>> REPLACE

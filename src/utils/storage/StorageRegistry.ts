@@ -1,4 +1,12 @@
-export class StorageRegistry<TStore> {
+export interface IStorageRegistry<TStore> {
+  get(key: string): TStore;
+  delete(key: string): boolean;
+  clear(): void;
+  get keys(): string[];
+  get values(): TStore[];
+}
+
+export class StorageRegistry<TStore> implements IStorageRegistry<TStore> {
   private cache = new Map<string, TStore>();
   private disposer?: (store: TStore) => void;
 

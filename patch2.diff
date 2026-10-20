@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+import { apiFetch } from "../apiClient";
+import { NetworkStorageSyncAdapter } from "./syncAdapter";
+
+const julesApiKeySingleton = new StorageSingleton<string>(
+=======
+import { apiFetch, defaultClient } from "../apiClient";
+import { defaultOfflineService } from "../offlineService";
+import { NetworkStorageSyncAdapter } from "./syncAdapter";
+
+const julesApiKeySingleton = new StorageSingleton<string>(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+export function isMockJulesSession(session: Partial<JulesSession>): boolean {
+  return isMockSession(session, "jules");
+}
+
+const julesSyncAdapter = new NetworkStorageSyncAdapter<JulesSession[]>();
+
+const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, {
+=======
+export function isMockJulesSession(session: Partial<JulesSession>): boolean {
+  return isMockSession(session, "jules");
+}
+
+const julesSyncAdapter = new NetworkStorageSyncAdapter<JulesSession[]>(defaultClient, defaultOfflineService);
+
+const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, {
+>>>>>>> REPLACE

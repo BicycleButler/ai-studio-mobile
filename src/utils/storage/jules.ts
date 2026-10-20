@@ -6,7 +6,8 @@ import { STORAGE_KEYS } from "./constants";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
-import { apiFetch } from "../apiClient";
+import { apiFetch, defaultClient } from "../apiClient";
+import { defaultOfflineService } from "../offlineService";
 import { NetworkStorageSyncAdapter } from "./syncAdapter";
 
 const julesApiKeySingleton = new StorageSingleton<string>(
@@ -30,7 +31,7 @@ export function isMockJulesSession(session: Partial<JulesSession>): boolean {
   return isMockSession(session, "jules");
 }
 
-const julesSyncAdapter = new NetworkStorageSyncAdapter<JulesSession[]>();
+const julesSyncAdapter = new NetworkStorageSyncAdapter<JulesSession[]>(defaultClient, defaultOfflineService);
 
 const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, {
   validate: (s) => !isMockJulesSession(s as Partial<JulesSession>),

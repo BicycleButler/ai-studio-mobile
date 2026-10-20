@@ -2,9 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { verifyJulesApiKey, fetchJulesRepositories, createJulesTask, setJulesServiceConfig } from "./julesService";
 import { apiFetch } from "../utils/apiClient";
 
-vi.mock("../utils/apiClient", () => ({
-  apiFetch: vi.fn(),
-}));
+vi.mock("../utils/apiClient", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../utils/apiClient")>();
+  return {
+    ...actual,
+    apiFetch: vi.fn(),
+  };
+});
 
 describe("julesService", () => {
   beforeEach(() => {
