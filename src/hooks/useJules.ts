@@ -1,3 +1,4 @@
+import { useStore } from "./useStore";
 import { getErrorMessage } from "../utils/errorHandling";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { ChatMessage, JulesSession, MessageAttachment } from "../types";
@@ -11,7 +12,7 @@ import {
 
 } from "../utils/storage";
 import {
-  useStorage,
+
   julesSessionsManager
 } from "../utils/storage";
 import {
@@ -23,7 +24,7 @@ import {
 
 export function useJules() {
   const [julesApiKey, setJulesApiKey] = useState<string>(() => loadStoredJulesApiKey());
-  const julesStore = useStorage(julesSessionsManager);
+  const julesStore = useStore(julesSessionsManager);
   const julesSessions = julesStore.items;
   const setJulesSessions: React.Dispatch<React.SetStateAction<JulesSession[]>> = (val) => {
     if (typeof val === "function") {

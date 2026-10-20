@@ -1,6 +1,6 @@
 import { clearAllChatSessions } from "../services/chatHistoryService";
 import { useState, useEffect } from "react";
-import { useStorage } from "../utils/storage";
+import { useStore } from "./useStore";
 import { usePromptTemplates } from "./usePromptTemplates";
 import { useChatSession } from "./useChatSession";
 import {
@@ -53,7 +53,7 @@ import { fetchServerHealth } from "../services/auth";
 
 export function useAppState() {
   // Phase 3: Active Project & Projects vault
-  const projectManagerStore = useStorage(projectsManager);
+  const projectManagerStore = useStore(projectsManager);
   const projects = projectManagerStore.items;
   const setProjects: React.Dispatch<React.SetStateAction<ProjectInfo[]>> = (val) => {
     if (typeof val === "function") {

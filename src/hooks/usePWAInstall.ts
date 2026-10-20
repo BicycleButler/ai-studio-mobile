@@ -1,5 +1,7 @@
-import { useSyncExternalStore, useCallback } from "react";
+import { useCallback } from "react";
 import { isBrowserEnvironment, getPlatformCapabilities, safeAddEventListener } from "../utils/platform";
+import { Observable } from "../utils/observable";
+import { useStore } from "./useStore";
 
 export interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -19,61 +21,43 @@ export interface PWAInstallState {
 
 const caps = getPlatformCapabilities();
 
-let currentState: PWAInstallState = {
+export const pwaInstallObservable = new Observable<PWAInstallState>({
   deferredPrompt: null,
   isInstalled: caps.isNative || caps.isPWA,
   isIOS: caps.isIOS,
   isNativeCapacitor: caps.isNative,
-};
+});
 
-let listeners = new Set<() => void>();
 let isInitialized = false;
-
-function notify() {
-  for (const listener of listeners) {
-    listener();
-  }
-}
 
 function initPWAInstallListeners() {
   if (!isBrowserEnvironment() || isInitialized) return;
   isInitialized = true;
 
-  const caps = getPlatformCapabilities();
-  currentState = {
+  const currentCaps = getPlatformCapabilities();
+  const currentState = pwaInstallObservable.getSnapshot()!;
+
+  pwaInstallObservable.notify({
     ...currentState,
-    isNativeCapacitor: caps.isNative,
-    isInstalled: caps.isNative || caps.isPWA,
-    isIOS: caps.isIOS,
-  };
-  notify();
+    isNativeCapacitor: currentCaps.isNative,
+    isInstalled: currentCaps.isNative || currentCaps.isPWA,
+    isIOS: currentCaps.isIOS,
+  });
 
   safeAddEventListener("beforeinstallprompt" as keyof WindowEventMap, ((e: Event) => {
     e.preventDefault();
-    currentState = { ...currentState, deferredPrompt: e as BeforeInstallPromptEvent };
-    notify();
+    const current = pwaInstallObservable.getSnapshot()!;
+    pwaInstallObservable.notify({ ...current, deferredPrompt: e as BeforeInstallPromptEvent });
   }) as EventListener);
 
   safeAddEventListener("appinstalled" as keyof WindowEventMap, (() => {
-    currentState = { ...currentState, isInstalled: true, deferredPrompt: null };
-    notify();
+    const current = pwaInstallObservable.getSnapshot()!;
+    pwaInstallObservable.notify({ ...current, isInstalled: true, deferredPrompt: null });
   }) as EventListener);
 }
 
-function subscribe(listener: () => void) {
-  initPWAInstallListeners();
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-function getSnapshot() {
-  return currentState;
-}
-
 export function usePWAInstall() {
-  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const state = useStore(pwaInstallObservable, initPWAInstallListeners);
 
   const install = useCallback(async (): Promise<boolean> => {
     if (!state.deferredPrompt) return false;
@@ -81,8 +65,8 @@ export function usePWAInstall() {
       await state.deferredPrompt.prompt();
       const choiceResult = await state.deferredPrompt.userChoice;
       if (choiceResult.outcome === "accepted") {
-        currentState = { ...currentState, isInstalled: true, deferredPrompt: null };
-        notify();
+        const current = pwaInstallObservable.getSnapshot()!;
+        pwaInstallObservable.notify({ ...current, isInstalled: true, deferredPrompt: null });
         return true;
       }
       return false;
