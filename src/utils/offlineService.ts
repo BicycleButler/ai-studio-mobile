@@ -34,20 +34,26 @@ export interface IOfflineService {
   getOfflineQueue(): Promise<OfflineMutation[]>;
 }
 
+export interface OfflineServiceConfig {
+  storageKey?: string;
+  storageAdapter?: AsyncStorage;
+}
+
 export class OfflineService implements IOfflineService {
   private syncRegistry: Record<string, SyncHandler> = {};
   private queueMutex = new Mutex();
   public queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>();
   private cachedQueue: OfflineMutation[] = [];
   private channel?: BroadcastChannel;
+  private storageKey: string;
+  private storageAdapter: AsyncStorage;
 
-  constructor(
-    private storageKey: string = OFFLINE_QUEUE_KEY,
-    private storageAdapter: AsyncStorage = new FallbackAsyncStorage([
+  constructor(config?: OfflineServiceConfig) {
+    this.storageKey = config?.storageKey || OFFLINE_QUEUE_KEY;
+    this.storageAdapter = config?.storageAdapter || new FallbackAsyncStorage([
       new IndexedDbAsyncStorage(),
       new MemoryAsyncStorage()
-    ])
-  ) {
+    ]);
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         this.channel = new BroadcastChannel(`${this.storageKey}_channel`);
@@ -211,6 +217,12 @@ export class OfflineService implements IOfflineService {
 
   public async getOfflineQueue(): Promise<OfflineMutation[]> {
     return this.cachedQueue;
+  }
+
+  public dispose(): void {
+    if (this.channel) {
+      this.channel.close();
+    }
   }
 }
 

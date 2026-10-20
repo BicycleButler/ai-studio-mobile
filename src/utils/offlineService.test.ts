@@ -20,7 +20,7 @@ describe('OfflineService', () => {
 
   beforeEach(() => {
     mockStorage = new MockAsyncStorage();
-    service = new OfflineService('test_queue', mockStorage);
+    service = new OfflineService({ storageKey: 'test_queue', storageAdapter: mockStorage });
   });
 
   it('should enqueue mutations correctly', async () => {

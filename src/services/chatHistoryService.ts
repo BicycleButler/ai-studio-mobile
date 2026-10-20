@@ -17,11 +17,21 @@ export interface IChatHistoryService {
   bulkDeleteChatSessions(sessionIds: string[], projectId?: string): boolean;
 }
 
+export interface ChatHistoryServiceConfig {
+  quotaObservable?: typeof globalStorageQuotaObservable;
+  storageKeys?: typeof STORAGE_KEYS;
+}
+
 export class ChatHistoryService implements IChatHistoryService {
   private unsubscribeQuota: () => void;
+  private config: Required<ChatHistoryServiceConfig>;
 
-  constructor() {
-    this.unsubscribeQuota = globalStorageQuotaObservable.subscribe(() => {
+  constructor(config?: ChatHistoryServiceConfig) {
+    this.config = {
+      quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
+      storageKeys: config?.storageKeys || STORAGE_KEYS,
+    };
+    this.unsubscribeQuota = this.config.quotaObservable.subscribe(() => {
       this.handleQuotaExceeded();
     });
   }
@@ -29,7 +39,7 @@ export class ChatHistoryService implements IChatHistoryService {
   private handleQuotaExceeded(): void {
     console.warn("ChatHistoryService: Storage quota exceeded. Evicting old chat histories to recover space.");
     try {
-      const keysToClean = safeGetStorageKeys(STORAGE_KEYS.CHAT_SESSIONS_PREFIX);
+      const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX);
       keysToClean.forEach((key) => {
         const collection = this.getChatCollectionByKey(key);
         let sessions = collection.load();
@@ -70,9 +80,9 @@ export class ChatHistoryService implements IChatHistoryService {
 
   public getChatSessionsStorageKey(projectId?: string): string {
     if (projectId && projectId.trim()) {
-      return `${STORAGE_KEYS.CHAT_SESSIONS_PREFIX}_${projectId.trim()}`;
+      return `${this.config.storageKeys.CHAT_SESSIONS_PREFIX}_${projectId.trim()}`;
     }
-    return `${STORAGE_KEYS.CHAT_SESSIONS_PREFIX}_default`;
+    return `${this.config.storageKeys.CHAT_SESSIONS_PREFIX}_default`;
   }
 
   public isMockChatSession(session: Partial<ChatSession>): boolean {
@@ -82,7 +92,7 @@ export class ChatHistoryService implements IChatHistoryService {
   public purgeMockSessionsFromStorage(): void {
     try {
       if (isBrowserEnvironment()) {
-        const keysToClean = safeGetStorageKeys(STORAGE_KEYS.CHAT_SESSIONS_PREFIX);
+        const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX);
 
         keysToClean.forEach((key) => {
           const collection = this.getChatCollectionByKey(key);
