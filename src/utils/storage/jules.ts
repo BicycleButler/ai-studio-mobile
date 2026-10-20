@@ -1,7 +1,4 @@
 import { JulesSession, JulesSettings } from "../../types";
-import { StorageCollection } from "./StorageCollection";
-import { StorageSingleton } from "./StorageSingleton";
-import { ActiveItemManager } from "./ActiveItemManager";
 import { STORAGE_KEYS } from "./constants";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
@@ -9,6 +6,8 @@ import { cleanMockData } from "./helpers";
 import { apiFetch, defaultClient } from "../apiClient";
 import { defaultOfflineService } from "../offlineService";
 import { NetworkStorageSyncAdapter } from "./syncAdapter";
+import { createActiveItemManager } from "./ActiveItemManagerFactory";
+import { StorageSingleton } from "./StorageSingleton";
 
 const julesApiKeySingleton = new StorageSingleton<string>(
   STORAGE_KEYS.JULES_API_KEY,
@@ -33,26 +32,18 @@ export function isMockJulesSession(session: Partial<JulesSession>): boolean {
 
 const julesSyncAdapter = new NetworkStorageSyncAdapter<JulesSession[]>(defaultClient, defaultOfflineService);
 
-const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, {
-  validate: (s) => !isMockJulesSession(s as Partial<JulesSession>),
-  onSave: (clean) => {
-    julesSyncAdapter.syncItem(clean, "/api/jules/sessions", "jules_sessions");
-  }
-});
-
-const activeJulesSessionIdSingleton = new StorageSingleton<string | null>(
-  STORAGE_KEYS.ACTIVE_JULES_SESSION_ID,
-  null
-);
-
-export const julesSessionsManager = new ActiveItemManager<JulesSession>({
-  collection: julesSessionsCollection,
-  activeIdSingleton: activeJulesSessionIdSingleton,
+export const julesSessionsManager = createActiveItemManager<JulesSession>({
+  collectionKey: STORAGE_KEYS.JULES_SESSIONS,
+  collectionOptions: {
+    validate: (s) => !isMockJulesSession(s as Partial<JulesSession>),
+    onSave: (clean) => {
+      julesSyncAdapter.syncItem(clean, "/api/jules/sessions", "jules_sessions");
+    }
+  },
+  activeIdKey: STORAGE_KEYS.ACTIVE_JULES_SESSION_ID,
   getId: (s) => s.id,
   allowImplicitSelection: false,
 });
-
-
 
 export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
   try {
@@ -103,9 +94,3 @@ export function loadStoredJulesSettings(): JulesSettings {
 export function saveStoredJulesSettings(settings: JulesSettings): void {
   julesSettingsSingleton.save(settings);
 }
-
-
-
-
-
-

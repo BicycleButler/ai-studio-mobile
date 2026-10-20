@@ -1,22 +1,19 @@
 import { ProjectInfo } from "../../types";
 import { generateUniqueId } from "../idGenerator";
-import { StorageCollection } from "./StorageCollection";
-import { StorageSingleton } from "./StorageSingleton";
-import { ActiveItemManager } from "./ActiveItemManager";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { saveStoredApiKey } from "./general";
+import { createActiveItemManager } from "./ActiveItemManagerFactory";
 
-const projectsCollection = new StorageCollection<ProjectInfo>(STORAGE_KEYS.PROJECTS, {
-  transformIn: (p) => ({ ...p, apiKey: encryptSecret(p.apiKey) }),
-  transformOut: (p) => ({ ...p, apiKey: decryptSecret(p.apiKey) }),
-});
-
-const activeProjectIdSingleton = new StorageSingleton<string | null>(
-  STORAGE_KEYS.ACTIVE_PROJECT_ID,
-  null,
-  {
+export const projectsManager = createActiveItemManager<ProjectInfo>({
+  collectionKey: STORAGE_KEYS.PROJECTS,
+  collectionOptions: {
+    transformIn: (p) => ({ ...p, apiKey: encryptSecret(p.apiKey) }),
+    transformOut: (p) => ({ ...p, apiKey: decryptSecret(p.apiKey) }),
+  },
+  activeIdKey: STORAGE_KEYS.ACTIVE_PROJECT_ID,
+  activeIdOptions: {
     adapter: {
       get: (key: string, fallback: string | null) => {
         const val = safeGetStorageString(key, "");
@@ -31,12 +28,7 @@ const activeProjectIdSingleton = new StorageSingleton<string | null>(
       },
       remove: (key: string) => safeRemoveStorage(key),
     }
-  }
-);
-
-export const projectsManager = new ActiveItemManager<ProjectInfo>({
-  collection: projectsCollection,
-  activeIdSingleton: activeProjectIdSingleton,
+  },
   getId: (p) => p.id,
   onActiveItemChange: (activeProject) => {
     saveStoredApiKey(activeProject ? activeProject.apiKey : "");
@@ -58,11 +50,6 @@ export function getActiveProjectId(): string | null {
 export function setActiveProjectId(id: string | null): void {
   projectsManager.setActiveId(id);
 }
-
-
-
-
-
 
 export function saveAndActivateProject(
   projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
