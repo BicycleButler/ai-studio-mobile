@@ -5,6 +5,7 @@ import { isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListene
  */
 
 import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
+import { IMutableSingleton } from "../utils/storage/types";
 import { Observable, IObservable } from "../utils/observable";
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -17,129 +18,165 @@ export interface ThemeState {
 
 export type ThemeListener = (state: ThemeState) => void;
 
-const themeObservable: IObservable<ThemeState> = new Observable<ThemeState>();
-let currentMode: ThemeMode = "system";
-let currentResolved: ResolvedTheme = "dark";
-let initialized = false;
-let mediaQueryList: MediaQueryList | null = null;
-
-const themeModeSingleton = new StorageSingleton<ThemeMode>(
-  STORAGE_KEYS.THEME_MODE,
-  "system",
-  {
-    validate: (val) => val === "light" || val === "dark" || val === "system",
-  }
-);
-
-export function getSystemResolvedTheme(): ResolvedTheme {
-  if (!isBrowserEnvironment()) {
-    return "dark"; // Default fallback
-  }
-  const win = getSafeWindowMatchMedia();
-  if (!win || !win.matchMedia) return "dark";
-  return win.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+export interface IThemeService {
+  getSystemResolvedTheme(): ResolvedTheme;
+  loadStoredThemeMode(): ThemeMode;
+  persistThemeMode(mode: ThemeMode): void;
+  resolveTheme(mode: ThemeMode): ResolvedTheme;
+  applyThemeToDOM(resolved: ResolvedTheme): void;
+  getThemeState(): ThemeState;
+  setThemeMode(newMode: ThemeMode): void;
+  toggleTheme(): void;
+  subscribeToTheme(listener: ThemeListener): () => void;
+  initThemeService(): () => void;
 }
 
-export function loadStoredThemeMode(): ThemeMode {
-  return themeModeSingleton.load();
+export interface ThemeServiceConfig {
+  themeModeSingleton?: IMutableSingleton<ThemeMode>;
 }
 
-export function persistThemeMode(mode: ThemeMode): void {
-  themeModeSingleton.save(mode);
-}
+export class ThemeService implements IThemeService {
+  private themeObservable: IObservable<ThemeState>;
+  private themeModeSingleton: IMutableSingleton<ThemeMode>;
+  private currentMode: ThemeMode = "system";
+  private currentResolved: ResolvedTheme = "dark";
+  private initialized = false;
+  private mediaQueryList: MediaQueryList | null = null;
 
-export function resolveTheme(mode: ThemeMode): ResolvedTheme {
-  if (mode === "system") {
-    return getSystemResolvedTheme();
-  }
-  return mode;
-}
-
-export function applyThemeToDOM(resolved: ResolvedTheme): void {
-  if (!isBrowserEnvironment()) return;
-
-  const root = document.documentElement;
-  root.setAttribute("data-theme", resolved);
-  if (resolved === "dark") {
-    root.classList.add("dark");
-  } else {
-    root.classList.remove("dark");
-  }
-
-  // Update theme-color meta tag if available
-  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-  if (metaThemeColor) {
-    const computedBg = getComputedStyle(root).getPropertyValue("--background").trim();
-    if (computedBg) {
-      metaThemeColor.setAttribute("content", computedBg);
-    }
-  }
-}
-
-function notifyListeners(): void {
-  const state: ThemeState = {
-    mode: currentMode,
-    resolvedTheme: currentResolved,
-  };
-  themeObservable.notify(state);
-}
-
-export function getThemeState(): ThemeState {
-  return {
-    mode: currentMode,
-    resolvedTheme: currentResolved,
-  };
-}
-
-export function setThemeMode(newMode: ThemeMode): void {
-  currentMode = newMode;
-  currentResolved = resolveTheme(newMode);
-  persistThemeMode(newMode);
-  applyThemeToDOM(currentResolved);
-  notifyListeners();
-}
-
-export function toggleTheme(): void {
-  const nextResolved: ResolvedTheme = currentResolved === "dark" ? "light" : "dark";
-  setThemeMode(nextResolved);
-}
-
-export function subscribeToTheme(listener: ThemeListener): () => void {
-  const unsubscribe = themeObservable.subscribe(listener);
-  listener({ mode: currentMode, resolvedTheme: currentResolved });
-  return unsubscribe;
-}
-
-export function initThemeService(): () => void {
-  if (!isBrowserEnvironment()) {
-    return () => {};
-  }
-
-  if (!initialized) {
-    initialized = true;
-    currentMode = loadStoredThemeMode();
-    currentResolved = resolveTheme(currentMode);
-    applyThemeToDOM(currentResolved);
-
-    const win = getSafeWindowMatchMedia();
-    if (win && win.matchMedia) {
-      mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
-    }
-  }
-
-  let removeListener = () => {};
-  if (mediaQueryList) {
-    const handleChange = () => {
-      if (currentMode === "system") {
-        currentResolved = getSystemResolvedTheme();
-        applyThemeToDOM(currentResolved);
-        notifyListeners();
+  constructor(config?: ThemeServiceConfig) {
+    this.themeObservable = new Observable<ThemeState>();
+    this.themeModeSingleton = config?.themeModeSingleton || new StorageSingleton<ThemeMode>(
+      STORAGE_KEYS.THEME_MODE,
+      "system",
+      {
+        validate: (val) => val === "light" || val === "dark" || val === "system",
       }
-    };
-    removeListener = safeAddMatchMediaListener(mediaQueryList, handleChange);
+    );
   }
 
-  return () => {
-    removeListener();
-  };
+  public getSystemResolvedTheme(): ResolvedTheme {
+    if (!isBrowserEnvironment()) {
+      return "dark"; // Default fallback
+    }
+    const win = getSafeWindowMatchMedia();
+    if (!win || !win.matchMedia) return "dark";
+    return win.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  public loadStoredThemeMode(): ThemeMode {
+    return this.themeModeSingleton.load();
+  }
+
+  public persistThemeMode(mode: ThemeMode): void {
+    this.themeModeSingleton.save(mode);
+  }
+
+  public resolveTheme(mode: ThemeMode): ResolvedTheme {
+    if (mode === "system") {
+      return this.getSystemResolvedTheme();
+    }
+    return mode;
+  }
+
+  public applyThemeToDOM(resolved: ResolvedTheme): void {
+    if (!isBrowserEnvironment()) return;
+
+    const root = document.documentElement;
+    root.setAttribute("data-theme", resolved);
+    if (resolved === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+
+    // Update theme-color meta tag if available
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      const computedBg = getComputedStyle(root).getPropertyValue("--background").trim();
+      if (computedBg) {
+        metaThemeColor.setAttribute("content", computedBg);
+      }
+    }
+  }
+
+  private notifyListeners(): void {
+    const state: ThemeState = {
+      mode: this.currentMode,
+      resolvedTheme: this.currentResolved,
+    };
+    this.themeObservable.notify(state);
+  }
+
+  public getThemeState(): ThemeState {
+    return {
+      mode: this.currentMode,
+      resolvedTheme: this.currentResolved,
+    };
+  }
+
+  public setThemeMode(newMode: ThemeMode): void {
+    this.currentMode = newMode;
+    this.currentResolved = this.resolveTheme(newMode);
+    this.persistThemeMode(newMode);
+    this.applyThemeToDOM(this.currentResolved);
+    this.notifyListeners();
+  }
+
+  public toggleTheme(): void {
+    const nextResolved: ResolvedTheme = this.currentResolved === "dark" ? "light" : "dark";
+    this.setThemeMode(nextResolved);
+  }
+
+  public subscribeToTheme(listener: ThemeListener): () => void {
+    const unsubscribe = this.themeObservable.subscribe(listener);
+    listener({ mode: this.currentMode, resolvedTheme: this.currentResolved });
+    return unsubscribe;
+  }
+
+  public initThemeService(): () => void {
+    if (!isBrowserEnvironment()) {
+      return () => {};
+    }
+
+    if (!this.initialized) {
+      this.initialized = true;
+      this.currentMode = this.loadStoredThemeMode();
+      this.currentResolved = this.resolveTheme(this.currentMode);
+      this.applyThemeToDOM(this.currentResolved);
+
+      const win = getSafeWindowMatchMedia();
+      if (win && win.matchMedia) {
+        this.mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
+      }
+    }
+
+    let removeListener = () => {};
+    if (this.mediaQueryList) {
+      const handleChange = () => {
+        if (this.currentMode === "system") {
+          this.currentResolved = this.getSystemResolvedTheme();
+          this.applyThemeToDOM(this.currentResolved);
+          this.notifyListeners();
+        }
+      };
+      removeListener = safeAddMatchMediaListener(this.mediaQueryList, handleChange);
+    }
+
+    return () => {
+      removeListener();
+    };
+  }
 }
+
+export const defaultThemeService = new ThemeService();
+
+export function getSystemResolvedTheme(): ResolvedTheme { return defaultThemeService.getSystemResolvedTheme(); }
+export function loadStoredThemeMode(): ThemeMode { return defaultThemeService.loadStoredThemeMode(); }
+export function persistThemeMode(mode: ThemeMode): void { return defaultThemeService.persistThemeMode(mode); }
+export function resolveTheme(mode: ThemeMode): ResolvedTheme { return defaultThemeService.resolveTheme(mode); }
+export function applyThemeToDOM(resolved: ResolvedTheme): void { return defaultThemeService.applyThemeToDOM(resolved); }
+export function getThemeState(): ThemeState { return defaultThemeService.getThemeState(); }
+export function setThemeMode(newMode: ThemeMode): void { return defaultThemeService.setThemeMode(newMode); }
+export function toggleTheme(): void { return defaultThemeService.toggleTheme(); }
+export function subscribeToTheme(listener: ThemeListener): () => void { return defaultThemeService.subscribeToTheme(listener); }
+export function initThemeService(): () => void { return defaultThemeService.initThemeService(); }
