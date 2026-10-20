@@ -7,6 +7,7 @@ export interface IReadableStore<T> {
 
 export interface IObservable<T> extends IReadableStore<T> {
   notify(state: T): void;
+  notifySync(state: T): void;
   clearListeners(): void;
 }
 
@@ -45,6 +46,19 @@ export class Observable<T> implements IObservable<T> {
           }
         }
       });
+    }
+  }
+
+  public notifySync(state: T): void {
+    this.currentState = state;
+    this.isNotificationPending = false; // Cancel any pending async notification
+    const snapshot = this.currentState as T;
+    for (const listener of this.listeners) {
+      try {
+        listener(snapshot);
+      } catch (err: unknown) {
+        console.error("Error in listener:", err);
+      }
     }
   }
 
