@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { OfflineService, AsyncStorage } from './offlineService';
+import { OfflineService } from './offlineService';
+import { AsyncStorage } from './asyncStorage';
 
 class MockAsyncStorage implements AsyncStorage {
   private store = new Map<string, any>();
@@ -69,7 +70,7 @@ describe('OfflineService', () => {
   });
 });
 
-import { FallbackAsyncStorage } from './offlineService';
+import { FallbackAsyncStorage } from './asyncStorage';
 
 class FailingAsyncStorage implements AsyncStorage {
   private _failNext = 0;

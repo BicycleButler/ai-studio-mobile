@@ -3,7 +3,7 @@ import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
 import { apiFetch } from "../utils/apiClient";
 import { isBrowserEnvironment, getSafeWindow, safeAddEventListener } from "../utils/platform";
 import { IAuthProvider } from "./authProvider";
-import { FirebaseAuthProvider } from "./firebaseAuthProvider";
+
 
 const googleUserSingleton = new StorageSingleton<GoogleUser | null>(
   STORAGE_KEYS.GOOGLE_USER,
@@ -14,7 +14,7 @@ let cachedAccessToken: string | null = null;
 let isSigningIn = false;
 
 // Injectable Auth Provider. Defaulting to Firebase Auth.
-let currentAuthProvider: IAuthProvider = new FirebaseAuthProvider();
+let currentAuthProvider: IAuthProvider | null = null;
 
 export function setAuthProvider(provider: IAuthProvider) {
   currentAuthProvider = provider;
@@ -82,6 +82,7 @@ export function parseGoogleJwtPayload(
 export async function googleSignIn(): Promise<{ user: GoogleUser; accessToken: string }> {
   isSigningIn = true;
   try {
+    if (!currentAuthProvider) throw new Error("No AuthProvider configured.");
     const { user, accessToken } = await currentAuthProvider.signIn();
     cachedAccessToken = accessToken;
 
@@ -121,6 +122,10 @@ export const initAuth = (
   onAuthSuccess?: (user: GoogleUser, token: string | null) => void,
   onAuthFailure?: () => void
 ): (() => void) => {
+  if (!currentAuthProvider) {
+    if (onAuthFailure) onAuthFailure();
+    return () => {};
+  }
   return currentAuthProvider.onAuthStateChanged(async (user: Partial<GoogleUser> | null, _accessToken: string | null) => {
     if (user && user.email) {
       try {
@@ -169,7 +174,7 @@ export const getStoredGoogleUser = loadStoredGoogleUser;
 
 export async function logoutGoogleUser(): Promise<void> {
   try {
-    await currentAuthProvider.signOut();
+    if (currentAuthProvider) await currentAuthProvider.signOut();
   } catch (err: unknown) {
     console.warn("Auth provider signout error:", err);
   }
