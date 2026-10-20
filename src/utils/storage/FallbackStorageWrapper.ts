@@ -54,7 +54,7 @@ export class FallbackStorageWrapper implements Storage {
         if (win) {
           try {
              this.quotaExceededEvent.notifySync();
-             win.dispatchEvent(new CustomEvent("storage_quota_exceeded"));
+             // win.dispatchEvent(new CustomEvent("storage_quota_exceeded")); // Redundant, handled by quotaExceededEvent
              // Retry write after synchronous event dispatch which may have cleared space
              this.activeStorage.setItem(key, value);
              console.log(`Successfully recovered storage quota for write to ${key}`);

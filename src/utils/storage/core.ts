@@ -2,6 +2,17 @@ import { IStorageAdapter } from "./types";
 import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "../platform";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 import { Observable } from "../observable";
+export const globalStorageEventObservable = new Observable<StorageEvent>();
+
+if (isBrowserEnvironment()) {
+  const win = getSafeWindow();
+  if (win) {
+    win.addEventListener("storage", (e) => {
+      globalStorageEventObservable.notify(e);
+    });
+  }
+}
+
 
 let _storageInstance: FallbackStorageWrapper | MemoryStorage | null = null;
 export const globalStorageQuotaObservable = new Observable<void>();
