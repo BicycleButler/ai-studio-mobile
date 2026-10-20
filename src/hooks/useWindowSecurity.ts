@@ -1,42 +1,28 @@
-import { useSyncExternalStore, useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
+import { Observable } from "../utils/observable";
+import { useStore } from "./useStore";
 
 interface UseWindowSecurityOptions {
   isSensitiveScreenActive?: boolean;
 }
 
 // Global state for flagSecure
-let currentFlagSecureEnabled = isFlagSecureEnabled();
-let flagSecureListeners = new Set<() => void>();
-
-function notifyFlagSecure() {
-  for (const listener of flagSecureListeners) {
-    listener();
-  }
-}
+export const flagSecureObservable = new Observable<boolean>(isFlagSecureEnabled());
 
 let isFlagSecureInitialized = false;
 
-function subscribeFlagSecure(listener: () => void) {
+function initFlagSecureListeners() {
   if (!isFlagSecureInitialized) {
     isFlagSecureInitialized = true;
     safeAddEventListener("flag_secure_changed" as keyof WindowEventMap, ((e: Event) => {
       const customEvent = e as CustomEvent<boolean>;
       if (typeof customEvent.detail === "boolean") {
-        currentFlagSecureEnabled = customEvent.detail;
-        notifyFlagSecure();
+        flagSecureObservable.notify(customEvent.detail);
       }
     }) as EventListener);
   }
-  flagSecureListeners.add(listener as () => void);
-  return () => {
-    flagSecureListeners.delete(listener);
-  };
-}
-
-function getFlagSecureSnapshot() {
-  return currentFlagSecureEnabled;
 }
 
 // Global state for window visibility / focus
@@ -44,21 +30,15 @@ interface ShieldState {
   isShieldActive: boolean;
 }
 
-class ShieldStore {
-  private isShieldActive = false;
-  private flagSecureEnabled = currentFlagSecureEnabled;
-  private listeners = new Set<() => void>();
+class ShieldStore extends Observable<ShieldState> {
+  private flagSecureEnabled: boolean;
   private timerRef: ReturnType<typeof setTimeout> | null = null;
-  private cachedSnapshot: ShieldState = { isShieldActive: false };
+  private sensitiveScreenRegistrations = new Set<string>();
 
   constructor() {
+    super({ isShieldActive: false });
+    this.flagSecureEnabled = flagSecureObservable.getSnapshot() || false;
     this.initListeners();
-  }
-
-  private notify() {
-    for (const listener of this.listeners) {
-      listener();
-    }
   }
 
   private clearScheduledTimer() {
@@ -69,9 +49,9 @@ class ShieldStore {
   }
 
   private updateShield(active: boolean) {
-    if (this.isShieldActive !== active) {
-      this.isShieldActive = active;
-      this.notify();
+    const current = this.getSnapshot();
+    if (current && current.isShieldActive !== active) {
+      this.notify({ isShieldActive: active });
     }
   }
 
@@ -127,8 +107,6 @@ class ShieldStore {
      }
   }
 
-  // We keep a set of currently registered screens and check if any are sensitive
-  private sensitiveScreenRegistrations = new Set<string>();
   public registerScreen(id: string, isSensitive: boolean) {
      if (isSensitive) {
         this.sensitiveScreenRegistrations.add(id);
@@ -136,36 +114,24 @@ class ShieldStore {
         this.sensitiveScreenRegistrations.delete(id);
      }
   }
+
   public unregisterScreen(id: string) {
      this.sensitiveScreenRegistrations.delete(id);
   }
+
   private evaluateSensitiveScreen() {
       return this.sensitiveScreenRegistrations.size > 0;
   }
-
-  public subscribe = (listener: () => void) => {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
-  };
-
-  public getSnapshot = (): ShieldState => {
-    if (this.cachedSnapshot.isShieldActive !== this.isShieldActive) {
-        this.cachedSnapshot = { isShieldActive: this.isShieldActive };
-    }
-    return this.cachedSnapshot;
-  };
 }
 
 const shieldStore = new ShieldStore();
-
 
 export function useWindowSecurity({
   isSensitiveScreenActive = false,
 }: UseWindowSecurityOptions = {}) {
 
-  const flagSecureEnabled = useSyncExternalStore(subscribeFlagSecure, getFlagSecureSnapshot, getFlagSecureSnapshot);
+  // Need non-null assertion since we initialized it with a value
+  const flagSecureEnabled = useStore(flagSecureObservable, initFlagSecureListeners)!;
 
   // We need a stable ID for the lifetime of this hook mount
   const hookId = useRef(Math.random().toString(36).substring(7)).current;
@@ -178,16 +144,16 @@ export function useWindowSecurity({
      }
   }, [flagSecureEnabled, isSensitiveScreenActive, hookId]);
 
-  const shieldState = useSyncExternalStore(shieldStore.subscribe, shieldStore.getSnapshot, shieldStore.getSnapshot);
+  const shieldState = useStore(shieldStore);
 
   const toggleFlagSecure = useCallback((enabled: boolean) => {
-    currentFlagSecureEnabled = enabled; // Synchronously update for immediate getSnapshot return
+    // Synchronously update for immediate getSnapshot return and state updates
+    flagSecureObservable.notifySync(enabled);
     setFlagSecureEnabled(enabled);
-    notifyFlagSecure();
   }, []);
 
   return {
-    isShieldActive: shieldState.isShieldActive,
+    isShieldActive: shieldState?.isShieldActive || false,
     flagSecureEnabled,
     toggleFlagSecure,
   };
