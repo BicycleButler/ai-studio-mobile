@@ -30,11 +30,22 @@ export function cleanMockData<T>(
 }
 
 /**
- * Extracts a deeply nested value safely without throwing, returning a fallback if missing or type mismatches.
+ * Fast deep equality check for storage items to prevent redundant writes and renders.
+ * Handles nested objects and arrays correctly.
  */
-export function fastShallowEqual(a: unknown, b: unknown): boolean {
+export function fastDeepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+
+  if (Array.isArray(a)) {
+    if (!Array.isArray(b) || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!fastDeepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  if (Array.isArray(b)) return false;
 
   const objA = a as Record<string, unknown>;
   const objB = b as Record<string, unknown>;
@@ -44,7 +55,7 @@ export function fastShallowEqual(a: unknown, b: unknown): boolean {
   if (keysA.length !== keysB.length) return false;
   for (let i = 0; i < keysA.length; i++) {
     const key = keysA[i];
-    if (objA[key] !== objB[key]) return false;
+    if (!fastDeepEqual(objA[key], objB[key])) return false;
   }
   return true;
 }

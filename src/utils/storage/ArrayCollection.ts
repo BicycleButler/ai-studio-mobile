@@ -1,11 +1,55 @@
 import { CollectionOperationResult, ICollectionEngine } from "./types";
-import { fastShallowEqual } from "./helpers";
+import { fastDeepEqual } from "./helpers";
 
 export class ArrayCollection<T> implements ICollectionEngine<T> {
   private keyExtractor: (item: T) => string;
 
   constructor(keyExtractor: (item: T) => string) {
     this.keyExtractor = keyExtractor;
+  }
+
+  private abstractMapMutate(
+    items: T[],
+    mutator: (item: T, id: string) => T | undefined,
+    appendItems?: T[],
+    prepend = false
+  ): CollectionOperationResult<T> {
+    let changed = false;
+    let nextItems: T[] | undefined = undefined;
+    let singleUpdatedItem: T | null | undefined = undefined;
+
+    for (let i = 0; i < items.length; i++) {
+      const existing = items[i];
+      const id = this.keyExtractor(existing);
+      const mutated = mutator(existing, id);
+
+      if (mutated !== undefined && !fastDeepEqual(existing, mutated)) {
+        if (!nextItems) nextItems = [...items];
+        nextItems[i] = mutated;
+        changed = true;
+        singleUpdatedItem = mutated; // store for non-bulk single return
+      } else if (mutated !== undefined) {
+         // mutated but deeply equal
+         singleUpdatedItem = mutated;
+      }
+    }
+
+    if (appendItems && appendItems.length > 0) {
+      if (!nextItems) nextItems = [...items];
+      changed = true;
+      singleUpdatedItem = appendItems[0];
+      if (prepend) {
+        nextItems.unshift(...appendItems);
+      } else {
+        nextItems.push(...appendItems);
+      }
+    }
+
+    return {
+      items: changed && nextItems ? nextItems : items,
+      changed,
+      item: singleUpdatedItem === undefined ? null : singleUpdatedItem
+    };
   }
 
   update(items: T[], id: string, updates: Partial<T>): CollectionOperationResult<T> {
@@ -15,7 +59,7 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
     const existing = items[index];
     const updatedItem = { ...existing, ...updates } as T;
 
-    if (fastShallowEqual(existing, updatedItem)) {
+    if (fastDeepEqual(existing, updatedItem)) {
       return { items, changed: false, item: existing };
     }
 
@@ -27,26 +71,19 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
   bulkUpdate(items: T[], updates: { id: string; changes: Partial<T> }[]): CollectionOperationResult<T> {
     if (!updates || updates.length === 0) return { items, changed: false };
 
-    let changed = false;
     const updatesMap = new Map<string, Partial<T>>();
     for (const update of updates) {
       const existing = updatesMap.get(update.id);
       updatesMap.set(update.id, existing ? { ...existing, ...update.changes } : update.changes);
     }
 
-    const newItems = [...items];
-    for (let i = 0; i < newItems.length; i++) {
-      const id = this.keyExtractor(newItems[i]);
-      const changes = updatesMap.get(id);
+    return this.abstractMapMutate(items, (item, currentId) => {
+      const changes = updatesMap.get(currentId);
       if (changes !== undefined) {
-        const updatedItem = { ...newItems[i], ...changes } as T;
-        if (!fastShallowEqual(newItems[i], updatedItem)) {
-           newItems[i] = updatedItem;
-           changed = true;
-        }
+        return { ...item, ...changes } as T;
       }
-    }
-    return { items: changed ? newItems : items, changed };
+      return undefined;
+    });
   }
 
   bulkDelete(items: T[], ids: string[]): CollectionOperationResult<T> {
@@ -65,61 +102,50 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
   upsert(items: T[], item: T, prepend = false): CollectionOperationResult<T> {
     const id = this.keyExtractor(item);
     const index = items.findIndex((i) => this.keyExtractor(i) === id);
-    const updatedItem = { ...item } as T;
 
     if (index >= 0) {
-      if (fastShallowEqual(items[index], updatedItem)) {
-        return { items, changed: false, item: items[index] };
-      }
-      const newItems = [...items];
-      newItems[index] = updatedItem;
-      return { items: newItems, changed: true, item: updatedItem };
+       return this.abstractMapMutate(items, (_, currentId) => {
+         if (currentId === id) return { ...item } as T;
+         return undefined;
+       });
     }
 
-    const newItems = [...items];
-    prepend ? newItems.unshift(updatedItem) : newItems.push(updatedItem);
-    return { items: newItems, changed: true, item: updatedItem };
+    return this.abstractMapMutate(items, () => undefined, [item], prepend);
   }
 
   bulkUpsert(items: T[], newItems: T[], prepend = false): CollectionOperationResult<T> {
     if (!newItems || newItems.length === 0) return { items, changed: false };
 
-    const indexMap = new Map<string, number>();
-    for (let i = 0; i < items.length; i++) {
-      indexMap.set(this.keyExtractor(items[i]), i);
-    }
-
     const collapsedNewItems = new Map<string, T>();
     for (const item of newItems) {
       const id = this.keyExtractor(item);
-      collapsedNewItems.set(id, { ...item });
+      collapsedNewItems.set(id, { ...item }); // collapse duplicates
     }
 
-    const nextItems = [...items];
     const itemsToAdd: T[] = [];
-    let changed = false;
 
-    for (const [id, updatedItem] of collapsedNewItems.entries()) {
-      const index = indexMap.get(id);
-      if (index !== undefined) {
-        if (!fastShallowEqual(nextItems[index], updatedItem)) {
-          nextItems[index] = updatedItem;
-          changed = true;
-        }
-      } else {
-        itemsToAdd.push(updatedItem);
-        changed = true;
-      }
+    const result = this.abstractMapMutate(items, (item, currentId) => {
+       const updatedItem = collapsedNewItems.get(currentId);
+       if (updatedItem !== undefined) {
+           collapsedNewItems.delete(currentId);
+           return updatedItem;
+       }
+       return undefined;
+    });
+
+    for (const item of collapsedNewItems.values()) {
+        itemsToAdd.push(item);
     }
 
     if (itemsToAdd.length > 0) {
       if (prepend) {
-          nextItems.unshift(...itemsToAdd);
+        result.items = [...itemsToAdd, ...result.items];
       } else {
-          nextItems.push(...itemsToAdd);
+        result.items = [...result.items, ...itemsToAdd];
       }
+      result.changed = true;
     }
 
-    return { items: changed ? nextItems : items, changed };
+    return result;
   }
 }
