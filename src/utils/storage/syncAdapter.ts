@@ -22,7 +22,7 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
         },
         body: JSON.stringify(item),
       }).catch((e) => {
-        console.error(`Failed to save ${mutationType} to server, falling back to offline queue`, e);
+        console.debug(`Failed to save ${mutationType} to server, falling back to offline queue`, e);
         this.offlineService.enqueueOfflineMutation(mutationType, item).catch(console.error);
       });
     } else {
