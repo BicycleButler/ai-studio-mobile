@@ -19,12 +19,7 @@ import {
   Variable,
 } from "lucide-react";
 import { PromptTemplate, PromptTemplateCategory } from "../types";
-import {
-  getAllTemplates,
-  saveCustomTemplate,
-  deleteCustomTemplate,
-  composePrompt,
-} from "../services/promptTemplateService";
+import { usePromptTemplateService } from "../services/PromptTemplateContext";
 import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
 import { safeAddEventListener } from "../utils/platform";
@@ -97,6 +92,8 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   draftUserText = "",
   onInsertText,
 }) => {
+  const promptTemplateService = usePromptTemplateService();
+
   // Keyboard Escape listener
   useEffect(() => {
     if (!isOpen) return;
@@ -129,8 +126,8 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   const allTemplates = useMemo(() => {
     // templatesVersion trigger re-fetch when custom templates are added/deleted/edited
     void templatesVersion;
-    return getAllTemplates();
-  }, [templatesVersion]);
+    return promptTemplateService.getAllTemplates();
+  }, [templatesVersion, promptTemplateService]);
 
   const filteredTemplates = useMemo(() => {
     return allTemplates.filter((t) => {
@@ -160,8 +157,8 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   }, [allTemplates, selectedTemplateIds]);
 
   const previewComposition = useMemo(() => {
-    return composePrompt(selectedTemplateIds, draftUserText || "Your handwritten query will appear here...");
-  }, [selectedTemplateIds, draftUserText]);
+    return promptTemplateService.composePrompt(selectedTemplateIds, draftUserText || "Your handwritten query will appear here...");
+  }, [selectedTemplateIds, draftUserText, promptTemplateService]);
 
   if (!isOpen) return null;
 
@@ -199,7 +196,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
     }
 
     try {
-      saveCustomTemplate({
+      promptTemplateService.saveCustomTemplate({
         id: editingTemplateId || undefined,
         title: formTitle,
         category: formCategory,
@@ -215,7 +212,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   };
 
   const handleDelete = (id: string) => {
-    deleteCustomTemplate(id);
+    promptTemplateService.deleteCustomTemplate(id);
     onRemoveTemplate(id);
     setConfirmDeleteId(null);
     setTemplatesVersion((v) => v + 1);

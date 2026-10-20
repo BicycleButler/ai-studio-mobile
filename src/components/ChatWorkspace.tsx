@@ -55,11 +55,7 @@ import {  } from "../utils/timeUtils";
 import { JulesActivityCard } from "./JulesActivityCard";
 import { GoogleIcon } from "./GoogleIcon";
 import { PromptTemplateDrawer } from "./PromptTemplateDrawer";
-import {
-  composePrompt,
-  getTemplateById,
-  getAllTemplates,
-} from "../services/promptTemplateService";
+import { usePromptTemplateService } from "../services/PromptTemplateContext";
 import { PromptTemplate } from "../types";
 import { fetchTTSAudioUrl } from "../services/speechVoices";
 
@@ -242,13 +238,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       ? propIsTemplateDrawerOpen
       : internalIsTemplateDrawerOpen;
 
+  const promptTemplateService = usePromptTemplateService();
   const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
-  const [allTemplatesList, setAllTemplatesList] = useState<PromptTemplate[]>(() => getAllTemplates());
+  const [allTemplatesList, setAllTemplatesList] = useState<PromptTemplate[]>(() => promptTemplateService.getAllTemplates());
 
   // Refresh templates list when drawer toggles
   useEffect(() => {
-    setAllTemplatesList(getAllTemplates());
-  }, [isTemplateDrawerOpen]);
+    setAllTemplatesList(promptTemplateService.getAllTemplates());
+  }, [isTemplateDrawerOpen, promptTemplateService]);
 
   const handleToggleTemplate = (templateId: string) => {
     if (propOnToggleTemplate) {
@@ -474,7 +471,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       let userRawText: string | undefined = undefined;
 
       if (selectedTemplateIds.length > 0) {
-        const composed = composePrompt(selectedTemplateIds, spokenText.trim());
+        const composed = promptTemplateService.composePrompt(selectedTemplateIds, spokenText.trim());
         textToSend = composed.combinedText;
         appliedTemplateIds = composed.templateIds;
         userRawText = composed.userText;
@@ -924,7 +921,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     let userRawText: string | undefined = undefined;
 
     if (selectedTemplateIds.length > 0) {
-      const composed = composePrompt(selectedTemplateIds, inputText.trim());
+      const composed = promptTemplateService.composePrompt(selectedTemplateIds, inputText.trim());
       textToSend = composed.combinedText;
       appliedTemplateIds = composed.templateIds;
       userRawText = composed.userText;
@@ -1415,7 +1412,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                         <div className="flex items-center justify-between gap-1.5 flex-wrap">
                           <div className="flex items-center gap-1 flex-wrap">
                             {msg.templateIds.map((tplId, idx) => {
-                              const tpl = getTemplateById(tplId);
+                              const tpl = promptTemplateService.getTemplateById(tplId);
                               return (
                                 <span
                                   key={`${msg.id}-${tplId}-${idx}`}
