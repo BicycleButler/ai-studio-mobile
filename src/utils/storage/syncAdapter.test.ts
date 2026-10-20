@@ -19,11 +19,11 @@ describe('NetworkStorageSyncAdapter', () => {
             processOfflineMutations: vi.fn(),
             getOfflineQueue: vi.fn()
         };
+        const mockNetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true)
+        };
 
-        const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService);
-
-        // Mock navigator.onLine to true
-        Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService, mockNetworkStatusProvider);
 
         adapter.syncItem({ id: 1 }, '/api/test', 'test_mutation');
 
@@ -55,11 +55,11 @@ describe('NetworkStorageSyncAdapter', () => {
             processOfflineMutations: vi.fn(),
             getOfflineQueue: vi.fn()
         };
+        const mockNetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(false)
+        };
 
-        const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService);
-
-        // Mock navigator.onLine to false
-        Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+        const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService, mockNetworkStatusProvider);
 
         adapter.syncItem({ id: 1 }, '/api/test', 'test_mutation');
 
@@ -84,11 +84,11 @@ describe('NetworkStorageSyncAdapter', () => {
             processOfflineMutations: vi.fn(),
             getOfflineQueue: vi.fn()
         };
+        const mockNetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true)
+        };
 
-        const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService);
-
-        // Mock navigator.onLine to true
-        Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        const adapter = new NetworkStorageSyncAdapter(mockApiClient, mockOfflineService, mockNetworkStatusProvider);
 
         adapter.syncItem({ id: 1 }, '/api/test', 'test_mutation');
 
