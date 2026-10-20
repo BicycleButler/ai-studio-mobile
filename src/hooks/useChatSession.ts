@@ -2,9 +2,9 @@ import { useState, useCallback } from "react";
 import { ChatMessage, StructuredExample, SavedPrompt, PromptType, PromptConfig, ProjectInfo } from "../types";
 import { generateUniqueId } from "../utils/idGenerator";
 import { loadSavedPrompts, persistSavedPrompts } from "../utils/storage";
-import { bulkDeleteCustomTemplates } from "../services/promptTemplateService";
+import { IPromptTemplateService } from "../services/promptTemplateService";
 
-export function useChatSession(initialDraft: { messages?: ChatMessage[]; freeformText?: string; structuredExamples?: StructuredExample[] }, promptType: PromptType, config: PromptConfig, activeProject: ProjectInfo | null) {
+export function useChatSession(initialDraft: { messages?: ChatMessage[]; freeformText?: string; structuredExamples?: StructuredExample[] }, promptType: PromptType, config: PromptConfig, activeProject: ProjectInfo | null, promptTemplateService: IPromptTemplateService) {
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${Date.now()}`);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (initialDraft.messages && initialDraft.messages.length > 0) {
@@ -54,8 +54,8 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
     const updated = savedPrompts.filter((p) => !idSet.has(p.id));
     setSavedPrompts(updated);
     persistSavedPrompts(updated);
-    bulkDeleteCustomTemplates(ids);
-  }, [savedPrompts]);
+    promptTemplateService.bulkDeleteCustomTemplates(ids);
+  }, [savedPrompts, promptTemplateService]);
 
   return {
     currentSessionId,

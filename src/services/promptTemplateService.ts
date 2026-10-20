@@ -223,13 +223,3 @@ export class PromptTemplateService implements IPromptTemplateService {
 }
 
 export const defaultPromptTemplateService = new PromptTemplateService();
-
-export function getBuiltinTemplates(): PromptTemplate[] { return defaultPromptTemplateService.getBuiltinTemplates(); }
-export function getCustomTemplates(): PromptTemplate[] { return defaultPromptTemplateService.getCustomTemplates(); }
-export function getAllTemplates(): PromptTemplate[] { return defaultPromptTemplateService.getAllTemplates(); }
-export function getTemplateById(id: string): PromptTemplate | undefined { return defaultPromptTemplateService.getTemplateById(id); }
-export function saveCustomTemplate(data: { id?: string; title: string; description?: string; content: string; category: PromptTemplateCategory }): PromptTemplate { return defaultPromptTemplateService.saveCustomTemplate(data); }
-export function deleteCustomTemplate(id: string): boolean { return defaultPromptTemplateService.deleteCustomTemplate(id); }
-export function bulkDeleteCustomTemplates(ids: string[]): boolean { return defaultPromptTemplateService.bulkDeleteCustomTemplates(ids); }
-export function clearCustomTemplates(): void { return defaultPromptTemplateService.clearCustomTemplates(); }
-export function composePrompt(selectedTemplateIds: string[], userText: string): ComposePromptPayload { return defaultPromptTemplateService.composePrompt(selectedTemplateIds, userText); }

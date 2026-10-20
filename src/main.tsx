@@ -7,6 +7,7 @@ import { initThemeService } from './services/themeService';
 import { setAuthProvider } from './services/googleAuth';
 import { FirebaseAuthProvider } from './services/firebaseAuthProvider';
 import { initializeChatHistoryService } from './services/chatHistoryService';
+import { PromptTemplateProvider } from './services/PromptTemplateContext';
 import { registerSW } from 'virtual:pwa-register';
 
 // Initialize auth provider via dependency injection
@@ -26,6 +27,8 @@ if (isBrowserEnvironment() && 'serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <PromptTemplateProvider>
+      <App />
+    </PromptTemplateProvider>
   </StrictMode>,
 );

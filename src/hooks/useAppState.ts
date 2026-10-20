@@ -2,6 +2,7 @@ import { clearAllChatSessions } from "../services/chatHistoryService";
 import { useState, useEffect } from "react";
 import { useStore } from "./useStore";
 import { usePromptTemplates } from "./usePromptTemplates";
+import { usePromptTemplateService } from "../services/PromptTemplateContext";
 import { useChatSession } from "./useChatSession";
 import {
   PromptType,
@@ -111,8 +112,9 @@ export function useAppState() {
   const [browserService, setBrowserService] = useState<"aistudio" | "jules">("aistudio");
 
   // Sub-hooks
+  const promptTemplateService = usePromptTemplateService();
   const promptTemplates = usePromptTemplates();
-  const chatSession = useChatSession(initialDraft, promptType, config, activeProject);
+  const chatSession = useChatSession(initialDraft, promptType, config, activeProject, promptTemplateService);
 
   // Actions
 
