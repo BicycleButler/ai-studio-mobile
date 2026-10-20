@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useSyncExternalStore, useEffect } from "react";
 import {
-  ThemeState,
   getThemeState,
   setThemeMode,
   toggleTheme,
@@ -9,15 +8,11 @@ import {
 } from "../services/themeService";
 
 export function useTheme() {
-  const [themeState, setState] = useState<ThemeState>(() => getThemeState());
-
   useEffect(() => {
-    initThemeService();
-    const unsubscribe = subscribeToTheme((newState) => {
-      setState(newState);
-    });
-    return unsubscribe;
+    return initThemeService();
   }, []);
+
+  const themeState = useSyncExternalStore(subscribeToTheme, getThemeState, getThemeState);
 
   return {
     mode: themeState.mode,
