@@ -32,6 +32,23 @@ export function cleanMockData<T>(
 /**
  * Extracts a deeply nested value safely without throwing, returning a fallback if missing or type mismatches.
  */
+export function fastShallowEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+
+  const objA = a as Record<string, unknown>;
+  const objB = b as Record<string, unknown>;
+  const keysA = Object.keys(objA);
+  const keysB = Object.keys(objB);
+
+  if (keysA.length !== keysB.length) return false;
+  for (let i = 0; i < keysA.length; i++) {
+    const key = keysA[i];
+    if (objA[key] !== objB[key]) return false;
+  }
+  return true;
+}
+
 export function getNestedValue<T>(obj: unknown, path: string[], fallback: T): T {
   let current = obj;
   for (const key of path) {
