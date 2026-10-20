@@ -1,0 +1,98 @@
+import { describe, it, expect, vi } from 'vitest';
+import { ActiveItemManager } from './ActiveItemManager';
+import { StorageCollection } from './StorageCollection';
+import { StorageSingleton } from './StorageSingleton';
+
+describe('ActiveItemManager', () => {
+    it('should initialize with implicit selection', () => {
+        const collection = new StorageCollection<any>('test_col');
+        collection.save([{ id: '1' }, { id: '2' }]);
+        const activeIdSingleton = new StorageSingleton<string | null>('test_id', null);
+
+        const manager = new ActiveItemManager({
+            collection,
+            activeIdSingleton,
+            getId: (i) => i.id
+        });
+
+        const state = manager.getSnapshot();
+        expect(state.items.length).toBe(2);
+        expect(state.activeItem).toEqual({ id: '1' });
+        expect(manager.getActiveId()).toBe('1');
+    });
+
+    it('should initialize with explicit selection', () => {
+        const collection = new StorageCollection<any>('test_col');
+        collection.save([{ id: '1' }, { id: '2' }]);
+        const activeIdSingleton = new StorageSingleton<string | null>('test_id', '2');
+
+        const manager = new ActiveItemManager({
+            collection,
+            activeIdSingleton,
+            getId: (i) => i.id
+        });
+
+        const state = manager.getSnapshot();
+        expect(state.activeItem).toEqual({ id: '2' });
+        expect(manager.getActiveId()).toBe('2');
+    });
+
+    it('should respect allowImplicitSelection=false', () => {
+        const collection = new StorageCollection<any>('test_col');
+        collection.save([{ id: '1' }, { id: '2' }]);
+        const activeIdSingleton = new StorageSingleton<string | null>('test_id', null);
+
+        const manager = new ActiveItemManager({
+            collection,
+            activeIdSingleton,
+            getId: (i) => i.id,
+            allowImplicitSelection: false
+        });
+
+        const state = manager.getSnapshot();
+        expect(state.activeItem).toBeNull();
+        expect(manager.getActiveId()).toBeNull();
+    });
+
+    it('should update state when collection changes', async () => {
+        const collection = new StorageCollection<any>('test_col');
+        const activeIdSingleton = new StorageSingleton<string | null>('test_id', null);
+
+        const manager = new ActiveItemManager({
+            collection,
+            activeIdSingleton,
+            getId: (i) => i.id
+        });
+
+        collection.save([{ id: '3' }]);
+
+        // We need to wait for microtask since it uses ComputedStore
+        await Promise.resolve();
+
+        const state = manager.getSnapshot();
+        expect(state.items.length).toBe(1);
+        expect(state.activeItem).toEqual({ id: '3' });
+    });
+
+    it('should fire onActiveItemChange callback', async () => {
+        const collection = new StorageCollection<any>('test_col');
+        collection.save([{ id: '1' }, { id: '2' }]);
+        const activeIdSingleton = new StorageSingleton<string | null>('test_id', '1');
+
+        const changeSpy = vi.fn();
+        const manager = new ActiveItemManager({
+            collection,
+            activeIdSingleton,
+            getId: (i) => i.id,
+            onActiveItemChange: changeSpy
+        });
+
+        manager.setActiveId('2');
+
+        // Allow microtasks to settle
+        await Promise.resolve();
+        manager.getSnapshot(); // Force sync evaluation
+
+        expect(changeSpy).toHaveBeenCalledWith({ id: '2' });
+    });
+});

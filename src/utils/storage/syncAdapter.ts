@@ -24,7 +24,10 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(item),
-        }).catch((e) => console.error(`Failed to save ${mutationType} to server`, e));
+        }).catch((e) => {
+          console.error(`Failed to save ${mutationType} to server, falling back to offline queue`, e);
+          this.offlineService.enqueueOfflineMutation(mutationType, item).catch(console.error);
+        });
       } else {
         this.offlineService.enqueueOfflineMutation(mutationType, item).catch(console.error);
       }
