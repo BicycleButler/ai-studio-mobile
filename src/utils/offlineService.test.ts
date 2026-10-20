@@ -41,6 +41,32 @@ describe('OfflineService', () => {
     const newQueueLength = await service.getOfflineQueueLength();
     expect(newQueueLength).toBe(0);
   });
+
+  it('should halt processing on first failure (Strict FIFO)', async () => {
+    let callCount = 0;
+    service.registerSyncHandler('FAILING_ACTION', async () => {
+      callCount++;
+      return { success: false };
+    });
+    service.registerSyncHandler('SUCCESS_ACTION', async () => {
+      callCount++;
+      return { success: true };
+    });
+
+    await service.enqueueOfflineMutation('SUCCESS_ACTION', { id: 1 });
+    await service.enqueueOfflineMutation('FAILING_ACTION', { id: 2 });
+    await service.enqueueOfflineMutation('SUCCESS_ACTION', { id: 3 });
+
+    const result = await service.processOfflineMutations();
+
+    expect(result.success).toBe(false);
+    expect(callCount).toBe(2); // Should stop after first failure
+
+    const queue = await service.getOfflineQueue();
+    expect(queue.length).toBe(2);
+    expect(queue[0].type).toBe('FAILING_ACTION');
+    expect(queue[1].type).toBe('SUCCESS_ACTION');
+  });
 });
 
 import { FallbackAsyncStorage } from './offlineService';

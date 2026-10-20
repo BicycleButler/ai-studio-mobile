@@ -53,19 +53,12 @@ export class ArrayCollection<T> implements ICollectionEngine<T> {
   }
 
   update(items: T[], id: string, updates: Partial<T>): CollectionOperationResult<T> {
-    const index = items.findIndex((item) => this.keyExtractor(item) === id);
-    if (index === -1) return { items, changed: false, item: null };
-
-    const existing = items[index];
-    const updatedItem = { ...existing, ...updates } as T;
-
-    if (fastDeepEqual(existing, updatedItem)) {
-      return { items, changed: false, item: existing };
-    }
-
-    const newItems = [...items];
-    newItems[index] = updatedItem;
-    return { items: newItems, changed: true, item: updatedItem };
+    return this.abstractMapMutate(items, (item, currentId) => {
+      if (currentId === id) {
+        return { ...item, ...updates } as T;
+      }
+      return undefined; // no mutation
+    });
   }
 
   bulkUpdate(items: T[], updates: { id: string; changes: Partial<T> }[]): CollectionOperationResult<T> {
