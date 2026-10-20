@@ -17,7 +17,7 @@ import { TokenCounterVisualization } from "./TokenCounterVisualization";
 import { PWAInstallButton } from "./PWAInstallButton";
 import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 
-interface TopAppBarProps {
+export interface TopAppBarProps {
   promptType: PromptType;
   onSelectPromptType?: (type: PromptType) => void;
   currentModelName: string;
