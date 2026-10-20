@@ -1,44 +1,15 @@
-import { isBrowserEnvironment, safeAddEventListener, getSafeWindow } from "../utils/platform";
-import { Observable } from "../utils/observable";
 import { useStore } from "./useStore";
+import { defaultNetworkStatusProvider, NetworkStatus, INetworkStatusProvider } from "../utils/networkStatus";
 
-export interface NetworkStatus {
-  isOnline: boolean;
-  wasOffline: boolean;
-}
-
-const initialIsOnline = (() => {
-  const win = getSafeWindow();
-  return win && typeof win.navigator.onLine === "boolean"
-    ? win.navigator.onLine
-    : true;
-})();
-
-export const networkStatusObservable = new Observable<NetworkStatus>({
-  isOnline: initialIsOnline,
-  wasOffline: false,
-});
-
-let isInitialized = false;
-
-function initNetworkListeners() {
-  if (!isBrowserEnvironment() || isInitialized) return;
-  isInitialized = true;
-
-  safeAddEventListener("online", () => {
-    const current = networkStatusObservable.getSnapshot()!;
-    networkStatusObservable.notify({ ...current, isOnline: true });
-  });
-
-  safeAddEventListener("offline", () => {
-    const current = networkStatusObservable.getSnapshot()!;
-    networkStatusObservable.notify({ ...current, isOnline: false, wasOffline: true });
-  });
-}
+// We re-export the singleton observable for backwards compatibility
+export const networkStatusObservable = defaultNetworkStatusProvider.getObservable();
 
 /**
- * Hook to track browser online/offline status with reconnection awareness
+ * Hook to track browser online/offline status with reconnection awareness.
+ * Can accept a custom INetworkStatusProvider, defaulting to the browser implementation.
  */
-export function useNetworkStatus(): NetworkStatus {
-  return useStore(networkStatusObservable, initNetworkListeners);
+export function useNetworkStatus(provider: INetworkStatusProvider = defaultNetworkStatusProvider): NetworkStatus {
+  return useStore(provider.getObservable(), () => {
+     // Initialization is handled natively by getObservable() in the provider now.
+  });
 }
