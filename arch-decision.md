@@ -230,3 +230,17 @@ Use the Template Method pattern, abstracting how custom templates are loaded and
 
 **Recommendation:**
 **Path 1 (Inject `IMutableCollection`)** is the recommended path. It perfectly satisfies abstraction using composition without forcing deep hierarchy changes. It ensures `PromptTemplateService` relies only on the collection interface.
+
+## Architectural Decision: Environment-Agnostic Sync Adapter Fallback
+
+**Context:**
+The `NetworkStorageSyncAdapter` previously hardcoded `isBrowserEnvironment` and `navigator.onLine` checks directly into the `syncItem` method. This violated the Dependency Inversion Principle, making it impossible to accurately test the adapter's behavior when simulating online/offline states without mocking globals, and meaning mutations would silently fail or drop in non-browser environments where `navigator` does not exist.
+
+**Path 1: Network Status Provider Abstraction (Composition)**
+Introduce an `INetworkStatusProvider` interface with an `isOnline()` method. Implement `BrowserNetworkStatusProvider` to encapsulate the global browser checks. Inject this provider into the `NetworkStorageSyncAdapter` via constructor injection, falling back to the browser implementation by default.
+
+**Path 2: Assume Online if Not Browser**
+Simply update the existing logic to assume `isOnline = true` if `isBrowserEnvironment` is false, and keep the hardcoded logic. (Drawback: Does not fix the testability issue with mocking globals).
+
+**Recommendation:**
+**Path 1 (Network Status Provider Abstraction)** was implemented. It strictly decouples the adapter from the DOM, makes unit testing trivial and deterministic without mocking globals, and improves robustness in varying runtime environments.
