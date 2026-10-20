@@ -51,7 +51,7 @@ export class ComputedStore<T> extends Observable<T> {
 
         if (needsNotify) {
           // If we had pending changes (either evaluated locally or in this tick), fire notification
-          this.notify(this.currentState as T);
+          this.notifySync(this.currentState as T);
         }
       });
     }

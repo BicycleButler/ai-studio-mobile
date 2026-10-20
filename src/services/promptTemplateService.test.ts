@@ -1,6 +1,6 @@
 import { describe, test, beforeEach } from 'vitest';
 import { PromptTemplateService, IPromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
-import { StorageCollection } from "../utils/storage";
+
 
 describe('testPromptTemplateService', () => {
   let service: IPromptTemplateService;
