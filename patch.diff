@@ -1,0 +1,12 @@
+--- src/utils/computedStore.test.ts
++++ src/utils/computedStore.test.ts
+@@ -94,7 +94,8 @@
+     expect(computed.getSnapshot()).toBe(10);
+     expect(computeCount).toBe(1); // Evaluated synchronously
+
+-    // We use notifySync now so we expect it to be 1
++    // But ComputedStore notification hasn't fired yet
++    expect(notifyCount).toBe(0);
+
+     // Wait for ComputedStore's microtask
+     await new Promise(resolve => queueMicrotask(() => resolve(undefined)));
