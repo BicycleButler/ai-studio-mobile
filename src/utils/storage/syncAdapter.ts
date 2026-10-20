@@ -1,0 +1,28 @@
+import { isBrowserEnvironment, getSafeWindow } from "../platform";
+import { enqueueOfflineMutation } from "../offlineService";
+import { apiFetch } from "../apiClient";
+
+export interface IStorageSyncAdapter<T> {
+  syncItem(item: T, endpoint: string, mutationType: string): void;
+}
+
+export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
+  public syncItem(item: T, endpoint: string, mutationType: string): void {
+    if (isBrowserEnvironment()) {
+      const win = getSafeWindow();
+      const isOnline = win && typeof win.navigator.onLine === "boolean" ? win.navigator.onLine : true;
+
+      if (isOnline) {
+        apiFetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(item),
+        }).catch((e) => console.error(`Failed to save ${mutationType} to server`, e));
+      } else {
+        enqueueOfflineMutation(mutationType, item).catch(console.error);
+      }
+    }
+  }
+}

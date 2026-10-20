@@ -1,6 +1,4 @@
 import { JulesSession, JulesSettings } from "../../types";
-import { isBrowserEnvironment, getSafeWindow } from "../platform";
-import { enqueueOfflineMutation } from "../offlineService";
 import { StorageCollection } from "./StorageCollection";
 import { StorageSingleton } from "./StorageSingleton";
 import { ActiveItemManager } from "./ActiveItemManager";
@@ -9,6 +7,7 @@ import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
 import { apiFetch } from "../apiClient";
+import { NetworkStorageSyncAdapter } from "./syncAdapter";
 
 const julesApiKeySingleton = new StorageSingleton<string>(
   STORAGE_KEYS.JULES_API_KEY,
@@ -31,26 +30,12 @@ export function isMockJulesSession(session: Partial<JulesSession>): boolean {
   return isMockSession(session, "jules");
 }
 
+const julesSyncAdapter = new NetworkStorageSyncAdapter<JulesSession[]>();
+
 const julesSessionsCollection = new StorageCollection<JulesSession>(STORAGE_KEYS.JULES_SESSIONS, {
   validate: (s) => !isMockJulesSession(s as Partial<JulesSession>),
   onSave: (clean) => {
-    // Async sync to server
-    if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      const isOnline = win && typeof win.navigator.onLine === "boolean" ? win.navigator.onLine : true;
-
-      if (isOnline) {
-        apiFetch("/api/jules/sessions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(clean),
-        }).catch((e) => console.error("Failed to save Jules sessions to server", e));
-      } else {
-        enqueueOfflineMutation("jules_sessions", clean).catch(console.error);
-      }
-    }
+    julesSyncAdapter.syncItem(clean, "/api/jules/sessions", "jules_sessions");
   }
 });
 
