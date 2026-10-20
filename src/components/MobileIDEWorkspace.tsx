@@ -17,7 +17,7 @@ import {
   ChevronDown,
   Terminal,
 } from "lucide-react";
-import { PromptConfig, ChatMessage, StructuredExample } from "../types";
+
 import { generateUniqueId } from "../utils/idGenerator";
 
 import {
@@ -25,15 +25,9 @@ import {
 } from "../utils/codeGenerators";
 import { fetchGenerateContent } from "../services/geminiStreamService";
 
-interface MobileIDEWorkspaceProps {
-  config: PromptConfig;
-  messages: ChatMessage[];
-  freeformText?: string;
-  structuredExamples?: StructuredExample[];
-  hasApiKey: boolean;
-  onOpenAuth: () => void;
-  onSwitchToPrompt: () => void;
-  onOpenParameters?: () => void;
+import { IDEWorkspaceProps } from "./WorkspaceRouter";
+
+interface MobileIDEWorkspaceProps extends IDEWorkspaceProps {
 }
 
 interface IDEFile {

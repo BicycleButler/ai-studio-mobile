@@ -101,7 +101,7 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
         <ChatWorkspace isJulesMode={true} {...sharedProps} {...julesProps} />
       )}
       {promptType === "stubs" && (
-        <StubsWorkspace onOpenBottomNav={sharedProps.onOpenBottomNav} onOpenParameters={sharedProps.onOpenParameters} />
+        <StubsWorkspace {...sharedProps} />
       )}
     </main>
   );
