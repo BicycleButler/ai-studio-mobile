@@ -1,5 +1,6 @@
 import { ChatHistoryPopover } from "./ChatHistoryPopover";
 import { useBatchSelection } from "../hooks/useBatchSelection";
+import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
 import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeWindow, getSafeWindowVisualViewport } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo , useCallback} from "react";
 import {
@@ -176,18 +177,23 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   const {
     selectedIds: selectedHistoryIds,
+    toggleSelection: toggleHistorySelectionRaw,
+    toggleSelectAll: toggleSelectAllHistoryRaw,
+    clearSelection: clearHistorySelection,
+  } = useBatchSelection({
+    items: validHistorySessions,
+    getItemId: (s) => s.id,
+  });
+
+  const {
     showBulkDeleteConfirm: showBulkDeleteHistoryConfirm,
     setShowBulkDeleteConfirm: setShowBulkDeleteHistoryConfirm,
     bulkDeleteConfirmationText,
     setBulkDeleteConfirmationText,
-    toggleSelection: toggleHistorySelectionRaw,
-    toggleSelectAll: toggleSelectAllHistoryRaw,
-    clearSelection: clearHistorySelection,
     handleBulkDelete: handleBulkDeleteHistory,
-  } = useBatchSelection({
-    items: validHistorySessions,
-    getItemId: (s) => s.id,
-    onBulkDelete: (ids) => {
+  } = useBulkActionConfirm({
+    onConfirm: () => {
+      const ids = Array.from(selectedHistoryIds);
       bulkDeleteChatSessions(ids, activeProjectId || "");
 
       // Check if current session was deleted
@@ -200,6 +206,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       const updated = getChatSessions(activeProjectId);
       setHistorySessions(updated);
     },
+    onClearSelection: clearHistorySelection,
   });
 
   const toggleHistorySelection = useCallback((id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {

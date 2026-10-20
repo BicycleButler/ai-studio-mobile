@@ -35,6 +35,7 @@ import { loadStoredJulesApiKey } from "../utils/storage";
 import { safeAddEventListener } from "../utils/platform";
 import { Combobox } from "./Combobox";
 import { useBatchSelection } from "../hooks/useBatchSelection";
+import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
 import { Drawer } from "./ui/Drawer";
 
 interface JulesSessionDrawerProps {
@@ -94,22 +95,28 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
   const {
     selectedIds: selectedSessionIds,
-    showBulkDeleteConfirm,
-    setShowBulkDeleteConfirm,
-    bulkDeleteConfirmationText,
-    setBulkDeleteConfirmationText,
     toggleSelection,
     toggleSelectAll,
     clearSelection,
-    handleBulkDelete,
     removeFromSelection,
   } = useBatchSelection({
     items: filteredSessions,
     getItemId: (s) => s.id,
-    onBulkDelete: (ids) => {
+  });
+
+  const {
+    showBulkDeleteConfirm,
+    setShowBulkDeleteConfirm,
+    bulkDeleteConfirmationText,
+    setBulkDeleteConfirmationText,
+    handleBulkDelete,
+  } = useBulkActionConfirm({
+    onConfirm: () => {
+      const ids = Array.from(selectedSessionIds);
       onBulkDeleteSessions(ids);
       refreshSessions();
     },
+    onClearSelection: clearSelection,
   });
 
   // Clear selection on filter change (ADR 0047 Option A)

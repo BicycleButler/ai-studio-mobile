@@ -1,30 +1,37 @@
 import { useBatchSelection } from "../useBatchSelection";
+import { useBulkActionConfirm } from "../useBulkActionConfirm";
 import { ProjectInfo } from "../../types";
 
 export function useSettingsProjectsState(projects: ProjectInfo[], onBulkDeleteProjects?: (ids: string[]) => void, onDeleteProject?: (project: ProjectInfo) => void) {
   const {
     selectedIds: selectedProjectIds,
+    toggleSelection: toggleProjectSelection,
+    toggleSelectAll: toggleSelectAllProjectsRaw,
+    clearSelection: clearProjectSelection,
+  } = useBatchSelection({
+    items: projects,
+    getItemId: (p) => p.id,
+  });
+
+  const {
     showBulkDeleteConfirm: showBulkDeleteProjectsConfirm,
     setShowBulkDeleteConfirm: setShowBulkDeleteProjectsConfirm,
     bulkDeleteConfirmationText,
     setBulkDeleteConfirmationText,
-    toggleSelection: toggleProjectSelection,
-    toggleSelectAll: toggleSelectAllProjectsRaw,
-    clearSelection: clearProjectSelection,
     handleBulkDelete: handleBulkDeleteProjects,
-  } = useBatchSelection({
-    items: projects,
-    getItemId: (p) => p.id,
-    onBulkDelete: onBulkDeleteProjects
-      ? onBulkDeleteProjects
-      : (ids) => {
-          if (onDeleteProject) {
-            ids.forEach((id) => {
-              const project = projects.find((p) => p.id === id);
-              if (project) onDeleteProject(project);
-            });
-          }
-        },
+  } = useBulkActionConfirm({
+    onConfirm: () => {
+      const ids = Array.from(selectedProjectIds);
+      if (onBulkDeleteProjects) {
+        onBulkDeleteProjects(ids);
+      } else if (onDeleteProject) {
+        ids.forEach((id) => {
+          const project = projects.find((p) => p.id === id);
+          if (project) onDeleteProject(project);
+        });
+      }
+    },
+    onClearSelection: clearProjectSelection,
   });
 
   return {

@@ -20,6 +20,7 @@ import { SavedPrompt } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { STARTER_TEMPLATES } from "../data/templates";
 import { useBatchSelection } from "../hooks/useBatchSelection";
+import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
 
 interface LibraryModalProps {
   savedPrompts: SavedPrompt[];
@@ -56,21 +57,31 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
   const {
     selectedIds: selectedPromptIds,
-    showBulkDeleteConfirm,
-    setShowBulkDeleteConfirm,
-    bulkDeleteConfirmationText,
-    setBulkDeleteConfirmationText,
     toggleSelection,
     toggleSelectAll,
     clearSelection,
-    handleBulkDelete,
     removeFromSelection,
   } = useBatchSelection({
     items: savedPrompts,
     getItemId: (p) => p.id,
-    onBulkDelete: onBulkDeletePrompts
-      ? onBulkDeletePrompts
-      : (ids) => ids.forEach((id) => onDeletePrompt(id)),
+  });
+
+  const {
+    showBulkDeleteConfirm,
+    setShowBulkDeleteConfirm,
+    bulkDeleteConfirmationText,
+    setBulkDeleteConfirmationText,
+    handleBulkDelete,
+  } = useBulkActionConfirm({
+    onConfirm: () => {
+      const ids = Array.from(selectedPromptIds);
+      if (onBulkDeletePrompts) {
+        onBulkDeletePrompts(ids);
+      } else {
+        ids.forEach((id) => onDeletePrompt(id));
+      }
+    },
+    onClearSelection: clearSelection,
   });
 
   // Keyboard shortcut listener

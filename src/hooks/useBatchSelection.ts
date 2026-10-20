@@ -3,14 +3,11 @@ import { useState, useCallback } from 'react';
 export interface UseBatchSelectionProps<T> {
   items: T[];
   getItemId: (item: T) => string;
-  onBulkDelete?: (ids: string[]) => void;
 }
 
-export function useBatchSelection<T>({ items, getItemId, onBulkDelete }: UseBatchSelectionProps<T>) {
+export function useBatchSelection<T>({ items, getItemId }: UseBatchSelectionProps<T>) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
-  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  const [bulkDeleteConfirmationText, setBulkDeleteConfirmationText] = useState("");
 
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
@@ -65,27 +62,12 @@ export function useBatchSelection<T>({ items, getItemId, onBulkDelete }: UseBatc
     });
   }, []);
 
-  const handleBulkDelete = useCallback(() => {
-    if (onBulkDelete) {
-      onBulkDelete(Array.from(selectedIds));
-    }
-    clearSelection();
-    setShowBulkDeleteConfirm(false);
-    setBulkDeleteConfirmationText("");
-  }, [onBulkDelete, selectedIds, clearSelection]);
-
-
   return {
     selectedIds,
     lastSelectedId,
-    showBulkDeleteConfirm,
-    setShowBulkDeleteConfirm,
-    bulkDeleteConfirmationText,
-    setBulkDeleteConfirmationText,
     toggleSelection,
     toggleSelectAll,
     clearSelection,
-    handleBulkDelete,
     removeFromSelection,
   };
 }
