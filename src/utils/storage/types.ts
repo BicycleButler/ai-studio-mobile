@@ -28,6 +28,7 @@ export interface IMutableCollection<T> extends IReadableStore<T[]> {
   update: (id: string, updates: Partial<T>) => T | null;
   bulkUpdate: (updates: { id: string; changes: Partial<T> }[]) => T[];
   load: () => T[];
+  clear: () => void;
 }
 
 export interface IMutableSingleton<T> extends IReadableStore<T> {

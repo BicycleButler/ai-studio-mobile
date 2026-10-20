@@ -1,7 +1,12 @@
 import { buildUrlWithParams } from "./urlUtils";
 import { BaseApiError, isAbortError, parseErrorResponse } from "./apiClientErrors";
-import { InterceptorManager, Interceptor } from "./apiClientInterceptors";
+import { InterceptorManager, Interceptor, IInterceptorManager } from "./apiClientInterceptors";
 import { ExponentialBackoffRetryStrategy, IRetryStrategy, RetryConfig } from "./apiClientRetry";
+
+export interface ApiClientConfig {
+  retryConfig?: RetryConfig;
+  interceptorManager?: IInterceptorManager;
+}
 
 export interface IApiClient {
   addInterceptor(interceptor: Interceptor): void;
@@ -21,11 +26,17 @@ export interface IApiClient {
 }
 
 export class ApiClient implements IApiClient {
-  private interceptorManager: InterceptorManager;
+  private interceptorManager: IInterceptorManager;
   public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
 
-  constructor(retryConfig: RetryConfig = {}) {
-    this.interceptorManager = new InterceptorManager();
+  constructor(config: ApiClientConfig | RetryConfig = {}) {
+    // For backwards compatibility, if config has no 'retryConfig' or 'interceptorManager' properties,
+    // we assume it is a RetryConfig object.
+    const retryConfig = ('retryConfig' in config) ? (config as ApiClientConfig).retryConfig || {} : (config as RetryConfig);
+    this.interceptorManager = ('interceptorManager' in config && (config as ApiClientConfig).interceptorManager)
+      ? (config as ApiClientConfig).interceptorManager as IInterceptorManager
+      : new InterceptorManager();
+
     this.retryConfig = {
       retries: retryConfig.retries ?? 3,
       fetcher: retryConfig.fetcher ?? fetch,

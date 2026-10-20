@@ -1,7 +1,7 @@
 import { deepFreeze } from "./helpers";
 import { DefaultStorageAdapter, globalStorageEventObservable } from "./core";
 import { IStorageAdapter, IDisposable } from "./types";
-import { Observable } from "../observable";
+import { Observable, IObservable } from "../observable";
 
 export interface StorageBaseOptions<T> {
   fallback: T;
@@ -11,6 +11,7 @@ export interface StorageBaseOptions<T> {
   adapter?: IStorageAdapter<T>;
   storageAdapter?: Storage;
   onSave?: (items: T) => void;
+  storageEventObservable?: IObservable<StorageEvent>;
 }
 
 export class StorageBase<T> extends Observable<T> implements IDisposable {
@@ -29,7 +30,8 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
 
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 
-    this.globalUnsubscribe = globalStorageEventObservable.subscribe(this.boundHandleStorageEvent);
+    const observableToUse = this.options.storageEventObservable || globalStorageEventObservable;
+    this.globalUnsubscribe = observableToUse.subscribe(this.boundHandleStorageEvent);
   }
 
   protected handleStorageEvent(e: StorageEvent): void {

@@ -188,3 +188,45 @@ Modify the base `Observable`'s `notify` to schedule a single microtask that flus
 
 **Recommendation:**
 **Path 2 (Microtask Batching)** is the recommended path. It strictly reduces render thrashing and enhances robustness and abstraction, natively complementing `ComputedStore`'s deferred dependency evaluation.
+
+## Architectural Decision: StorageBase Event Observer Injection
+
+**Context:**
+`StorageBase` was tightly coupled to `globalStorageEventObservable` for listening to storage events across tabs. This tight coupling made testing and swapping event sources difficult, violating the Dependency Inversion Principle.
+
+**Path 1: Injecting `storageEventObservable` via Options**
+Modify `StorageBaseOptions` to accept an optional `storageEventObservable` of type `IObservable<StorageEvent>`. `StorageBase` utilizes the provided observable if it exists; otherwise, it defaults to the `globalStorageEventObservable`.
+
+**Path 2: Event Listener Abstraction**
+Abstract the storage event listener mechanism entirely using an interface like `IStorageEventListener` that the storage engine composes.
+
+**Recommendation:**
+**Path 1 (Injecting `storageEventObservable`)** is the recommended path. It aligns with existing generic dependency injections (e.g., adapters) and resolves the tight coupling issue simply and effectively, keeping the constructor flexible and easy to test.
+
+## Architectural Decision: ApiClient Interceptor Manager Injection
+
+**Context:**
+`ApiClient` directly instantiated and managed `InterceptorManager`, tightly coupling itself to a specific implementation of interceptor handling. This violated the Dependency Inversion Principle and hindered extensibility or testing with mock interceptor managers.
+
+**Path 1: Refactoring to use `IInterceptorManager` interface**
+Define an `IInterceptorManager` interface. Allow `ApiClient` to accept an `interceptorManager` during construction through a configuration object (`ApiClientConfig`). Use the provided instance or default to a new `InterceptorManager`.
+
+**Path 2: Passing Interceptors as Array in Config**
+Allow injecting an array of interceptor functions directly into the `ApiClient` constructor and manage them internally.
+
+**Recommendation:**
+**Path 1 (Refactoring to use `IInterceptorManager`)** is the recommended path. It properly separates the responsibility of managing interceptors from `ApiClient` and relies on composition via interfaces, enabling developers to supply fully custom interceptor execution strategies.
+
+## Architectural Decision: PromptTemplateService Collection Injection
+
+**Context:**
+`PromptTemplateService` internally instantiated a `StorageCollection` bound to a specific storage key for custom templates. This violated the Open/Closed Principle and Dependency Inversion, making it hard to substitute an in-memory collection for tests or a remote collection engine.
+
+**Path 1: Inject `IMutableCollection<PromptTemplate>`**
+Expose a configuration interface `PromptTemplateServiceConfig` with an optional `customTemplatesCollection` dependency. If omitted, default to the standard `StorageCollection`.
+
+**Path 2: Make `PromptTemplateService` an Abstract Class**
+Use the Template Method pattern, abstracting how custom templates are loaded and saved, implementing a `StoragePromptTemplateService`.
+
+**Recommendation:**
+**Path 1 (Inject `IMutableCollection`)** is the recommended path. It perfectly satisfies abstraction using composition without forcing deep hierarchy changes. It ensures `PromptTemplateService` relies only on the collection interface.
