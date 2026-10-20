@@ -19,7 +19,7 @@ export function getStorageInstance(): Storage {
         win.localStorage.removeItem(testKey);
         const wrapper = new FallbackStorageWrapper(win.localStorage);
         wrapper.quotaExceededEvent.subscribe(() => {
-            globalStorageQuotaObservable.notify();
+            globalStorageQuotaObservable.notifySync();
         });
         _storageInstance = wrapper;
         return _storageInstance;
