@@ -4,8 +4,13 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { initThemeService } from './services/themeService';
+import { setAuthProvider } from './services/googleAuth';
+import { FirebaseAuthProvider } from './services/firebaseAuthProvider';
 import { initializeChatHistoryService } from './services/chatHistoryService';
 import { registerSW } from 'virtual:pwa-register';
+
+// Initialize auth provider via dependency injection
+setAuthProvider(new FirebaseAuthProvider());
 
 // Initialize core services on startup
 initializeChatHistoryService();
