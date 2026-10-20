@@ -34,6 +34,7 @@ export class Observable<T> implements IObservable<T> {
     if (!this.isNotificationPending) {
       this.isNotificationPending = true;
       queueMicrotask(() => {
+        if (!this.isNotificationPending) return;
         this.isNotificationPending = false;
         const snapshot = this.currentState as T;
         for (const listener of this.listeners) {
