@@ -16,3 +16,4 @@ import { StorageRegistry } from "./StorageRegistry";
 export { StorageCollection, StorageSingleton, StorageRegistry, ArrayCollection };
 export * from "./ActiveItemManager";
 export * from "./StorageBase";
+export * from "./syncAdapter";

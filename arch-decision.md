@@ -147,6 +147,20 @@ Remove `JulesClient` entirely and change every standalone function to explicitly
 **Recommendation:**
 **Path 1 (Instance Methods on JulesClient)** was implemented. This solidifies `JulesClient` as a robust, fully-encapsulated class handling Jules orchestration, preserving the existing component API (via wrapper proxies) while resolving the tight module-level variable coupling. It greatly enhances Reusability (a new client can be trivially minted) and Generality.
 
+## Architectural Decision: Sync Engine Decoupling
+
+**Context:**
+The offline synchronization pipeline (`processOfflineMutations`) historically relied on sync handlers explicitly hardcoding `apiFetch` calls and networking logic. Furthermore, persistence components like `julesSessionsCollection` had networking logic intertwined with storage (`onSave` hooks triggering raw `fetch` and online/offline checks). This violated the Single Responsibility Principle and made unit testing persistence operations impossible without network mocking.
+
+**Path 1: Extract Adapters & Orchestrator Classes (Composition)**
+Extract the responsibility of checking connectivity and deciding between `apiFetch` and `enqueueOfflineMutation` into an `IStorageSyncAdapter<T>`. Decouple the registration of the mutations out of global closures into a `SyncOrchestrator` that is initialized with an injected offline queue and API client.
+
+**Path 2: Event-Driven Pub/Sub**
+Have the collections emit completely generic domain events (`jules_sessions_updated`), and rely on a decoupled background saga to listen to these and decide what goes to the network or the offline queue. (Drawback: Decouples control flow too far, making debugging causality harder when syncs fail).
+
+**Recommendation:**
+**Path 1 (Extract Adapters & Orchestrator Classes via Composition)** was implemented. It strictly separates the persistence logic (Storage Collection) from the synchronization logic (Sync Adapter), and isolates the mapping of offline syncs to API handlers into a testable orchestrator object.
+
 ## Architectural Decision: Auth Provider Decoupling
 
 **Context:**
