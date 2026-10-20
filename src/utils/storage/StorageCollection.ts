@@ -14,9 +14,10 @@ export interface StorageCollectionOptions<T> {
   storageAdapter?: Storage;
 }
 
-export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCollection<T> {
+export class StorageCollection<T> implements IMutableCollection<T> {
   private collectionEngine: ICollectionEngine<T>;
   private keyExtractor: (item: T) => string;
+  private baseStorage: StorageBase<T[]>;
 
   constructor(
     key: string,
@@ -56,10 +57,34 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
       onSave: options?.onSave,
     };
 
-    super(key, baseOptions);
+    this.baseStorage = new StorageBase<T[]>(key, baseOptions);
 
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
     this.collectionEngine = options?.engine || new ArrayCollection<T>(this.keyExtractor);
+  }
+
+  public subscribe(listener: (state: T[]) => void): () => void {
+    return this.baseStorage.subscribe(listener);
+  }
+
+  public getSnapshot(): T[] | undefined {
+    return this.baseStorage.getSnapshot();
+  }
+
+  public load(): T[] {
+    return this.baseStorage.load();
+  }
+
+  public save(items: T[]): void {
+    this.baseStorage.save(items);
+  }
+
+  public clear(): void {
+    this.baseStorage.clear();
+  }
+
+  public dispose(): void {
+    this.baseStorage.dispose();
   }
 
   private applyOperation<R extends { items: T[]; changed: boolean }>(
