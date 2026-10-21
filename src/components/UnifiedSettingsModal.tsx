@@ -29,9 +29,7 @@ import {
 import { TunerBottomSheet } from "./TunerBottomSheet";
 import {
     SpeechSettings,
-  getAvailableDeviceVoices,
-  DeviceVoiceOption,
-} from "../services/speechVoices";
+  } from "../services/speechVoices";
 import { LibraryModal } from "./LibraryModal";
 import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
@@ -246,13 +244,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   // Audio state
   const [currentSpeechSettings, setCurrentSpeechSettings] = useState<SpeechSettings>(speechSettings);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [previewError, setPreviewError] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -261,22 +253,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    const loadVoices = () => {
-      const voices = getAvailableDeviceVoices();
-      setDeviceVoices(voices);
-      if (voices.length > 0 && !currentSpeechSettings.deviceVoiceURI) {
-        setCurrentSpeechSettings((prev) => ({
-          ...prev,
-          deviceVoiceURI: voices[0].voiceURI,
-        }));
-      }
-    };
-    loadVoices();
-    const synth = getSafeWindowSpeechSynthesis();
-    if (synth) {
-      synth.onvoiceschanged = loadVoices;
-    }
-  }, [isOpen, currentSpeechSettings.deviceVoiceURI]);
+      }, [isOpen, currentSpeechSettings.deviceVoiceURI]);
 
   // Clean up audio playback when closing or unmounting
   useEffect(() => {

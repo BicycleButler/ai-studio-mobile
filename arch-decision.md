@@ -328,3 +328,30 @@ Remove the singleton completely and change every standalone function to explicit
 
 **Recommendation:**
 **Path 1 (Instance Methods on SpeechVoicesService)** was implemented. This solidifies `SpeechVoicesService` as a robust, fully-encapsulated class handling speech orchestration, preserving the existing component API (via wrapper proxies) while resolving the tight module-level variable coupling. It seamlessly matches the pattern established for `JulesClient` and `StubsClient`.
+## Architectural Decision: Storage Helpers Type Safety (deepFreeze)
+
+**Context:**
+The `deepFreeze` function in `src/utils/storage/helpers.ts` heavily relied on `any` and `eslint-disable` rules to bypass type checking during object cloning and freezing. This reduced robustness and type safety, especially when dealing with complex nested state graphs that required absolute immutability guarantees.
+
+**Path 1: Strong TypeScript Utility Types**
+Refactor `deepFreeze` using `unknown`, `Record<string, unknown>`, and `never` assertions to satisfy the TypeScript compiler without relying on `any`. This maintains exact runtime behavior but rigorously enforces compile-time type boundaries.
+
+**Path 2: External Library Usage**
+Import a robust, heavily tested deep-freeze utility from a library like `immer` or `lodash`. (Drawback: Adds bundle weight and an external dependency for a single isolated utility).
+
+**Recommendation:**
+**Path 1 (Strong TypeScript Utility Types)** is the recommended path. It removes all `eslint-disable` pragmas and `any` types from the function, boosting code robustness without increasing bundle size or introducing new dependencies.
+
+## Architectural Decision: Settings Modal State Decoupling
+
+**Context:**
+`UnifiedSettingsModal.tsx` historically hosted state for audio configuration (e.g. `deviceVoices`, `isPreviewLoading`) even though the corresponding preview feature was partially disabled or unused, leading to `eslint-disable @typescript-eslint/no-unused-vars` workarounds. This violated the Single Responsibility Principle and cluttered the settings routing container.
+
+**Path 1: Remove Dead State & Disable Pragmas**
+Scrub all unused audio preview state (`deviceVoices`, `isPreviewLoading`, `previewError`) and their associated `useEffect` logic directly from the component.
+
+**Path 2: Extract to `useSpeechSettings` Hook**
+Move all speech and audio related state and side effects into a custom hook, cleanly separating domain logic from UI presentation.
+
+**Recommendation:**
+**Path 1 (Remove Dead State)** was implemented. Given that the audio preview function was inactive, maintaining the dead state in any location created debt. Removing it resolves the linting bypasses and adheres strictly to the YAGNI principle.
