@@ -355,3 +355,17 @@ Move all speech and audio related state and side effects into a custom hook, cle
 
 **Recommendation:**
 **Path 1 (Remove Dead State)** was implemented. Given that the audio preview function was inactive, maintaining the dead state in any location created debt. Removing it resolves the linting bypasses and adheres strictly to the YAGNI principle.
+
+## Architectural Decision: Draft State Service Singleton Encapsulation
+
+**Context:**
+The `src/utils/storage/draftState.ts` module exported numerous standalone functions (`loadDraftState`, `saveDraftState`, etc.) that implicitly bound to a module-level variable `draftRegistry`. This violated the Abstraction and Decoupling principles, making it difficult to instantiate multiple disparate instances or inject them into components for robust testing without mocking globals.
+
+**Path 1: Refactor to Full Instance Methods on \`DraftStateService\`**
+Move all execution logic inside the `DraftStateService` class itself. Exported proxy functions can remain for backward compatibility, but they simply invoke the methods on a default `DraftStateService` instance.
+
+**Path 2: Pure Functional Architecture**
+Remove the registry entirely and require `draftRegistry` to be passed to every function.
+
+**Recommendation:**
+**Path 1 (Instance Methods on DraftStateService)** is the recommended path. It solidifies Draft State management as a robust, fully-encapsulated class, matching the pattern established for `JulesClient`, `StubsClient`, and `ChatHistoryService`.
