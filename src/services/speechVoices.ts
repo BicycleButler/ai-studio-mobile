@@ -9,6 +9,7 @@ import { getSafeWindowSpeechSynthesis, getSafeNavigatorLanguage } from "../utils
  */
 
 import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
+import { IMutableSingleton } from "../utils/storage/types";
 
 export interface GeminiVoiceOption {
   id: string;
@@ -95,130 +96,169 @@ export const DEFAULT_SPEECH_SETTINGS: SpeechSettings = {
   voiceButtonPlacement: "footer",
 };
 
+export interface ISpeechVoicesService {
+  fetchTTSAudioUrl(text: string, voiceName: string): Promise<{ audioUrl: string }>;
+  loadSpeechSettings(): SpeechSettings;
+  saveSpeechSettings(settings: SpeechSettings): void;
+  getAvailableDeviceVoices(): DeviceVoiceOption[];
+  getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null;
+}
 
-const speechSettingsSingleton = new StorageSingleton<SpeechSettings>(
-  STORAGE_KEYS.SPEECH_SETTINGS,
-  DEFAULT_SPEECH_SETTINGS,
-  {
-    transformOut: (parsed) => {
-      if (!parsed) return DEFAULT_SPEECH_SETTINGS;
-      return {
-        engine: parsed.engine === "gemini" ? "gemini" : "device",
-        geminiVoice: parsed.geminiVoice || "Puck",
-        deviceVoiceURI: parsed.deviceVoiceURI || "",
-        playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
-        autoReadResponses: Boolean(parsed.autoReadResponses),
-        handsFreeMode: Boolean(parsed.handsFreeMode),
-        silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
-        sentenceStreaming: parsed.sentenceStreaming !== false,
-        voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
-      };
-    }
+export interface SpeechVoicesServiceConfig {
+  speechSettingsSingleton?: IMutableSingleton<SpeechSettings>;
+}
+
+export class SpeechVoicesService implements ISpeechVoicesService {
+  private speechSettingsSingleton: IMutableSingleton<SpeechSettings>;
+
+  constructor(config?: SpeechVoicesServiceConfig) {
+    this.speechSettingsSingleton = config?.speechSettingsSingleton || new StorageSingleton<SpeechSettings>(
+      STORAGE_KEYS.SPEECH_SETTINGS,
+      DEFAULT_SPEECH_SETTINGS,
+      {
+        transformOut: (parsed) => {
+          if (!parsed) return DEFAULT_SPEECH_SETTINGS;
+          return {
+            engine: parsed.engine === "gemini" ? "gemini" : "device",
+            geminiVoice: parsed.geminiVoice || "Puck",
+            deviceVoiceURI: parsed.deviceVoiceURI || "",
+            playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
+            autoReadResponses: Boolean(parsed.autoReadResponses),
+            handsFreeMode: Boolean(parsed.handsFreeMode),
+            silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
+            sentenceStreaming: parsed.sentenceStreaming !== false,
+            voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
+          };
+        }
+      }
+    );
   }
-);
 
-/**
- * Fetches the TTS audio URL for the given text and voice name.
- */
+  /**
+   * Fetches the TTS audio URL for the given text and voice name.
+   */
+  public async fetchTTSAudioUrl(text: string, voiceName: string): Promise<{ audioUrl: string }> {
+    const authHeaders = getAuthHeaders();
+    return apiFetch<{ audioUrl: string }>("/api/tts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders,
+      },
+      body: JSON.stringify({
+        text,
+        voiceName,
+      }),
+    });
+  }
+
+  public loadSpeechSettings(): SpeechSettings {
+    return this.speechSettingsSingleton.load();
+  }
+
+  public saveSpeechSettings(settings: SpeechSettings): void {
+    this.speechSettingsSingleton.save(settings);
+  }
+
+  private isNaturalVoiceName(name: string): boolean {
+    const lowerName = name.toLowerCase();
+    return (
+      lowerName.includes("natural") ||
+      lowerName.includes("online") ||
+      lowerName.includes("enhanced") ||
+      lowerName.includes("google") ||
+      lowerName.includes("siri") ||
+      lowerName.includes("premium") ||
+      lowerName.includes("neural")
+    );
+  }
+
+  /**
+   * Retrieves and filters system voices, scoring natural/neural voices to top
+   */
+  public getAvailableDeviceVoices(): DeviceVoiceOption[] {
+    const synth = getSafeWindowSpeechSynthesis();
+    if (!synth) {
+      return [];
+    }
+
+    const rawVoices = synth.getVoices();
+    if (!rawVoices || rawVoices.length === 0) return [];
+
+    const options: DeviceVoiceOption[] = rawVoices.map((v) => {
+      return {
+        voiceURI: v.voiceURI,
+        name: v.name,
+        lang: v.lang,
+        isNatural: this.isNaturalVoiceName(v.name),
+        isDefault: v.default,
+      };
+    });
+
+    const userLangPrefix = getSafeNavigatorLanguage("en").slice(0, 2).toLowerCase();
+
+    return options.sort((a, b) => {
+      if (a.isNatural !== b.isNatural) {
+        return a.isNatural ? -1 : 1;
+      }
+      const aIsUserLang = a.lang.toLowerCase().startsWith(userLangPrefix);
+      const bIsUserLang = b.lang.toLowerCase().startsWith(userLangPrefix);
+      if (aIsUserLang !== bIsUserLang) {
+        return aIsUserLang ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  /**
+   * Automatically finds the highest-quality natural device voice matching the preferred URI or system
+   */
+  public getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null {
+    const synth = getSafeWindowSpeechSynthesis();
+    if (!synth) return null;
+    const voices = synth.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    if (preferredURI) {
+      const matched = voices.find((v) => v.voiceURI === preferredURI);
+      if (matched) return matched;
+    }
+
+    const userLang = getSafeNavigatorLanguage("en").toLowerCase();
+    const userLangPrefix = userLang.slice(0, 2);
+
+    const naturalExactLang = voices.find((v) => this.isNaturalVoiceName(v.name) && v.lang.toLowerCase() === userLang);
+    if (naturalExactLang) return naturalExactLang;
+
+    const naturalPrefixLang = voices.find((v) => this.isNaturalVoiceName(v.name) && v.lang.toLowerCase().startsWith(userLangPrefix));
+    if (naturalPrefixLang) return naturalPrefixLang;
+
+    const anyUserLang = voices.find((v) => v.lang.toLowerCase().startsWith(userLangPrefix));
+    if (anyUserLang) return anyUserLang;
+
+    const defaultVoice = voices.find((v) => v.default);
+    return defaultVoice || voices[0] || null;
+  }
+}
+
+export const defaultSpeechVoicesService = new SpeechVoicesService();
+
 export async function fetchTTSAudioUrl(text: string, voiceName: string): Promise<{ audioUrl: string }> {
-  const authHeaders = getAuthHeaders();
-  return apiFetch<{ audioUrl: string }>("/api/tts", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders,
-    },
-    body: JSON.stringify({
-      text,
-      voiceName,
-    }),
-  });
+  return defaultSpeechVoicesService.fetchTTSAudioUrl(text, voiceName);
 }
 
 export function loadSpeechSettings(): SpeechSettings {
-  return speechSettingsSingleton.load();
+  return defaultSpeechVoicesService.loadSpeechSettings();
 }
 
 export function saveSpeechSettings(settings: SpeechSettings): void {
-  speechSettingsSingleton.save(settings);
+  return defaultSpeechVoicesService.saveSpeechSettings(settings);
 }
 
-function isNaturalVoiceName(name: string): boolean {
-  const lowerName = name.toLowerCase();
-  return (
-    lowerName.includes("natural") ||
-    lowerName.includes("online") ||
-    lowerName.includes("enhanced") ||
-    lowerName.includes("google") ||
-    lowerName.includes("siri") ||
-    lowerName.includes("premium") ||
-    lowerName.includes("neural")
-  );
-}
-
-/**
- * Retrieves and filters system voices, scoring natural/neural voices to top
- */
 export function getAvailableDeviceVoices(): DeviceVoiceOption[] {
-  const synth = getSafeWindowSpeechSynthesis();
-  if (!synth) {
-    return [];
-  }
-
-  const rawVoices = synth.getVoices();
-  if (!rawVoices || rawVoices.length === 0) return [];
-
-  const options: DeviceVoiceOption[] = rawVoices.map((v) => {
-    return {
-      voiceURI: v.voiceURI,
-      name: v.name,
-      lang: v.lang,
-      isNatural: isNaturalVoiceName(v.name),
-      isDefault: v.default,
-    };
-  });
-
-  const userLangPrefix = getSafeNavigatorLanguage("en").slice(0, 2).toLowerCase();
-
-  return options.sort((a, b) => {
-    if (a.isNatural !== b.isNatural) {
-      return a.isNatural ? -1 : 1;
-    }
-    const aIsUserLang = a.lang.toLowerCase().startsWith(userLangPrefix);
-    const bIsUserLang = b.lang.toLowerCase().startsWith(userLangPrefix);
-    if (aIsUserLang !== bIsUserLang) {
-      return aIsUserLang ? -1 : 1;
-    }
-    return a.name.localeCompare(b.name);
-  });
+  return defaultSpeechVoicesService.getAvailableDeviceVoices();
 }
 
-/**
- * Automatically finds the highest-quality natural device voice matching the preferred URI or system
- */
 export function getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null {
-  const synth = getSafeWindowSpeechSynthesis();
-  if (!synth) return null;
-  const voices = synth.getVoices();
-  if (!voices || voices.length === 0) return null;
-
-  if (preferredURI) {
-    const matched = voices.find((v) => v.voiceURI === preferredURI);
-    if (matched) return matched;
-  }
-
-  const userLang = getSafeNavigatorLanguage("en").toLowerCase();
-  const userLangPrefix = userLang.slice(0, 2);
-
-  const naturalExactLang = voices.find((v) => isNaturalVoiceName(v.name) && v.lang.toLowerCase() === userLang);
-  if (naturalExactLang) return naturalExactLang;
-
-  const naturalPrefixLang = voices.find((v) => isNaturalVoiceName(v.name) && v.lang.toLowerCase().startsWith(userLangPrefix));
-  if (naturalPrefixLang) return naturalPrefixLang;
-
-  const anyUserLang = voices.find((v) => v.lang.toLowerCase().startsWith(userLangPrefix));
-  if (anyUserLang) return anyUserLang;
-
-  const defaultVoice = voices.find((v) => v.default);
-  return defaultVoice || voices[0] || null;
+  return defaultSpeechVoicesService.getBestNaturalDeviceVoice(preferredURI);
 }

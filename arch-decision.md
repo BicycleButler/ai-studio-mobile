@@ -314,3 +314,17 @@ Create a global `LogEmitter` singleton that emits log events, and have the utili
 
 **Recommendation:**
 **Path 1 (Logger Interface Injection)** is implemented. This properly conforms to Dependency Inversion, allows targeted log overriding per component, and completely resolves console spew in unit tests by substituting the `NoOpLogger`. It provides a clean, extensible architectural foundation for telemetry.
+
+## Architectural Decision: Speech Voices Service Singleton Encapsulation
+
+**Context:**
+The `src/services/speechVoices.ts` module exported numerous standalone functions (`fetchTTSAudioUrl`, `loadSpeechSettings`, etc.) that implicitly bound to a module-level variable `speechSettingsSingleton`. This violated the Abstraction and Decoupling principles, making it difficult to instantiate multiple disparate instances or inject them into components for robust testing without mocking globals.
+
+**Path 1: Refactor to Full Instance Methods on \`SpeechVoicesService\`**
+Move all execution logic (fetching TTS URL, loading/saving settings, querying system voices) inside the `SpeechVoicesService` class itself. Exported proxy functions can remain for backward compatibility, but they simply invoke the methods on a default `SpeechVoicesService` instance.
+
+**Path 2: Pure Functional Architecture**
+Remove the singleton completely and change every standalone function to explicitly accept `speechSettingsSingleton` or configuration as mandatory parameters.
+
+**Recommendation:**
+**Path 1 (Instance Methods on SpeechVoicesService)** was implemented. This solidifies `SpeechVoicesService` as a robust, fully-encapsulated class handling speech orchestration, preserving the existing component API (via wrapper proxies) while resolving the tight module-level variable coupling. It seamlessly matches the pattern established for `JulesClient` and `StubsClient`.
