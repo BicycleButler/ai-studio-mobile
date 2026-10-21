@@ -272,3 +272,17 @@ Instead of hardcoding status code checks in the adapter, define an `IOfflineRetr
 
 **Recommendation:**
 **Path 2 (Generic Retry Strategy Interface)** was implemented. We provide a `DefaultOfflineRetryStrategy` that evaluates `BaseApiError` status codes (retrying 0, 5xx, 429, 408), satisfying Path 1 while strictly preserving abstraction and dependency inversion. This greatly improves robustness by preventing bad data from halting the sync engine permanently.
+
+## Architectural Decision: Stubs Service Singleton Encapsulation
+
+**Context:**
+The `src/services/stubsService.ts` module exported numerous standalone functions (`fetchGraphData`, `executeStubsCommand`, etc.) that implicitly bound to the global `apiFetch` and `defaultClient`. This violated the Dependency Inversion Principle, making it difficult to instantiate disparate `StubsClient` instances, inject customized API clients, or properly mock the service for robust testing without mocking globals.
+
+**Path 1: Refactor to Full Instance Methods on \`StubsClient\`**
+Move all execution logic (API calls) inside a `StubsClient` class that receives an `IApiClient` via constructor injection. Exported proxy functions can remain for backward compatibility, but they simply invoke the methods on a default `StubsClient` instance.
+
+**Path 2: Pure Functional Architecture**
+Remove `StubsClient` entirely and change every standalone function to explicitly accept an `IApiClient` instance as a mandatory parameter, eliminating the singleton context entirely.
+
+**Recommendation:**
+**Path 1 (Instance Methods on StubsClient)** was implemented. This solidifies `StubsClient` as a robust, fully-encapsulated class handling Stubs API orchestration, matching the established pattern for `JulesClient`. It completely preserves the existing React component API (via wrapper proxies) while resolving the tight module-level variable coupling. It greatly enhances Reusability and Generality, and makes writing unit tests trivial.
