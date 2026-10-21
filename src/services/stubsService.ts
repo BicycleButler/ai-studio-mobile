@@ -1,4 +1,4 @@
-import { apiFetch } from "../utils/apiClient";
+import { IApiClient, defaultClient } from "../utils/apiClient";
 import {
   StubsGraphData,
   StubsImpactResult,
@@ -28,96 +28,160 @@ export interface StubsExecuteResponse {
   stderr: string;
 }
 
-export async function fetchGraphData(): Promise<StubsGraphData> {
-  return apiFetch<StubsGraphData>("/api/stubs/graph", undefined, "Failed to fetch Stubs graph data");
+export interface IStubsClient {
+  fetchGraphData(): Promise<StubsGraphData>;
+  fetchDiagram(groupBy?: "domain" | "layer"): Promise<StubsDiagramResponse>;
+  fetchImpact(target: string): Promise<StubsImpactResult>;
+  fetchLintResults(): Promise<StubsLintResponse>;
+  fetchSidecarSpecs(): Promise<StubsSpecsResponse>;
+  fetchSpecDetail(path: string): Promise<{ content: string; path: string }>;
+  saveSpecContent(path: string, content: string): Promise<{ success: boolean; message: string }>;
+  materializeSpec(path: string): Promise<{ success: boolean; message: string; result: { targetFile: string; bytesWritten: number } }>;
+  executeStubsCommand(command: "scan" | "lint-arch" | "diagram" | "impact" | "sand", args?: string[]): Promise<StubsExecuteResponse>;
+  connectStubsStream(onLog: (data: { type: string; text: string; timestamp: number; code?: number }) => void, endpoint?: string): () => void;
 }
 
-export async function fetchDiagram(
-  groupBy: "domain" | "layer" = "domain"
-): Promise<StubsDiagramResponse> {
-  return apiFetch<StubsDiagramResponse>(
-    `/api/stubs/diagram?groupBy=${encodeURIComponent(groupBy)}`,
-    undefined,
-    "Failed to fetch Stubs diagram"
-  );
+export class StubsClient implements IStubsClient {
+  constructor(private apiClient: IApiClient) {}
+
+  public async fetchGraphData(): Promise<StubsGraphData> {
+    return this.apiClient.fetch<StubsGraphData>("/api/stubs/graph", undefined, "Failed to fetch Stubs graph data");
+  }
+
+  public async fetchDiagram(groupBy: "domain" | "layer" = "domain"): Promise<StubsDiagramResponse> {
+    return this.apiClient.fetch<StubsDiagramResponse>(
+      `/api/stubs/diagram?groupBy=${encodeURIComponent(groupBy)}`,
+      undefined,
+      "Failed to fetch Stubs diagram"
+    );
+  }
+
+  public async fetchImpact(target: string): Promise<StubsImpactResult> {
+    return this.apiClient.fetch<StubsImpactResult>(
+      `/api/stubs/impact?target=${encodeURIComponent(target)}`,
+      undefined,
+      "Failed to fetch impact analysis"
+    );
+  }
+
+  public async fetchLintResults(): Promise<StubsLintResponse> {
+    return this.apiClient.fetch<StubsLintResponse>("/api/stubs/lint", undefined, "Failed to fetch architecture lint results");
+  }
+
+  public async fetchSidecarSpecs(): Promise<StubsSpecsResponse> {
+    return this.apiClient.fetch<StubsSpecsResponse>("/api/stubs/specs", undefined, "Failed to list sidecar specs");
+  }
+
+  public async fetchSpecDetail(path: string): Promise<{ content: string; path: string }> {
+    return this.apiClient.fetch<{ content: string; path: string }>(
+      `/api/stubs/spec-detail?path=${encodeURIComponent(path)}`,
+      undefined,
+      "Failed to fetch spec content"
+    );
+  }
+
+  public async saveSpecContent(path: string, content: string): Promise<{ success: boolean; message: string }> {
+    return this.apiClient.fetch<{ success: boolean; message: string }>("/api/stubs/spec-save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, content }),
+    }, "Failed to save spec");
+  }
+
+  public async materializeSpec(path: string): Promise<{ success: boolean; message: string; result: { targetFile: string; bytesWritten: number } }> {
+    return this.apiClient.fetch<{ success: boolean; message: string; result: { targetFile: string; bytesWritten: number } }>("/api/stubs/spec-materialize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    }, "Failed to materialize spec");
+  }
+
+  public async executeStubsCommand(
+    command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
+    args: string[] = []
+  ): Promise<StubsExecuteResponse> {
+    return this.apiClient.fetch<StubsExecuteResponse>("/api/stubs/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command, args }),
+    }, `Failed to execute stubs ${command}`);
+  }
+
+  public connectStubsStream(
+    onLog: (data: { type: string; text: string; timestamp: number; code?: number }) => void,
+    endpoint: string = "/api/stubs/stream"
+  ): () => void {
+    try {
+      const eventSource = new EventSource(endpoint);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          onLog(payload);
+        } catch (err: unknown) {
+          console.warn("[stubs stream] Failed to parse SSE event:", err);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.warn("[stubs stream] SSE connection state:", eventSource.readyState, err);
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    } catch (err: unknown) {
+      console.error("[stubs stream] Unable to create EventSource:", err);
+      return () => {};
+    }
+  }
+}
+
+export const defaultStubsClient = new StubsClient(defaultClient);
+
+// Backward compatible exported functions
+export async function fetchGraphData(): Promise<StubsGraphData> {
+  return defaultStubsClient.fetchGraphData();
+}
+
+export async function fetchDiagram(groupBy: "domain" | "layer" = "domain"): Promise<StubsDiagramResponse> {
+  return defaultStubsClient.fetchDiagram(groupBy);
 }
 
 export async function fetchImpact(target: string): Promise<StubsImpactResult> {
-  return apiFetch<StubsImpactResult>(
-    `/api/stubs/impact?target=${encodeURIComponent(target)}`,
-    undefined,
-    "Failed to fetch impact analysis"
-  );
+  return defaultStubsClient.fetchImpact(target);
 }
 
 export async function fetchLintResults(): Promise<StubsLintResponse> {
-  return apiFetch<StubsLintResponse>("/api/stubs/lint", undefined, "Failed to fetch architecture lint results");
+  return defaultStubsClient.fetchLintResults();
 }
 
 export async function fetchSidecarSpecs(): Promise<StubsSpecsResponse> {
-  return apiFetch<StubsSpecsResponse>("/api/stubs/specs", undefined, "Failed to list sidecar specs");
+  return defaultStubsClient.fetchSidecarSpecs();
 }
 
 export async function fetchSpecDetail(path: string): Promise<{ content: string; path: string }> {
-  return apiFetch<{ content: string; path: string }>(
-    `/api/stubs/spec-detail?path=${encodeURIComponent(path)}`,
-    undefined,
-    "Failed to fetch spec content"
-  );
+  return defaultStubsClient.fetchSpecDetail(path);
 }
 
 export async function saveSpecContent(path: string, content: string): Promise<{ success: boolean; message: string }> {
-  return apiFetch<{ success: boolean; message: string }>("/api/stubs/spec-save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path, content }),
-  }, "Failed to save spec");
+  return defaultStubsClient.saveSpecContent(path, content);
 }
 
 export async function materializeSpec(path: string): Promise<{ success: boolean; message: string; result: { targetFile: string; bytesWritten: number } }> {
-  return apiFetch<{ success: boolean; message: string; result: { targetFile: string; bytesWritten: number } }>("/api/stubs/spec-materialize", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path }),
-  }, "Failed to materialize spec");
+  return defaultStubsClient.materializeSpec(path);
 }
 
 export async function executeStubsCommand(
   command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
   args: string[] = []
 ): Promise<StubsExecuteResponse> {
-  return apiFetch<StubsExecuteResponse>("/api/stubs/execute", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ command, args }),
-  }, `Failed to execute stubs ${command}`);
+  return defaultStubsClient.executeStubsCommand(command, args);
 }
 
 export function connectStubsStream(
   onLog: (data: { type: string; text: string; timestamp: number; code?: number }) => void,
   endpoint: string = "/api/stubs/stream"
 ): () => void {
-  try {
-    const eventSource = new EventSource(endpoint);
-
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        onLog(payload);
-      } catch (err: unknown) {
-        console.warn("[stubs stream] Failed to parse SSE event:", err);
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      console.warn("[stubs stream] SSE connection state:", eventSource.readyState, err);
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  } catch (err: unknown) {
-    console.error("[stubs stream] Unable to create EventSource:", err);
-    return () => {};
-  }
+  return defaultStubsClient.connectStubsStream(onLog, endpoint);
 }
