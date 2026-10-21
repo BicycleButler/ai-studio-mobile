@@ -369,3 +369,17 @@ Remove the registry entirely and require `draftRegistry` to be passed to every f
 
 **Recommendation:**
 **Path 1 (Instance Methods on DraftStateService)** is the recommended path. It solidifies Draft State management as a robust, fully-encapsulated class, matching the pattern established for `JulesClient`, `StubsClient`, and `ChatHistoryService`.
+
+## Architectural Decision: Storage Subsystem Singleton Encapsulation
+
+**Context:**
+Modules within `src/utils/storage/` (such as `general.ts`, `projects.ts`, `prompts.ts`, and `jules.ts`) historically exported numerous standalone functions that implicitly bound to module-level singleton variables (like `apiKeySingleton`, `flagSecureSingleton`, `projectsManager`, `savedPromptsManager`, etc.). This violated the Abstraction and Dependency Inversion principles, making it impossible to instantiate multiple disparate instances, inject mocked dependencies for unit testing, or properly substitute underlying storage adapters without polluting the global module scope.
+
+**Path 1: Refactor to Full Instance Methods on Dedicated Storage Services**
+Move all execution logic into strictly encapsulated classes (e.g., `GeneralSettingsService`, `ProjectService`, `SavedPromptsService`, `JulesStorageService`). These classes manage their own local state and accept configuration/dependencies via their constructors. Exported proxy functions can remain for backward compatibility, but they simply invoke the methods on a default, lazy-initialized service instance.
+
+**Path 2: Pure Functional Architecture with Parameter Drilling**
+Remove the singletons entirely and require consumers to pass the required state registry/manager explicitly to every single utility function call.
+
+**Recommendation:**
+**Path 1 (Instance Methods on Dedicated Storage Services)** was implemented. This solidifies the storage subsystem into robust, fully-encapsulated classes, maintaining parity with the domain service patterns established by `JulesClient` and `StubsClient`. It preserves the existing React component APIs and functional exports via wrapper proxies while resolving the tight module-level variable coupling. This greatly enhances Reusability and Generality across the entire storage layer.
