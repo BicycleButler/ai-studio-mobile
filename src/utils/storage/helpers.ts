@@ -104,43 +104,41 @@ export function deepFreeze<T>(obj: T): T {
 
   // We should clone the object deeply first to avoid freezing the original reference
   // if it's reused by the caller.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let clone: any;
+  let clone: unknown;
   if (Array.isArray(obj)) {
-    clone = [];
+    clone = [] as unknown[];
     for (let i = 0; i < obj.length; i++) {
-      clone[i] = deepFreeze(obj[i]);
+      (clone as unknown[])[i] = deepFreeze((obj as unknown[])[i]);
     }
   } else if (obj instanceof Map) {
-    clone = new Map();
+    clone = new Map<unknown, unknown>();
     for (const [k, v] of obj.entries()) {
-      clone.set(deepFreeze(k), deepFreeze(v));
+      (clone as Map<unknown, unknown>).set(deepFreeze(k), deepFreeze(v));
     }
     const throwError = () => { throw new Error('Cannot mutate frozen Map'); };
-    clone.set = throwError;
-    clone.delete = throwError;
-    clone.clear = throwError;
+    (clone as Map<unknown, unknown>).set = throwError as never;
+    (clone as Map<unknown, unknown>).delete = throwError as never;
+    (clone as Map<unknown, unknown>).clear = throwError as never;
   } else if (obj instanceof Set) {
-    clone = new Set();
+    clone = new Set<unknown>();
     for (const v of obj.values()) {
-      clone.add(deepFreeze(v));
+      (clone as Set<unknown>).add(deepFreeze(v));
     }
     const throwError = () => { throw new Error('Cannot mutate frozen Set'); };
-    clone.add = throwError;
-    clone.delete = throwError;
-    clone.clear = throwError;
+    (clone as Set<unknown>).add = throwError as never;
+    (clone as Map<unknown, unknown>).delete = throwError as never;
+    (clone as Map<unknown, unknown>).clear = throwError as never;
   } else {
     clone = Object.create(Object.getPrototypeOf(obj));
     for (const key of Object.getOwnPropertyNames(obj)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const prop = (obj as any)[key];
+      const prop = (obj as Record<string, unknown>)[key];
       if (
         prop !== null &&
         (typeof prop === 'object' || typeof prop === 'function')
       ) {
-        clone[key] = deepFreeze(prop);
+        (clone as Record<string, unknown>)[key] = deepFreeze(prop);
       } else {
-        clone[key] = prop;
+        (clone as Record<string, unknown>)[key] = prop;
       }
     }
   }
