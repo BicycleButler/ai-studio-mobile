@@ -1,4 +1,5 @@
 import { get, set } from "idb-keyval";
+import { ILogger, defaultLogger } from "./logger";
 
 export interface AsyncStorage {
   getItem<T>(key: string): Promise<T | undefined>;
@@ -27,9 +28,11 @@ export class MemoryAsyncStorage implements AsyncStorage {
 
 export class FallbackAsyncStorage implements AsyncStorage {
   private adapters: AsyncStorage[];
+  private logger: ILogger;
 
-  constructor(adapters: AsyncStorage[]) {
+  constructor(adapters: AsyncStorage[], logger: ILogger = defaultLogger) {
     this.adapters = adapters;
+    this.logger = logger;
   }
 
   async getItem<T>(key: string): Promise<T | undefined> {
@@ -43,7 +46,7 @@ export class FallbackAsyncStorage implements AsyncStorage {
         // Continue to the next adapter
       }
     }
-    console.error("All storage adapters failed to getItem", lastError);
+    this.logger.error("All storage adapters failed to getItem", lastError);
     return undefined;
   }
 
@@ -58,6 +61,6 @@ export class FallbackAsyncStorage implements AsyncStorage {
         // Continue to the next adapter
       }
     }
-    console.error("All storage adapters failed to setItem", lastError);
+    this.logger.error("All storage adapters failed to setItem", lastError);
   }
 }

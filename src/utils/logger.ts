@@ -1,33 +1,33 @@
 export interface ILogger {
-  debug(message: string, ...args: any[]): void;
-  info(message: string, ...args: any[]): void;
-  warn(message: string, ...args: any[]): void;
-  error(message: string, ...args: any[]): void;
+  debug(message: string, ...args: unknown[]): void;
+  info(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
 }
 
 export class ConsoleLogger implements ILogger {
-  public debug(message: string, ...args: any[]): void {
-    console.debug(message, ...args);
+  public debug(_message: string, ..._args: unknown[]): void {
+    console.debug(_message, ..._args);
   }
 
-  public info(message: string, ...args: any[]): void {
-    console.info(message, ...args);
+  public info(_message: string, ..._args: unknown[]): void {
+    console.info(_message, ..._args);
   }
 
-  public warn(message: string, ...args: any[]): void {
-    console.warn(message, ...args);
+  public warn(_message: string, ..._args: unknown[]): void {
+    console.warn(_message, ..._args);
   }
 
-  public error(message: string, ...args: any[]): void {
-    console.error(message, ...args);
+  public error(_message: string, ..._args: unknown[]): void {
+    console.error(_message, ..._args);
   }
 }
 
 export class NoOpLogger implements ILogger {
-  public debug(): void {}
-  public info(): void {}
-  public warn(): void {}
-  public error(): void {}
+  public debug(_message: string, ..._args: unknown[]): void {}
+  public info(_message: string, ..._args: unknown[]): void {}
+  public warn(_message: string, ..._args: unknown[]): void {}
+  public error(_message: string, ..._args: unknown[]): void {}
 }
 
 export const defaultLogger = new ConsoleLogger();

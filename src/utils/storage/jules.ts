@@ -8,6 +8,7 @@ import { defaultOfflineService } from "../offlineService";
 import { NetworkStorageSyncAdapter } from "./syncAdapter";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { StorageSingleton } from "./StorageSingleton";
+import { ILogger, defaultLogger } from "../logger";
 
 const julesApiKeySingleton = new StorageSingleton<string>(
   STORAGE_KEYS.JULES_API_KEY,
@@ -45,7 +46,7 @@ export const julesSessionsManager = createActiveItemManager<JulesSession>({
   allowImplicitSelection: false,
 });
 
-export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
+export async function fetchJulesSessionsFromServer(logger: ILogger = defaultLogger): Promise<JulesSession[]> {
   try {
     const data = await apiFetch<unknown>("/api/jules/sessions");
     const cleanServerSessions = Array.isArray(data) ? cleanMockData(data, "jules") as JulesSession[] : [];
@@ -72,7 +73,7 @@ export async function fetchJulesSessionsFromServer(): Promise<JulesSession[]> {
     julesSessionsManager.collection.save(mergedSessions);
     return mergedSessions;
   } catch (e) {
-    console.error("Failed to fetch Jules sessions from server", e);
+    logger.error("Failed to fetch Jules sessions from server", e);
   }
   return julesSessionsManager.getItems();
 }

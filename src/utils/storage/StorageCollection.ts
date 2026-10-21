@@ -2,6 +2,7 @@ import { ArrayCollection } from "./ArrayCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { IMutableCollection, ICollectionEngine, IStorageAdapter } from "./types";
 import { IObservable } from "../observable";
+import { ILogger, defaultLogger } from "../logger";
 
 export interface StorageCollectionOptions<T> {
   engine?: ICollectionEngine<T>;
@@ -14,6 +15,7 @@ export interface StorageCollectionOptions<T> {
   onSave?: (items: T[]) => void;
   storageAdapter?: Storage;
   storageEventObservable?: IObservable<StorageEvent>;
+  logger?: ILogger;
 }
 
 export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCollection<T> {
@@ -32,6 +34,7 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
       return processed;
     };
 
+    const logger = options?.logger || defaultLogger;
     const arrayTransformOut = (options?.transformOut || options?.validate)
       ? (items: T[]) => {
           const result: T[] = [];
@@ -42,7 +45,7 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
               }
               result.push(options?.transformOut ? options.transformOut(item) : item);
             } catch (err) {
-              console.warn(`StorageCollection[${key}]: item transform/validate error`, err);
+              logger.warn(`StorageCollection[${key}]: item transform/validate error`, err);
             }
           }
           return result;
@@ -57,6 +60,7 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
       storageAdapter: options?.storageAdapter,
       onSave: options?.onSave,
       storageEventObservable: options?.storageEventObservable,
+      logger: options?.logger,
     };
 
     super(key, baseOptions);

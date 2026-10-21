@@ -11,12 +11,16 @@ export interface IObservable<T> extends IReadableStore<T> {
   clearListeners(): void;
 }
 
+import { ILogger, defaultLogger } from "./logger";
+
 export class Observable<T> implements IObservable<T> {
+  protected logger: ILogger;
   protected listeners = new Set<Listener<T>>();
   protected currentState?: T;
   private isNotificationPending = false;
 
-  constructor(initialState?: T) {
+  constructor(initialState?: T, logger: ILogger = defaultLogger) {
+    this.logger = logger;
     this.currentState = initialState;
   }
 
@@ -42,7 +46,7 @@ export class Observable<T> implements IObservable<T> {
           try {
             listener(snapshot);
           } catch (err: unknown) {
-            console.error("Error in listener:", err);
+            this.logger.error("Error in listener:", err);
           }
         }
       });
@@ -57,7 +61,7 @@ export class Observable<T> implements IObservable<T> {
       try {
         listener(snapshot);
       } catch (err: unknown) {
-        console.error("Error in listener:", err);
+        this.logger.error("Error in listener:", err);
       }
     }
   }
