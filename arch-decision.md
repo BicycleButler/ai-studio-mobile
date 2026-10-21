@@ -383,3 +383,17 @@ Remove the singletons entirely and require consumers to pass the required state 
 
 **Recommendation:**
 **Path 1 (Instance Methods on Dedicated Storage Services)** was implemented. This solidifies the storage subsystem into robust, fully-encapsulated classes, maintaining parity with the domain service patterns established by `JulesClient` and `StubsClient`. It preserves the existing React component APIs and functional exports via wrapper proxies while resolving the tight module-level variable coupling. This greatly enhances Reusability and Generality across the entire storage layer.
+
+## Architectural Decision: Offline/Sync React Hooks Abstraction
+
+**Context:**
+The `useOfflineQueue` and `useOfflineSync` hooks directly imported and used the singleton `defaultOfflineService` and its standalone wrapper functions (`getOfflineQueueLength`, etc.) or its exposed `queueObservable`. This violated the Dependency Inversion Principle, tightly coupled the React UI layer to the concrete implementation of the offline service singleton, and hindered testing and reusability (Generality).
+
+**Path 1: Service Provider Context (React Context)**
+Wrap the app in an `OfflineServiceProvider` and use `useContext(OfflineServiceContext)` inside the hooks to resolve the service dynamically.
+
+**Path 2: Dependency Injection via Hook Arguments (Composition)**
+Modify `useOfflineQueue` and `useOfflineSync` to accept an `IOfflineService` instance as an optional parameter, defaulting to the `defaultOfflineService` if none is provided.
+
+**Recommendation:**
+**Path 2 (Dependency Injection via Hook Arguments)** was implemented. It perfectly matches the abstraction pattern established in `useNetworkStatus` (which accepts `INetworkStatusProvider`). It immediately improves testability and abstraction without requiring widespread React Context boilerplate or fundamentally altering consumer code.
