@@ -4,6 +4,7 @@ import { StorageSingleton } from "./StorageSingleton";
 import { StorageRegistry } from "./StorageRegistry";
 import { STORAGE_KEYS } from "./constants";
 import { cleanMockData, getNestedValue } from "./helpers";
+import { ILogger, defaultLogger } from "../logger";
 
 export interface DraftState {
   promptType: PromptType;
@@ -96,7 +97,7 @@ export function loadDraftState(projectId?: string | null): DraftState {
   };
 }
 
-export function saveDraftState(draft: Partial<DraftState>, projectId?: string | null): void {
+export function saveDraftState(draft: Partial<DraftState>, projectId?: string | null, logger: ILogger = defaultLogger): void {
   try {
     const current = loadDraftState(projectId);
     const updated: DraftState = {
@@ -108,6 +109,6 @@ export function saveDraftState(draft: Partial<DraftState>, projectId?: string | 
     const draftSingleton = getDraftSingleton(key);
     draftSingleton.save(updated);
   } catch (err: unknown) {
-    console.warn("Failed to auto-save draft:", err);
+    logger.warn("Failed to auto-save draft:", err);
   }
 }

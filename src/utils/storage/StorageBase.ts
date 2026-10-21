@@ -2,6 +2,7 @@ import { deepFreeze } from "./helpers";
 import { DefaultStorageAdapter, globalStorageEventObservable } from "./core";
 import { IStorageAdapter, IDisposable } from "./types";
 import { Observable, IObservable } from "../observable";
+import { ILogger, defaultLogger } from "../logger";
 
 export interface StorageBaseOptions<T> {
   fallback: T;
@@ -12,6 +13,7 @@ export interface StorageBaseOptions<T> {
   storageAdapter?: Storage;
   onSave?: (items: T) => void;
   storageEventObservable?: IObservable<StorageEvent>;
+  logger?: ILogger;
 }
 
 export class StorageBase<T> extends Observable<T> implements IDisposable {
@@ -21,12 +23,14 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
   private boundHandleStorageEvent: (e: StorageEvent) => void;
   private globalUnsubscribe?: () => void;
   private cachedSnapshot: T | undefined = undefined;
+  protected logger: ILogger;
 
   constructor(key: string, options: StorageBaseOptions<T>) {
     super();
     this.key = key;
     this.options = options;
-    this.adapter = options.adapter || new DefaultStorageAdapter<T>(options.storageAdapter);
+    this.logger = options.logger || defaultLogger;
+    this.adapter = options.adapter || new DefaultStorageAdapter<T>(options.storageAdapter, this.logger);
 
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 
@@ -49,7 +53,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
           return deepFreeze(this.options.fallback);
         }
       } catch (err) {
-        console.warn(`StorageBase[${this.key}]: validation error`, err);
+        this.logger.warn(`StorageBase[${this.key}]: validation error`, err);
         return deepFreeze(this.options.fallback);
       }
     }
@@ -59,7 +63,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
       try {
         result = this.options.transformOut(valid);
       } catch (err) {
-        console.warn(`StorageBase[${this.key}]: transformOut error`, err);
+        this.logger.warn(`StorageBase[${this.key}]: transformOut error`, err);
         return deepFreeze(this.options.fallback);
       }
     }
@@ -84,7 +88,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
       this.cachedSnapshot = this.processRawValue(raw);
       return this.cachedSnapshot;
     } catch (err) {
-      console.error(`StorageBase[${this.key}]: unhandled load error`, err);
+      this.logger.error(`StorageBase[${this.key}]: unhandled load error`, err);
       const frozenFallback = deepFreeze(this.options.fallback);
       this.cachedSnapshot = frozenFallback;
       return frozenFallback;
@@ -107,7 +111,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
       this.cachedSnapshot = this.processRawValue(rawValueToCache);
       savedSnapshot = this.cachedSnapshot;
     } catch (err) {
-      console.warn(`StorageBase[${this.key}]: save error`, err);
+      this.logger.warn(`StorageBase[${this.key}]: save error`, err);
       savedSnapshot = this.load(); // Return last known good state
     }
 
@@ -116,7 +120,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
       try {
         this.options.onSave(savedSnapshot);
       } catch (onSaveErr) {
-        console.error(`StorageBase[${this.key}]: error during onSave callback`, onSaveErr);
+        this.logger.error(`StorageBase[${this.key}]: error during onSave callback`, onSaveErr);
       }
     }
   }

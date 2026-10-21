@@ -1,6 +1,7 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
 import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection, StorageRegistry, globalStorageQuotaObservable } from "../utils/storage";
+import { ILogger, defaultLogger } from "../utils/logger";
 import { isMockSession } from "../utils/mockDefinitions";
 
 export interface IChatHistoryService {
@@ -20,6 +21,7 @@ export interface IChatHistoryService {
 export interface ChatHistoryServiceConfig {
   quotaObservable?: typeof globalStorageQuotaObservable;
   storageKeys?: typeof STORAGE_KEYS;
+  logger?: ILogger;
 }
 
 export class ChatHistoryService implements IChatHistoryService {
@@ -30,6 +32,7 @@ export class ChatHistoryService implements IChatHistoryService {
     this.config = {
       quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
       storageKeys: config?.storageKeys || STORAGE_KEYS,
+      logger: config?.logger || defaultLogger,
     };
     this.unsubscribeQuota = this.config.quotaObservable.subscribe(() => {
       this.handleQuotaExceeded();
@@ -37,7 +40,7 @@ export class ChatHistoryService implements IChatHistoryService {
   }
 
   private handleQuotaExceeded(): void {
-    console.warn("ChatHistoryService: Storage quota exceeded. Evicting old chat histories to recover space.");
+    this.config.logger.warn("ChatHistoryService: Storage quota exceeded. Evicting old chat histories to recover space.");
     try {
       const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX);
       keysToClean.forEach((key) => {
@@ -53,11 +56,11 @@ export class ChatHistoryService implements IChatHistoryService {
             // We use raw setter here to bypass the write-through pipeline temporarily or just use the collection
             // We must be careful not to trigger another quota error, but we are *shrinking* the data.
             collection.save(retained);
-            console.log(`ChatHistoryService: Evicted ${sessions.length - 10} sessions from ${key}`);
+            this.config.logger.info(`ChatHistoryService: Evicted ${sessions.length - 10} sessions from ${key}`);
         }
       });
     } catch (e) {
-      console.error("ChatHistoryService: Failed to handle quota exceeded event", e);
+      this.config.logger.error("ChatHistoryService: Failed to handle quota exceeded event", e);
     }
   }
 

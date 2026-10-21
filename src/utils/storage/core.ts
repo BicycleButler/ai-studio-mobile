@@ -2,6 +2,7 @@ import { IStorageAdapter } from "./types";
 import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "../platform";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 import { Observable } from "../observable";
+import { ILogger, defaultLogger } from "../logger";
 export const globalStorageEventObservable = new Observable<StorageEvent>();
 
 if (isBrowserEnvironment()) {
@@ -89,37 +90,38 @@ export function safeParseStorageItem<T>(
   raw: string,
   fallback: T,
   storage: Storage,
-  isArray: boolean
+  isArray: boolean,
+  logger: ILogger = defaultLogger
 ): T {
   try {
     const parsed = JSON.parse(raw);
     if (isArray && !Array.isArray(parsed)) {
-      console.warn(`Type mismatch in storage for ${key}. Expected array, got ${typeof parsed}. Purging.`);
+      logger.warn(`Type mismatch in storage for ${key}. Expected array, got ${typeof parsed}. Purging.`);
       storage.removeItem(key);
       return fallback;
     }
     return parsed as T;
   } catch (err: unknown) {
-    console.error(`Corrupted storage item detected: ${key}. Purging.`, err);
+    logger.error(`Corrupted storage item detected: ${key}. Purging.`, err);
     storage.removeItem(key);
     return fallback;
   }
 }
 
-export function safeGetStorage<T>(key: string, fallback: T, storageInstance?: Storage): T {
+export function safeGetStorage<T>(key: string, fallback: T, storageInstance?: Storage, logger: ILogger = defaultLogger): T {
   try {
     const storage = storageInstance || getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
     const isArray = Array.isArray(fallback);
-    return safeParseStorageItem(key, raw, fallback, storage, isArray);
+    return safeParseStorageItem(key, raw, fallback, storage, isArray, logger);
   } catch (err: unknown) {
-    console.warn(`Failed to read ${key} from storage:`, err);
+    logger.warn(`Failed to read ${key} from storage:`, err);
     return fallback;
   }
 }
 
-export function safeGetStorageKeys(prefix: string, storageInstance?: Storage): string[] {
+export function safeGetStorageKeys(prefix: string, storageInstance?: Storage, logger: ILogger = defaultLogger): string[] {
   const keys: string[] = [];
   try {
     const storage = storageInstance || getStorageInstance();
@@ -131,17 +133,17 @@ export function safeGetStorageKeys(prefix: string, storageInstance?: Storage): s
       }
     }
   } catch (err: unknown) {
-    console.warn(`Failed to retrieve storage keys for prefix ${prefix}:`, err);
+    logger.warn(`Failed to retrieve storage keys for prefix ${prefix}:`, err);
   }
   return keys;
 }
 
-export function safeSetStorage<T>(key: string, value: T, storageInstance?: Storage): boolean {
+export function safeSetStorage<T>(key: string, value: T, storageInstance?: Storage, logger: ILogger = defaultLogger): boolean {
   try {
     const serialized = JSON.stringify(value);
-    return safeSetStorageString(key, serialized, storageInstance);
+    return safeSetStorageString(key, serialized, storageInstance, logger);
   } catch (err: unknown) {
-    console.warn(`Failed to stringify ${key} for storage:`, err);
+    logger.warn(`Failed to stringify ${key} for storage:`, err);
     return false;
   }
 }
@@ -155,52 +157,52 @@ export function safeGetStorageString(key: string, fallback: string = "", storage
   }
 }
 
-export function safeSetStorageString(key: string, value: string, storageInstance?: Storage): boolean {
+export function safeSetStorageString(key: string, value: string, storageInstance?: Storage, logger: ILogger = defaultLogger): boolean {
   try {
     const storage = storageInstance || getStorageInstance();
     storage.setItem(key, value);
     return true;
   } catch (err: unknown) {
-    console.warn(`Failed to write string ${key} to storage:`, err);
+    logger.warn(`Failed to write string ${key} to storage:`, err);
     return false;
   }
 }
 
-export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance?: Storage): void {
+export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance?: Storage, logger: ILogger = defaultLogger): void {
   try {
     const storage = storageInstance || getStorageInstance();
-    const keysToRemove = safeGetStorageKeys(prefix, storage);
+    const keysToRemove = safeGetStorageKeys(prefix, storage, logger);
     for (const key of keysToRemove) {
       storage.removeItem(key);
     }
   } catch (err: unknown) {
-    console.warn(`Failed to remove keys with prefix ${prefix}:`, err);
+    logger.warn(`Failed to remove keys with prefix ${prefix}:`, err);
   }
 }
 
-export function safeRemoveStorage(key: string, storageInstance?: Storage): boolean {
+export function safeRemoveStorage(key: string, storageInstance?: Storage, logger: ILogger = defaultLogger): boolean {
   try {
     const storage = storageInstance || getStorageInstance();
     storage.removeItem(key);
     return true;
   } catch (err: unknown) {
-    console.warn(`Failed to remove ${key} from storage:`, err);
+    logger.warn(`Failed to remove ${key} from storage:`, err);
     return false;
   }
 }
 
 export class DefaultStorageAdapter<T> implements IStorageAdapter<T> {
-  constructor(private storageInstance?: Storage) {}
+  constructor(private storageInstance?: Storage, private logger: ILogger = defaultLogger) {}
 
   get(key: string, fallback: T): T {
-    return safeGetStorage(key, fallback, this.storageInstance);
+    return safeGetStorage(key, fallback, this.storageInstance, this.logger);
   }
 
   set(key: string, value: T): void {
-    safeSetStorage(key, value, this.storageInstance);
+    safeSetStorage(key, value, this.storageInstance, this.logger);
   }
 
   remove(key: string): void {
-    safeRemoveStorage(key, this.storageInstance);
+    safeRemoveStorage(key, this.storageInstance, this.logger);
   }
 }

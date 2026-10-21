@@ -1,13 +1,17 @@
 import { MemoryStorage } from "./core";
 import { getSafeWindow } from "../platform";
 import { Observable } from "../observable";
+import { ILogger, defaultLogger } from "../logger";
 
 export class FallbackStorageWrapper implements Storage {
   private activeStorage: Storage;
   private memoryFallback: MemoryStorage | null = null;
   public quotaExceededEvent = new Observable<void>();
 
-  constructor(primaryStorage: Storage) {
+  private logger: ILogger;
+
+  constructor(primaryStorage: Storage, logger: ILogger = defaultLogger) {
+    this.logger = logger;
     this.activeStorage = primaryStorage;
   }
 
@@ -28,11 +32,11 @@ export class FallbackStorageWrapper implements Storage {
         }
       }
     } catch (e) {
-      console.warn("Could not copy existing storage items to memory fallback during promotion", e);
+      this.logger.warn("Could not copy existing storage items to memory fallback during promotion", e);
     }
 
     this.activeStorage = this.memoryFallback;
-    console.warn("Promoted storage to memory fallback due to failure.");
+    this.logger.warn("Promoted storage to memory fallback due to failure.");
   }
 
   getItem(key: string): string | null {
@@ -49,7 +53,7 @@ export class FallbackStorageWrapper implements Storage {
       this.activeStorage.setItem(key, value);
     } catch (e) {
       if (e && typeof e === "object" && "name" in e && (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED")) {
-        console.warn(`Storage quota exceeded when writing ${key}. Attempting emergency purge...`);
+        this.logger.warn(`Storage quota exceeded when writing ${key}. Attempting emergency purge...`);
         const win = getSafeWindow();
         if (win) {
           try {
@@ -57,14 +61,14 @@ export class FallbackStorageWrapper implements Storage {
              // win.dispatchEvent(new CustomEvent("storage_quota_exceeded")); // Redundant, handled by quotaExceededEvent
              // Retry write after synchronous event dispatch which may have cleared space
              this.activeStorage.setItem(key, value);
-             console.log(`Successfully recovered storage quota for write to ${key}`);
+             this.logger.info(`Successfully recovered storage quota for write to ${key}`);
              return;
           } catch (retryError) {
-             console.warn(`Retry failed after emergency purge for ${key}:`, retryError);
+             this.logger.warn(`Retry failed after emergency purge for ${key}:`, retryError);
           }
         }
       } else {
-        console.warn(`Failed to stringify/write ${key} to storage:`, e);
+        this.logger.warn(`Failed to stringify/write ${key} to storage:`, e);
       }
       this.promoteToMemory();
       // Try again on memory fallback
