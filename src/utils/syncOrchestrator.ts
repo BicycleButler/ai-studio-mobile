@@ -7,12 +7,12 @@ export class SyncOrchestrator {
     private apiClient: IApiClient
   ) {}
 
-  public createGenericSyncHandler(endpoint: string, payloadWrapper?: (payload: unknown) => unknown): SyncHandler {
+  public createGenericSyncHandler(endpoint: string, payloadWrapper?: (payload: unknown) => unknown, method: string = "POST"): SyncHandler {
     return async (mutation: OfflineMutation) => {
       try {
         const bodyPayload = payloadWrapper ? payloadWrapper(mutation.payload) : mutation.payload;
         await this.apiClient.fetch(endpoint, {
-          method: "POST",
+          method,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(bodyPayload),
         });

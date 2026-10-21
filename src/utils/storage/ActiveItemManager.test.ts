@@ -91,7 +91,9 @@ describe('ActiveItemManager', () => {
 
         // Allow microtasks to settle
         await Promise.resolve();
-        manager.getSnapshot(); // Force sync evaluation
+
+        // Wait for microtask-based observer notification which triggers the side effect
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(changeSpy).toHaveBeenCalledWith({ id: '2' });
     });

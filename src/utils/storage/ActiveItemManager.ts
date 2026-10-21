@@ -91,7 +91,9 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     // we must call super.getSnapshot() here instead of simply returning this.currentState!
     // to force a synchronous evaluation of any dirty dependencies before returning.
     const state = super.getSnapshot()!;
-    this.resolveSideEffects(state);
+    // Note: resolveSideEffects is explicitly omitted here to preserve Command-Query Separation (CQS).
+    // getSnapshot() must be a pure read operation. The side effect will execute safely
+    // when the deferred microtask invokes notifySync().
     return state;
   }
 
