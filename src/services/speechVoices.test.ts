@@ -1,43 +1,36 @@
-import { describe, test } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import {
   DEFAULT_SPEECH_SETTINGS,
-  loadSpeechSettings,
-  saveSpeechSettings,
   SpeechSettings,
+  SpeechVoicesService,
 } from "./speechVoices";
+
 
 describe('testSpeechSettingsSuite', () => {
   test('main', () => {
-  // Test 1: Defaults
-  if (DEFAULT_SPEECH_SETTINGS.voiceButtonPlacement !== "footer") {
-    throw new Error(
-      `Expected default voiceButtonPlacement to be 'footer', got '${DEFAULT_SPEECH_SETTINGS.voiceButtonPlacement}'`
-    );
-  }
+    // We instantiate a local service for isolated testing without hitting globals if desired
+    // For this exact parity test, we can just use the service to emulate what was happening globally.
+    const service = new SpeechVoicesService();
 
-  // Test 2: In-memory fallback / load
-  const loaded = loadSpeechSettings();
-  if (typeof loaded.voiceButtonPlacement === "undefined") {
-    throw new Error("Expected loaded speech settings to include voiceButtonPlacement");
-  }
+    // Test 1: Defaults
+    expect(DEFAULT_SPEECH_SETTINGS.voiceButtonPlacement).toBe("footer");
 
-  // Test 3: Save and reload with FAB placement
-  const customSettings: SpeechSettings = {
-    ...DEFAULT_SPEECH_SETTINGS,
-    voiceButtonPlacement: "fab",
-    silenceTimeoutMs: 2000,
-  };
-  saveSpeechSettings(customSettings);
-  const reloaded = loadSpeechSettings();
-  if (reloaded.voiceButtonPlacement !== "fab") {
-    throw new Error(
-      `Expected voiceButtonPlacement to persist as 'fab', got '${reloaded.voiceButtonPlacement}'`
-    );
-  }
+    // Test 2: In-memory fallback / load
+    const loaded = service.loadSpeechSettings();
+    expect(loaded.voiceButtonPlacement).toBeDefined();
 
-  // Restore defaults
-  saveSpeechSettings(DEFAULT_SPEECH_SETTINGS);
+    // Test 3: Save and reload with FAB placement
+    const customSettings: SpeechSettings = {
+      ...DEFAULT_SPEECH_SETTINGS,
+      voiceButtonPlacement: "fab",
+      silenceTimeoutMs: 2000,
+    };
+    service.saveSpeechSettings(customSettings);
 
+    const reloaded = service.loadSpeechSettings();
+    expect(reloaded.voiceButtonPlacement).toBe("fab");
 
+    // Restore defaults
+    service.saveSpeechSettings(DEFAULT_SPEECH_SETTINGS);
   });
 });
