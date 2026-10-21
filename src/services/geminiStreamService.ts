@@ -14,19 +14,6 @@ export interface StreamOptions {
   signal?: AbortSignal;
 }
 
-export async function fetchGenerateContent(payload: GenerateRequestBody, options?: StreamOptions): Promise<{
-  text?: string;
-  durationMs?: number;
-  error?: string;
-  usageMetadata?: { totalTokenCount?: number };
-}> {
-  return apiFetch("/api/generate", {
-    method: "POST",
-    headers: buildHeaders(options?.apiKey),
-    signal: options?.signal,
-    body: JSON.stringify(payload),
-  });
-}
 
 /**
  * Strips raw Google API keys and project tokens from strings before logging or UI exposure.
@@ -144,102 +131,156 @@ export function formatStreamError(err: unknown): GeminiApiError {
   return new GeminiApiError("An unexpected error occurred during generation.");
 }
 
-/**
- * High-reliability Server-Sent Events (SSE) stream consumer.
- * Correctly buffers partial chunks across TCP packet boundaries to prevent broken JSON payloads.
- */
+
+
+
+export interface IGeminiStreamService {
+  fetchGenerateContent(payload: GenerateRequestBody, options?: StreamOptions): Promise<{
+    text?: string;
+    durationMs?: number;
+    error?: string;
+    usageMetadata?: { totalTokenCount?: number };
+  }>;
+  streamGeminiContent(
+    payload: GenerateRequestBody,
+    callbacks: StreamCallbacks,
+    options?: StreamOptions
+  ): Promise<{ text: string; durationMs: number; totalTokens: number }>;
+}
+
+export class GeminiStreamService implements IGeminiStreamService {
+  constructor(private fetchFn = apiFetch, private fetchStreamFn = apiFetchStream) {}
+
+  public async fetchGenerateContent(payload: GenerateRequestBody, options?: StreamOptions): Promise<{
+    text?: string;
+    durationMs?: number;
+    error?: string;
+    usageMetadata?: { totalTokenCount?: number };
+  }> {
+    return this.fetchFn("/api/generate", {
+      method: "POST",
+      headers: buildHeaders(options?.apiKey),
+      signal: options?.signal,
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /**
+   * High-reliability Server-Sent Events (SSE) stream consumer.
+   * Correctly buffers partial chunks across TCP packet boundaries to prevent broken JSON payloads.
+   */
+  public async streamGeminiContent(
+    payload: GenerateRequestBody,
+    callbacks: StreamCallbacks,
+    options?: StreamOptions
+  ): Promise<{ text: string; durationMs: number; totalTokens: number }> {
+    let response: Response;
+    try {
+      response = await this.fetchStreamFn("/api/generate", {
+        method: "POST",
+        headers: buildHeaders(options?.apiKey),
+        signal: options?.signal,
+        body: JSON.stringify({
+          ...payload,
+          stream: true,
+        }),
+      });
+    } catch (err: unknown) {
+      if (err instanceof BaseApiError) {
+        throw new GeminiApiError(err.message, err.statusCode);
+      }
+      throw new GeminiApiError("Streaming API request failed", 500);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new GeminiApiError("Streaming is not supported by the network response.");
+    }
+
+    const decoder = new TextDecoder();
+    let accumulatedText = "";
+    let durationMs = 0;
+    let totalTokens = 0;
+
+    // We define a helper that processes the JSON payload from the SSE message
+    const handleData = (dataStr: string) => {
+      try {
+        const parsed = JSON.parse(dataStr) as {
+          text?: string;
+          error?: string;
+          done?: boolean;
+          durationMs?: number;
+          usageMetadata?: { totalTokenCount?: number };
+        };
+
+        if (parsed.error) {
+          throw new GeminiApiError(parsed.error);
+        }
+
+        if (parsed.text) {
+          accumulatedText += parsed.text;
+          callbacks.onChunk(accumulatedText);
+        }
+
+        if (parsed.done) {
+          durationMs = parsed.durationMs ?? durationMs;
+          if (parsed.usageMetadata?.totalTokenCount) {
+            totalTokens = parsed.usageMetadata.totalTokenCount;
+          }
+        }
+      } catch (parseErr: unknown) {
+        if (parseErr instanceof GeminiApiError) {
+          throw parseErr;
+        }
+        // Ignore JSON parse errors for incomplete/malformed chunks
+      }
+    };
+
+    const sseParser = new SSEStreamParser((eventName, dataStr) => {
+      handleData(dataStr);
+    });
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode with stream: true to retain multibyte character boundary state
+        const chunk = decoder.decode(value, { stream: true });
+        sseParser.processChunk(chunk);
+      }
+
+      sseParser.flush();
+
+      if (!totalTokens && accumulatedText.length > 0) {
+        totalTokens = Math.max(1, Math.round(accumulatedText.length / 4));
+      }
+
+      callbacks.onDone?.({ durationMs, totalTokens });
+      return { text: accumulatedText, durationMs, totalTokens };
+    } catch (err: unknown) {
+      const formatted = formatStreamError(err);
+      callbacks.onError?.(formatted);
+      throw formatted;
+    }
+  }
+}
+
+export const defaultGeminiStreamService = new GeminiStreamService();
+
+export async function fetchGenerateContent(payload: GenerateRequestBody, options?: StreamOptions): Promise<{
+  text?: string;
+  durationMs?: number;
+  error?: string;
+  usageMetadata?: { totalTokenCount?: number };
+}> {
+  return defaultGeminiStreamService.fetchGenerateContent(payload, options);
+}
+
 export async function streamGeminiContent(
   payload: GenerateRequestBody,
   callbacks: StreamCallbacks,
   options?: StreamOptions
 ): Promise<{ text: string; durationMs: number; totalTokens: number }> {
-  let response: Response;
-  try {
-    response = await apiFetchStream("/api/generate", {
-      method: "POST",
-      headers: buildHeaders(options?.apiKey),
-      signal: options?.signal,
-      body: JSON.stringify({
-        ...payload,
-        stream: true,
-      }),
-    });
-  } catch (err: unknown) {
-    if (err instanceof BaseApiError) {
-      throw new GeminiApiError(err.message, err.statusCode);
-    }
-    throw new GeminiApiError("Streaming API request failed", 500);
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new GeminiApiError("Streaming is not supported by the network response.");
-  }
-
-  const decoder = new TextDecoder();
-  let accumulatedText = "";
-  let durationMs = 0;
-  let totalTokens = 0;
-
-  // We define a helper that processes the JSON payload from the SSE message
-  const handleData = (dataStr: string) => {
-    try {
-      const parsed = JSON.parse(dataStr) as {
-        text?: string;
-        error?: string;
-        done?: boolean;
-        durationMs?: number;
-        usageMetadata?: { totalTokenCount?: number };
-      };
-
-      if (parsed.error) {
-        throw new GeminiApiError(parsed.error);
-      }
-
-      if (parsed.text) {
-        accumulatedText += parsed.text;
-        callbacks.onChunk(accumulatedText);
-      }
-
-      if (parsed.done) {
-        durationMs = parsed.durationMs ?? durationMs;
-        if (parsed.usageMetadata?.totalTokenCount) {
-          totalTokens = parsed.usageMetadata.totalTokenCount;
-        }
-      }
-    } catch (parseErr: unknown) {
-      if (parseErr instanceof GeminiApiError) {
-        throw parseErr;
-      }
-      // Ignore JSON parse errors for incomplete/malformed chunks
-    }
-  };
-
-  const sseParser = new SSEStreamParser((eventName, dataStr) => {
-    handleData(dataStr);
-  });
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      // Decode with stream: true to retain multibyte character boundary state
-      const chunk = decoder.decode(value, { stream: true });
-      sseParser.processChunk(chunk);
-    }
-
-    sseParser.flush();
-
-    if (!totalTokens && accumulatedText.length > 0) {
-      totalTokens = Math.max(1, Math.round(accumulatedText.length / 4));
-    }
-
-    callbacks.onDone?.({ durationMs, totalTokens });
-    return { text: accumulatedText, durationMs, totalTokens };
-  } catch (err: unknown) {
-    const formatted = formatStreamError(err);
-    callbacks.onError?.(formatted);
-    throw formatted;
-  }
+  return defaultGeminiStreamService.streamGeminiContent(payload, callbacks, options);
 }
