@@ -397,3 +397,16 @@ Modify `useOfflineQueue` and `useOfflineSync` to accept an `IOfflineService` ins
 
 **Recommendation:**
 **Path 2 (Dependency Injection via Hook Arguments)** was implemented. It perfectly matches the abstraction pattern established in `useNetworkStatus` (which accepts `INetworkStatusProvider`). It immediately improves testability and abstraction without requiring widespread React Context boilerplate or fundamentally altering consumer code.
+## Architectural Decision: NetworkStorageSyncAdapter Payload Abstraction
+
+**Context:**
+`NetworkStorageSyncAdapter` tightly coupled the `syncItem` logic to generic `POST` and `PUT` requests using a strictly JSON stringified body and the `application/json` content-type header. This violated the Open/Closed Principle and Generality, meaning if a domain service needed to sync offline mutations using FormData (e.g. file uploads) or URL encoding, it couldn't reuse the standard network storage sync pipeline.
+
+**Path 1: Request Builder Injection via Configuration Object (Composition)**
+Refactor the adapter's constructor to accept a `NetworkStorageSyncAdapterConfig` object while maintaining backward compatibility with the legacy constructor signature. Allow consumers to provide an optional `requestBuilder: (item: T, method: string) => RequestInit` function. If omitted, default to the existing JSON stringification behavior.
+
+**Path 2: Subclassing the Adapter per Content-Type (Inheritance)**
+Make `NetworkStorageSyncAdapter` an abstract class with an abstract `buildRequest` method and implement subclasses like `JsonStorageSyncAdapter` and `FormDataStorageSyncAdapter`. (Drawback: Adds class bloat and doesn't accommodate custom headers easily).
+
+**Recommendation:**
+**Path 1 (Request Builder Injection)** was implemented. It strictly decouples the adapter from the DOM fetch API payload structure, preserves all backward compatibility for existing domain services, and improves the Generality of the sync engine, allowing any payload transformation.
