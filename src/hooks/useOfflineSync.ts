@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNetworkStatus } from "./useNetworkStatus";
 import {
-  processOfflineMutations,
-  ConflictData,
-  removeOfflineMutation,
-  enqueueOfflineMutation,
-  getOfflineQueueLength
+  IOfflineService,
+  defaultOfflineService,
+  ConflictData
 } from "../utils/offlineService";
 
 export type ReconnectState = "idle" | "reconnecting" | "success" | "conflict";
 
-export function useOfflineSync() {
+export function useOfflineSync(offlineService: IOfflineService = defaultOfflineService) {
   const { isOnline, wasOffline } = useNetworkStatus();
   const [reconnectState, setReconnectState] = useState<ReconnectState>("idle");
   const [pendingQueueLength, setPendingQueueLength] = useState(0);
@@ -19,12 +17,12 @@ export function useOfflineSync() {
   useEffect(() => {
     let mounted = true;
     const checkQueue = async () => {
-      const length = await getOfflineQueueLength();
+      const length = await offlineService.getOfflineQueueLength();
       if (mounted) setPendingQueueLength(length);
     };
     checkQueue();
     return () => { mounted = false; };
-  }, [isOnline]);
+  }, [isOnline, offlineService]);
 
   useEffect(() => {
     let mounted = true;
@@ -32,7 +30,7 @@ export function useOfflineSync() {
       setReconnectState("reconnecting");
 
       const processQueue = async () => {
-        const { conflicts } = await processOfflineMutations();
+        const { conflicts } = await offlineService.processOfflineMutations();
         if (!mounted) return;
         if (conflicts.length > 0) {
            setConflictData(conflicts[0]);
@@ -48,14 +46,14 @@ export function useOfflineSync() {
       processQueue();
     }
     return () => { mounted = false; };
-  }, [isOnline, wasOffline]);
+  }, [isOnline, wasOffline, offlineService]);
 
   const handleResolveConflict = useCallback(async (action: 'keep' | 'overwrite') => {
      if (conflictData) {
-       await removeOfflineMutation(conflictData.id);
+       await offlineService.removeOfflineMutation(conflictData.id);
        if (action === 'overwrite') {
-          await enqueueOfflineMutation(conflictData.type, conflictData.localData, undefined);
-          const { conflicts } = await processOfflineMutations();
+          await offlineService.enqueueOfflineMutation(conflictData.type, conflictData.localData, undefined);
+          const { conflicts } = await offlineService.processOfflineMutations();
           if (conflicts.length > 0) {
              setConflictData(conflicts[0]);
              return;
@@ -65,9 +63,9 @@ export function useOfflineSync() {
 
      setConflictData(null);
 
-     const queueLength = await getOfflineQueueLength();
+     const queueLength = await offlineService.getOfflineQueueLength();
      if (queueLength > 0) {
-        const { conflicts } = await processOfflineMutations();
+        const { conflicts } = await offlineService.processOfflineMutations();
         if (conflicts.length > 0) {
            setConflictData(conflicts[0]);
            setReconnectState("conflict");
@@ -79,7 +77,7 @@ export function useOfflineSync() {
         setReconnectState("success");
         setTimeout(() => setReconnectState("idle"), 3000);
      }
-  }, [conflictData]);
+  }, [conflictData, offlineService]);
 
   return {
     isOnline,
