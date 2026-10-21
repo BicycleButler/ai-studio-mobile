@@ -19,3 +19,5 @@ export * from "./ActiveItemManagerFactory";
 export * from "./StorageBase";
 export * from "./syncAdapter";
 export * from "./offlineRetryStrategy";
+export * from "./StorageEngine";
+export * from "./StorageEngineImpl";

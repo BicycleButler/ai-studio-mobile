@@ -1,8 +1,9 @@
-import { deepFreeze } from "./helpers";
 import { DefaultStorageAdapter, globalStorageEventObservable } from "./core";
 import { IStorageAdapter, IDisposable } from "./types";
 import { Observable, IObservable } from "../observable";
 import { ILogger, defaultLogger } from "../logger";
+import { IStorageEngine } from "./StorageEngine";
+import { StorageEngineImpl } from "./StorageEngineImpl";
 
 export interface StorageBaseOptions<T> {
   fallback: T;
@@ -20,9 +21,9 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
   protected key: string;
   protected options: StorageBaseOptions<T>;
   protected adapter: IStorageAdapter<T>;
+  private engine: IStorageEngine<T>;
   private boundHandleStorageEvent: (e: StorageEvent) => void;
   private globalUnsubscribe?: () => void;
-  private cachedSnapshot: T | undefined = undefined;
   protected logger: ILogger;
 
   constructor(key: string, options: StorageBaseOptions<T>) {
@@ -32,6 +33,15 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
     this.logger = options.logger || defaultLogger;
     this.adapter = options.adapter || new DefaultStorageAdapter<T>(options.storageAdapter, this.logger);
 
+    this.engine = new StorageEngineImpl<T>(key, {
+      fallback: options.fallback,
+      transformIn: options.transformIn,
+      transformOut: options.transformOut,
+      validate: options.validate,
+      adapter: this.adapter,
+      logger: this.logger
+    });
+
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 
     const observableToUse = this.options.storageEventObservable || globalStorageEventObservable;
@@ -40,80 +50,21 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
 
   protected handleStorageEvent(e: StorageEvent): void {
     if (e.key === this.key || e.key === null) {
-      this.invalidateCache();
+      this.engine.invalidateCache();
       this.notify(this.load());
     }
   }
 
-  private processRawValue(raw: T): T {
-    let valid = raw;
-    if (this.options.validate) {
-      try {
-        if (!this.options.validate(raw)) {
-          return deepFreeze(this.options.fallback);
-        }
-      } catch (err) {
-        this.logger.warn(`StorageBase[${this.key}]: validation error`, err);
-        return deepFreeze(this.options.fallback);
-      }
-    }
-
-    let result = valid;
-    if (this.options.transformOut) {
-      try {
-        result = this.options.transformOut(valid);
-      } catch (err) {
-        this.logger.warn(`StorageBase[${this.key}]: transformOut error`, err);
-        return deepFreeze(this.options.fallback);
-      }
-    }
-
-    return deepFreeze(result);
-  }
-
-  protected invalidateCache(): void {
-    this.cachedSnapshot = undefined;
-  }
-
   public getSnapshot(): T {
-    return this.load();
+    return this.engine.getSnapshot();
   }
 
   public load(): T {
-    if (this.cachedSnapshot !== undefined) {
-      return this.cachedSnapshot;
-    }
-    try {
-      const raw = this.adapter.get(this.key, this.options.fallback);
-      this.cachedSnapshot = this.processRawValue(raw);
-      return this.cachedSnapshot;
-    } catch (err) {
-      this.logger.error(`StorageBase[${this.key}]: unhandled load error`, err);
-      const frozenFallback = deepFreeze(this.options.fallback);
-      this.cachedSnapshot = frozenFallback;
-      return frozenFallback;
-    }
+    return this.engine.load();
   }
 
   public save(item: T): void {
-    let savedSnapshot: T;
-    try {
-      const toStore = this.options.transformIn ? this.options.transformIn(item) : item;
-      this.adapter.set(this.key, toStore);
-      // Write-through caching: bypass I/O round-trip
-      // Simulate the serialization boundary to ensure proper data transformations
-      let rawValueToCache: T;
-      try {
-          rawValueToCache = structuredClone(toStore);
-      } catch {
-          rawValueToCache = toStore; // Fallback if structuredClone fails but item is valid for storage
-      }
-      this.cachedSnapshot = this.processRawValue(rawValueToCache);
-      savedSnapshot = this.cachedSnapshot;
-    } catch (err) {
-      this.logger.warn(`StorageBase[${this.key}]: save error`, err);
-      savedSnapshot = this.load(); // Return last known good state
-    }
+    const savedSnapshot = this.engine.save(item);
 
     this.notify(savedSnapshot);
     if (this.options.onSave) {
@@ -126,9 +77,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
   }
 
   public clear(): void {
-    this.adapter.remove(this.key);
-    this.cachedSnapshot = undefined;
-    const cleared = this.load();
+    const cleared = this.engine.clear();
     this.notify(cleared);
   }
 
