@@ -300,3 +300,17 @@ Use a React Context provider or dependency injection system to allow different p
 
 **Recommendation:**
 **Path 1 (Extract Array Configuration)** was implemented. It perfectly solves the boilerplate problem by abstracting the routing logic into data without over-engineering an injection system. It adheres to the Open/Closed Principle and dramatically improves maintainability and reusability of the UI component logic.
+
+## Architectural Decision: Logger Abstraction
+
+**Context:**
+Many low-level utility services (such as `NetworkStorageSyncAdapter` and `OfflineService`) rely on hardcoded `console.error` and `console.warn` calls to report critical failures. This tight coupling violated the Dependency Inversion Principle, caused test output spew, and made it impossible to easily redirect error reporting (e.g., to an external telemetry service or custom UI toast notification) without global monkey-patching.
+
+**Path 1: Logger Interface Injection (Composition)**
+Define an `ILogger` interface with standard log levels (`debug`, `info`, `warn`, `error`). Implement standard providers like `ConsoleLogger` and `NoOpLogger`. Pass the `ILogger` implementation as a dependency into the constructors of utility classes like `NetworkStorageSyncAdapter` and `OfflineService`.
+
+**Path 2: Singleton Event Emitter**
+Create a global `LogEmitter` singleton that emits log events, and have the utilities dispatch events to it.
+
+**Recommendation:**
+**Path 1 (Logger Interface Injection)** is implemented. This properly conforms to Dependency Inversion, allows targeted log overriding per component, and completely resolves console spew in unit tests by substituting the `NoOpLogger`. It provides a clean, extensible architectural foundation for telemetry.
