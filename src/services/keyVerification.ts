@@ -37,142 +37,178 @@ const EMBEDDED_JULES_KEY_REGEX = new RegExp(`(${BASE_STANDARD_GOOGLE_KEY}|${BASE
 /**
  * Validates whether a raw candidate string strictly matches Jules API key specifications.
  */
+
+export interface IKeyVerificationService {
+  isValidJulesApiKeyFormat(key: string): boolean;
+  detectJulesApiKey(text: string): string | null;
+  isValidGoogleApiKeyFormat(key: string): boolean;
+  detectGoogleApiKey(text: string): string | null;
+  maskApiKey(key: string): string;
+  verifyGoogleApiKey(apiKey: string, model?: string): Promise<KeyVerificationResult>;
+  clearClipboardSafe(): Promise<boolean>;
+}
+
+export interface KeyVerificationServiceConfig {
+  apiClient?: typeof apiFetch;
+}
+
+export class KeyVerificationService implements IKeyVerificationService {
+  private fetchFn: typeof apiFetch;
+
+  constructor(config?: KeyVerificationServiceConfig) {
+    this.fetchFn = config?.apiClient || apiFetch;
+  }
+
+  public isValidJulesApiKeyFormat(key: string): boolean {
+    if (!key) return false;
+    const trimmed = key.trim();
+    return JULES_KEY_REGEX.test(trimmed) || (trimmed.length >= 24 && /^[0-9A-Za-z\-_.]+$/.test(trimmed));
+  }
+
+  public detectJulesApiKey(text: string): string | null {
+    if (!text || typeof text !== "string") return null;
+    const trimmed = text.trim();
+
+    if (this.isValidJulesApiKeyFormat(trimmed)) {
+      return trimmed;
+    }
+
+    const match = trimmed.match(EMBEDDED_JULES_KEY_REGEX);
+    if (match && match[1]) {
+      return match[1];
+    }
+
+    return null;
+  }
+
+  public isValidGoogleApiKeyFormat(key: string): boolean {
+    const trimmed = key.trim();
+    return STANDARD_GOOGLE_KEY_REGEX.test(trimmed) || AISTUDIO_PROJECT_KEY_REGEX.test(trimmed);
+  }
+
+  public detectGoogleApiKey(text: string): string | null {
+    if (!text || typeof text !== "string") return null;
+    const trimmed = text.trim();
+
+    // Exact match check first
+    if (this.isValidGoogleApiKeyFormat(trimmed)) {
+      return trimmed;
+    }
+
+    // Embedded match inside copied configuration text (e.g. `GEMINI_API_KEY="AIza..."`)
+    const match = trimmed.match(EMBEDDED_KEY_REGEX);
+    if (match && match[1]) {
+      return match[1];
+    }
+
+    return null;
+  }
+
+  public maskApiKey(key: string): string {
+    if (!key) return "";
+    const trimmed = key.trim();
+    if (trimmed.length <= 8) {
+      return trimmed.slice(0, 2) + "..." + trimmed.slice(-2);
+    }
+    return `${trimmed.slice(0, 4)}...${trimmed.slice(-4)}`;
+  }
+
+  public async verifyGoogleApiKey(
+    apiKey: string,
+    model: string = "gemini-2.5-flash"
+  ): Promise<KeyVerificationResult> {
+    const candidate = apiKey.trim();
+    if (!candidate) {
+      return {
+        valid: false,
+        error: "No API key provided for verification.",
+      };
+    }
+
+    if (!this.isValidGoogleApiKeyFormat(candidate)) {
+      return {
+        valid: false,
+        error: "Key format does not match recognized Google AI Studio key patterns (AIza... or AQ....).",
+      };
+    }
+
+    try {
+      const data = await this.fetchFn<KeyVerificationResult>("/api/verify-key", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          apiKey: candidate,
+          model,
+        }),
+      });
+
+      if (data.valid) {
+        return {
+          valid: true,
+          model: data.model || model,
+          totalTokens: data.totalTokens,
+          verifiedAt: data.verifiedAt || Date.now(),
+        };
+      }
+
+      return {
+        valid: false,
+        error: data.error || "The provided API key is inactive or unauthorized by Google AI Studio.",
+      };
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err) || "Network error during key authorization check.";
+      return {
+        valid: false,
+        error: errorMsg,
+      };
+    }
+  }
+
+  public async clearClipboardSafe(): Promise<boolean> {
+    try {
+      if (Boolean(getSafeNavigatorClipboard()?.writeText)) {
+        await getSafeNavigatorClipboard()?.writeText("");
+        return true;
+      }
+    } catch (err: unknown) {
+      // Clipboard write may be restricted in non-gesture or sandboxed context
+      console.debug("Clipboard clear skipped or restricted:", err);
+    }
+    return false;
+  }
+}
+
+export const defaultKeyVerificationService = new KeyVerificationService();
+
 export function isValidJulesApiKeyFormat(key: string): boolean {
-  if (!key) return false;
-  const trimmed = key.trim();
-  return JULES_KEY_REGEX.test(trimmed) || (trimmed.length >= 24 && /^[0-9A-Za-z\-_.]+$/.test(trimmed));
+  return defaultKeyVerificationService.isValidJulesApiKeyFormat(key);
 }
 
-/**
- * Detects and extracts a valid Jules API key from clipboard text or raw input.
- */
 export function detectJulesApiKey(text: string): string | null {
-  if (!text || typeof text !== "string") return null;
-  const trimmed = text.trim();
-
-  if (isValidJulesApiKeyFormat(trimmed)) {
-    return trimmed;
-  }
-
-  const match = trimmed.match(EMBEDDED_JULES_KEY_REGEX);
-  if (match && match[1]) {
-    return match[1];
-  }
-
-  return null;
+  return defaultKeyVerificationService.detectJulesApiKey(text);
 }
 
-/**
- * Validates whether a raw candidate string strictly matches Google API key specifications.
- */
 export function isValidGoogleApiKeyFormat(key: string): boolean {
-  const trimmed = key.trim();
-  return STANDARD_GOOGLE_KEY_REGEX.test(trimmed) || AISTUDIO_PROJECT_KEY_REGEX.test(trimmed);
+  return defaultKeyVerificationService.isValidGoogleApiKeyFormat(key);
 }
 
-/**
- * Detects and extracts a valid Google API key from clipboard text or raw input.
- * Returns the extracted API key, or null if no valid pattern is found.
- */
 export function detectGoogleApiKey(text: string): string | null {
-  if (!text || typeof text !== "string") return null;
-  const trimmed = text.trim();
-
-  // Exact match check first
-  if (isValidGoogleApiKeyFormat(trimmed)) {
-    return trimmed;
-  }
-
-  // Embedded match inside copied configuration text (e.g. `GEMINI_API_KEY="AIza..."`)
-  const match = trimmed.match(EMBEDDED_KEY_REGEX);
-  if (match && match[1]) {
-    return match[1];
-  }
-
-  return null;
+  return defaultKeyVerificationService.detectGoogleApiKey(text);
 }
 
-/**
- * Masks an API key for safe preview, showing only the first 4 and last 4 characters.
- * Example: `AIza...89a` or `AQ....1b2`
- */
 export function maskApiKey(key: string): string {
-  if (!key) return "";
-  const trimmed = key.trim();
-  if (trimmed.length <= 8) {
-    return trimmed.slice(0, 2) + "..." + trimmed.slice(-2);
-  }
-  return `${trimmed.slice(0, 4)}...${trimmed.slice(-4)}`;
+  return defaultKeyVerificationService.maskApiKey(key);
 }
 
-/**
- * Performs a lightweight test call against Google's models endpoint to verify that the key is active and authorized.
- */
 export async function verifyGoogleApiKey(
   apiKey: string,
   model: string = "gemini-2.5-flash"
 ): Promise<KeyVerificationResult> {
-  const candidate = apiKey.trim();
-  if (!candidate) {
-    return {
-      valid: false,
-      error: "No API key provided for verification.",
-    };
-  }
-
-  if (!isValidGoogleApiKeyFormat(candidate)) {
-    return {
-      valid: false,
-      error: "Key format does not match recognized Google AI Studio key patterns (AIza... or AQ....).",
-    };
-  }
-
-  try {
-    const data = await apiFetch<KeyVerificationResult>("/api/verify-key", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        apiKey: candidate,
-        model,
-      }),
-    });
-
-    if (data.valid) {
-      return {
-        valid: true,
-        model: data.model || model,
-        totalTokens: data.totalTokens,
-        verifiedAt: data.verifiedAt || Date.now(),
-      };
-    }
-
-    return {
-      valid: false,
-      error: data.error || "The provided API key is inactive or unauthorized by Google AI Studio.",
-    };
-  } catch (err: unknown) {
-    const errorMsg = getErrorMessage(err) || "Network error during key authorization check.";
-    return {
-      valid: false,
-      error: errorMsg,
-    };
-  }
+  return defaultKeyVerificationService.verifyGoogleApiKey(apiKey, model);
 }
 
-/**
- * Safely clears the device clipboard to prevent lingering credential exposure after key ingestion.
- */
 export async function clearClipboardSafe(): Promise<boolean> {
-  try {
-    if (Boolean(getSafeNavigatorClipboard()?.writeText)) {
-      await getSafeNavigatorClipboard()?.writeText("");
-      return true;
-    }
-  } catch (err: unknown) {
-    // Clipboard write may be restricted in non-gesture or sandboxed context
-    console.debug("Clipboard clear skipped or restricted:", err);
-  }
-  return false;
+  return defaultKeyVerificationService.clearClipboardSafe();
 }

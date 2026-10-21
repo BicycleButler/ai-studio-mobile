@@ -1,11 +1,11 @@
 import { SavedPrompt } from "../../types";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { STORAGE_KEYS } from "./constants";
-import { defaultClient, ApiClient } from "../apiClient";
-import { defaultOfflineService, OfflineService } from "../offlineService";
+import { defaultClient } from "../apiClient";
+import { defaultOfflineService } from "../offlineService";
 import { NetworkStorageSyncAdapter } from "./syncAdapter";
 import { IActiveItemManager } from "./ActiveItemManager";
-import { IStorageSyncAdapter } from "./types";
+import { IStorageSyncAdapter } from "./syncAdapter";
 
 export interface SavedPromptsServiceConfig {
   savedPromptsManager?: IActiveItemManager<SavedPrompt>;

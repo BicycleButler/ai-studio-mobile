@@ -11,7 +11,7 @@ import { StorageSingleton } from "./StorageSingleton";
 import { ILogger, defaultLogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
-import { IStorageSyncAdapter } from "./types";
+import { IStorageSyncAdapter } from "./syncAdapter";
 
 export interface JulesStorageServiceConfig {
   julesApiKeySingleton?: IMutableSingleton<string>;
