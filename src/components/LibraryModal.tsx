@@ -61,6 +61,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     toggleSelectAll,
     clearSelection,
     removeFromSelection,
+    getSelectionState,
   } = useBatchSelection({
     items: savedPrompts,
     getItemId: (p) => p.id,
@@ -230,9 +231,9 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
                 aria-label="Select all prompts on this page"
               >
-                {selectedPromptIds.size === savedPrompts.length ? (
+                {getSelectionState(savedPrompts) === 'all' ? (
                   <CheckSquare className="w-4 h-4 text-primary" />
-                ) : selectedPromptIds.size > 0 ? (
+                ) : getSelectionState(savedPrompts) === 'some' ? (
                   <MinusSquare className="w-4 h-4 text-primary" />
                 ) : (
                   <Square className="w-4 h-4" />

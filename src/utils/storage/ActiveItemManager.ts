@@ -66,8 +66,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     this.lastActiveItemId = initialState.activeItem ? this.getId(initialState.activeItem) : null;
   }
 
-  public notify(state: ActiveItemManagerState<T>): void {
-    super.notify(state);
+  private resolveSideEffects(state: ActiveItemManagerState<T>) {
     const currentActiveId = state.activeItem ? this.getId(state.activeItem) : null;
     if (this.lastActiveItemId !== currentActiveId) {
       this.lastActiveItemId = currentActiveId;
@@ -77,15 +76,14 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     }
   }
 
+  public notify(state: ActiveItemManagerState<T>): void {
+    super.notify(state);
+    this.resolveSideEffects(state);
+  }
+
   public notifySync(state: ActiveItemManagerState<T>): void {
     super.notifySync(state);
-    const currentActiveId = state.activeItem ? this.getId(state.activeItem) : null;
-    if (this.lastActiveItemId !== currentActiveId) {
-      this.lastActiveItemId = currentActiveId;
-      if (this.onActiveItemChange) {
-        this.onActiveItemChange(state.activeItem);
-      }
-    }
+    this.resolveSideEffects(state);
   }
 
   public getSnapshot(): ActiveItemManagerState<T> {
@@ -93,13 +91,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     // we must call super.getSnapshot() here instead of simply returning this.currentState!
     // to force a synchronous evaluation of any dirty dependencies before returning.
     const state = super.getSnapshot()!;
-    const currentActiveId = state.activeItem ? this.getId(state.activeItem) : null;
-    if (this.lastActiveItemId !== currentActiveId) {
-      this.lastActiveItemId = currentActiveId;
-      if (this.onActiveItemChange) {
-        this.onActiveItemChange(state.activeItem);
-      }
-    }
+    this.resolveSideEffects(state);
     return state;
   }
 

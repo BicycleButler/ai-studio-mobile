@@ -8,6 +8,7 @@ export function useSettingsProjectsState(projects: ProjectInfo[], onBulkDeletePr
     toggleSelection: toggleProjectSelection,
     toggleSelectAll: toggleSelectAllProjectsRaw,
     clearSelection: clearProjectSelection,
+    getSelectionState: getProjectSelectionState,
   } = useBatchSelection({
     items: projects,
     getItemId: (p) => p.id,
@@ -44,5 +45,6 @@ export function useSettingsProjectsState(projects: ProjectInfo[], onBulkDeletePr
     toggleSelectAllProjectsRaw,
     clearProjectSelection,
     handleBulkDeleteProjects,
+    getProjectSelectionState,
   };
 }

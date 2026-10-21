@@ -198,6 +198,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     toggleSelectAllProjectsRaw,
     clearProjectSelection,
     handleBulkDeleteProjects,
+    getProjectSelectionState,
   } = useSettingsProjectsState(projects, onBulkDeleteProjects, onDeleteProject as unknown as (project: ProjectInfo) => void);
 
   const toggleSelectAllProjects = useCallback(() => {
@@ -441,6 +442,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               toggleProjectSelection={_toggleProjectSelection}
               toggleSelectAllProjects={toggleSelectAllProjects}
               clearProjectSelection={clearProjectSelection}
+              getProjectSelectionState={getProjectSelectionState}
               handleBulkDeleteProjects={handleBulkDeleteProjects}
               showBulkDeleteProjectsConfirm={showBulkDeleteProjectsConfirm}
               setShowBulkDeleteProjectsConfirm={setShowBulkDeleteProjectsConfirm}
