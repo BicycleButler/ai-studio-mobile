@@ -1,8 +1,9 @@
 import { useState, useCallback } from "react";
 import { ChatMessage, StructuredExample, SavedPrompt, PromptType, PromptConfig, ProjectInfo } from "../types";
 import { generateUniqueId } from "../utils/idGenerator";
-import { loadSavedPrompts, persistSavedPrompts } from "../utils/storage";
+import { savedPromptsManager } from "../utils/storage";
 import { IPromptTemplateService } from "../services/promptTemplateService";
+import { useStore } from "./useStore";
 
 export function useChatSession(initialDraft: { messages?: ChatMessage[]; freeformText?: string; structuredExamples?: StructuredExample[] }, promptType: PromptType, config: PromptConfig, activeProject: ProjectInfo | null, promptTemplateService: IPromptTemplateService) {
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${Date.now()}`);
@@ -16,7 +17,14 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
   const [freeformText] = useState(initialDraft.freeformText);
   const [structuredExamples] = useState<StructuredExample[]>(initialDraft.structuredExamples || []);
 
-  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>(() => loadSavedPrompts());
+  const savedPromptsStore = useStore(savedPromptsManager);
+  const savedPrompts = savedPromptsStore.items;
+
+  // Backwards compatibility for setSavedPrompts (should ideally only be modified via the manager)
+  const setSavedPrompts = useCallback((promptsOrUpdater: React.SetStateAction<SavedPrompt[]>) => {
+      const nextPrompts = typeof promptsOrUpdater === 'function' ? promptsOrUpdater(savedPrompts) : promptsOrUpdater;
+      savedPromptsManager.collection.save(nextPrompts);
+  }, [savedPrompts]);
 
   const handleStartNewChat = useCallback((onStopStream?: () => void) => {
     if (onStopStream) {
@@ -37,25 +45,17 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
       updatedAt: Date.now(),
       projectId: activeProject?.id,
     };
-
-    const updated = [newSaved, ...savedPrompts];
-    setSavedPrompts(updated);
-    persistSavedPrompts(updated);
-  }, [promptType, config, messages, activeProject?.id, savedPrompts]);
+    savedPromptsManager.collection.upsert(newSaved, true);
+  }, [promptType, config, messages, activeProject?.id]);
 
   const handleDeleteSavedPrompt = useCallback((id: string) => {
-    const updated = savedPrompts.filter((p) => p.id !== id);
-    setSavedPrompts(updated);
-    persistSavedPrompts(updated);
-  }, [savedPrompts]);
+    savedPromptsManager.collection.delete(id);
+  }, []);
 
   const handleBulkDeleteSavedPrompts = useCallback((ids: string[]) => {
-    const idSet = new Set(ids);
-    const updated = savedPrompts.filter((p) => !idSet.has(p.id));
-    setSavedPrompts(updated);
-    persistSavedPrompts(updated);
+    savedPromptsManager.collection.bulkDelete(ids);
     promptTemplateService.bulkDeleteCustomTemplates(ids);
-  }, [savedPrompts, promptTemplateService]);
+  }, [promptTemplateService]);
 
   return {
     currentSessionId,
