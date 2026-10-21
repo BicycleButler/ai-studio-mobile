@@ -14,13 +14,19 @@ class MockAsyncStorage implements AsyncStorage {
   }
 }
 
+import { NoOpLogger } from './logger';
+
 describe('OfflineService', () => {
   let mockStorage: MockAsyncStorage;
   let service: OfflineService;
 
   beforeEach(() => {
     mockStorage = new MockAsyncStorage();
-    service = new OfflineService({ storageKey: 'test_queue', storageAdapter: mockStorage });
+    service = new OfflineService({
+      storageKey: 'test_queue',
+      storageAdapter: mockStorage,
+      logger: new NoOpLogger()
+    });
   });
 
   it('should enqueue mutations correctly', async () => {

@@ -3,6 +3,7 @@ import { Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
 
 import { AsyncStorage, IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from "./asyncStorage";
+import { ILogger, defaultLogger } from "./logger";
 
 export interface OfflineMutation {
   type: string;
@@ -37,6 +38,7 @@ export interface IOfflineService {
 export interface OfflineServiceConfig {
   storageKey?: string;
   storageAdapter?: AsyncStorage;
+  logger?: ILogger;
 }
 
 export class OfflineService implements IOfflineService {
@@ -47,6 +49,7 @@ export class OfflineService implements IOfflineService {
   private channel?: BroadcastChannel;
   private storageKey: string;
   private storageAdapter: AsyncStorage;
+  private logger: ILogger;
 
   constructor(config?: OfflineServiceConfig) {
     this.storageKey = config?.storageKey || OFFLINE_QUEUE_KEY;
@@ -54,12 +57,13 @@ export class OfflineService implements IOfflineService {
       new IndexedDbAsyncStorage(),
       new MemoryAsyncStorage()
     ]);
+    this.logger = config?.logger || defaultLogger;
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         this.channel = new BroadcastChannel(`${this.storageKey}_channel`);
         this.channel.onmessage = (event) => {
           if (event.data === 'SYNC') {
-            this.syncCacheFromStorage().catch(console.error);
+            this.syncCacheFromStorage().catch((err) => this.logger.error("Failed to sync cache from storage", err));
           }
         };
       }
@@ -91,7 +95,7 @@ export class OfflineService implements IOfflineService {
       const data = await this.storageAdapter.getItem<OfflineMutation[]>(this.storageKey);
       return Array.isArray(data) ? data : [];
     } catch (err) {
-      console.error(`[OfflineService] Critical failure reading from storage (${this.storageKey})`, err);
+      this.logger.error(`[OfflineService] Critical failure reading from storage (${this.storageKey})`, err);
       return [];
     }
   }
@@ -103,7 +107,7 @@ export class OfflineService implements IOfflineService {
       }
       await this.storageAdapter.setItem(this.storageKey, queue);
     } catch (err) {
-      console.error(`[OfflineService] Critical failure writing to storage (${this.storageKey})`, err);
+      this.logger.error(`[OfflineService] Critical failure writing to storage (${this.storageKey})`, err);
     }
   }
 
@@ -184,7 +188,7 @@ export class OfflineService implements IOfflineService {
           success = true; // No handler means we can just drop it? Actually the original code sets it to true
         }
       } catch (e) {
-        console.error(`Failed to sync offline mutation ${mutation.type}`, e);
+        this.logger.error(`Failed to sync offline mutation ${mutation.type}`, e);
       }
 
       if (!success) {
