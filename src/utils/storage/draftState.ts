@@ -16,99 +16,131 @@ export interface DraftState {
   updatedAt: number;
 }
 
-export function getProjectDraftKey(projectId?: string | null): string {
-  if (projectId && projectId.trim()) {
-    return `${STORAGE_KEYS.DRAFT_STATE}_${projectId.trim()}`;
-  }
-  return STORAGE_KEYS.DRAFT_STATE;
+export interface IDraftStateService {
+  getProjectDraftKey(projectId?: string | null): string;
+  loadDraftState(projectId?: string | null): DraftState;
+  saveDraftState(draft: Partial<DraftState>, projectId?: string | null): void;
 }
 
-const draftRegistry = new StorageRegistry<StorageSingleton<DraftState | null>>((key) => {
-  return new StorageSingleton<DraftState | null>(key, null);
-});
+export interface DraftStateServiceConfig {
+  logger?: ILogger;
+}
 
-function getDraftSingleton(key: string): StorageSingleton<DraftState | null> {
-  return draftRegistry.get(key);
+export class DraftStateService implements IDraftStateService {
+  private draftRegistry = new StorageRegistry<StorageSingleton<DraftState | null>>((key) => {
+    return new StorageSingleton<DraftState | null>(key, null);
+  });
+  private logger: ILogger;
+
+  constructor(config?: DraftStateServiceConfig) {
+    this.logger = config?.logger || defaultLogger;
+  }
+
+  public getProjectDraftKey(projectId?: string | null): string {
+    if (projectId && projectId.trim()) {
+      return `${STORAGE_KEYS.DRAFT_STATE}_${projectId.trim()}`;
+    }
+    return STORAGE_KEYS.DRAFT_STATE;
+  }
+
+  private getDraftSingleton(key: string): StorageSingleton<DraftState | null> {
+    return this.draftRegistry.get(key);
+  }
+
+  public loadDraftState(projectId?: string | null): DraftState {
+    const fallback: DraftState = {
+      promptType: "chat",
+      config: DEFAULT_CONFIG,
+      chatInputText: "",
+      freeformText: "",
+      structuredExamples: [],
+      messages: undefined,
+      updatedAt: Date.now(),
+    };
+
+    const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
+
+    const sanitizeType = (typeVal: unknown): PromptType => {
+      if (typeof typeVal === "string" && validPromptTypes.includes(typeVal as PromptType)) {
+        return typeVal as PromptType;
+      }
+      return "chat";
+    };
+
+    const key = this.getProjectDraftKey(projectId);
+    const draftSingleton = this.getDraftSingleton(key);
+    const stored = draftSingleton.load();
+
+    if (!stored) {
+      // If project-specific key not yet initialized, fallback to default or global draft
+      if (projectId) {
+        const globalDraftSingleton = this.getDraftSingleton(STORAGE_KEYS.DRAFT_STATE);
+        const globalStored = globalDraftSingleton.load();
+        if (globalStored) {
+          return {
+            ...fallback,
+            ...globalStored,
+            promptType: sanitizeType(globalStored.promptType),
+            config: {
+              ...DEFAULT_CONFIG,
+              ...(globalStored.config || {}),
+            },
+          };
+        }
+      }
+      return fallback;
+    }
+
+    const sanitizeMessages = (msgs: unknown): ChatMessage[] | undefined => {
+      if (!Array.isArray(msgs)) return undefined;
+      const clean = cleanMockData(msgs as ChatMessage[], "chat");
+      return clean.length > 0 ? clean : undefined;
+    };
+
+    return {
+      ...fallback,
+      ...stored,
+      messages: sanitizeMessages(getNestedValue(stored, ['messages'], undefined)),
+      promptType: sanitizeType(getNestedValue(stored, ['promptType'], 'chat')),
+      config: {
+        ...DEFAULT_CONFIG,
+        ...(getNestedValue(stored, ['config'], {})),
+      },
+      chatInputText: getNestedValue(stored, ['chatInputText'], ''),
+      freeformText: getNestedValue(stored, ['freeformText'], ''),
+      structuredExamples: getNestedValue(stored, ['structuredExamples'], []),
+      updatedAt: getNestedValue(stored, ['updatedAt'], fallback.updatedAt),
+    };
+  }
+
+  public saveDraftState(draft: Partial<DraftState>, projectId?: string | null): void {
+    try {
+      const current = this.loadDraftState(projectId);
+      const updated: DraftState = {
+        ...current,
+        ...draft,
+        updatedAt: Date.now(),
+      };
+      const key = this.getProjectDraftKey(projectId);
+      const draftSingleton = this.getDraftSingleton(key);
+      draftSingleton.save(updated);
+    } catch (err: unknown) {
+      this.logger.warn("Failed to auto-save draft:", err);
+    }
+  }
+}
+
+export const defaultDraftStateService = new DraftStateService();
+
+export function getProjectDraftKey(projectId?: string | null): string {
+  return defaultDraftStateService.getProjectDraftKey(projectId);
 }
 
 export function loadDraftState(projectId?: string | null): DraftState {
-  const fallback: DraftState = {
-    promptType: "chat",
-    config: DEFAULT_CONFIG,
-    chatInputText: "",
-    freeformText: "",
-    structuredExamples: [],
-    messages: undefined,
-    updatedAt: Date.now(),
-  };
-
-  const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
-
-  const sanitizeType = (typeVal: unknown): PromptType => {
-    if (typeof typeVal === "string" && validPromptTypes.includes(typeVal as PromptType)) {
-      return typeVal as PromptType;
-    }
-    return "chat";
-  };
-
-  const key = getProjectDraftKey(projectId);
-  const draftSingleton = getDraftSingleton(key);
-  const stored = draftSingleton.load();
-
-  if (!stored) {
-    // If project-specific key not yet initialized, fallback to default or global draft
-    if (projectId) {
-      const globalDraftSingleton = getDraftSingleton(STORAGE_KEYS.DRAFT_STATE);
-      const globalStored = globalDraftSingleton.load();
-      if (globalStored) {
-        return {
-          ...fallback,
-          ...globalStored,
-          promptType: sanitizeType(globalStored.promptType),
-          config: {
-            ...DEFAULT_CONFIG,
-            ...(globalStored.config || {}),
-          },
-        };
-      }
-    }
-    return fallback;
-  }
-
-  const sanitizeMessages = (msgs: unknown): ChatMessage[] | undefined => {
-    if (!Array.isArray(msgs)) return undefined;
-    const clean = cleanMockData(msgs as ChatMessage[], "chat");
-    return clean.length > 0 ? clean : undefined;
-  };
-
-  return {
-    ...fallback,
-    ...stored,
-    messages: sanitizeMessages(getNestedValue(stored, ['messages'], undefined)),
-    promptType: sanitizeType(getNestedValue(stored, ['promptType'], 'chat')),
-    config: {
-      ...DEFAULT_CONFIG,
-      ...(getNestedValue(stored, ['config'], {})),
-    },
-    chatInputText: getNestedValue(stored, ['chatInputText'], ''),
-    freeformText: getNestedValue(stored, ['freeformText'], ''),
-    structuredExamples: getNestedValue(stored, ['structuredExamples'], []),
-    updatedAt: getNestedValue(stored, ['updatedAt'], fallback.updatedAt),
-  };
+  return defaultDraftStateService.loadDraftState(projectId);
 }
 
-export function saveDraftState(draft: Partial<DraftState>, projectId?: string | null, logger: ILogger = defaultLogger): void {
-  try {
-    const current = loadDraftState(projectId);
-    const updated: DraftState = {
-      ...current,
-      ...draft,
-      updatedAt: Date.now(),
-    };
-    const key = getProjectDraftKey(projectId);
-    const draftSingleton = getDraftSingleton(key);
-    draftSingleton.save(updated);
-  } catch (err: unknown) {
-    logger.warn("Failed to auto-save draft:", err);
-  }
+export function saveDraftState(draft: Partial<DraftState>, projectId?: string | null, _logger?: ILogger): void {
+  // Logger parameter maintained for backward compatibility in signature
+  return defaultDraftStateService.saveDraftState(draft, projectId);
 }
