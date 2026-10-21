@@ -42,17 +42,23 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
       const activeId = options.activeIdSingleton.load() || null;
 
       let activeItem: T | null = null;
+      let effectiveActiveId = activeId;
+
       if (items.length > 0) {
         if (activeId) {
           const match = items.find((p) => options.getId(p) === activeId);
           if (match) activeItem = match;
-          else activeItem = allowImplicitSelection ? items[0] : null;
+          else {
+              activeItem = allowImplicitSelection ? items[0] : null;
+              effectiveActiveId = activeItem ? options.getId(activeItem) : null;
+          }
         } else {
           activeItem = allowImplicitSelection ? items[0] : null;
+          effectiveActiveId = activeItem ? options.getId(activeItem) : null;
         }
       }
 
-      return { items, activeId, activeItem };
+      return { items, activeId: effectiveActiveId, activeItem };
     });
 
     this.collection = options.collection;
@@ -103,7 +109,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
 
   public getActiveId(): string | null {
     const state = this.getSnapshot();
-    return state.activeItem ? this.getId(state.activeItem) : null;
+    return state.activeId;
   }
 
   public setActiveId(id: string | null): void {
