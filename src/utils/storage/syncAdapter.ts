@@ -5,7 +5,7 @@ import { IOfflineRetryStrategy, DefaultOfflineRetryStrategy } from "./offlineRet
 import { ILogger, defaultLogger } from "../logger";
 
 export interface IStorageSyncAdapter<T> {
-  syncItem(item: T, endpoint: string, mutationType: string): void;
+  syncItem(item: T, endpoint: string, mutationType: string, method?: string): void;
 }
 
 export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
@@ -21,10 +21,10 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
     this.retryStrategy = retryStrategy || new DefaultOfflineRetryStrategy();
   }
 
-  public syncItem(item: T, endpoint: string, mutationType: string): void {
+  public syncItem(item: T, endpoint: string, mutationType: string, method: string = "POST"): void {
     if (this.networkStatusProvider.isOnline()) {
       this.apiClient.fetch(endpoint, {
-        method: "POST",
+        method,
         headers: {
           "Content-Type": "application/json",
         },
