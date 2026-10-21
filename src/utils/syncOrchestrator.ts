@@ -18,19 +18,25 @@ export class SyncOrchestrator {
         });
         return { success: true };
       } catch (err: unknown) {
-        if (err instanceof BaseApiError && err.statusCode === 409) {
-          const data = err.rawData as { remote?: unknown } | undefined;
-          return {
-            success: false,
-            conflict: {
-              type: mutation.type,
-              localData: mutation.payload,
-              remoteData: data?.remote,
-              id: mutation.id
-            }
-          };
+        if (err instanceof BaseApiError) {
+          if (err.statusCode === 409) {
+            const data = err.rawData as { remote?: unknown } | undefined;
+            return {
+              success: false,
+              retryable: false,
+              conflict: {
+                type: mutation.type,
+                localData: mutation.payload,
+                remoteData: data?.remote,
+                id: mutation.id
+              }
+            };
+          }
+          if (!err.isRetryable()) {
+            return { success: false, retryable: false };
+          }
         }
-        return { success: false };
+        return { success: false, retryable: true };
       }
     };
   }
