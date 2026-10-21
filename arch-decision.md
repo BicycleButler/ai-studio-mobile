@@ -410,3 +410,17 @@ Make `NetworkStorageSyncAdapter` an abstract class with an abstract `buildReques
 
 **Recommendation:**
 **Path 1 (Request Builder Injection)** was implemented. It strictly decouples the adapter from the DOM fetch API payload structure, preserves all backward compatibility for existing domain services, and improves the Generality of the sync engine, allowing any payload transformation.
+
+## Architectural Decision: Gemini Stream Service Singleton Encapsulation
+
+**Context:**
+The `src/services/geminiStreamService.ts` module exported standalone functions (`fetchGenerateContent`, `streamGeminiContent`) that were implicitly bound to the global `apiFetch` and `apiFetchStream` instances. This violated the Abstraction and Decoupling principles, making it impossible to instantiate multiple disparate instances or inject them into components for robust testing without mocking globals.
+
+**Path 1: Refactor to Full Instance Methods on \`GeminiStreamService\`**
+Move all execution logic inside the `GeminiStreamService` class itself, passing `fetchFn` and `fetchStreamFn` (defaulting to the global ones) via the constructor. Exported proxy functions remain for backward compatibility, but they simply invoke the methods on a default `GeminiStreamService` instance.
+
+**Path 2: Pure Functional Architecture**
+Remove the singleton completely and require `apiClient` to be passed explicitly to every standalone function call.
+
+**Recommendation:**
+**Path 1 (Instance Methods on GeminiStreamService)** was implemented. It solidifies Gemini Stream Service management as a robust, fully-encapsulated class, matching the pattern established for `JulesClient`, `StubsClient`, `ChatHistoryService`, and other modules.
