@@ -10,6 +10,7 @@ export interface IChatHistoryService {
   purgeMockSessionsFromStorage(): void;
   sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[];
   generateSessionTitle(messages: ChatMessage[], maxLength?: number): string;
+  getChatCollection(projectId?: string): StorageCollection<ChatSession>;
   getChatSessions(projectId?: string): ChatSession[];
   saveChatSession(session: ChatSession, projectId?: string): void;
   getChatSessionById(sessionId: string, projectId?: string): ChatSession | null;
@@ -76,7 +77,7 @@ export class ChatHistoryService implements IChatHistoryService {
     return this.collectionRegistry.get(key);
   }
 
-  private getChatCollection(projectId?: string): StorageCollection<ChatSession> {
+  public getChatCollection(projectId?: string): StorageCollection<ChatSession> {
     const key = this.getChatSessionsStorageKey(projectId);
     return this.getChatCollectionByKey(key);
   }
@@ -233,6 +234,13 @@ export function sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage
  */
 export function generateSessionTitle(messages: ChatMessage[], maxLength: number = 42): string {
   return defaultChatHistoryService.generateSessionTitle(messages, maxLength);
+}
+
+/**
+ * Retrieves the raw StorageCollection for chat sessions for a project.
+ */
+export function getChatCollection(projectId?: string): StorageCollection<ChatSession> {
+  return defaultChatHistoryService.getChatCollection(projectId);
 }
 
 /**

@@ -45,8 +45,9 @@ import {
 import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
+import { useStore } from "../hooks/useStore";
 import {
-  getChatSessions,
+  getChatCollection,
   deleteChatSession,
   bulkDeleteChatSessions,
   isMockChatSession,
@@ -153,9 +154,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const [historySessions, setHistorySessions] = useState<ChatSession[]>(() => {
+  const rawChatSessions = useStore(getChatCollection(activeProjectId));
+  const julesSessionsState = useStore(julesSessionsManager);
+
+  const historySessions = useMemo<ChatSession[]>(() => {
     if (isJulesMode) {
-      return julesSessionsManager.getItems().map((js) => ({
+      return julesSessionsState.items.map((js) => ({
         id: js.id,
         title: js.title || js.repository,
         messages: js.messages || [],
@@ -164,8 +168,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         model: "Jules Agent",
       }));
     }
-    return getChatSessions(activeProjectId);
-  });
+    return [...rawChatSessions].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }, [isJulesMode, julesSessionsState.items, rawChatSessions]);
 
   const validHistorySessions = useMemo(() => {
     return historySessions.filter((s) => !isMockChatSession(s));
@@ -199,8 +203,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         }
       }
 
-      const updated = getChatSessions(activeProjectId);
-      setHistorySessions(updated);
+
     },
     onClearSelection: clearHistorySelection,
   });
@@ -314,23 +317,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       .filter((t): t is PromptTemplate => Boolean(t));
   }, [allTemplatesList, selectedTemplateIds]);
 
-  // Sync saved history sessions on project change, messages change, or popover toggle
-  useEffect(() => {
-    if (isJulesMode) {
-      setHistorySessions(
-        julesSessionsManager.getItems().map((js) => ({
-          id: js.id,
-          title: js.title || js.repository,
-          messages: js.messages || [],
-          createdAt: js.createdAt,
-          updatedAt: js.updatedAt,
-          model: "Jules Agent",
-        }))
-      );
-    } else {
-      setHistorySessions(getChatSessions(activeProjectId));
-    }
-  }, [activeProjectId, messages.length, isHistoryOpen, isJulesMode]);
+
 
   // Click outside and escape key handling for popover
   useEffect(() => {
@@ -1004,16 +991,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     if (isJulesMode) {
       const all = julesSessionsManager.getItems().filter((s) => s.id !== sessionId);
       julesSessionsManager.collection.save(all);
-      setHistorySessions(
-        all.map((js) => ({
-          id: js.id,
-          title: js.title || js.repository,
-          messages: js.messages || [],
-          createdAt: js.createdAt,
-          updatedAt: js.updatedAt,
-          model: "Jules Agent",
-        }))
-      );
       if (sessionId === currentSessionId) {
         if (onNewChat) {
           onNewChat();
@@ -1023,8 +1000,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
     } else {
       deleteChatSession(sessionId, activeProjectId);
-      const updated = getChatSessions(activeProjectId);
-      setHistorySessions(updated);
       if (sessionId === currentSessionId) {
         if (onNewChat) {
           onNewChat();
