@@ -10,6 +10,7 @@ test('useBatchSelection initial state', () => {
 
   expect(result.current.selectedIds.size).toBe(0);
   expect(result.current.lastSelectedId).toBeNull();
+  expect(result.current.getSelectionState()).toBe('none');
 });
 
 test('useBatchSelection toggle selection', () => {
@@ -24,12 +25,14 @@ test('useBatchSelection toggle selection', () => {
 
   expect(result.current.selectedIds.has('1')).toBe(true);
   expect(result.current.lastSelectedId).toBe('1');
+  expect(result.current.getSelectionState()).toBe('some');
 
   act(() => {
     result.current.toggleSelection('1', { stopPropagation: vi.fn() } as any, 0);
   });
 
   expect(result.current.selectedIds.has('1')).toBe(false);
+  expect(result.current.getSelectionState()).toBe('none');
 });
 
 test('useBatchSelection shift-click selection', () => {
@@ -63,10 +66,38 @@ test('useBatchSelection select all', () => {
   });
 
   expect(result.current.selectedIds.size).toBe(2);
+  expect(result.current.getSelectionState()).toBe('all');
 
   act(() => {
     result.current.toggleSelectAll();
   });
 
   expect(result.current.selectedIds.size).toBe(0);
+});
+
+test('useBatchSelection select all with filtered list', () => {
+  const items = [{ id: '1' }, { id: '2' }, { id: '3' }];
+  const filteredItems = [{ id: '1' }, { id: '2' }];
+
+  const { result } = renderHook(() =>
+    useBatchSelection({ items, getItemId: (item) => item.id })
+  );
+
+  act(() => {
+    result.current.toggleSelectAll(filteredItems);
+  });
+
+  expect(result.current.selectedIds.size).toBe(2);
+  expect(result.current.selectedIds.has('1')).toBe(true);
+  expect(result.current.selectedIds.has('2')).toBe(true);
+  expect(result.current.selectedIds.has('3')).toBe(false);
+  expect(result.current.getSelectionState(filteredItems)).toBe('all');
+  expect(result.current.getSelectionState(items)).toBe('some');
+
+  act(() => {
+    result.current.toggleSelectAll(filteredItems);
+  });
+
+  expect(result.current.selectedIds.size).toBe(0);
+  expect(result.current.getSelectionState(filteredItems)).toBe('none');
 });

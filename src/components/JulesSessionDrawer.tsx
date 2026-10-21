@@ -99,6 +99,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     toggleSelectAll,
     clearSelection,
     removeFromSelection,
+    getSelectionState,
   } = useBatchSelection({
     items: filteredSessions,
     getItemId: (s) => s.id,
@@ -436,9 +437,9 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                 className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
                 aria-label="Select all sessions on this page"
               >
-                {selectedSessionIds.size === filteredSessions.length ? (
+                {getSelectionState(filteredSessions) === 'all' ? (
                   <CheckSquare className="w-4 h-4 text-primary" />
-                ) : selectedSessionIds.size > 0 ? (
+                ) : getSelectionState(filteredSessions) === 'some' ? (
                   <MinusSquare className="w-4 h-4 text-primary" />
                 ) : (
                   <Square className="w-4 h-4" />

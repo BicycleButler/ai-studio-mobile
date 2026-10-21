@@ -1,6 +1,6 @@
 import React from "react";
 import { ShieldCheck, CheckCircle2, Lock, Smartphone, ExternalLink, Bot, Check, FolderPlus, Folder, Trash2,
-  Clock, Edit2, Loader2, AlertCircle } from "lucide-react";
+  Clock, Edit2, Loader2, AlertCircle, CheckSquare, MinusSquare, Square } from "lucide-react";
 import { GoogleUser, ProjectInfo } from "../../types";
 import { useOfflineQueue } from "../../hooks/useOfflineQueue";
 import { GoogleAuthCard } from "../GoogleAuthCard";
@@ -32,6 +32,7 @@ export interface SettingsAccountTabProps {
   toggleProjectSelection?: (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredList?: ProjectInfo[]) => void;
   toggleSelectAllProjects?: () => void;
   clearProjectSelection?: () => void;
+  getProjectSelectionState?: (items?: ProjectInfo[]) => 'none' | 'some' | 'all';
   handleBulkDeleteProjects?: () => void;
   showBulkDeleteProjectsConfirm?: boolean;
   setShowBulkDeleteProjectsConfirm?: (show: boolean) => void;
@@ -65,6 +66,7 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
   toggleProjectSelection,
   toggleSelectAllProjects,
   clearProjectSelection,
+  getProjectSelectionState,
   handleBulkDeleteProjects,
   showBulkDeleteProjectsConfirm,
   setShowBulkDeleteProjectsConfirm,
@@ -302,12 +304,12 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
                       className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
                       aria-label="Select all projects on this page"
                     >
-                      {selectedProjectIds?.size === projects.length ? (
-                        <Check className="w-4 h-4 text-primary" />
-                      ) : selectedProjectIds?.size && selectedProjectIds.size > 0 ? (
-                        <Check className="w-4 h-4 text-primary" />
+                      {getProjectSelectionState?.(projects) === 'all' ? (
+                        <CheckSquare className="w-4 h-4 text-primary" />
+                      ) : getProjectSelectionState?.(projects) === 'some' ? (
+                        <MinusSquare className="w-4 h-4 text-primary" />
                       ) : (
-                        <Check className="w-4 h-4 opacity-50" />
+                        <Square className="w-4 h-4" />
                       )}
                     </button>
                     <span className="text-muted-foreground font-medium">
