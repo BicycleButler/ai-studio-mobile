@@ -33,6 +33,8 @@ export interface IOfflineService {
   clearOfflineMutations(): Promise<void>;
   processOfflineMutations(): Promise<{ success: boolean; conflicts: ConflictData[] }>;
   getOfflineQueue(): Promise<OfflineMutation[]>;
+  subscribe(listener: () => void): () => void;
+  getSnapshot(): OfflineMutation[];
 }
 
 export interface OfflineServiceConfig {
@@ -88,6 +90,10 @@ export class OfflineService implements IOfflineService {
 
   public getSnapshot(): OfflineMutation[] {
     return this.cachedQueue;
+  }
+
+  public subscribe(listener: () => void): () => void {
+    return this.queueObservable.subscribe(listener);
   }
 
   private async safeGetQueue(): Promise<OfflineMutation[]> {
