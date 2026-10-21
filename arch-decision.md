@@ -286,3 +286,17 @@ Remove `StubsClient` entirely and change every standalone function to explicitly
 
 **Recommendation:**
 **Path 1 (Instance Methods on StubsClient)** was implemented. This solidifies `StubsClient` as a robust, fully-encapsulated class handling Stubs API orchestration, matching the established pattern for `JulesClient`. It completely preserves the existing React component API (via wrapper proxies) while resolving the tight module-level variable coupling. It greatly enhances Reusability and Generality, and makes writing unit tests trivial.
+
+## Architectural Decision: SettingsSidebar Active Tab Routing Abstraction
+
+**Context:**
+The `SettingsSidebar` previously rendered its tabs using repetitive, hardcoded JSX button elements for each settings tab (e.g., account, display, security, model). The `activeTab` checking, icons, and labels were all duplicated, making adding or removing settings tabs a manual process prone to error and violating the DRY and Open/Closed principles.
+
+**Path 1: Extract Array Configuration and Map Components**
+Define an array of configurations (`SETTINGS_TABS_CONFIG`) containing id, label, icon, and optional boolean flags. The `SettingsSidebar` iterates over this array to dynamically construct the tabs. Adding a tab only requires updating the data structure.
+
+**Path 2: Injectable Tab Components via Provider**
+Use a React Context provider or dependency injection system to allow different parts of the application to dynamically register settings tabs.
+
+**Recommendation:**
+**Path 1 (Extract Array Configuration)** was implemented. It perfectly solves the boilerplate problem by abstracting the routing logic into data without over-engineering an injection system. It adheres to the Open/Closed Principle and dramatically improves maintainability and reusability of the UI component logic.
