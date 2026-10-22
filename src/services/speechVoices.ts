@@ -1,5 +1,5 @@
 import { apiFetch } from "../utils/apiClient";
-import { getAuthHeaders } from "./auth";
+import { defaultAuthService } from "./auth";
 import { getSafeWindowSpeechSynthesis, getSafeNavigatorLanguage } from "../utils/platform";
 /**
  * Voice definitions and speech playback engine
@@ -138,7 +138,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
    * Fetches the TTS audio URL for the given text and voice name.
    */
   public async fetchTTSAudioUrl(text: string, voiceName: string): Promise<{ audioUrl: string }> {
-    const authHeaders = getAuthHeaders();
+    const authHeaders = defaultAuthService.getAuthHeaders();
     return apiFetch<{ audioUrl: string }>("/api/tts", {
       method: "POST",
       headers: {
@@ -242,23 +242,3 @@ export class SpeechVoicesService implements ISpeechVoicesService {
 }
 
 export const defaultSpeechVoicesService = new SpeechVoicesService();
-
-export async function fetchTTSAudioUrl(text: string, voiceName: string): Promise<{ audioUrl: string }> {
-  return defaultSpeechVoicesService.fetchTTSAudioUrl(text, voiceName);
-}
-
-export function loadSpeechSettings(): SpeechSettings {
-  return defaultSpeechVoicesService.loadSpeechSettings();
-}
-
-export function saveSpeechSettings(settings: SpeechSettings): void {
-  return defaultSpeechVoicesService.saveSpeechSettings(settings);
-}
-
-export function getAvailableDeviceVoices(): DeviceVoiceOption[] {
-  return defaultSpeechVoicesService.getAvailableDeviceVoices();
-}
-
-export function getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null {
-  return defaultSpeechVoicesService.getBestNaturalDeviceVoice(preferredURI);
-}

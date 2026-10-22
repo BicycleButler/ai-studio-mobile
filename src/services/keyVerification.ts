@@ -181,34 +181,3 @@ export class KeyVerificationService implements IKeyVerificationService {
 }
 
 export const defaultKeyVerificationService = new KeyVerificationService();
-
-export function isValidJulesApiKeyFormat(key: string): boolean {
-  return defaultKeyVerificationService.isValidJulesApiKeyFormat(key);
-}
-
-export function detectJulesApiKey(text: string): string | null {
-  return defaultKeyVerificationService.detectJulesApiKey(text);
-}
-
-export function isValidGoogleApiKeyFormat(key: string): boolean {
-  return defaultKeyVerificationService.isValidGoogleApiKeyFormat(key);
-}
-
-export function detectGoogleApiKey(text: string): string | null {
-  return defaultKeyVerificationService.detectGoogleApiKey(text);
-}
-
-export function maskApiKey(key: string): string {
-  return defaultKeyVerificationService.maskApiKey(key);
-}
-
-export async function verifyGoogleApiKey(
-  apiKey: string,
-  model: string = "gemini-2.5-flash"
-): Promise<KeyVerificationResult> {
-  return defaultKeyVerificationService.verifyGoogleApiKey(apiKey, model);
-}
-
-export async function clearClipboardSafe(): Promise<boolean> {
-  return defaultKeyVerificationService.clearClipboardSafe();
-}

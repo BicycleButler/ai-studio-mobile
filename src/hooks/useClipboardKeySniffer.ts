@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { detectGoogleApiKey } from "../services/keyVerification";
+import { defaultKeyVerificationService } from "../services/keyVerification";
 import { getSafeNavigatorClipboard, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 
 interface UseClipboardKeySnifferOptions {
@@ -13,7 +13,7 @@ export function useClipboardKeySniffer({
   activeApiKey = "",
   onKeyDetected,
   enabled = true,
-  detectKeyFn = detectGoogleApiKey,
+  detectKeyFn = (text: string) => defaultKeyVerificationService.detectGoogleApiKey(text),
 }: UseClipboardKeySnifferOptions = {}) {
   const [detectedKey, setDetectedKey] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
