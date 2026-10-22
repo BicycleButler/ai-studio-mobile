@@ -56,7 +56,7 @@ import {  } from "../utils/timeUtils";
 import { JulesActivityCard } from "./JulesActivityCard";
 import { GoogleIcon } from "./GoogleIcon";
 import { PromptTemplateDrawer } from "./PromptTemplateDrawer";
-import { usePromptTemplateService } from "../services/PromptTemplateContext";
+import { useServices } from "../services/ServiceContext";
 import { PromptTemplate } from "../types";
 import { fetchTTSAudioUrl } from "../services/speechVoices";
 
@@ -241,7 +241,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       ? propIsTemplateDrawerOpen
       : internalIsTemplateDrawerOpen;
 
-  const promptTemplateService = usePromptTemplateService();
+  const { promptTemplateService } = useServices();
   const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
   const [allTemplatesList, setAllTemplatesList] = useState<PromptTemplate[]>(() => promptTemplateService.getAllTemplates());
 

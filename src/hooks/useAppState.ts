@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePromptTemplates } from "./usePromptTemplates";
-import { usePromptTemplateService } from "../services/PromptTemplateContext";
+
+import { useServices } from "../services/ServiceContext";
 import { useChatSession } from "./useChatSession";
 import { useProjectManager } from "./useProjectManager";
 import { useUIState } from "./useUIState";
@@ -11,20 +12,14 @@ import {
   generateSessionTitle,
   purgeMockSessionsFromStorage,
 } from "../services/chatHistoryService";
-import {
-  getStoredGoogleUser,
-  fetchServerCurrentUser,
-  initiateGoogleLogin,
-  logoutGoogleUser,
-  initAuth,
-} from "../services/googleAuth";
+
 import {
   loadStoredApiKey,
   saveStoredApiKey,
   loadDraftState,
   saveDraftState,
 } from "../utils/storage";
-import { fetchServerHealth } from "../services/auth";
+
 import { fetchModels, isDeprecatedOrUnusableModel } from "../utils/modelCatalog";
 import { ModelInfo } from "../types";
 
@@ -44,13 +39,14 @@ export function useAppState() {
 
   // Auth state (could use useAppAuth instead but keeping logic unified here for compatibility if needed,
   // or refactoring completely)
-  const [googleUser, setGoogleUser] = useState(() => getStoredGoogleUser());
+  const [googleUser, setGoogleUser] = useState(() => googleAuthService.loadStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState(false);
   const [customApiKey, setCustomApiKey] = useState(() => loadStoredApiKey());
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
   // External Services
-  const promptTemplateService = usePromptTemplateService();
+  const { googleAuthService, authService, promptTemplateService } = useServices();
+
   const promptTemplates = usePromptTemplates();
 
   // Model Config
@@ -88,7 +84,7 @@ export function useAppState() {
   }, [modelConfig.config]);
 
   const handleGoogleLogin = async (email?: string, name?: string) => {
-    const user = await initiateGoogleLogin(email, name);
+    const user = await googleAuthService.initiateGoogleLogin(email, name);
     if (user) {
       setGoogleUser(user);
       const key = customApiKey || loadStoredApiKey();
@@ -106,7 +102,7 @@ export function useAppState() {
   };
 
   const handleGoogleLogout = async () => {
-    await logoutGoogleUser();
+    await googleAuthService.logoutGoogleUser();
     setGoogleUser(null);
   };
 
@@ -126,7 +122,7 @@ export function useAppState() {
 
   const refreshServerAuth = async (): Promise<boolean> => {
     try {
-      const data = await fetchServerHealth();
+      const data = await authService.fetchServerHealth();
       const hasKey = Boolean(data.hasServerApiKey);
       setHasServerKey(hasKey);
       return hasKey;
@@ -190,17 +186,17 @@ export function useAppState() {
   useEffect(() => {
     purgeMockSessionsFromStorage();
 
-    fetchServerHealth()
+    authService.fetchServerHealth()
       .then((data) => {
         if (data.hasServerApiKey) setHasServerKey(true);
       })
       .catch(() => {});
 
-    fetchServerCurrentUser().then((user) => {
+    googleAuthService.fetchCurrentGoogleUser().then((user) => {
       if (user) setGoogleUser(user);
     });
 
-    const unsubscribeAuth = initAuth((user) => {
+    const unsubscribeAuth = googleAuthService.initAuth((user) => {
       if (user) setGoogleUser(user);
     });
 

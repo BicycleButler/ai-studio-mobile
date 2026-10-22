@@ -1,23 +1,28 @@
-import { useSyncExternalStore, useEffect } from "react";
-import {
-  getThemeState,
-  setThemeMode,
-  toggleTheme,
-  subscribeToTheme,
-  initThemeService,
-} from "../services/themeService";
+import { useSyncExternalStore, useEffect, useCallback } from "react";
+import { IThemeService } from "../services/themeService";
 
-export function useTheme() {
+import { useServices } from "../services/ServiceContext";
+export function useTheme(customThemeService?: IThemeService) {
+  const { themeService: contextThemeService } = useServices();
+  const themeService = customThemeService || contextThemeService;
   useEffect(() => {
-    return initThemeService();
-  }, []);
+    return themeService.initThemeService();
+  }, [themeService]);
 
-  const themeState = useSyncExternalStore(subscribeToTheme, getThemeState, getThemeState);
+  const subscribe = useCallback((listener: () => void) => {
+    return themeService.subscribeToTheme(() => listener());
+  }, [themeService]);
+
+  const getSnapshot = useCallback(() => {
+    return themeService.getThemeState();
+  }, [themeService]);
+
+  const themeState = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   return {
     mode: themeState.mode,
     resolvedTheme: themeState.resolvedTheme,
-    setThemeMode,
-    toggleTheme,
+    setThemeMode: themeService.setThemeMode.bind(themeService),
+    toggleTheme: themeService.toggleTheme.bind(themeService),
   };
 }

@@ -1,7 +1,10 @@
 import { useSyncExternalStore, useCallback } from "react";
-import { IOfflineService, defaultOfflineService, OfflineMutation } from "../utils/offlineService";
+import { IOfflineService, OfflineMutation } from "../utils/offlineService";
 
-export function useOfflineQueue(offlineService: IOfflineService = defaultOfflineService): OfflineMutation[] {
+import { useServices } from "../services/ServiceContext";
+export function useOfflineQueue(customOfflineService?: IOfflineService): OfflineMutation[] {
+  const { offlineService: contextOfflineService } = useServices();
+  const offlineService = customOfflineService || contextOfflineService;
   const subscribe = useCallback((listener: () => void) => {
     return offlineService.queueObservable.subscribe(listener);
   }, [offlineService]);
