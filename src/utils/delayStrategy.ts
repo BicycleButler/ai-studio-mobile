@@ -1,6 +1,5 @@
 export interface IDelayStrategy {
   getNextDelayMs(attempt: number, lastError?: unknown): number;
-  withBaseDelay?(delay: number): IDelayStrategy;
 }
 
 export class FixedIntervalDelayStrategy implements IDelayStrategy {
@@ -8,10 +7,6 @@ export class FixedIntervalDelayStrategy implements IDelayStrategy {
 
   getNextDelayMs(_attempt: number, _lastError?: unknown): number {
     return this.intervalMs;
-  }
-
-  withBaseDelay(delay: number): IDelayStrategy {
-    return new FixedIntervalDelayStrategy(delay);
   }
 }
 
@@ -32,9 +27,5 @@ export class ExponentialBackoffDelayStrategy implements IDelayStrategy {
     }
     // No error, keep the base delay
     return this.baseDelayMs;
-  }
-
-  withBaseDelay(delay: number): IDelayStrategy {
-    return new ExponentialBackoffDelayStrategy(delay, this.maxDelayMs, this.multiplier, this.jitterMax);
   }
 }

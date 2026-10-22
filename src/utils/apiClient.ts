@@ -27,7 +27,7 @@ export interface IApiClient {
 
 export class ApiClient implements IApiClient {
   private interceptorManager: IInterceptorManager;
-  public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number>, baseDelayMs?: number };
+  public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
 
   constructor(config: ApiClientConfig | RetryConfig = {}) {
     // For backwards compatibility, if config has no 'retryConfig' or 'interceptorManager' properties,
@@ -42,7 +42,6 @@ export class ApiClient implements IApiClient {
       fetcher: retryConfig.fetcher ?? fetch,
       retryStrategy: retryConfig.retryStrategy ?? new ExponentialBackoffRetryStrategy(),
       retryableStatusCodes: retryConfig.retryableStatusCodes,
-      baseDelayMs: retryConfig.baseDelayMs,
     };
   }
 
@@ -70,7 +69,6 @@ export class ApiClient implements IApiClient {
       retries: this.retryConfig.retries,
       fetcher: this.retryConfig.fetcher,
       retryableStatusCodes: this.retryConfig.retryableStatusCodes,
-      baseDelayMs: this.retryConfig.baseDelayMs,
     });
   }
 

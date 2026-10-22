@@ -2,7 +2,6 @@ import { RETRYABLE_STATUS_CODES, BaseApiError, isAbortError } from "./apiClientE
 import { IDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
 
 export interface RetryConfig {
-  baseDelayMs?: number;
   retryableStatusCodes?: Set<number>;
   retries?: number;
   fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -13,7 +12,7 @@ export interface IRetryStrategy {
   execute(
     url: string,
     options: RequestInit,
-    config: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryableStatusCodes?: Set<number>, baseDelayMs?: number }
+    config: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryableStatusCodes?: Set<number> }
   ): Promise<Response>;
 }
 
@@ -29,15 +28,10 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
   async execute(
     url: string,
     options: RequestInit,
-    config: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryableStatusCodes?: Set<number>, baseDelayMs?: number }
+    config: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryableStatusCodes?: Set<number>,  }
   ): Promise<Response> {
     const { retries, fetcher } = config;
     const retryableCodes = config.retryableStatusCodes || RETRYABLE_STATUS_CODES;
-
-    let effectiveStrategy = this.delayStrategy;
-    if (config.baseDelayMs !== undefined && effectiveStrategy.withBaseDelay) {
-      effectiveStrategy = effectiveStrategy.withBaseDelay(config.baseDelayMs);
-    }
 
     let attempt = 0;
     let lastError: unknown;
@@ -67,7 +61,7 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
         break;
       }
 
-      const delay = effectiveStrategy.getNextDelayMs(attempt + 1, lastError);
+      const delay = this.delayStrategy.getNextDelayMs(attempt + 1, lastError);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
 
