@@ -463,3 +463,11 @@ Remove all context hooks and explicitly drill the required `JulesClient` and `Ju
 
 **Recommendation:**
 **Path 1 (Refactor to consume `ServiceContext` via `useServices`)** was implemented. It aligns the Jules domain with the established Context-based dependency injection pattern used by other application subsystems. It greatly improves the testability of components like `ChatWorkspace` and `JulesSessionDrawer` by allowing the injection of mock Jules services during tests without manipulating module scopes.
+
+## Architectural Decision: Theme Service Proxy Abstraction
+
+**Context:**
+`ThemeService` historically exported proxy functions (e.g. `setThemeMode`, `toggleTheme`) tightly binding consumers to a singleton (`defaultThemeService`). This bypassed the established `ServiceContext` dependency injection pattern.
+
+**Decision:**
+Proxy functions were successfully removed. Consumers (like tests) were updated to use the singleton explicitly, establishing a pattern for robust abstraction where `ServiceContext` rules dependency injection instead of global module properties.

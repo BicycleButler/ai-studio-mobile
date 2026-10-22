@@ -170,13 +170,13 @@ export class ThemeService implements IThemeService {
 
 export const defaultThemeService = new ThemeService();
 
-export function getSystemResolvedTheme(): ResolvedTheme { return defaultThemeService.getSystemResolvedTheme(); }
-export function loadStoredThemeMode(): ThemeMode { return defaultThemeService.loadStoredThemeMode(); }
-export function persistThemeMode(mode: ThemeMode): void { return defaultThemeService.persistThemeMode(mode); }
-export function resolveTheme(mode: ThemeMode): ResolvedTheme { return defaultThemeService.resolveTheme(mode); }
-export function applyThemeToDOM(resolved: ResolvedTheme): void { return defaultThemeService.applyThemeToDOM(resolved); }
-export function getThemeState(): ThemeState { return defaultThemeService.getThemeState(); }
-export function setThemeMode(newMode: ThemeMode): void { return defaultThemeService.setThemeMode(newMode); }
-export function toggleTheme(): void { return defaultThemeService.toggleTheme(); }
+
+
+
+
+
+
+
+
 export function subscribeToTheme(listener: ThemeListener): () => void { return defaultThemeService.subscribeToTheme(listener); }
 export function initThemeService(): () => void { return defaultThemeService.initThemeService(); }
