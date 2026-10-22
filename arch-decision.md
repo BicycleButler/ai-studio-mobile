@@ -11,6 +11,7 @@ Add a `withBaseDelay(delay: number): IDelayStrategy` method to the `IDelayStrate
 
 **Recommendation:**
 **Path 1 (Strict Injection)** is the recommended path. It removes conflicting sources of truth (`RetryConfig` vs `IDelayStrategy` constructor) and ensures the orchestrator purely delegates to the injected strategy without needing to understand its configuration semantics.
+
 ## Architectural Decision: Storage Abstraction
 
 **Context:**
@@ -328,6 +329,7 @@ Remove the singleton completely and change every standalone function to explicit
 
 **Recommendation:**
 **Path 1 (Instance Methods on SpeechVoicesService)** was implemented. This solidifies `SpeechVoicesService` as a robust, fully-encapsulated class handling speech orchestration, preserving the existing component API (via wrapper proxies) while resolving the tight module-level variable coupling. It seamlessly matches the pattern established for `JulesClient` and `StubsClient`.
+
 ## Architectural Decision: Storage Helpers Type Safety (deepFreeze)
 
 **Context:**
@@ -397,6 +399,7 @@ Modify `useOfflineQueue` and `useOfflineSync` to accept an `IOfflineService` ins
 
 **Recommendation:**
 **Path 2 (Dependency Injection via Hook Arguments)** was implemented. It perfectly matches the abstraction pattern established in `useNetworkStatus` (which accepts `INetworkStatusProvider`). It immediately improves testability and abstraction without requiring widespread React Context boilerplate or fundamentally altering consumer code.
+
 ## Architectural Decision: NetworkStorageSyncAdapter Payload Abstraction
 
 **Context:**
@@ -424,3 +427,11 @@ Remove the singleton completely and require `apiClient` to be passed explicitly 
 
 **Recommendation:**
 **Path 1 (Instance Methods on GeminiStreamService)** was implemented. It solidifies Gemini Stream Service management as a robust, fully-encapsulated class, matching the pattern established for `JulesClient`, `StubsClient`, `ChatHistoryService`, and other modules.
+
+## Architectural Decision: React Context Service Abstraction
+
+**Context:**
+Multiple subsystems and custom hooks (`useNetworkStatus`, `useOfflineQueue`, `useTheme`, `useAppState`, `useProjectManager`) directly imported and bound to module-level singleton instances (e.g., `defaultOfflineService`, `defaultThemeService`, `defaultProjectService`). While the singletons were correctly encapsulated inside classes, hardcoding imports directly into React components and hooks violates Dependency Inversion at the UI layer and severely limits testability, mocking, and multi-tenant environment setups where different roots might require different service instances.
+
+**Decision:**
+Implemented a unified **ServiceLocator Context** pattern (`ServiceContext.tsx`) via `<ServiceProvider>`. All major domain and utility services are instantiated with their default backward-compatible singletons inside this context's default value. React hooks now rely on `useServices()` to extract their required dependencies rather than directly importing the singletons. This perfectly aligns with existing Context patterns (e.g. replacing `PromptTemplateContext`) while vastly improving Generality, Reusability, and making unit testing UI components trivial without global mock manipulation.

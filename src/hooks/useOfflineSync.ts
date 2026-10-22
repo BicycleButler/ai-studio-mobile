@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { useNetworkStatus } from "./useNetworkStatus";
 import {
   IOfflineService,
-  defaultOfflineService,
   ConflictData
 } from "../utils/offlineService";
+import { useServices } from "../services/ServiceContext";
 
 export type ReconnectState = "idle" | "reconnecting" | "success" | "conflict";
 
-export function useOfflineSync(offlineService: IOfflineService = defaultOfflineService) {
+export function useOfflineSync(customOfflineService?: IOfflineService) {
+  const { offlineService: contextOfflineService } = useServices();
+  const offlineService = customOfflineService || contextOfflineService;
   const { isOnline, wasOffline } = useNetworkStatus();
   const [reconnectState, setReconnectState] = useState<ReconnectState>("idle");
   const [pendingQueueLength, setPendingQueueLength] = useState(0);

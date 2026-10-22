@@ -19,7 +19,7 @@ import {
   Variable,
 } from "lucide-react";
 import { PromptTemplate, PromptTemplateCategory } from "../types";
-import { usePromptTemplateService } from "../services/PromptTemplateContext";
+import { useServices } from "../services/ServiceContext";
 import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
 import { safeAddEventListener } from "../utils/platform";
@@ -97,7 +97,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   draftUserText = "",
   onInsertText,
 }) => {
-  const promptTemplateService = usePromptTemplateService();
+  const { promptTemplateService } = useServices();
 
   // Keyboard Escape listener
   useEffect(() => {
