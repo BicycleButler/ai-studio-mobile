@@ -20,12 +20,10 @@ import {
 
 import { generateUniqueId } from "../utils/idGenerator";
 
-import {
-  CODE_GENERATORS
-} from "../utils/codeGenerators";
 import { fetchGenerateContent } from "../services/geminiStreamService";
 
 import { IDEWorkspaceProps } from "./WorkspaceRouter";
+import { useServices } from "../services/ServiceContext";
 
 interface MobileIDEWorkspaceProps extends IDEWorkspaceProps {
 }
@@ -55,9 +53,11 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   onSwitchToPrompt: _onSwitchToPrompt,
   onOpenParameters,
 }) => {
+  const { codeGeneratorService } = useServices();
+
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [
-    ...Object.values(CODE_GENERATORS).map(generator => ({
+    ...codeGeneratorService.getAllGenerators().map(generator => ({
       id: generator.id,
       name: generator.name,
       language: generator.language,

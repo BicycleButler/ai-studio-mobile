@@ -17,6 +17,7 @@ import { defaultSpeechVoicesService, SpeechVoicesService } from "./speechVoices"
 import { defaultGeminiStreamService, GeminiStreamService } from "./geminiStreamService";
 import { defaultKeyVerificationService, KeyVerificationService } from "./keyVerification";
 import { defaultStubsClient, StubsClient } from "./stubsService";
+import { defaultCodeGeneratorService, ICodeGeneratorService } from "./codeGeneratorService";
 
 export interface IServices {
   themeService: IThemeService;
@@ -35,6 +36,7 @@ export interface IServices {
   geminiStreamService: GeminiStreamService;
   keyVerificationService: KeyVerificationService;
   stubsClient: StubsClient;
+  codeGeneratorService: ICodeGeneratorService;
 }
 
 const defaultServices: IServices = {
@@ -54,6 +56,7 @@ const defaultServices: IServices = {
   geminiStreamService: defaultGeminiStreamService,
   keyVerificationService: defaultKeyVerificationService,
   stubsClient: defaultStubsClient,
+  codeGeneratorService: defaultCodeGeneratorService,
 };
 
 const ServiceContext = createContext<IServices>(defaultServices);
