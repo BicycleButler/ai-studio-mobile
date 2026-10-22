@@ -185,38 +185,3 @@ fun main() {
 }
 
 export const defaultCodeGeneratorService = new CodeGeneratorService();
-
-// Proxy functions for backward compatibility
-export function escapeStringForCode(str: string): string {
-  return defaultCodeGeneratorService.escapeStringForCode(str);
-}
-
-export function extractPromptContext(config: PromptConfig, messages: ChatMessage[]): { promptText: string; sysInst: string } {
-  return defaultCodeGeneratorService.extractPromptContext(config, messages);
-}
-
-export function generatePythonCode(config: PromptConfig, messages: ChatMessage[]): string {
-  return defaultCodeGeneratorService.generatePythonCode(config, messages);
-}
-
-export function generateTypeScriptCode(config: PromptConfig, messages: ChatMessage[]): string {
-  return defaultCodeGeneratorService.generateTypeScriptCode(config, messages);
-}
-
-export function generateAndroidKotlinCode(config: PromptConfig, messages: ChatMessage[]): string {
-  return defaultCodeGeneratorService.generateAndroidKotlinCode(config, messages);
-}
-
-export function generateCurlCode(config: PromptConfig, messages: ChatMessage[]): string {
-  return defaultCodeGeneratorService.generateCurlCode(config, messages);
-}
-
-export const CODE_GENERATORS = new Proxy({} as Record<CodeLangId, CodeGenerator>, {
-  get: (target, prop) => defaultCodeGeneratorService.getGenerator(prop as CodeLangId),
-  ownKeys: () => Object.keys(defaultCodeGeneratorService.getAllGenerators().reduce((acc, curr) => ({...acc, [curr.id]: curr}), {})),
-  getOwnPropertyDescriptor: (target, prop) => ({
-    enumerable: true,
-    configurable: true,
-    value: defaultCodeGeneratorService.getGenerator(prop as CodeLangId)
-  })
-});

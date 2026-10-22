@@ -10,7 +10,7 @@ import { getSafeWindowSpeechSynthesis } from "../utils/platform";
  */
 
 import { extractSpokenText } from "../utils/speechExtractor";
-import { getBestNaturalDeviceVoice, SpeechSettings } from "./speechVoices";
+import { defaultSpeechVoicesService, SpeechSettings } from "./speechVoices";
 
 export interface SentenceQueueOptions {
   speechSettings: SpeechSettings;
@@ -121,7 +121,7 @@ export class SentenceSpeechQueue {
       utterance.rate = Math.max(0.5, Math.min(2.0, settings.playbackRate || 1.0));
 
       // Resolve best natural or preferred voice
-      const bestVoice = getBestNaturalDeviceVoice(settings.deviceVoiceURI);
+      const bestVoice = defaultSpeechVoicesService.getBestNaturalDeviceVoice(settings.deviceVoiceURI);
       if (bestVoice) {
         utterance.voice = bestVoice;
       }

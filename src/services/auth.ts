@@ -57,15 +57,3 @@ export class AuthService implements IAuthService {
 }
 
 export const defaultAuthService = new AuthService();
-
-export async function fetchAuthStatus(apiKey?: string): Promise<{ valid?: boolean; error?: string; authSource?: string }> {
-  return defaultAuthService.fetchAuthStatus(apiKey);
-}
-
-export async function fetchServerHealth(): Promise<{ hasServerApiKey?: boolean }> {
-  return defaultAuthService.fetchServerHealth();
-}
-
-export function getAuthHeaders(): Record<string, string> {
-  return defaultAuthService.getAuthHeaders();
-}

@@ -22,12 +22,12 @@ import { useJules } from "./hooks/useJules";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
 import { useWindowSecurity } from "./hooks/useWindowSecurity";
-import { clearClipboardSafe } from "./services/keyVerification";
+import { defaultKeyVerificationService } from "./services/keyVerification";
 import {
 
   projectsManager,
 } from "./utils/storage";
-import { saveSpeechSettings } from "./services/speechVoices";
+import { defaultSpeechVoicesService } from "./services/speechVoices";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
 import { initializeSyncHandlers } from "./utils/syncRegistry";
@@ -349,7 +349,7 @@ export default function App() {
         onDismiss={async () => {
           setClipboardToastKey(null);
           setCandidateClipboardKey("");
-          await clearClipboardSafe();
+          await defaultKeyVerificationService.clearClipboardSafe();
         }}
         onImport={() => {
           setCandidateClipboardKey(clipboardToastKey || "");
@@ -408,7 +408,7 @@ export default function App() {
           speechSettings,
           onSaveSpeechSettings: (newSettings) => {
             setSpeechSettings(newSettings);
-            saveSpeechSettings(newSettings);
+            defaultSpeechVoicesService.saveSpeechSettings(newSettings);
           }
         }}
         chatProps={{
@@ -482,7 +482,7 @@ export default function App() {
         speechSettings={speechSettings}
         onSaveSpeechSettings={(newSettings) => {
           setSpeechSettings(newSettings);
-          saveSpeechSettings(newSettings);
+          defaultSpeechVoicesService.saveSpeechSettings(newSettings);
         }}
         config={config}
         onChangeConfig={setConfig}

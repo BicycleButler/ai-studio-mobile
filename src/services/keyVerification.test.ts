@@ -2,9 +2,7 @@ import { describe, test } from 'vitest';
 import {
   STANDARD_GOOGLE_KEY_REGEX,
   AISTUDIO_PROJECT_KEY_REGEX,
-  isValidGoogleApiKeyFormat,
-  detectGoogleApiKey,
-  maskApiKey,
+  defaultKeyVerificationService,
 } from "./keyVerification";
 import {
   encryptSecret,
@@ -28,7 +26,7 @@ describe('testKeyVerificationSubsystem', () => {
   const validStandardKey = "AIzaSyD" + "A".repeat(32); // 4 + 35 = 39 chars
   assert(validStandardKey.length === 39, "Standard key must be 39 chars long");
   assert(STANDARD_GOOGLE_KEY_REGEX.test(validStandardKey), "Valid standard key must match regex");
-  assert(isValidGoogleApiKeyFormat(validStandardKey), "isValidGoogleApiKeyFormat must return true for standard key");
+  assert(defaultKeyVerificationService.isValidGoogleApiKeyFormat(validStandardKey), "isValidGoogleApiKeyFormat must return true for standard key");
 
   const invalidStandardShort = "AIzaSyD123";
   assert(!STANDARD_GOOGLE_KEY_REGEX.test(invalidStandardShort), "Short key must fail standard regex");
@@ -39,34 +37,34 @@ describe('testKeyVerificationSubsystem', () => {
   // Test 2: AI Studio project key pattern validation (AQ. + alphanumeric/dash/underscore)
   const validAiStudioKey = "AQ.abcdef1234567890_-xyz";
   assert(AISTUDIO_PROJECT_KEY_REGEX.test(validAiStudioKey), "Valid AI Studio project key must match regex");
-  assert(isValidGoogleApiKeyFormat(validAiStudioKey), "isValidGoogleApiKeyFormat must return true for AI Studio key");
+  assert(defaultKeyVerificationService.isValidGoogleApiKeyFormat(validAiStudioKey), "isValidGoogleApiKeyFormat must return true for AI Studio key");
 
   const invalidAiStudioKey = "AQ#invalid_chars!";
   assert(!AISTUDIO_PROJECT_KEY_REGEX.test(invalidAiStudioKey), "Special characters must fail AI Studio regex");
 
   // Test 3: Key sniffing & embedded pattern detection
   const rawCopiedKey = "AIzaSyB_123456789012345678901234567890Z";
-  assert(detectGoogleApiKey(rawCopiedKey) === rawCopiedKey, "detectGoogleApiKey must extract raw key");
+  assert(defaultKeyVerificationService.detectGoogleApiKey(rawCopiedKey) === rawCopiedKey, "detectGoogleApiKey must extract raw key");
 
   const embeddedText = `export GEMINI_API_KEY="AIzaSyB_123456789012345678901234567890Z"; // comment`;
   assert(
-    detectGoogleApiKey(embeddedText) === rawCopiedKey,
+    defaultKeyVerificationService.detectGoogleApiKey(embeddedText) === rawCopiedKey,
     "detectGoogleApiKey must extract embedded standard key"
   );
 
   const embeddedAiStudio = `Here is my key AQ.alpha1234567890_test for testing`;
   assert(
-    detectGoogleApiKey(embeddedAiStudio) === "AQ.alpha1234567890_test",
+    defaultKeyVerificationService.detectGoogleApiKey(embeddedAiStudio) === "AQ.alpha1234567890_test",
     "detectGoogleApiKey must extract embedded AI Studio key"
   );
 
-  assert(detectGoogleApiKey("Random text without keys") === null, "detectGoogleApiKey must return null for unrelated text");
+  assert(defaultKeyVerificationService.detectGoogleApiKey("Random text without keys") === null, "detectGoogleApiKey must return null for unrelated text");
 
   // Test 4: Masked key preview (first 4 and last 4 characters)
-  const masked = maskApiKey("AIzaSyB_123456789012345678901234567890Z");
+  const masked = defaultKeyVerificationService.maskApiKey("AIzaSyB_123456789012345678901234567890Z");
   assert(masked === "AIza...890Z", `Masked preview expected 'AIza...890Z', got '${masked}'`);
 
-  const maskedAiStudio = maskApiKey("AQ.projectKey12345_xyz");
+  const maskedAiStudio = defaultKeyVerificationService.maskApiKey("AQ.projectKey12345_xyz");
   assert(maskedAiStudio === "AQ.p..._xyz", `Masked AI Studio key preview expected 'AQ.p..._xyz', got '${maskedAiStudio}'`);
 
   // Test 5: Local encryption envelope

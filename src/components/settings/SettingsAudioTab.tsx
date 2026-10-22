@@ -11,9 +11,8 @@ import {
 import {
   GEMINI_VOICES,
   SpeechSettings,
-  getAvailableDeviceVoices,
   DeviceVoiceOption,
-  fetchTTSAudioUrl,
+  defaultSpeechVoicesService,
 } from "../../services/speechVoices";
 import { getSafeWindowSpeechSynthesis } from "../../utils/platform";
 
@@ -39,7 +38,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    setDeviceVoices(getAvailableDeviceVoices());
+    setDeviceVoices(defaultSpeechVoicesService.getAvailableDeviceVoices());
   }, []);
 
   const stopPreview = () => {
@@ -80,7 +79,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
     if (engine === "gemini") {
       setIsPreviewLoading(true);
       try {
-        const audioResponse = await fetchTTSAudioUrl(testPhrase, voiceId);
+        const audioResponse = await defaultSpeechVoicesService.fetchTTSAudioUrl(testPhrase, voiceId);
         const audioUrl = audioResponse?.audioUrl;
         if (!audioUrl) throw new Error("Failed to load Gemini TTS preview.");
 

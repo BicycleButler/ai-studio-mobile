@@ -50,7 +50,7 @@ import {
 } from "../services/speechVoices";
 import { SettingsTab } from "../types";
 import { getSafeWindow } from "../utils/platform";
-import { fetchServerHealth } from "../services/auth";
+import { defaultAuthService } from "../services/auth";
 
 export function useAppState() {
   // Phase 3: Active Project & Projects vault
@@ -85,7 +85,7 @@ export function useAppState() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("account");
   const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() =>
-    loadSpeechSettings()
+    defaultSpeechVoicesService.loadSpeechSettings()
   );
 
   // In-App Browser / Import states
@@ -266,7 +266,7 @@ export function useAppState() {
 
   const refreshServerAuth = async (): Promise<boolean> => {
     try {
-      const data = await fetchServerHealth();
+      const data = await defaultAuthService.fetchServerHealth();
       const hasKey = Boolean(data.hasServerApiKey);
       setHasServerKey(hasKey);
       return hasKey;
@@ -333,7 +333,7 @@ export function useAppState() {
   }, []);
 
   useEffect(() => {
-    fetchServerHealth()
+    defaultAuthService.fetchServerHealth()
       .then((data) => {
         if (data.hasServerApiKey) {
           setHasServerKey(true);

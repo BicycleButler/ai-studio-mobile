@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { DeviceFrameMode, SettingsTab } from "../types";
-import { SpeechSettings, loadSpeechSettings } from "../services/speechVoices";
+import { SpeechSettings, defaultSpeechVoicesService } from "../services/speechVoices";
 import { getSafeWindow } from "../utils/platform";
 
 export function useUIState() {
@@ -9,7 +9,7 @@ export function useUIState() {
   const [showTunerSheet, setShowTunerSheet] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("account");
-  const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() => loadSpeechSettings());
+  const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() => defaultSpeechVoicesService.loadSpeechSettings());
 
   const [showCustomTabBrowser, setShowCustomTabBrowser] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);

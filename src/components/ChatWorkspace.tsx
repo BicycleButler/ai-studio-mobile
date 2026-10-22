@@ -40,7 +40,6 @@ import { compressImageForGemini } from "../utils/imageCompressor";
 import { extractSpokenText } from "../utils/speechExtractor";
 import {
   SpeechSettings,
-  loadSpeechSettings,
 } from "../services/speechVoices";
 import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { SettingsTab } from "../types";
@@ -58,7 +57,7 @@ import { GoogleIcon } from "./GoogleIcon";
 import { PromptTemplateDrawer } from "./PromptTemplateDrawer";
 import { useServices } from "../services/ServiceContext";
 import { PromptTemplate } from "../types";
-import { fetchTTSAudioUrl } from "../services/speechVoices";
+import { defaultSpeechVoicesService } from "../services/speechVoices";
 
 
 interface ChatWorkspaceProps {
@@ -144,7 +143,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBufferingAudio, setIsBufferingAudio] = useState(false);
   const [localSpeechSettings] = useState<SpeechSettings>(() =>
-    loadSpeechSettings()
+    defaultSpeechVoicesService.loadSpeechSettings()
   );
 
   // History & New Chat Popover State
@@ -838,7 +837,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     if (speechSettings.engine === "gemini") {
       setIsBufferingAudio(true);
       try {
-        const data = await fetchTTSAudioUrl(contentToSpeak, speechSettings.geminiVoice);
+        const data = await defaultSpeechVoicesService.fetchTTSAudioUrl(contentToSpeak, speechSettings.geminiVoice);
 
         if (!data.audioUrl) {
           throw new Error("No audio payload returned from Gemini TTS");
