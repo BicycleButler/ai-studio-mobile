@@ -25,12 +25,8 @@ import {
 } from "lucide-react";
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
-import {
-  fetchJulesRepositories,
-  createNewJulesSession,
-  deleteJulesSession,
-  getStoredJulesSessions,
-} from "../services/julesService";
+import { fetchJulesRepositories } from "../services/julesService";
+import { useServices } from "../services/ServiceContext";
 import { loadStoredJulesApiKey } from "../utils/storage";
 import { safeAddEventListener } from "../utils/platform";
 import { Combobox } from "./Combobox";
@@ -49,6 +45,7 @@ interface JulesSessionDrawerProps {
 
 export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
+
   isOpen,
   onClose,
   activeSessionId,
@@ -56,6 +53,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   onBulkDeleteSessions,
   onOpenApiKeyModal,
 }) => {
+  const { julesStorageService } = useServices();
   const [sessions, setSessions] = useState<JulesSession[]>([]);
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
@@ -81,7 +79,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const [initialTaskTitle, setInitialTaskTitle] = useState("");
 
   const refreshSessions = () => {
-    const list = getStoredJulesSessions();
+    const list = julesStorageService.getStoredJulesSessions();
     setSessions(list);
   };
 
@@ -152,7 +150,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     const repo = (selectedRepo || customRepo).trim();
     if (!repo) return;
 
-    const newSess = createNewJulesSession(
+    const newSess = julesStorageService.createNewJulesSession(
       repo,
       branch.trim() || "main",
       initialTaskTitle.trim() || undefined
@@ -169,7 +167,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    deleteJulesSession(id);
+    julesStorageService.deleteJulesSession(id);
     removeFromSelection(id);
     refreshSessions();
   };
