@@ -1,7 +1,6 @@
 import { apiFetch, IApiClient } from "../utils/apiClient";
 import { startPolling, ExponentialBackoffPollingStrategy, PollingOptions } from "../utils/polling";
 import {
-  JulesSession,
   JulesRepository,
   JulesTaskStatus,
   JulesExecutionStep,
@@ -15,8 +14,6 @@ import {
 
 
 } from "../utils/storage";
-import { generateUniqueId } from "../utils/idGenerator";
-import { julesSessionsManager } from "../utils/storage";
 
 export interface JulesTaskPayload {
   id: string;
@@ -265,7 +262,7 @@ export class JulesClient {
 }
 
 // Default singleton instance for backward compatibility
-const defaultJulesClient = new JulesClient({
+export const defaultJulesClient = new JulesClient({
   getApiKey: loadStoredJulesApiKey,
   getSettings: loadStoredJulesSettings,
 });
@@ -373,40 +370,4 @@ export async function approveJulesPlan(
 /**
  * Session storage management for Jules sessions
  */
-export function getStoredJulesSessions(): JulesSession[] {
-  return julesSessionsManager.getItems();
-}
 
-export function saveJulesSession(session: JulesSession): void {
-  julesSessionsManager.collection.upsert(session);
-}
-
-export function deleteJulesSession(sessionId: string): void {
-  julesSessionsManager.collection.delete(sessionId);
-}
-
-export function bulkDeleteJulesSessions(sessionIds: string[]): void {
-  if (!sessionIds || sessionIds.length === 0) return;
-  julesSessionsManager.collection.bulkDelete(sessionIds);
-}
-
-export function createNewJulesSession(
-  repository: string,
-  branch: string = "main",
-  initialTitle?: string
-): JulesSession {
-  const id = generateUniqueId("jules_sess");
-  const newSession: JulesSession = {
-    id,
-    title: initialTitle || `Task on ${repository}`,
-    repository,
-    branch,
-    status: "idle",
-    steps: [],
-    messages: [],
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-  saveJulesSession(newSession);
-  return newSession;
-}

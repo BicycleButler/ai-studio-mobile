@@ -435,3 +435,31 @@ Multiple subsystems and custom hooks (`useNetworkStatus`, `useOfflineQueue`, `us
 
 **Decision:**
 Implemented a unified **ServiceLocator Context** pattern (`ServiceContext.tsx`) via `<ServiceProvider>`. All major domain and utility services are instantiated with their default backward-compatible singletons inside this context's default value. React hooks now rely on `useServices()` to extract their required dependencies rather than directly importing the singletons. This perfectly aligns with existing Context patterns (e.g. replacing `PromptTemplateContext`) while vastly improving Generality, Reusability, and making unit testing UI components trivial without global mock manipulation.
+
+## Architectural Decision: Jules UI Layer Decoupling
+
+**Context:**
+The `useJules` hook, `ChatWorkspace`, and `JulesSessionDrawer` components directly imported and used module-level singleton instances (`defaultJulesClient`, `julesSessionsManager`) and wrapper functions (`createNewJulesSession`, `bulkDeleteJulesSessions`). This violated the Dependency Inversion Principle established by the unified `ServiceContext`, tying the UI directly to a specific global implementation rather than an injectable service locator.
+
+**Path 1: Refactor to consume `ServiceContext` via `useServices`**
+Update all Jules-related hooks and components to extract `julesClient` and `julesStorageService` from the existing `ServiceContext`. Move standalone session management functions into methods on the `JulesStorageService` class to ensure all operations route through the instance.
+
+**Path 2: Pure prop drilling**
+Remove all context hooks and explicitly drill the required `JulesClient` and `JulesStorageService` down from the top-level application component tree.
+
+**Recommendation:**
+**Path 1 (Refactor to consume `ServiceContext` via `useServices`)** was implemented. It aligns the Jules domain with the established Context-based dependency injection pattern used by other application subsystems. It greatly improves the testability of components like `ChatWorkspace` and `JulesSessionDrawer` by allowing the injection of mock Jules services during tests without manipulating module scopes.
+
+## Architectural Decision: Jules UI Layer Decoupling
+
+**Context:**
+The `useJules` hook, `ChatWorkspace`, and `JulesSessionDrawer` components directly imported and used module-level singleton instances (`defaultJulesClient`, `julesSessionsManager`) and wrapper functions (`createNewJulesSession`, `bulkDeleteJulesSessions`). This violated the Dependency Inversion Principle established by the unified `ServiceContext`, tying the UI directly to a specific global implementation rather than an injectable service locator.
+
+**Path 1: Refactor to consume `ServiceContext` via `useServices`**
+Update all Jules-related hooks and components to extract `julesClient` and `julesStorageService` from the existing `ServiceContext`. Move standalone session management functions into methods on the `JulesStorageService` class to ensure all operations route through the instance.
+
+**Path 2: Pure prop drilling**
+Remove all context hooks and explicitly drill the required `JulesClient` and `JulesStorageService` down from the top-level application component tree.
+
+**Recommendation:**
+**Path 1 (Refactor to consume `ServiceContext` via `useServices`)** was implemented. It aligns the Jules domain with the established Context-based dependency injection pattern used by other application subsystems. It greatly improves the testability of components like `ChatWorkspace` and `JulesSessionDrawer` by allowing the injection of mock Jules services during tests without manipulating module scopes.

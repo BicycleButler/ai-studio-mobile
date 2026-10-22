@@ -60,10 +60,6 @@ import { useServices } from "../services/ServiceContext";
 import { PromptTemplate } from "../types";
 import { fetchTTSAudioUrl } from "../services/speechVoices";
 
-import {
-  julesSessionsManager,
-
-} from "../utils/storage";
 
 interface ChatWorkspaceProps {
   messages: ChatMessage[];
@@ -154,8 +150,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
+  const { julesStorageService } = useServices();
   const rawChatSessions = useStore(getChatCollection(activeProjectId));
-  const julesSessionsState = useStore(julesSessionsManager);
+  const julesSessionsState = useStore(julesStorageService.julesSessionsManager);
 
   const historySessions = useMemo<ChatSession[]>(() => {
     if (isJulesMode) {
@@ -989,8 +986,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   const handleDeleteSession = (sessionId: string) => {
     if (isJulesMode) {
-      const all = julesSessionsManager.getItems().filter((s) => s.id !== sessionId);
-      julesSessionsManager.collection.save(all);
+      const all = julesStorageService.julesSessionsManager.getItems().filter((s) => s.id !== sessionId);
+      julesStorageService.julesSessionsManager.collection.save(all);
       if (sessionId === currentSessionId) {
         if (onNewChat) {
           onNewChat();

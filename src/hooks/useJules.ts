@@ -3,27 +3,14 @@ import { getErrorMessage } from "../utils/errorHandling";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { ChatMessage, JulesSession, MessageAttachment } from "../types";
 import { JulesTaskPayload } from "../services/julesService";
-import {
-  loadStoredJulesApiKey,
-  saveStoredJulesApiKey,
-  fetchJulesSessionsFromServer,
 
+import { useServices } from "../services/ServiceContext";
 
-
-} from "../utils/storage";
-import {
-
-  julesSessionsManager
-} from "../utils/storage";
-import {
-  dispatchJulesTask,
-  subscribeToJulesTask,
-  approveJulesPlan,
-  bulkDeleteJulesSessions
-} from "../services/julesService";
 
 export function useJules() {
-  const [julesApiKey, setJulesApiKey] = useState<string>(() => loadStoredJulesApiKey());
+  const { julesStorageService, julesClient } = useServices();
+  const julesSessionsManager = julesStorageService.julesSessionsManager;
+  const [julesApiKey, setJulesApiKey] = useState<string>(() => julesStorageService.loadStoredJulesApiKey());
   const julesStore = useStore(julesSessionsManager);
   const julesSessions = julesStore.items;
   const setJulesSessions: React.Dispatch<React.SetStateAction<JulesSession[]>> = (val) => {
@@ -49,7 +36,7 @@ export function useJules() {
   const julesPollingRef = useRef<{ stop: () => void } | null>(null);
 
   useEffect(() => {
-    fetchJulesSessionsFromServer().then(() => {
+    julesStorageService.fetchJulesSessionsFromServer().then(() => {
 
       const activeSession = julesSessionsManager.getActiveItem();
       setActiveJulesSession(activeSession);
@@ -61,7 +48,7 @@ export function useJules() {
 
   const handleSaveJulesApiKey = useCallback((key: string) => {
     setJulesApiKey(key);
-    saveStoredJulesApiKey(key);
+    julesStorageService.saveStoredJulesApiKey(key);
   }, []);
 
   const handleStopJulesPolling = useCallback(() => {
@@ -151,7 +138,7 @@ export function useJules() {
       setIsJulesExecuting(true);
 
       try {
-        const dispatchedTask = await dispatchJulesTask(julesApiKey, {
+        const dispatchedTask = await julesClient.dispatchTask(julesApiKey, {
           repository: currentSession.repository,
           branch: currentSession.branch,
           prompt: text,
@@ -178,7 +165,7 @@ export function useJules() {
 
 
 
-        julesPollingRef.current = subscribeToJulesTask(
+        julesPollingRef.current = julesClient.subscribeToTask(
           julesApiKey,
           dispatchedTask.id,
           (taskUpdate: JulesTaskPayload) => {
@@ -258,7 +245,7 @@ export function useJules() {
     async (taskId: string) => {
       setIsApprovingJulesPlan(true);
       try {
-        await approveJulesPlan(taskId, true, julesApiKey);
+        await julesClient.approvePlan(taskId, true, julesApiKey);
         setJulesMessages((prev) =>
           prev.map((m) =>
             m.julesActivity?.taskId === taskId
@@ -293,7 +280,7 @@ export function useJules() {
   const handleRejectJulesPlan = useCallback(
     async (taskId: string) => {
       try {
-        await approveJulesPlan(taskId, false, julesApiKey);
+        await julesClient.approvePlan(taskId, false, julesApiKey);
         setJulesMessages((prev) =>
           prev.map((m) =>
             m.julesActivity?.taskId === taskId
@@ -329,7 +316,7 @@ export function useJules() {
   const handleBulkDeleteJulesSessions = useCallback((sessionIds: string[]) => {
     if (!sessionIds || sessionIds.length === 0) return;
 
-    bulkDeleteJulesSessions(sessionIds);
+    julesStorageService.bulkDeleteJulesSessions(sessionIds);
 
 
 

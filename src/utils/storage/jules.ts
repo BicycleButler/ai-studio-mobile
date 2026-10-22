@@ -6,6 +6,7 @@ import { cleanMockData } from "./helpers";
 import { apiFetch, defaultClient } from "../apiClient";
 import { defaultOfflineService } from "../offlineService";
 import { NetworkStorageSyncAdapter } from "./syncAdapter";
+import { generateUniqueId } from "../idGenerator";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { StorageSingleton } from "./StorageSingleton";
 import { ILogger, defaultLogger } from "../logger";
@@ -116,6 +117,44 @@ export class JulesStorageService {
 
   public saveStoredJulesSettings(settings: JulesSettings): void {
     this.julesSettingsSingleton.save(settings);
+  }
+
+  public getStoredJulesSessions(): JulesSession[] {
+    return this.julesSessionsManager.getItems();
+  }
+
+  public saveJulesSession(session: JulesSession): void {
+    this.julesSessionsManager.collection.upsert(session);
+  }
+
+  public deleteJulesSession(sessionId: string): void {
+    this.julesSessionsManager.collection.delete(sessionId);
+  }
+
+  public bulkDeleteJulesSessions(sessionIds: string[]): void {
+    if (!sessionIds || sessionIds.length === 0) return;
+    this.julesSessionsManager.collection.bulkDelete(sessionIds);
+  }
+
+  public createNewJulesSession(
+    repository: string,
+    branch: string = "main",
+    initialTitle?: string
+  ): JulesSession {
+    const id = generateUniqueId("jules_sess");
+    const newSession: JulesSession = {
+      id,
+      title: initialTitle || `Task on ${repository}`,
+      repository,
+      branch,
+      status: "idle",
+      steps: [],
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    this.saveJulesSession(newSession);
+    return newSession;
   }
 }
 
