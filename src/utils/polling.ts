@@ -9,7 +9,6 @@ export class ExponentialBackoffPollingStrategy extends ExponentialBackoffDelaySt
 export interface PollingOptions<T> {
   intervalMs?: number; // Kept for backwards compatibility
   strategy?: IPollingStrategy;
-  baseDelayMs?: number;
   onUpdate: (data: T) => void;
   onError?: (error: unknown) => void;
   isComplete?: (data: T) => boolean;
@@ -21,9 +20,6 @@ export function startPolling<T>(
 ): { stop: () => void } {
   const { onUpdate, onError, isComplete } = options;
   let strategy = options.strategy || new FixedIntervalPollingStrategy(options.intervalMs ?? 2500);
-  if (options.baseDelayMs !== undefined && strategy.withBaseDelay) {
-    strategy = strategy.withBaseDelay(options.baseDelayMs) as IPollingStrategy;
-  }
 
   let stopped = false;
   let abortController = new AbortController();
