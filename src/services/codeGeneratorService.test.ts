@@ -1,6 +1,6 @@
 // Test suite for code generators
 import { PromptConfig, ChatMessage } from "../types";
-import { CODE_GENERATORS } from "./codeGenerators";
+import { CODE_GENERATORS } from "./codeGeneratorService";
 
 // Verification that explicit 'any' is permitted in test files
 const mockConfig: PromptConfig = {

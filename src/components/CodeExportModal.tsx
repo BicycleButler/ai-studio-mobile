@@ -2,7 +2,8 @@ import { getSafeNavigatorClipboard } from "../utils/platform";
 import React, { useState } from "react";
 import { Copy, Check, Terminal, FileCode2, Smartphone, Globe, LucideIcon, Code2 } from "lucide-react";
 import { PromptConfig, ChatMessage } from "../types";
-import { CODE_GENERATORS, CodeLangId } from "../utils/codeGenerators";
+import { CodeLangId } from "../services/codeGeneratorService";
+import { useServices } from "../services/ServiceContext";
 
 interface CodeExportModalProps {
   config: PromptConfig;
@@ -20,8 +21,10 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
   const [selectedLang, setSelectedLang] = useState<CodeLangId>("kotlin");
   const [copied, setCopied] = useState(false);
 
-  const generator = CODE_GENERATORS[selectedLang] || CODE_GENERATORS.kotlin;
-  const code = generator.generate(config, messages);
+  const { codeGeneratorService } = useServices();
+
+  const generator = codeGeneratorService.getGenerator(selectedLang) || codeGeneratorService.getGenerator("kotlin");
+  const code = generator?.generate(config, messages) || "";
 
   const handleCopy = () => {
     getSafeNavigatorClipboard()?.writeText(code);
