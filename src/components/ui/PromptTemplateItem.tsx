@@ -3,6 +3,8 @@ import { Edit3, Trash2, Check, Plus } from "lucide-react";
 import { PromptTemplate } from "../../types";
 
 export interface PromptTemplateItemProps {
+  isBatchSelected?: boolean;
+  onBatchSelect?: (e: React.MouseEvent | React.KeyboardEvent) => void;
   template: PromptTemplate;
   isSelected: boolean;
   selectedIndex: number;
@@ -24,13 +26,15 @@ export const PromptTemplateItem: React.FC<PromptTemplateItemProps> = ({
   setConfirmDeleteId,
   confirmDeleteId,
   handleDelete,
+  isBatchSelected,
+  onBatchSelect,
 }) => {
   const Icon = meta.icon;
 
   return (
     <div
       id={`template-card-${template.id}`}
-      className={`p-3.5 rounded-2xl border transition-colors ${
+      className={`p-3.5 rounded-2xl border transition-colors relative group ${
         isSelected
           ? "bg-primary/5 border-primary/40 shadow-xs"
           : "bg-card border-border hover:border-border/80"
@@ -38,6 +42,23 @@ export const PromptTemplateItem: React.FC<PromptTemplateItemProps> = ({
     >
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
+{!template.isBuiltin && onBatchSelect && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onBatchSelect(e);
+              }}
+              className={`flex items-center justify-center w-4 h-4 rounded border transition-colors ${
+                isBatchSelected
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "border-muted-foreground/30 hover:border-foreground/50 opacity-0 group-hover:opacity-100"
+              }`}
+              aria-label="Select template"
+            >
+              {isBatchSelected && <Check className="w-3 h-3" />}
+            </button>
+          )}
+
           {/* Numbered Indicator for FIFO Order (Decision Question 2) */}
           {isSelected ? (
             <span

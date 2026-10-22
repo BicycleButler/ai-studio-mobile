@@ -24,6 +24,11 @@ import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
 import { safeAddEventListener } from "../utils/platform";
 import { Drawer } from "./ui/Drawer";
+import { useBatchSelection } from "../hooks/useBatchSelection";
+import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
+import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
+import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
+import { Trash2 } from "lucide-react";
 
 interface PromptTemplateDrawerProps {
   isOpen: boolean;
@@ -109,6 +114,8 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   const [activeToolTab, setActiveToolTab] = useState<"directives" | "few-shot" | "variables">("directives");
   const [activeCategory, setActiveCategory] = useState<"all" | PromptTemplateCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+
   const [viewMode, setViewMode] = useState<"browse" | "author" | "preview">("browse");
   const [templatesVersion, setTemplatesVersion] = useState(0);
 
@@ -147,6 +154,38 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
       );
     });
   }, [allTemplates, activeCategory, searchQuery]);
+
+
+  const customFilteredTemplates = useMemo(() => filteredTemplates.filter(t => !t.isBuiltin), [filteredTemplates]);
+
+  const {
+    selectedIds: selectedCustomTemplateIds,
+    toggleSelection: toggleCustomTemplateSelection,
+    clearSelection: clearCustomTemplateSelection,
+  } = useBatchSelection({
+    items: customFilteredTemplates,
+    getItemId: (t) => t.id,
+  });
+
+  const {
+    showBulkDeleteConfirm,
+    setShowBulkDeleteConfirm,
+    bulkDeleteConfirmationText,
+    setBulkDeleteConfirmationText,
+    handleBulkDelete,
+  } = useBulkActionConfirm({
+    onConfirm: () => {
+      const ids = Array.from(selectedCustomTemplateIds);
+      promptTemplateService.bulkDeleteCustomTemplates(ids);
+      setTemplatesVersion((v) => v + 1);
+    },
+    onClearSelection: clearCustomTemplateSelection,
+  });
+
+  // Clear selection on filter change (ADR 0047 Option A)
+  useEffect(() => {
+    clearCustomTemplateSelection();
+  }, [searchQuery, activeCategory, clearCustomTemplateSelection]);
 
   const selectedTemplates = useMemo(() => {
     const map = new Map<string, PromptTemplate>();
@@ -641,6 +680,8 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                       setConfirmDeleteId={setConfirmDeleteId}
                       confirmDeleteId={confirmDeleteId}
                       handleDelete={handleDelete}
+                      isBatchSelected={selectedCustomTemplateIds.has(template.id)}
+                      onBatchSelect={(e) => toggleCustomTemplateSelection(template.id, e, customFilteredTemplates.indexOf(template), customFilteredTemplates)}
                     />
                   );
                 })
@@ -691,6 +732,34 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
         </div>
       )}
       </div>
+
+      <BulkDeleteConfirmModal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => {
+          setShowBulkDeleteConfirm(false);
+          setBulkDeleteConfirmationText("");
+        }}
+        onConfirm={handleBulkDelete}
+        selectedCount={selectedCustomTemplateIds.size}
+        itemType="custom template"
+        confirmationText={bulkDeleteConfirmationText}
+        onConfirmationTextChange={setBulkDeleteConfirmationText}
+      />
+
+      {/* Floating Batch Action Bar for Custom Templates */}
+      <FloatingBatchActionBar
+        isVisible={selectedCustomTemplateIds.size > 0 && viewMode === "browse"}
+        selectedCount={selectedCustomTemplateIds.size}
+        onClearSelection={clearCustomTemplateSelection}
+        actions={[
+          {
+            label: "Delete",
+            icon: <Trash2 className="w-3.5 h-3.5" />,
+            onClick: () => setShowBulkDeleteConfirm(true),
+            variant: "destructive"
+          }
+        ]}
+      />
     </Drawer>
   );
 };
