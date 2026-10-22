@@ -13,6 +13,7 @@ import { defaultSavedPromptsService, SavedPromptsService } from "../utils/storag
 import { defaultGeneralSettingsService, GeneralSettingsService } from "../utils/storage/general";
 import { defaultDraftStateService, DraftStateService } from "../utils/storage/draftState";
 import { defaultJulesStorageService, JulesStorageService } from "../utils/storage/jules";
+import { defaultJulesClient, JulesClient } from "./julesService";
 import { defaultSpeechVoicesService, SpeechVoicesService } from "./speechVoices";
 import { defaultGeminiStreamService, GeminiStreamService } from "./geminiStreamService";
 import { defaultKeyVerificationService, KeyVerificationService } from "./keyVerification";
@@ -37,6 +38,7 @@ export interface IServices {
   keyVerificationService: KeyVerificationService;
   stubsClient: StubsClient;
   codeGeneratorService: ICodeGeneratorService;
+  julesClient: JulesClient;
 }
 
 const defaultServices: IServices = {
@@ -57,6 +59,7 @@ const defaultServices: IServices = {
   keyVerificationService: defaultKeyVerificationService,
   stubsClient: defaultStubsClient,
   codeGeneratorService: defaultCodeGeneratorService,
+  julesClient: defaultJulesClient,
 };
 
 const ServiceContext = createContext<IServices>(defaultServices);

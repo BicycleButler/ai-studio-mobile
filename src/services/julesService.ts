@@ -265,7 +265,7 @@ export class JulesClient {
 }
 
 // Default singleton instance for backward compatibility
-const defaultJulesClient = new JulesClient({
+export const defaultJulesClient = new JulesClient({
   getApiKey: loadStoredJulesApiKey,
   getSettings: loadStoredJulesSettings,
 });
