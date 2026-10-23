@@ -22,20 +22,20 @@ import { useJules } from "./hooks/useJules";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
 import { useWindowSecurity } from "./hooks/useWindowSecurity";
-import { defaultKeyVerificationService } from "./services/keyVerification";
 import {
 
   projectsManager,
 } from "./utils/storage";
-import { defaultSpeechVoicesService } from "./services/speechVoices";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
 import { initializeSyncHandlers } from "./utils/syncRegistry";
 import { generateUniqueId } from "./utils/idGenerator";
+import { useServices } from "./services/ServiceContext";
 
 initializeSyncHandlers();
 
 export default function App() {
+  const { keyVerificationService, speechVoicesService } = useServices();
   const {
     projects,
     setProjects,
@@ -349,7 +349,7 @@ export default function App() {
         onDismiss={async () => {
           setClipboardToastKey(null);
           setCandidateClipboardKey("");
-          await defaultKeyVerificationService.clearClipboardSafe();
+          await keyVerificationService.clearClipboardSafe();
         }}
         onImport={() => {
           setCandidateClipboardKey(clipboardToastKey || "");
@@ -408,7 +408,7 @@ export default function App() {
           speechSettings,
           onSaveSpeechSettings: (newSettings) => {
             setSpeechSettings(newSettings);
-            defaultSpeechVoicesService.saveSpeechSettings(newSettings);
+            speechVoicesService.saveSpeechSettings(newSettings);
           }
         }}
         chatProps={{
@@ -482,7 +482,7 @@ export default function App() {
         speechSettings={speechSettings}
         onSaveSpeechSettings={(newSettings) => {
           setSpeechSettings(newSettings);
-          defaultSpeechVoicesService.saveSpeechSettings(newSettings);
+          speechVoicesService.saveSpeechSettings(newSettings);
         }}
         config={config}
         onChangeConfig={setConfig}

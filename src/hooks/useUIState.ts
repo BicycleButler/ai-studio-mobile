@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { DeviceFrameMode, SettingsTab } from "../types";
-import { SpeechSettings, defaultSpeechVoicesService } from "../services/speechVoices";
+import { SpeechSettings } from "../services/speechVoices";
 import { getSafeWindow } from "../utils/platform";
+import { useServices } from "../services/ServiceContext";
 
 export function useUIState() {
+  const { speechVoicesService } = useServices();
   const [deviceMode, setDeviceMode] = useState<DeviceFrameMode>("responsive");
   const [showBottomNav, setShowBottomNav] = useState(false);
   const [showTunerSheet, setShowTunerSheet] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("account");
-  const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() => defaultSpeechVoicesService.loadSpeechSettings());
+  const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() => speechVoicesService.loadSpeechSettings());
 
   const [showCustomTabBrowser, setShowCustomTabBrowser] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
