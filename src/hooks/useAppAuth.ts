@@ -1,16 +1,12 @@
 import { useState, useEffect } from "react";
 import { GoogleUser } from "../types";
-import {
-  getStoredGoogleUser,
-  fetchServerCurrentUser,
-  initiateGoogleLogin,
-  logoutGoogleUser,
-  initAuth,
-} from "../services/googleAuth";
+import { useServices } from "../services/ServiceContext";
 import { loadStoredApiKey, saveStoredApiKey } from "../utils/storage";
 
 export function useAppAuth() {
-  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => getStoredGoogleUser());
+  const { googleAuthService } = useServices();
+
+  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => googleAuthService.loadStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState<boolean>(false);
   const [customApiKey, setCustomApiKey] = useState<string>(() => loadStoredApiKey());
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
@@ -22,7 +18,7 @@ export function useAppAuth() {
 
   const handleGoogleLogin = async () => {
     try {
-      const u = await initiateGoogleLogin();
+      const u = await googleAuthService.initiateGoogleLogin();
       setGoogleUser(u);
     } catch (err) {
       console.error("Google login failed", err);
@@ -31,7 +27,7 @@ export function useAppAuth() {
 
   const handleGoogleLogout = async () => {
     try {
-      await logoutGoogleUser();
+      await googleAuthService.logoutGoogleUser();
       setGoogleUser(null);
     } catch (err) {
       console.error("Logout failed", err);
@@ -39,12 +35,12 @@ export function useAppAuth() {
   };
 
   const refreshServerAuth = async () => {
-    const freshUser = await fetchServerCurrentUser();
+    const freshUser = await googleAuthService.fetchCurrentGoogleUser();
     setGoogleUser(freshUser);
   };
 
   useEffect(() => {
-    Promise.resolve(initAuth())
+    Promise.resolve(googleAuthService.initAuth())
       .then((res: unknown) => {
         const r = res as { hasServerKey?: boolean };
         if (r && r.hasServerKey) {
@@ -53,7 +49,7 @@ export function useAppAuth() {
         refreshServerAuth();
       })
       .catch(console.error);
-  }, []);
+  }, [googleAuthService]);
 
   return {
     googleUser,
