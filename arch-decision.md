@@ -500,3 +500,45 @@ Create a monolithic `BatchSelectionList` component that accepts the raw data arr
 
 **Recommendation:**
 **Path 1 (Extracted Compound Components & Hook Encapsulation)** is the recommended path. It preserves the flexibility of consumers to lay out their lists (which often have highly custom row designs or floating toolbars) while eliminating the boilerplate of the header and the `useEffect` selection-clearing hook. It aligns with React's compositional nature and improves both Maintainability and Reusability.
+
+## Architectural Decision: Code Generator Service Abstraction
+
+**Context:**
+The `CodeGeneratorService` previously hardcoded the implementation of all code generators (Kotlin, TypeScript, Python, cURL) directly within its class methods. This violated the Open/Closed Principle and the Single Responsibility Principle. Adding a new language generator or modifying an existing one required altering the core service file, increasing its size and complexity.
+
+**Path 1: Extracted Generator Classes and Registry (Strategy Pattern)**
+Extract the `CodeGenerator` definition into an `ICodeGeneratorPlugin` interface. Create separate classes for each language (e.g., `KotlinGenerator`, `TypeScriptGenerator`) that implement this interface and encapsulate their specific string-building logic. Update `CodeGeneratorService` to act as a registry that accepts an array of these plugins during initialization.
+
+**Path 2: Pure Functional Injection**
+Define generators as pure functions mapping `(config, messages)` to strings, and inject a map of these functions into the service.
+
+**Recommendation:**
+**Path 1 (Extracted Generator Classes and Registry)** was implemented. It strictly enforces the Open/Closed Principle by allowing new generators to be added by simply passing new instances to the `CodeGeneratorService` constructor without modifying the service itself. It deeply improves abstraction and maintainability by isolating the noisy string-building templates into their own dedicated files.
+
+## Architectural Decision: Google Auth Service DOM Decoupling
+
+**Context:**
+The `GoogleAuthService` relied on direct imports of `isBrowserEnvironment` and `getSafeWindow` to dispatch custom DOM events and open OAuth popups. This tight coupling made it difficult to unit test the service in a purely Node.js or simulated environment without relying on global DOM mocks, violating the Dependency Inversion Principle.
+
+**Path 1: Constructor Injection of DOM Utilities**
+Update the `GoogleAuthServiceConfig` to accept optional `isBrowserEnv` and `getWindow` functions. The service uses these injected dependencies if provided, only falling back to the globally imported utilities for backward compatibility if omitted.
+
+**Path 2: Event Emitter Abstraction**
+Abstract the DOM event dispatching and window management behind a generic `IPlatformEnvironment` interface.
+
+**Recommendation:**
+**Path 1 (Constructor Injection of DOM Utilities)** was implemented. It aligns perfectly with the existing injection patterns used for `apiClient` and `storageSingleton`. It immediately resolves the tight coupling to the global DOM objects, vastly improving testability, while remaining simple and fully backward-compatible.
+
+## Architectural Decision: Storage Services Initialization
+
+**Context:**
+Modules like `SavedPromptsService`, `JulesStorageService`, and `SyncOrchestrator` implicitly relied on `defaultClient` and `defaultOfflineService` instances inside their constructors or top-level instantiations. Although they offered configuration overrides, their default state bypassed the `ServiceContext` structure and tied them to specific module singletons.
+
+**Path 1: Injected Instantiation from ServiceContext**
+Update the `defaultServices` map in `ServiceContext` to inject its own initialized dependencies into the services. This removes the implicit global fallbacks within the service modules, enforcing strict constructor injection.
+
+**Path 2: Lazy Resolution via Context**
+Require services to lazily resolve dependencies via `useServices` or a global Service Locator proxy upon invocation. (Drawback: complex, mixes React and non-React scopes).
+
+**Recommendation:**
+**Path 1 (Injected Instantiation)** is the recommended path. It strictly forces instances to declare their dependencies, allowing `ServiceContext` to orchestrate how `IApiClient` or `IOfflineService` propagate across all downstream services. However, due to scope, a phased approach is needed to untangle circular dependencies first. For now, the existing configuration fallbacks are preserved, but components should prefer using `ServiceContext` to retrieve explicitly configured instances.

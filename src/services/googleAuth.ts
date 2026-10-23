@@ -8,6 +8,8 @@ export interface GoogleAuthServiceConfig {
   apiClient?: IApiClient;
   authProvider?: IAuthProvider | null;
   storageSingleton?: StorageSingleton<GoogleUser | null>;
+  isBrowserEnv?: () => boolean;
+  getWindow?: typeof getSafeWindow;
 }
 
 export class GoogleAuthService {
@@ -16,6 +18,8 @@ export class GoogleAuthService {
   private currentAuthProvider: IAuthProvider | null = null;
   private apiClient: IApiClient;
   private googleUserSingleton: StorageSingleton<GoogleUser | null>;
+  private isBrowserEnv: () => boolean;
+  private getWindow: typeof getSafeWindow;
 
   constructor(config?: GoogleAuthServiceConfig) {
     this.apiClient = config?.apiClient || defaultClient;
@@ -24,6 +28,8 @@ export class GoogleAuthService {
       STORAGE_KEYS.GOOGLE_USER,
       null
     );
+    this.isBrowserEnv = config?.isBrowserEnv || isBrowserEnvironment;
+    this.getWindow = config?.getWindow || getSafeWindow;
   }
 
   public setAuthProvider(provider: IAuthProvider) {
@@ -40,8 +46,8 @@ export class GoogleAuthService {
 
   public saveStoredGoogleUser(user: GoogleUser | null): void {
     this.googleUserSingleton.save(user);
-    if (isBrowserEnvironment()) {
-      getSafeWindow()?.dispatchEvent(
+    if (this.isBrowserEnv()) {
+      this.getWindow()?.dispatchEvent(
         new CustomEvent("google_user_changed", { detail: user })
       );
     }
@@ -198,7 +204,7 @@ export class GoogleAuthService {
     return new Promise((resolve, reject) => {
       const width = 540;
       const height = 650;
-      const win = getSafeWindow();
+      const win = this.getWindow();
       const left = win ? win.screenX + (win.outerWidth - width) / 2 : 0;
       const top = win ? win.screenY + (win.outerHeight - height) / 2 : 0;
 

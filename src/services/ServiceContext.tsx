@@ -79,3 +79,7 @@ export const ServiceProvider: React.FC<{
 export function useServices(): IServices {
   return useContext(ServiceContext);
 }
+
+export function createServices(overrides?: Partial<IServices>): IServices {
+  return { ...defaultServices, ...overrides };
+}

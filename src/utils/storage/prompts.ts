@@ -17,7 +17,10 @@ export class SavedPromptsService {
   private syncAdapter: IStorageSyncAdapter<SavedPrompt[]>;
 
   constructor(config?: SavedPromptsServiceConfig) {
-    this.syncAdapter = config?.syncAdapter || new NetworkStorageSyncAdapter<SavedPrompt[]>(defaultClient, defaultOfflineService);
+    this.syncAdapter = config?.syncAdapter || new NetworkStorageSyncAdapter<SavedPrompt[]>({
+        apiClient: defaultClient,
+        offlineService: defaultOfflineService
+    });
 
     this.savedPromptsManager = config?.savedPromptsManager || createActiveItemManager<SavedPrompt>({
       collectionKey: STORAGE_KEYS.SAVED_PROMPTS,
