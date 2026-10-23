@@ -1,5 +1,6 @@
 import { describe, test } from 'vitest';
-import { defaultGoogleAuthService } from "./googleAuth";
+import { GoogleAuthService } from "./googleAuth";
+const defaultGoogleAuthService = new GoogleAuthService();
 
 // Test suite for authentication helpers & header builders
 

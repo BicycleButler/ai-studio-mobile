@@ -7,9 +7,7 @@ import {
   JulesPullRequest,
 } from "../types";
 import {
-  loadStoredJulesApiKey,
 
-  loadStoredJulesSettings,
 
 
 
@@ -262,10 +260,6 @@ export class JulesClient {
 }
 
 // Default singleton instance for backward compatibility
-export const defaultJulesClient = new JulesClient({
-  getApiKey: loadStoredJulesApiKey,
-  getSettings: loadStoredJulesSettings,
-});
 
 export interface JulesRepositoryItem {
   id?: string;
@@ -290,8 +284,3 @@ export interface CreateJulesTaskParams {
   autoApprove?: boolean;
   apiKey?: string;
 }
-
-/**
- * Session storage management for Jules sessions
- */
-

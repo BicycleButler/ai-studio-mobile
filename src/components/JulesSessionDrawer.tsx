@@ -25,7 +25,6 @@ import {
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { useServices } from "../services/ServiceContext";
-import { loadStoredJulesApiKey } from "../utils/storage";
 import { safeAddEventListener } from "../utils/platform";
 import { Combobox } from "./Combobox";
 import { useBatchSelection } from "../hooks/useBatchSelection";
@@ -124,7 +123,8 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   useEffect(() => {
     if (isOpen) {
       refreshSessions();
-      const key = loadStoredJulesApiKey();
+      const { julesStorageService } = useServices();
+      const key = julesStorageService.loadStoredJulesApiKey();
       setHasApiKey(Boolean(key));
 
       if (key) {

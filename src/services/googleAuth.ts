@@ -243,4 +243,3 @@ export class GoogleAuthService {
   }
 }
 
-export const defaultGoogleAuthService = new GoogleAuthService();

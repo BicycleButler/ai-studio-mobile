@@ -3,21 +3,36 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { defaultThemeService } from './services/themeService';
-import { defaultGoogleAuthService } from './services/googleAuth';
-import { FirebaseAuthProvider } from './services/firebaseAuthProvider';
-import { defaultChatHistoryService } from './services/chatHistoryService';
 
-import { ServiceProvider } from './services/ServiceContext';
+
+import { FirebaseAuthProvider } from './services/firebaseAuthProvider';
+
+
+
+import { ServiceProvider, createServices } from './services/ServiceContext';
 import { registerSW } from 'virtual:pwa-register';
 
+
+
+
+
+
+
+
+
+const appServices = createServices();
+
 // Initialize auth provider via dependency injection
-defaultGoogleAuthService.setAuthProvider(new FirebaseAuthProvider());
+appServices.googleAuthService.setAuthProvider(new FirebaseAuthProvider());
 
 // Initialize core services on startup
-defaultChatHistoryService.purgeMockSessionsFromStorage();
+appServices.chatHistoryService.purgeMockSessionsFromStorage();
+
 // Initialize theme immediately on startup to prevent theme flash
-defaultThemeService.initThemeService();
+appServices.themeService.initThemeService();
+
+// Initialize sync handlers
+appServices.syncOrchestrator.registerHandlers();
 
 // Register PWA service worker with auto-update
 if (isBrowserEnvironment() && 'serviceWorker' in navigator) {
@@ -28,7 +43,7 @@ if (isBrowserEnvironment() && 'serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ServiceProvider>
+    <ServiceProvider services={appServices}>
 
       <App />
 

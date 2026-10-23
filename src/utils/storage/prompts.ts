@@ -54,14 +54,3 @@ export class SavedPromptsService {
   }
 }
 
-export const defaultSavedPromptsService = new SavedPromptsService();
-
-export const savedPromptsManager = defaultSavedPromptsService.savedPromptsManager;
-
-export function loadSavedPrompts(): SavedPrompt[] {
-  return defaultSavedPromptsService.loadSavedPrompts();
-}
-
-export function persistSavedPrompts(prompts: SavedPrompt[]): void {
-  defaultSavedPromptsService.persistSavedPrompts(prompts);
-}

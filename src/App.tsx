@@ -28,14 +28,13 @@ import {
 } from "./utils/storage";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
-import { initializeSyncHandlers } from "./utils/syncRegistry";
 import { generateUniqueId } from "./utils/idGenerator";
 import { useServices } from "./services/ServiceContext";
 
-initializeSyncHandlers();
 
 export default function App() {
   const { keyVerificationService, speechVoicesService } = useServices();
+
   const {
     projects,
     setProjects,
