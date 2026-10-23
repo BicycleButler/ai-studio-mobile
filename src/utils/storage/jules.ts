@@ -161,30 +161,3 @@ export class JulesStorageService {
   }
 }
 
-export const defaultJulesStorageService = new JulesStorageService();
-
-export const julesSessionsManager = defaultJulesStorageService.julesSessionsManager;
-
-export function loadStoredJulesApiKey(): string {
-  return defaultJulesStorageService.loadStoredJulesApiKey();
-}
-
-export function saveStoredJulesApiKey(key: string): void {
-  defaultJulesStorageService.saveStoredJulesApiKey(key);
-}
-
-export function isMockJulesSession(session: Partial<JulesSession>): boolean {
-  return defaultJulesStorageService.isMockJulesSession(session);
-}
-
-export async function fetchJulesSessionsFromServer(logger?: ILogger): Promise<JulesSession[]> {
-  return defaultJulesStorageService.fetchJulesSessionsFromServer(logger);
-}
-
-export function loadStoredJulesSettings(): JulesSettings {
-  return defaultJulesStorageService.loadStoredJulesSettings();
-}
-
-export function saveStoredJulesSettings(settings: JulesSettings): void {
-  defaultJulesStorageService.saveStoredJulesSettings(settings);
-}

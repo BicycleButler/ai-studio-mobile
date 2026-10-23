@@ -1,7 +1,7 @@
+import { useServices } from "../services/ServiceContext";
 import { useState, useCallback } from "react";
 import { ChatMessage, StructuredExample, SavedPrompt, PromptType, PromptConfig, ProjectInfo } from "../types";
 import { generateUniqueId } from "../utils/idGenerator";
-import { savedPromptsManager } from "../utils/storage";
 import { IPromptTemplateService } from "../services/promptTemplateService";
 import { useStore } from "./useStore";
 
@@ -17,13 +17,14 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
   const [freeformText] = useState(initialDraft.freeformText);
   const [structuredExamples] = useState<StructuredExample[]>(initialDraft.structuredExamples || []);
 
-  const savedPromptsStore = useStore(savedPromptsManager);
+  const { savedPromptsService } = useServices();
+  const savedPromptsStore = useStore(savedPromptsService.savedPromptsManager);
   const savedPrompts = savedPromptsStore.items;
 
   // Backwards compatibility for setSavedPrompts (should ideally only be modified via the manager)
   const setSavedPrompts = useCallback((promptsOrUpdater: React.SetStateAction<SavedPrompt[]>) => {
       const nextPrompts = typeof promptsOrUpdater === 'function' ? promptsOrUpdater(savedPrompts) : promptsOrUpdater;
-      savedPromptsManager.collection.save(nextPrompts);
+      savedPromptsService.savedPromptsManager.collection.save(nextPrompts);
   }, [savedPrompts]);
 
   const handleStartNewChat = useCallback((onStopStream?: () => void) => {
@@ -45,15 +46,15 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
       updatedAt: Date.now(),
       projectId: activeProject?.id,
     };
-    savedPromptsManager.collection.upsert(newSaved, true);
+    savedPromptsService.savedPromptsManager.collection.upsert(newSaved, true);
   }, [promptType, config, messages, activeProject?.id]);
 
   const handleDeleteSavedPrompt = useCallback((id: string) => {
-    savedPromptsManager.collection.delete(id);
+    savedPromptsService.savedPromptsManager.collection.delete(id);
   }, []);
 
   const handleBulkDeleteSavedPrompts = useCallback((ids: string[]) => {
-    savedPromptsManager.collection.bulkDelete(ids);
+    savedPromptsService.savedPromptsManager.collection.bulkDelete(ids);
     promptTemplateService.bulkDeleteCustomTemplates(ids);
   }, [promptTemplateService]);
 

@@ -275,4 +275,3 @@ export class GeminiStreamService implements IGeminiStreamService {
   }
 }
 
-export const defaultGeminiStreamService = new GeminiStreamService();

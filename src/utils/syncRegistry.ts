@@ -2,7 +2,10 @@ import { defaultOfflineService } from "./offlineService";
 import { defaultClient } from "./apiClient";
 import { SyncOrchestrator } from "./syncOrchestrator";
 
-export function initializeSyncHandlers() {
-  const orchestrator = new SyncOrchestrator(defaultOfflineService, defaultClient);
+import { IOfflineService } from "./offlineService";
+import { IApiClient } from "./apiClient";
+
+export function initializeSyncHandlers(offlineService: IOfflineService = defaultOfflineService, apiClient: IApiClient = defaultClient) {
+  const orchestrator = new SyncOrchestrator(offlineService, apiClient);
   orchestrator.registerHandlers();
 }

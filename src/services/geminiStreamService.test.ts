@@ -1,12 +1,13 @@
+import { GeminiStreamService } from "./geminiStreamService";
 import { describe, test } from 'vitest';
 // Unit tests for geminiStreamService and error formatting
 import {
   GeminiApiError,
-  defaultGeminiStreamService,
 } from "./geminiStreamService";
 
 describe('testStreamService', () => {
   test('main', () => {
+  const defaultGeminiStreamService = new GeminiStreamService();
   // 1. Test buildHeaders
   const defaultHeaders = defaultGeminiStreamService.buildHeaders();
   if (defaultHeaders["Content-Type"] !== "application/json") {

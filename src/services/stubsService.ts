@@ -1,4 +1,4 @@
-import { IApiClient, defaultClient } from "../utils/apiClient";
+import { IApiClient } from "../utils/apiClient";
 import {
   StubsGraphData,
   StubsImpactResult,
@@ -136,6 +136,4 @@ export class StubsClient implements IStubsClient {
     }
   }
 }
-
-export const defaultStubsClient = new StubsClient(defaultClient);
 
