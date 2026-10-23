@@ -31,6 +31,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
   handleSelectDeviceVoice,
   handleSelectRate,
 }) => {
+  const { logger } = useServices();
   const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -93,7 +94,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
           setIsPreviewLoading(false);
         };
         audio.onerror = () => {
-          console.error("Audio playback error");
+          logger.error("Audio playback error");
           setPreviewingVoiceId(null);
           setIsPreviewLoading(false);
         };
@@ -101,7 +102,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
         await audio.play();
         setIsPreviewLoading(false);
       } catch (err) {
-        console.error("TTS Preview failed:", err);
+        logger.error("TTS Preview failed:", err);
         setPreviewingVoiceId(null);
         setIsPreviewLoading(false);
       }
@@ -109,7 +110,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
       // Device Engine Playback
       const synth = getSafeWindowSpeechSynthesis();
       if (!synth) {
-        console.warn("SpeechSynthesis not supported on this platform.");
+        logger.warn("SpeechSynthesis not supported on this platform.");
         setPreviewingVoiceId(null);
         return;
       }
@@ -127,7 +128,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
         setPreviewingVoiceId(null);
       };
       utterance.onerror = (e) => {
-        console.error("Device voice preview failed", e);
+        logger.error("Device voice preview failed", e);
         setPreviewingVoiceId(null);
       };
 

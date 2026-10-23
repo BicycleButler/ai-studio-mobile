@@ -5,6 +5,7 @@ import {
   StubsLintViolation,
   StubsSidecarSpec,
 } from "../types";
+import { ILogger, defaultLogger } from "../utils/logger";
 
 export interface StubsDiagramResponse {
   mermaid: string;
@@ -42,7 +43,7 @@ export interface IStubsClient {
 }
 
 export class StubsClient implements IStubsClient {
-  constructor(private apiClient: IApiClient) {}
+  constructor(private apiClient: IApiClient, private logger: ILogger = defaultLogger) {}
 
   public async fetchGraphData(): Promise<StubsGraphData> {
     return this.apiClient.fetch<StubsGraphData>("/api/stubs/graph", undefined, "Failed to fetch Stubs graph data");
@@ -119,19 +120,19 @@ export class StubsClient implements IStubsClient {
           const payload = JSON.parse(event.data);
           onLog(payload);
         } catch (err: unknown) {
-          console.warn("[stubs stream] Failed to parse SSE event:", err);
+          this.logger.warn("[stubs stream] Failed to parse SSE event:", err);
         }
       };
 
       eventSource.onerror = (err) => {
-        console.warn("[stubs stream] SSE connection state:", eventSource.readyState, err);
+        this.logger.warn("[stubs stream] SSE connection state:", eventSource.readyState, err);
       };
 
       return () => {
         eventSource.close();
       };
     } catch (err: unknown) {
-      console.error("[stubs stream] Unable to create EventSource:", err);
+      this.logger.error("[stubs stream] Unable to create EventSource:", err);
       return () => {};
     }
   }

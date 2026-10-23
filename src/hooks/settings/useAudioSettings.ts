@@ -4,7 +4,7 @@ import { getSafeWindowSpeechSynthesis } from "../../utils/platform";
 import { useServices } from "../../services/ServiceContext";
 
 export function useAudioSettings(initialSettings: SpeechSettings, onSave: (settings: SpeechSettings) => void) {
-  const { speechVoicesService } = useServices();
+  const { speechVoicesService, logger } = useServices();
   const [currentSpeechSettings, setCurrentSpeechSettings] = useState<SpeechSettings>(initialSettings);
   const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export function useAudioSettings(initialSettings: SpeechSettings, onSave: (setti
         };
         await audio.play();
       } catch (err) {
-        console.error("Failed to preview TTS voice:", err);
+        logger.error("Failed to preview TTS voice:", err);
         setPreviewError("Failed to load Gemini TTS voice preview.");
         setPreviewingVoiceId(null);
         setIsPreviewLoading(false);

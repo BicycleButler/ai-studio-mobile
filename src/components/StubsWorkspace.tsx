@@ -43,7 +43,7 @@ type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal
 
 
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
-  const { julesClient } = useServices();
+  const { julesClient, logger } = useServices();
     // Navigation & Sub-views
   const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
@@ -119,9 +119,9 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
         flowchart: { curve: "basis" },
       });
     } catch {
-      console.warn("Mermaid initialization warning: suppressed");
+      logger.warn("Mermaid initialization warning: suppressed");
     }
-  }, []);
+  }, [logger]);
 
   // Fetch Jules Repositories for top switcher
   useEffect(() => {

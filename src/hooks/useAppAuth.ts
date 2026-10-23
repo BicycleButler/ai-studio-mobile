@@ -4,7 +4,7 @@ import { useServices } from "../services/ServiceContext";
 import { loadStoredApiKey, saveStoredApiKey } from "../utils/storage";
 
 export function useAppAuth() {
-  const { googleAuthService } = useServices();
+  const { googleAuthService, logger } = useServices();
 
   const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => googleAuthService.loadStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState<boolean>(false);
@@ -21,7 +21,7 @@ export function useAppAuth() {
       const u = await googleAuthService.initiateGoogleLogin();
       setGoogleUser(u);
     } catch (err) {
-      console.error("Google login failed", err);
+      logger.error("Google login failed", err);
     }
   };
 
@@ -30,7 +30,7 @@ export function useAppAuth() {
       await googleAuthService.logoutGoogleUser();
       setGoogleUser(null);
     } catch (err) {
-      console.error("Logout failed", err);
+      logger.error("Logout failed", err);
     }
   };
 
@@ -48,8 +48,8 @@ export function useAppAuth() {
         }
         refreshServerAuth();
       })
-      .catch(console.error);
-  }, [googleAuthService]);
+      .catch((err) => logger.error("Auth init failed", err));
+  }, [googleAuthService, logger]);
 
   return {
     googleUser,

@@ -133,7 +133,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [isOptimizingImage, setIsOptimizingImage] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const { speechVoicesService } = useServices();
+  const { speechVoicesService, logger } = useServices();
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBufferingAudio, setIsBufferingAudio] = useState(false);
@@ -868,13 +868,13 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         };
 
         audio.onerror = () => {
-          console.warn("Audio element error, falling back to on-device natural voice");
+          logger.warn("Audio element error, falling back to on-device natural voice");
           fallbackToDeviceSpeech(contentToSpeak);
         };
 
         await audio.play();
       } catch (err: unknown) {
-        console.warn("Gemini Studio TTS failed, falling back to on-device voice:", err);
+        logger.warn("Gemini Studio TTS failed, falling back to on-device voice:", err);
         fallbackToDeviceSpeech(contentToSpeak);
       }
     } else {
@@ -939,7 +939,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       );
       setAttachments((prev) => [...prev, ...compressedList]);
     } catch (err: unknown) {
-      console.error("Failed to compress image attachment:", err);
+      logger.error("Failed to compress image attachment:", err);
     } finally {
       setIsOptimizingImage(false);
       if (fileInputRef.current) {
