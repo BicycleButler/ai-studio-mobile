@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
-import { fetchJulesRepositories } from "../services/julesService";
 import { useServices } from "../services/ServiceContext";
 import { loadStoredJulesApiKey } from "../utils/storage";
 import { safeAddEventListener } from "../utils/platform";
@@ -53,7 +52,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   onBulkDeleteSessions,
   onOpenApiKeyModal,
 }) => {
-  const { julesStorageService } = useServices();
+  const { julesStorageService, julesClient } = useServices();
   const [sessions, setSessions] = useState<JulesSession[]>([]);
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
@@ -131,7 +130,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
       if (key) {
         setLoadingRepos(true);
-        fetchJulesRepositories(key)
+        julesClient.fetchRepositories(key)
           .then((repos) => {
             setRepositories(repos);
             if (repos.length > 0 && !selectedRepo) {

@@ -169,14 +169,3 @@ export class ThemeService implements IThemeService {
 }
 
 export const defaultThemeService = new ThemeService();
-
-
-
-
-
-
-
-
-
-export function subscribeToTheme(listener: ThemeListener): () => void { return defaultThemeService.subscribeToTheme(listener); }
-export function initThemeService(): () => void { return defaultThemeService.initThemeService(); }

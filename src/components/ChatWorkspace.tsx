@@ -46,9 +46,6 @@ import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { useStore } from "../hooks/useStore";
 import {
-  getChatCollection,
-  deleteChatSession,
-  bulkDeleteChatSessions,
   isMockChatSession,
 } from "../services/chatHistoryService";
 import {  } from "../utils/timeUtils";
@@ -150,8 +147,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const { julesStorageService } = useServices();
-  const rawChatSessions = useStore(getChatCollection(activeProjectId));
+  const { julesStorageService, chatHistoryService } = useServices();
+  const rawChatSessions = useStore(chatHistoryService.getChatCollection(activeProjectId));
   const julesSessionsState = useStore(julesStorageService.julesSessionsManager);
 
   const historySessions = useMemo<ChatSession[]>(() => {
@@ -191,7 +188,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   } = useBulkActionConfirm({
     onConfirm: () => {
       const ids = Array.from(selectedHistoryIds);
-      bulkDeleteChatSessions(ids, activeProjectId || "");
+      chatHistoryService.bulkDeleteChatSessions(ids, activeProjectId || "");
 
       // Check if current session was deleted
       if (new Set(ids).has(currentSessionId!)) {
@@ -997,7 +994,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         }
       }
     } else {
-      deleteChatSession(sessionId, activeProjectId);
+      chatHistoryService.deleteChatSession(sessionId, activeProjectId);
       if (sessionId === currentSessionId) {
         if (onNewChat) {
           onNewChat();

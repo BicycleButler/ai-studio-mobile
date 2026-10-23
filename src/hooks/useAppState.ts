@@ -8,12 +8,6 @@ import { useUIState } from "./useUIState";
 import { useModelConfig } from "./useModelConfig";
 import { PromptType, ChatMessage, ChatSession } from "../types";
 import {
-  saveChatSession,
-  generateSessionTitle,
-  purgeMockSessionsFromStorage,
-} from "../services/chatHistoryService";
-
-import {
   loadStoredApiKey,
   saveStoredApiKey,
   loadDraftState,
@@ -24,6 +18,7 @@ import { fetchModels, isDeprecatedOrUnusableModel } from "../utils/modelCatalog"
 import { ModelInfo } from "../types";
 
 export function useAppState() {
+  const { chatHistoryService } = useServices();
   // Load initial app draft safely before deriving other states
   const initialActiveProjectId = (() => {
     try {
@@ -166,10 +161,10 @@ export function useAppState() {
         (m: ChatMessage) => m.text.trim().length > 0 || (m.images && m.images.length > 0)
       );
       if (hasMeaningfulContent) {
-        saveChatSession(
+        chatHistoryService.saveChatSession(
           {
             id: chatSession.currentSessionId,
-            title: generateSessionTitle(chatSession.messages),
+            title: chatHistoryService.generateSessionTitle(chatSession.messages),
             messages: chatSession.messages,
             createdAt: Date.now(),
             updatedAt: Date.now(),
@@ -184,7 +179,7 @@ export function useAppState() {
 
   // Init Effects
   useEffect(() => {
-    purgeMockSessionsFromStorage();
+    chatHistoryService.purgeMockSessionsFromStorage();
 
     authService.fetchServerHealth()
       .then((data) => {

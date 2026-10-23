@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { GenerateRequestBody } from "../types";
-import { streamGeminiContent, GeminiApiError, formatStreamError } from "../services/geminiStreamService";
+import { GeminiApiError, formatStreamError } from "../services/geminiStreamService";
+import { useServices } from "../services/ServiceContext";
 
 export interface UseGeminiStreamOptions {
   customApiKey?: string;
@@ -24,6 +25,7 @@ export interface UseGeminiStreamReturn {
 }
 
 export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGeminiStreamReturn {
+  const { geminiStreamService } = useServices();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<GeminiApiError | null>(null);
@@ -76,7 +78,7 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
       setTokenCount(0);
 
       try {
-        const result = await streamGeminiContent(
+        const result = await geminiStreamService.streamGeminiContent(
           payload,
           {
             onChunk: (accumulatedText) => {

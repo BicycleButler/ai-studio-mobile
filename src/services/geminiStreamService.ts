@@ -267,20 +267,3 @@ export class GeminiStreamService implements IGeminiStreamService {
 }
 
 export const defaultGeminiStreamService = new GeminiStreamService();
-
-export async function fetchGenerateContent(payload: GenerateRequestBody, options?: StreamOptions): Promise<{
-  text?: string;
-  durationMs?: number;
-  error?: string;
-  usageMetadata?: { totalTokenCount?: number };
-}> {
-  return defaultGeminiStreamService.fetchGenerateContent(payload, options);
-}
-
-export async function streamGeminiContent(
-  payload: GenerateRequestBody,
-  callbacks: StreamCallbacks,
-  options?: StreamOptions
-): Promise<{ text: string; durationMs: number; totalTokens: number }> {
-  return defaultGeminiStreamService.streamGeminiContent(payload, callbacks, options);
-}

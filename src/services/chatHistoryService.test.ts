@@ -1,15 +1,8 @@
 import { describe, test } from 'vitest';
 import {
-  getChatSessions,
-  saveChatSession,
-  getChatSessionById,
-  deleteChatSession,
-
-  clearAllChatSessions,
-  generateSessionTitle,
+  defaultChatHistoryService,
   getChatSessionsStorageKey,
   isMockChatSession,
-  purgeMockSessionsFromStorage,
 } from "./chatHistoryService";
 import { formatRelativeTime } from "../utils/timeUtils";
 import { ChatSession, ChatMessage } from "../types";
@@ -32,15 +25,15 @@ describe('testChatHistoryService', () => {
   }
 
   // Attempting to save mock session should be safely ignored
-  clearAllChatSessions(activeProjectId);
-  saveChatSession(mockCandidateSession, activeProjectId);
-  if (getChatSessions(activeProjectId).length !== 0) {
+  defaultChatHistoryService.clearAllChatSessions(activeProjectId);
+  defaultChatHistoryService.saveChatSession(mockCandidateSession, activeProjectId);
+  if (defaultChatHistoryService.getChatSessions(activeProjectId).length !== 0) {
     throw new Error("Mock sessions must never be saved or returned in chat history");
   }
 
   // 2. Clean initial state for authentic user sessions
-  clearAllChatSessions(activeProjectId);
-  let sessions = getChatSessions(activeProjectId);
+  defaultChatHistoryService.clearAllChatSessions(activeProjectId);
+  let sessions = defaultChatHistoryService.getChatSessions(activeProjectId);
   if (sessions.length !== 0) {
     throw new Error("Expected initial chat sessions to be empty");
   }
@@ -61,7 +54,7 @@ describe('testChatHistoryService', () => {
     },
   ];
 
-  const generatedTitle = generateSessionTitle(realMessages);
+  const generatedTitle = defaultChatHistoryService.generateSessionTitle(realMessages);
   if (!generatedTitle.startsWith("How do I implement dynamic")) {
     throw new Error(`Unexpected generated title: ${generatedTitle}`);
   }
@@ -77,13 +70,13 @@ describe('testChatHistoryService', () => {
     model: "gemini-2.5-flash",
   };
 
-  saveChatSession(realSession1, activeProjectId);
-  sessions = getChatSessions(activeProjectId);
+  defaultChatHistoryService.saveChatSession(realSession1, activeProjectId);
+  sessions = defaultChatHistoryService.getChatSessions(activeProjectId);
   if (sessions.length !== 1) {
     throw new Error(`Expected 1 saved session, got ${sessions.length}`);
   }
 
-  const fetched = getChatSessionById("sess_material_theme_001", activeProjectId);
+  const fetched = defaultChatHistoryService.getChatSessionById("sess_material_theme_001", activeProjectId);
   if (!fetched || fetched.id !== "sess_material_theme_001") {
     throw new Error("Failed to fetch session by ID");
   }
@@ -99,7 +92,7 @@ describe('testChatHistoryService', () => {
     },
   ];
 
-  saveChatSession(
+  defaultChatHistoryService.saveChatSession(
     {
       ...realSession1,
       messages: updatedMessages,
@@ -107,7 +100,7 @@ describe('testChatHistoryService', () => {
     activeProjectId
   );
 
-  const updated = getChatSessionById("sess_material_theme_001", activeProjectId);
+  const updated = defaultChatHistoryService.getChatSessionById("sess_material_theme_001", activeProjectId);
   if (!updated || updated.messages.length !== 3) {
     throw new Error(`Expected updated session to have 3 messages, got ${updated?.messages.length}`);
   }
@@ -129,11 +122,11 @@ describe('testChatHistoryService', () => {
   }
 
   // 8. Test deleting session
-  const deleted = deleteChatSession("sess_material_theme_001", activeProjectId);
+  const deleted = defaultChatHistoryService.deleteChatSession("sess_material_theme_001", activeProjectId);
   if (!deleted) {
     throw new Error("Failed to delete sess_material_theme_001");
   }
-  if (getChatSessions(activeProjectId).length !== 0) {
+  if (defaultChatHistoryService.getChatSessions(activeProjectId).length !== 0) {
     throw new Error("Expected 0 sessions after deletion");
   }
 
@@ -154,18 +147,18 @@ describe('testChatHistoryService', () => {
     updatedAt: 2000,
     projectId: activeProjectId,
   };
-  saveChatSession(sessionAlpha, activeProjectId);
-  saveChatSession(sessionBeta, activeProjectId);
-  const orderedSessions = getChatSessions(activeProjectId);
+  defaultChatHistoryService.saveChatSession(sessionAlpha, activeProjectId);
+  defaultChatHistoryService.saveChatSession(sessionBeta, activeProjectId);
+  const orderedSessions = defaultChatHistoryService.getChatSessions(activeProjectId);
   if (orderedSessions.length !== 2 || orderedSessions[0].id !== "sess_later_arch_conv_2") {
     throw new Error("Expected sessions to be ordered with newest first");
   }
 
   // 10. Test storage purge
-  purgeMockSessionsFromStorage();
+  defaultChatHistoryService.purgeMockSessionsFromStorage();
 
   // Cleanup
-  clearAllChatSessions(activeProjectId);
+  defaultChatHistoryService.clearAllChatSessions(activeProjectId);
 
   });
 });
