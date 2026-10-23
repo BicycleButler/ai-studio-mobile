@@ -1,8 +1,6 @@
 import { describe, test } from 'vitest';
 import {
   defaultChatHistoryService,
-  getChatSessionsStorageKey,
-  isMockChatSession,
 } from "./chatHistoryService";
 import { formatRelativeTime } from "../utils/timeUtils";
 import { ChatSession, ChatMessage } from "../types";
@@ -20,7 +18,7 @@ describe('testChatHistoryService', () => {
     updatedAt: 1000,
     projectId: activeProjectId,
   };
-  if (!isMockChatSession(mockCandidateSession)) {
+  if (!defaultChatHistoryService.isMockChatSession(mockCandidateSession)) {
     throw new Error("Expected mock session to be flagged by isMockChatSession");
   }
 
@@ -117,7 +115,7 @@ describe('testChatHistoryService', () => {
   }
 
   // 7. Test storage key generation
-  if (getChatSessionsStorageKey("proj_123") !== "ai_studio_chat_sessions_v1_proj_123") {
+  if (defaultChatHistoryService.getChatSessionsStorageKey("proj_123") !== "ai_studio_chat_sessions_v1_proj_123") {
     throw new Error("Invalid project storage key");
   }
 

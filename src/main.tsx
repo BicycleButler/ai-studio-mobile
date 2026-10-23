@@ -6,7 +6,7 @@ import './index.css';
 import { defaultThemeService } from './services/themeService';
 import { defaultGoogleAuthService } from './services/googleAuth';
 import { FirebaseAuthProvider } from './services/firebaseAuthProvider';
-import { initializeChatHistoryService } from './services/chatHistoryService';
+import { defaultChatHistoryService } from './services/chatHistoryService';
 
 import { ServiceProvider } from './services/ServiceContext';
 import { registerSW } from 'virtual:pwa-register';
@@ -15,7 +15,7 @@ import { registerSW } from 'virtual:pwa-register';
 defaultGoogleAuthService.setAuthProvider(new FirebaseAuthProvider());
 
 // Initialize core services on startup
-initializeChatHistoryService();
+defaultChatHistoryService.purgeMockSessionsFromStorage();
 // Initialize theme immediately on startup to prevent theme flash
 defaultThemeService.initThemeService();
 

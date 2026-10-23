@@ -1,15 +1,11 @@
 import { getErrorMessage } from "../../utils/errorHandling";
 import { useState, useCallback } from "react";
 import { StubsSidecarSpec } from "../../types";
-import {
-  fetchSidecarSpecs,
-  fetchSpecDetail,
-  saveSpecContent,
-  materializeSpec,
-} from "../../services/stubsService";
+import { useServices } from "../../services/ServiceContext";
 
 
 export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: () => void) {
+  const { stubsClient } = useServices();
   const [specs, setSpecs] = useState<StubsSidecarSpec[]>([]);
   const [activeSpecPath, setActiveSpecPath] = useState<string>("");
   const [specContent, setSpecContent] = useState<string>("");
@@ -23,17 +19,17 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
   const selectSpec = useCallback(async (path: string) => {
     setActiveSpecPath(path);
     try {
-      const detail = await fetchSpecDetail(path);
+      const detail = await stubsClient.fetchSpecDetail(path);
       setSpecContent(detail.content);
     } catch (err: unknown) {
       showToast(`Failed to read spec: ${getErrorMessage(err)}`);
     }
-  }, [showToast]);
+  }, [showToast, stubsClient]);
 
   const loadSpecs = useCallback(async () => {
     setIsLoadingSpecs(true);
     try {
-      const res = await fetchSidecarSpecs();
+      const res = await stubsClient.fetchSidecarSpecs();
       setSpecs(res.specs);
       if (res.specs.length > 0 && !activeSpecPath) {
         selectSpec(res.specs[0].path);
@@ -43,13 +39,13 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
     } finally {
       setIsLoadingSpecs(false);
     }
-  }, [activeSpecPath, selectSpec, showToast]);
+  }, [activeSpecPath, selectSpec, showToast, stubsClient]);
 
   const saveSpec = useCallback(async () => {
     if (!activeSpecPath) return;
     setIsSavingSpec(true);
     try {
-      await saveSpecContent(activeSpecPath, specContent);
+      await stubsClient.saveSpecContent(activeSpecPath, specContent);
       setSpecActionToast(`Saved ${activeSpecPath}`);
       setTimeout(() => setSpecActionToast(null), 3000);
     } catch (err: unknown) {
@@ -57,13 +53,13 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
     } finally {
       setIsSavingSpec(false);
     }
-  }, [activeSpecPath, specContent, showToast]);
+  }, [activeSpecPath, specContent, showToast, stubsClient]);
 
   const materializeActiveSpec = useCallback(async () => {
     if (!activeSpecPath) return;
     setIsMaterializingSpec(true);
     try {
-      const res = await materializeSpec(activeSpecPath);
+      const res = await stubsClient.materializeSpec(activeSpecPath);
       setSpecActionToast(res.message);
       setTimeout(() => setSpecActionToast(null), 4000);
       showToast(res.message);
@@ -76,7 +72,7 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
     } finally {
       setIsMaterializingSpec(false);
     }
-  }, [activeSpecPath, loadSpecs, showToast, onDataUpdated]);
+  }, [activeSpecPath, loadSpecs, showToast, onDataUpdated, stubsClient]);
 
   return {
     specs,

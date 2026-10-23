@@ -18,34 +18,6 @@ export interface StreamOptions {
 /**
  * Strips raw Google API keys and project tokens from strings before logging or UI exposure.
  */
-export function sanitizeLogMessage(message: string): string {
-  if (!message) return "";
-  return message
-    .replace(/AIza[0-9A-Za-z\-_]{35}/g, (match) => `${match.slice(0, 4)}...${match.slice(-4)}`)
-    .replace(/AQ\.[0-9A-Za-z\-_]{10,}/g, (match) => `${match.slice(0, 4)}...[REDACTED]`);
-}
-
-/**
- * Scrubs sensitive authentication and authorization headers from client error-logging payloads.
- */
-export function sanitizeHeadersForLogging(headers: Record<string, string>): Record<string, string> {
-  const sanitized: Record<string, string> = {};
-  for (const [key, value] of Object.entries(headers)) {
-    const lower = key.toLowerCase();
-    if (
-      lower.includes("key") ||
-      lower.includes("auth") ||
-      lower.includes("bearer") ||
-      lower.includes("secret") ||
-      lower.includes("token")
-    ) {
-      sanitized[key] = value.length > 8 ? `${value.slice(0, 4)}...[SCRUBBED]` : "[REDACTED]";
-    } else {
-      sanitized[key] = value;
-    }
-  }
-  return sanitized;
-}
 
 export class GeminiApiError extends Error {
   public statusCode?: number;
@@ -56,7 +28,9 @@ export class GeminiApiError extends Error {
   public isUnavailable: boolean;
 
   constructor(rawMessage: string, statusCode?: number) {
-    const cleanMessage = sanitizeLogMessage(rawMessage);
+    const cleanMessage = rawMessage
+      .replace(/AIza[0-9A-Za-z\-_]{35}/g, (match) => `${match.slice(0, 4)}...${match.slice(-4)}`)
+      .replace(/AQ\.[0-9A-Za-z\-_]{10,}/g, (match) => `${match.slice(0, 4)}...[REDACTED]`);
     super(cleanMessage);
     this.name = "GeminiApiError";
     this.statusCode = statusCode;
@@ -102,34 +76,6 @@ export class GeminiApiError extends Error {
   }
 }
 
-/**
- * Standardizes headers for requests to the backend proxy
- */
-export function buildHeaders(customApiKey?: string): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (customApiKey && customApiKey.trim()) {
-    headers["x-gemini-api-key"] = customApiKey.trim();
-  }
-  return headers;
-}
-
-/**
- * Normalizes error messages from API or network failures
- */
-export function formatStreamError(err: unknown): GeminiApiError {
-  if (err instanceof GeminiApiError) {
-    return err;
-  }
-  if (isAbortError(err)) {
-    return new GeminiApiError("Generation stopped by user.");
-  }
-  if (err instanceof Error) {
-    return new GeminiApiError(err.message);
-  }
-  return new GeminiApiError("An unexpected error occurred during generation.");
-}
 
 
 
@@ -151,6 +97,55 @@ export interface IGeminiStreamService {
 export class GeminiStreamService implements IGeminiStreamService {
   constructor(private fetchFn = apiFetch, private fetchStreamFn = apiFetchStream) {}
 
+  public sanitizeLogMessage(message: string): string {
+    if (!message) return "";
+    return message
+      .replace(/AIza[0-9A-Za-z\-_]{35}/g, (match) => `${match.slice(0, 4)}...${match.slice(-4)}`)
+      .replace(/AQ\.[0-9A-Za-z\-_]{10,}/g, (match) => `${match.slice(0, 4)}...[REDACTED]`);
+  }
+
+  public sanitizeHeadersForLogging(headers: Record<string, string>): Record<string, string> {
+    const sanitized: Record<string, string> = {};
+    for (const [key, value] of Object.entries(headers)) {
+      const lower = key.toLowerCase();
+      if (
+        lower.includes("key") ||
+        lower.includes("auth") ||
+        lower.includes("bearer") ||
+        lower.includes("secret") ||
+        lower.includes("token")
+      ) {
+        sanitized[key] = value.length > 8 ? `${value.slice(0, 4)}...[SCRUBBED]` : "[REDACTED]";
+      } else {
+        sanitized[key] = value;
+      }
+    }
+    return sanitized;
+  }
+
+  public buildHeaders(customApiKey?: string): Record<string, string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (customApiKey && customApiKey.trim()) {
+      headers["x-gemini-api-key"] = customApiKey.trim();
+    }
+    return headers;
+  }
+
+  public formatStreamError(err: unknown): GeminiApiError {
+    if (err instanceof GeminiApiError) {
+      return err;
+    }
+    if (isAbortError(err)) {
+      return new GeminiApiError("Generation stopped by user.");
+    }
+    if (err instanceof Error) {
+      return new GeminiApiError(err.message);
+    }
+    return new GeminiApiError("An unexpected error occurred during generation.");
+  }
+
   public async fetchGenerateContent(payload: GenerateRequestBody, options?: StreamOptions): Promise<{
     text?: string;
     durationMs?: number;
@@ -159,7 +154,7 @@ export class GeminiStreamService implements IGeminiStreamService {
   }> {
     return this.fetchFn("/api/generate", {
       method: "POST",
-      headers: buildHeaders(options?.apiKey),
+      headers: this.buildHeaders(options?.apiKey),
       signal: options?.signal,
       body: JSON.stringify(payload),
     });
@@ -175,20 +170,24 @@ export class GeminiStreamService implements IGeminiStreamService {
     options?: StreamOptions
   ): Promise<{ text: string; durationMs: number; totalTokens: number }> {
     let response: Response;
+    const reqOptions: RequestInit = {
+      method: "POST",
+      headers: this.buildHeaders(options?.apiKey),
+      signal: options?.signal,
+      body: JSON.stringify({
+        ...payload,
+        stream: true,
+      }),
+    };
     try {
-      response = await this.fetchStreamFn("/api/generate", {
-        method: "POST",
-        headers: buildHeaders(options?.apiKey),
-        signal: options?.signal,
-        body: JSON.stringify({
-          ...payload,
-          stream: true,
-        }),
-      });
+      response = await this.fetchStreamFn("/api/generate", reqOptions);
     } catch (err: unknown) {
       if (err instanceof BaseApiError) {
         throw new GeminiApiError(err.message, err.statusCode);
       }
+      // If we failed entirely, try to log sanitized headers
+      const safeHeaders = this.sanitizeHeadersForLogging(reqOptions.headers as Record<string, string>);
+      this.logger.error(`Stream initialization failed`, { headers: safeHeaders, err });
       throw new GeminiApiError("Streaming API request failed", 500);
     }
 
@@ -259,7 +258,16 @@ export class GeminiStreamService implements IGeminiStreamService {
       callbacks.onDone?.({ durationMs, totalTokens });
       return { text: accumulatedText, durationMs, totalTokens };
     } catch (err: unknown) {
-      const formatted = formatStreamError(err);
+      let formatted: GeminiApiError;
+      if (err instanceof GeminiApiError) {
+        formatted = err;
+      } else if (isAbortError(err)) {
+        formatted = new GeminiApiError("Generation stopped by user.");
+      } else if (err instanceof Error) {
+        formatted = new GeminiApiError(err.message);
+      } else {
+        formatted = new GeminiApiError("An unexpected error occurred during generation.");
+      }
       callbacks.onError?.(formatted);
       throw formatted;
     }

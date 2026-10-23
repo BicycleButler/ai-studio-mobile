@@ -45,9 +45,6 @@ import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { useStore } from "../hooks/useStore";
-import {
-  isMockChatSession,
-} from "../services/chatHistoryService";
 import {  } from "../utils/timeUtils";
 import { JulesActivityCard } from "./JulesActivityCard";
 import { GoogleIcon } from "./GoogleIcon";
@@ -166,8 +163,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   }, [isJulesMode, julesSessionsState.items, rawChatSessions]);
 
   const validHistorySessions = useMemo(() => {
-    return historySessions.filter((s) => !isMockChatSession(s));
-  }, [historySessions]);
+    return historySessions.filter((s) => !chatHistoryService.isMockChatSession(s));
+  }, [historySessions, chatHistoryService]);
 
   const {
     selectedIds: selectedHistoryIds,

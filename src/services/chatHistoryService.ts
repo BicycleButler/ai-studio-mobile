@@ -196,35 +196,4 @@ export class ChatHistoryService implements IChatHistoryService {
 
 export const defaultChatHistoryService = new ChatHistoryService();
 
-/**
- * Returns the storage key scoped by project
- */
-export function getChatSessionsStorageKey(projectId?: string): string {
-  return defaultChatHistoryService.getChatSessionsStorageKey(projectId);
-}
-
-/**
- * Identifies if a chat session is synthetic, test, or mock data.
- * Mock data is strictly forbidden from appearing in user chat history,
- * even in the development environment.
- */
-export function isMockChatSession(session: Partial<ChatSession>): boolean {
-  return defaultChatHistoryService.isMockChatSession(session);
-}
-
-/**
- * Purges all mock/test sessions and stale synthetic keys from persistent storage.
- * Automatically runs on module initialization and session queries to ensure
- * zero mock data remains in storage.
- */
-export function initializeChatHistoryService(): void {
-  defaultChatHistoryService.purgeMockSessionsFromStorage();
-}
-
-/**
- * Sanitizes messages by removing heavy base64 image data before persisting
- */
-export function sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[] {
-  return defaultChatHistoryService.sanitizeMessagesForHistory(messages);
-}
 

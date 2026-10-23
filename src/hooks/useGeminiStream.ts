@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { GenerateRequestBody } from "../types";
-import { GeminiApiError, formatStreamError } from "../services/geminiStreamService";
+import { GeminiApiError } from "../services/geminiStreamService";
 import { useServices } from "../services/ServiceContext";
 
 export interface UseGeminiStreamOptions {
@@ -99,8 +99,8 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
         optionsRef.current.onComplete?.(result);
         return result;
       } catch (err: unknown) {
-        // Map raw unknown errors cleanly through the abstraction layer using `formatStreamError`
-        const apiErr = formatStreamError(err);
+        // Map raw unknown errors cleanly through the abstraction layer using `geminiStreamService.formatStreamError`
+        const apiErr = geminiStreamService.formatStreamError(err);
         setError(apiErr.message);
         setErrorDetails(apiErr);
         optionsRef.current.onError?.(apiErr);
