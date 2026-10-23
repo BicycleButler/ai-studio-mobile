@@ -20,8 +20,6 @@ import {
 
 import { generateUniqueId } from "../utils/idGenerator";
 
-import { fetchGenerateContent } from "../services/geminiStreamService";
-
 import { IDEWorkspaceProps } from "./WorkspaceRouter";
 import { useServices } from "../services/ServiceContext";
 
@@ -53,7 +51,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   onSwitchToPrompt: _onSwitchToPrompt,
   onOpenParameters,
 }) => {
-  const { codeGeneratorService } = useServices();
+  const { codeGeneratorService, geminiStreamService } = useServices();
 
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [
@@ -216,7 +214,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       addConsoleLog("info", `[IDE] Sending payload to Google AI Studio (/api/generate)...`);
       addConsoleLog("info", `[IDE] Target Model: ${config.model} | System: ${config.systemInstruction ? "Active" : "None"}`);
 
-      const data = await fetchGenerateContent({
+      const data = await geminiStreamService.fetchGenerateContent({
         model: config.model,
         messages: [{ role: "user", text: promptQuery }],
         systemInstruction: config.systemInstruction || undefined,

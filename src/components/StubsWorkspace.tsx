@@ -32,8 +32,7 @@ import { StubsSpecsTab } from "./stubs/StubsSpecsTab";
 import { useStubsTerminal } from "../hooks/stubs/useStubsTerminal";
 import { useStubsData } from "../hooks/stubs/useStubsData";
 import { useStubsSpecs } from "../hooks/stubs/useStubsSpecs";
-import { fetchJulesRepositories } from "../services/julesService";
-
+import { useServices } from "../services/ServiceContext";
 
 export interface StubsWorkspaceProps {
   onOpenBottomNav?: () => void;
@@ -44,6 +43,7 @@ type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal
 
 
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
+  const { julesClient } = useServices();
     // Navigation & Sub-views
   const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
@@ -125,7 +125,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
 
   // Fetch Jules Repositories for top switcher
   useEffect(() => {
-    fetchJulesRepositories()
+    julesClient.fetchRepositories()
       .then((repos) => {
         if (Array.isArray(repos)) {
           setRepositories(repos);

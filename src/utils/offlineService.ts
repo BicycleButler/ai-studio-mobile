@@ -246,37 +246,3 @@ export class OfflineService implements IOfflineService {
 }
 
 export const defaultOfflineService = new OfflineService();
-
-// Export the observable for backwards compatibility if anyone imports it directly.
-export const queueObservable = defaultOfflineService.queueObservable;
-
-export function registerSyncHandler(type: string, handler: SyncHandler) {
-  defaultOfflineService.registerSyncHandler(type, handler);
-}
-
-export async function enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {
-  return defaultOfflineService.enqueueOfflineMutation(type, payload, version);
-}
-
-export async function removeOfflineMutation(id: string): Promise<void> {
-  return defaultOfflineService.removeOfflineMutation(id);
-}
-
-export async function getOfflineQueueLength(): Promise<number> {
-  return defaultOfflineService.getOfflineQueueLength();
-}
-
-export async function clearOfflineMutations(): Promise<void> {
-  return defaultOfflineService.clearOfflineMutations();
-}
-
-export async function processOfflineMutations(): Promise<{
-  success: boolean;
-  conflicts: ConflictData[];
-}> {
-  return defaultOfflineService.processOfflineMutations();
-}
-
-export async function getOfflineQueue(): Promise<OfflineMutation[]> {
-  return defaultOfflineService.getOfflineQueue();
-}
