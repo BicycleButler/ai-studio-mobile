@@ -471,3 +471,17 @@ Remove all context hooks and explicitly drill the required `JulesClient` and `Ju
 
 **Decision:**
 Proxy functions were successfully removed. Consumers (like tests) were updated to use the singleton explicitly, establishing a pattern for robust abstraction where `ServiceContext` rules dependency injection instead of global module properties.
+
+## Architectural Decision: Storage Component Interface Injection
+
+**Context:**
+`ChatHistoryService`, `DraftStateService`, and `ActiveItemManagerFactory` directly instantiated concrete storage implementations (`StorageCollection`, `StorageSingleton`, `StorageRegistry`) internally via the `new` keyword. This hardcoded dependency violated the Dependency Inversion Principle, making it impossible to substitute mock collections or remote storage implementations for these domain services in testing or differing environments.
+
+**Path 1: Direct Interface Injection (Composition)**
+Update the configuration objects (e.g., `ChatHistoryServiceConfig`, `DraftStateServiceConfig`, `CreateActiveItemManagerOptions`) to accept generic storage interfaces (`IStorageRegistry`, `IMutableCollection`, `IMutableSingleton`). The services use these injected dependencies if provided, only falling back to instantiating concrete implementations if omitted for backward compatibility.
+
+**Path 2: Injectable Factory Interface (Abstract Factory)**
+Create an `IStorageFactory` interface responsible for instantiating registries, collections, and singletons. Inject this factory into the services, abstracting the `new` keyword behind the factory implementation.
+
+**Recommendation:**
+**Path 1 (Direct Interface Injection)** was implemented. It perfectly leverages the existing interface abstractions (`IMutableCollection`, `IMutableSingleton`, `IStorageRegistry`) without introducing a complex abstract factory layer. It satisfies Dependency Inversion, vastly improving Generality and testability by allowing direct injection of mock storage instances.

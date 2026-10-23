@@ -1,6 +1,7 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection, StorageRegistry, globalStorageQuotaObservable } from "../utils/storage";
+import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection, StorageRegistry, globalStorageQuotaObservable, IStorageRegistry } from "../utils/storage";
+import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, defaultLogger } from "../utils/logger";
 import { isMockSession } from "../utils/mockDefinitions";
 
@@ -10,7 +11,7 @@ export interface IChatHistoryService {
   purgeMockSessionsFromStorage(): void;
   sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[];
   generateSessionTitle(messages: ChatMessage[], maxLength?: number): string;
-  getChatCollection(projectId?: string): StorageCollection<ChatSession>;
+  getChatCollection(projectId?: string): IMutableCollection<ChatSession>;
   getChatSessions(projectId?: string): ChatSession[];
   saveChatSession(session: ChatSession, projectId?: string): void;
   getChatSessionById(sessionId: string, projectId?: string): ChatSession | null;
@@ -23,18 +24,28 @@ export interface ChatHistoryServiceConfig {
   quotaObservable?: typeof globalStorageQuotaObservable;
   storageKeys?: typeof STORAGE_KEYS;
   logger?: ILogger;
+  collectionRegistry?: IStorageRegistry<IMutableCollection<ChatSession>>;
 }
 
 export class ChatHistoryService implements IChatHistoryService {
   private unsubscribeQuota: () => void;
   private config: Required<ChatHistoryServiceConfig>;
+  private collectionRegistry: IStorageRegistry<IMutableCollection<ChatSession>>;
 
   constructor(config?: ChatHistoryServiceConfig) {
     this.config = {
       quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
+      collectionRegistry: config?.collectionRegistry || new StorageRegistry<IMutableCollection<ChatSession>>((key) => {
+        return new StorageCollection<ChatSession>(key, {
+          keyExtractor: (item) => String(item.id || ""),
+          validate: (s) => !this.isMockChatSession(s as Partial<ChatSession>),
+          maxItems: 100,
+        });
+      }),
     };
+    this.collectionRegistry = this.config.collectionRegistry;
     this.unsubscribeQuota = this.config.quotaObservable.subscribe(() => {
       this.handleQuotaExceeded();
     });
@@ -65,19 +76,11 @@ export class ChatHistoryService implements IChatHistoryService {
     }
   }
 
-  private collectionRegistry = new StorageRegistry<StorageCollection<ChatSession>>((key) => {
-    return new StorageCollection<ChatSession>(key, {
-      keyExtractor: (item) => String(item.id || ""),
-      validate: (s) => !this.isMockChatSession(s as Partial<ChatSession>),
-      maxItems: 100,
-    });
-  });
-
-  private getChatCollectionByKey(key: string): StorageCollection<ChatSession> {
+  private getChatCollectionByKey(key: string): IMutableCollection<ChatSession> {
     return this.collectionRegistry.get(key);
   }
 
-  public getChatCollection(projectId?: string): StorageCollection<ChatSession> {
+  public getChatCollection(projectId?: string): IMutableCollection<ChatSession> {
     const key = this.getChatSessionsStorageKey(projectId);
     return this.getChatCollectionByKey(key);
   }
