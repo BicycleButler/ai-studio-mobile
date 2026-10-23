@@ -6,44 +6,24 @@ import { JulesTaskPayload } from "../services/julesService";
 
 import { useServices } from "../services/ServiceContext";
 
-
 export function useJules() {
   const { julesStorageService, julesClient } = useServices();
   const julesSessionsManager = julesStorageService.julesSessionsManager;
   const [julesApiKey, setJulesApiKey] = useState<string>(() => julesStorageService.loadStoredJulesApiKey());
+
   const julesStore = useStore(julesSessionsManager);
   const julesSessions = julesStore.items;
-  const setJulesSessions: React.Dispatch<React.SetStateAction<JulesSession[]>> = (val) => {
-    if (typeof val === "function") {
-      julesSessionsManager.collection.save(val(julesSessions));
-    } else {
-      julesSessionsManager.collection.save(val);
-    }
-  };
   const activeJulesSession = julesStore.activeItem;
-  const setActiveJulesSession: React.Dispatch<React.SetStateAction<JulesSession | null>> = (val) => {
-    if (typeof val === "function") {
-      const result = val(activeJulesSession);
-      julesSessionsManager.setActiveId(result ? result.id : null);
-    } else {
-      julesSessionsManager.setActiveId(val ? val.id : null);
-    }
-  };
+
   const [isJulesExecuting, setIsJulesExecuting] = useState(false);
   const [isApprovingJulesPlan, setIsApprovingJulesPlan] = useState(false);
-  const [julesMessages, setJulesMessages] = useState<ChatMessage[]>(() => julesSessionsManager.getActiveItem()?.messages || []);
+
+  const julesMessages = activeJulesSession?.messages || [];
 
   const julesPollingRef = useRef<{ stop: () => void } | null>(null);
 
   useEffect(() => {
-    julesStorageService.fetchJulesSessionsFromServer().then(() => {
-
-      const activeSession = julesSessionsManager.getActiveItem();
-      setActiveJulesSession(activeSession);
-      if (activeSession) {
-        setJulesMessages(activeSession.messages || []);
-      }
-    });
+    julesStorageService.fetchJulesSessionsFromServer();
   }, []);
 
   const handleSaveJulesApiKey = useCallback((key: string) => {
@@ -61,11 +41,9 @@ export function useJules() {
 
   const handleClearJulesMessages = useCallback(() => {
     handleStopJulesPolling();
-    setJulesMessages([]);
     if (activeJulesSession) {
       const updated = { ...activeJulesSession, messages: [], updatedAt: Date.now() };
       julesSessionsManager.collection.upsert(updated);
-      setActiveJulesSession(updated);
     }
   }, [activeJulesSession, handleStopJulesPolling]);
 
@@ -89,7 +67,12 @@ export function useJules() {
           timestamp: Date.now(),
           error: "Missing API Key",
         };
-        setJulesMessages((prev) => [...prev, errorMsg]);
+        const sessionWithMessages: JulesSession = {
+          ...currentSession,
+          messages: [...(currentSession.messages || []), errorMsg],
+          updatedAt: Date.now(),
+        };
+        julesSessionsManager.collection.upsert(sessionWithMessages);
         return true;
       }
 
@@ -120,8 +103,7 @@ export function useJules() {
         },
       };
 
-      const updatedMessages = [...julesMessages, userMsg, aiMsg];
-      setJulesMessages(updatedMessages);
+      const updatedMessages = [...(currentSession.messages || []), userMsg, aiMsg];
 
       const sessionWithMessages: JulesSession = {
         ...currentSession,
@@ -129,11 +111,8 @@ export function useJules() {
         messages: updatedMessages,
         updatedAt: Date.now(),
       };
+
       julesSessionsManager.collection.upsert(sessionWithMessages);
-      setActiveJulesSession(sessionWithMessages);
-      setJulesSessions((prev) =>
-        prev.map((s) => (s.id === sessionWithMessages.id ? sessionWithMessages : s))
-      );
 
       setIsJulesExecuting(true);
 
@@ -147,68 +126,69 @@ export function useJules() {
 
         const activeAiMsgId = aiMsg.id;
 
-        setJulesMessages((prev) =>
-          prev.map((m) =>
+        // Re-fetch current session to avoid stale closure
+        currentSession = julesSessionsManager.getActiveItem()!;
+        if (currentSession) {
+          const planningMessages = (currentSession.messages || []).map(m =>
             m.id === activeAiMsgId
               ? {
                   ...m,
                   julesActivity: {
                     ...m.julesActivity!,
                     taskId: dispatchedTask.id,
-                    status: "planning",
+                    status: "planning" as const,
                     title: `Jules task created: #${dispatchedTask.id.slice(0, 8)}`,
                   },
                 }
               : m
-          )
-        );
+          );
 
-
+          julesSessionsManager.collection.upsert({
+            ...currentSession,
+            messages: planningMessages,
+            updatedAt: Date.now()
+          });
+        }
 
         julesPollingRef.current = julesClient.subscribeToTask(
           julesApiKey,
           dispatchedTask.id,
           (taskUpdate: JulesTaskPayload) => {
-            setJulesMessages((prev) => {
-              return prev.map((m) => {
-                if (m.id === activeAiMsgId && m.julesActivity) {
-                  const isCompleted =
-                    taskUpdate.status === "completed" || taskUpdate.status === "failed";
-                  return {
-                    ...m,
-                    isStreaming: !isCompleted,
-                    text:
-                      taskUpdate.status === "failed"
-                        ? `Jules encountered an error while executing task.`
-                        : m.text,
-                    error: taskUpdate.error || taskUpdate.errorMessage,
-                    julesActivity: {
-                      ...m.julesActivity,
-                      status: taskUpdate.status,
-                      planDescription: taskUpdate.planDescription || m.julesActivity.planDescription,
-                      steps: taskUpdate.steps || m.julesActivity.steps,
-                      pullRequestUrl: taskUpdate.pullRequestUrl,
-                      pullRequestNumber: taskUpdate.pullRequestNumber,
-                      requiresApproval: taskUpdate.requiresApproval,
-                      diffStats: taskUpdate.diffStats || m.julesActivity.diffStats,
-                    },
-                  };
-                }
-                return m;
-              });
-            });
+            const latestSession = julesSessionsManager.getActiveItem();
+            if (latestSession && latestSession.id === currentSession?.id) {
+               const polledMessages = (latestSession.messages || []).map(m => {
+                  if (m.id === activeAiMsgId && m.julesActivity) {
+                    const isCompleted =
+                      taskUpdate.status === "completed" || taskUpdate.status === "failed";
+                    return {
+                      ...m,
+                      isStreaming: !isCompleted,
+                      text:
+                        taskUpdate.status === "failed"
+                          ? `Jules encountered an error while executing task.`
+                          : m.text,
+                      error: taskUpdate.error || taskUpdate.errorMessage,
+                      julesActivity: {
+                        ...m.julesActivity,
+                        status: taskUpdate.status,
+                        planDescription: taskUpdate.planDescription || m.julesActivity.planDescription,
+                        steps: taskUpdate.steps || m.julesActivity.steps,
+                        pullRequestUrl: taskUpdate.pullRequestUrl,
+                        pullRequestNumber: taskUpdate.pullRequestNumber,
+                        requiresApproval: taskUpdate.requiresApproval,
+                        diffStats: taskUpdate.diffStats || m.julesActivity.diffStats,
+                      },
+                    };
+                  }
+                  return m;
+               });
 
-            if (currentSession) {
-              setActiveJulesSession((prevSession) => {
-                if (prevSession && prevSession.id === currentSession.id) {
-                  return {
-                    ...prevSession,
-                    status: taskUpdate.status,
-                    updatedAt: Date.now(),
-                  };
-                }
-                return prevSession;
-              });
+               julesSessionsManager.collection.upsert({
+                 ...latestSession,
+                 status: taskUpdate.status,
+                 messages: polledMessages,
+                 updatedAt: Date.now(),
+               });
             }
 
             if (taskUpdate.status === "completed" || taskUpdate.status === "failed") {
@@ -223,22 +203,28 @@ export function useJules() {
       } catch (err: unknown) {
         setIsJulesExecuting(false);
         const errMsg = getErrorMessage(err) || "Failed to dispatch Jules task";
-        setJulesMessages((prev) =>
-          prev.map((m) =>
-            m.id === aiMsg.id
+        const errorSession = julesSessionsManager.getActiveItem();
+        if (errorSession) {
+          const errorMessages = (errorSession.messages || []).map(m =>
+             m.id === aiMsg.id
               ? {
                   ...m,
                   isStreaming: false,
                   error: errMsg,
-                  julesActivity: { ...m.julesActivity!, status: "failed" },
+                  julesActivity: { ...m.julesActivity!, status: "failed" as const },
                 }
               : m
-          )
-        );
+          );
+          julesSessionsManager.collection.upsert({
+             ...errorSession,
+             messages: errorMessages,
+             updatedAt: Date.now()
+          });
+        }
       }
       return true;
     },
-    [activeJulesSession, julesApiKey, julesMessages]
+    [activeJulesSession, julesApiKey]
   );
 
   const handleApproveJulesPlan = useCallback(
@@ -246,30 +232,42 @@ export function useJules() {
       setIsApprovingJulesPlan(true);
       try {
         await julesClient.approvePlan(taskId, true, julesApiKey);
-        setJulesMessages((prev) =>
-          prev.map((m) =>
-            m.julesActivity?.taskId === taskId
-              ? {
-                  ...m,
-                  julesActivity: {
-                    ...m.julesActivity,
-                    status: "executing",
-                    title: "Plan approved. Jules is executing changes and committing...",
-                    requiresApproval: false,
-                  },
-                }
-              : m
-          )
-        );
+        const latestSession = julesSessionsManager.getActiveItem();
+        if (latestSession) {
+           const approvedMessages = (latestSession.messages || []).map(m =>
+             m.julesActivity?.taskId === taskId
+                ? {
+                    ...m,
+                    julesActivity: {
+                      ...m.julesActivity,
+                      status: "executing" as const,
+                      title: "Plan approved. Jules is executing changes and committing...",
+                      requiresApproval: false,
+                    },
+                  }
+                : m
+           );
+           julesSessionsManager.collection.upsert({
+             ...latestSession,
+             messages: approvedMessages,
+             updatedAt: Date.now()
+           });
+        }
       } catch (err: unknown) {
         const errMsg = getErrorMessage(err) || "Failed to approve plan";
-        setJulesMessages((prev) =>
-          prev.map((m) =>
-            m.julesActivity?.taskId === taskId
-              ? { ...m, error: errMsg }
-              : m
-          )
-        );
+        const latestSession = julesSessionsManager.getActiveItem();
+        if (latestSession) {
+           const errorMessages = (latestSession.messages || []).map(m =>
+             m.julesActivity?.taskId === taskId
+                ? { ...m, error: errMsg }
+                : m
+           );
+           julesSessionsManager.collection.upsert({
+             ...latestSession,
+             messages: errorMessages,
+             updatedAt: Date.now()
+           });
+        }
       } finally {
         setIsApprovingJulesPlan(false);
       }
@@ -281,22 +279,28 @@ export function useJules() {
     async (taskId: string) => {
       try {
         await julesClient.approvePlan(taskId, false, julesApiKey);
-        setJulesMessages((prev) =>
-          prev.map((m) =>
-            m.julesActivity?.taskId === taskId
-              ? {
-                  ...m,
-                  isStreaming: false,
-                  julesActivity: {
-                    ...m.julesActivity,
-                    status: "failed",
-                    title: "Plan rejected. Task aborted.",
-                    requiresApproval: false,
-                  },
-                }
-              : m
-          )
-        );
+        const latestSession = julesSessionsManager.getActiveItem();
+        if (latestSession) {
+           const rejectedMessages = (latestSession.messages || []).map(m =>
+             m.julesActivity?.taskId === taskId
+                ? {
+                    ...m,
+                    isStreaming: false,
+                    julesActivity: {
+                      ...m.julesActivity,
+                      status: "failed" as const,
+                      title: "Plan rejected. Task aborted.",
+                      requiresApproval: false,
+                    },
+                  }
+                : m
+           );
+           julesSessionsManager.collection.upsert({
+             ...latestSession,
+             messages: rejectedMessages,
+             updatedAt: Date.now()
+           });
+        }
       } catch (err: unknown) {
         console.error("Failed to reject plan:", err);
       }
@@ -305,53 +309,27 @@ export function useJules() {
   );
 
   const handleSelectSession = useCallback((sess: Partial<JulesSession>) => {
-    const jSession = julesSessions.find((s) => s.id === sess.id);
-    if (jSession) {
-      julesSessionsManager.setActiveId(jSession.id);
-      setActiveJulesSession(jSession);
-      setJulesMessages(jSession.messages || []);
+    if (sess.id) {
+       julesSessionsManager.setActiveId(sess.id);
     }
-  }, [julesSessions]);
+  }, []);
 
   const handleBulkDeleteJulesSessions = useCallback((sessionIds: string[]) => {
     if (!sessionIds || sessionIds.length === 0) return;
 
     julesStorageService.bulkDeleteJulesSessions(sessionIds);
 
-
-
     if (activeJulesSession && sessionIds.includes(activeJulesSession.id)) {
-
-      setJulesMessages([]);
       julesSessionsManager.setActiveId(null);
     }
   }, [activeJulesSession]);
-
-  // Sync julesMessages and activeJulesSession to storage
-  useEffect(() => {
-    if (activeJulesSession) {
-      const hasMessagesChanged = activeJulesSession.messages !== julesMessages;
-      if (hasMessagesChanged) {
-        const updatedSess = { ...activeJulesSession, messages: julesMessages, updatedAt: Date.now() };
-        julesSessionsManager.collection.upsert(updatedSess);
-
-        setActiveJulesSession(updatedSess);
-
-        setJulesSessions((prevSessions) =>
-          prevSessions.map((s) => (s.id === updatedSess.id ? updatedSess : s))
-        );
-      }
-    }
-  }, [julesMessages, activeJulesSession, setActiveJulesSession]);
 
   return {
     julesApiKey,
     handleSaveJulesApiKey,
     julesSessions,
     activeJulesSession,
-    setActiveJulesSession,
     julesMessages,
-    setJulesMessages,
     isJulesExecuting,
     isApprovingJulesPlan,
     handleSendJulesMessage,
