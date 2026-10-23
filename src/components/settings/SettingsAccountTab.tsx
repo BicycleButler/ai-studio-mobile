@@ -1,10 +1,10 @@
 import React from "react";
 import { ShieldCheck, CheckCircle2, Lock, Smartphone, ExternalLink, Bot, Check, FolderPlus, Folder, Trash2,
-  Clock, Edit2, Loader2, AlertCircle, CheckSquare, MinusSquare, Square } from "lucide-react";
+  Clock, Edit2, Loader2, AlertCircle, } from "lucide-react";
 import { GoogleUser, ProjectInfo } from "../../types";
 import { useOfflineQueue } from "../../hooks/useOfflineQueue";
 import { GoogleAuthCard } from "../GoogleAuthCard";
-import { DatasetScopeBanner } from "../DatasetScopeBanner";
+import { BatchSelectionHeader } from "../BatchSelectionHeader";
 import { FloatingBatchActionBar } from "../FloatingBatchActionBar";
 import { BulkDeleteConfirmModal } from "../BulkDeleteConfirmModal";
 
@@ -296,33 +296,14 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
               </div>
 
               {projects.length > 0 && toggleSelectAllProjects && (
-                <div className="py-2 border-b border-border bg-muted/40 flex flex-col gap-2 text-xs mb-2">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleSelectAllProjects()}
-                      className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
-                      aria-label="Select all projects on this page"
-                    >
-                      {getProjectSelectionState?.(projects) === 'all' ? (
-                        <CheckSquare className="w-4 h-4 text-primary" />
-                      ) : getProjectSelectionState?.(projects) === 'some' ? (
-                        <MinusSquare className="w-4 h-4 text-primary" />
-                      ) : (
-                        <Square className="w-4 h-4" />
-                      )}
-                    </button>
-                    <span className="text-muted-foreground font-medium">
-                      {selectedProjectIds?.size && selectedProjectIds.size > 0
-                        ? `${selectedProjectIds.size} selected`
-                        : "Select all on this page"}
-                    </span>
-                  </div>
-                </div>
+                <BatchSelectionHeader
+                  selectedCount={selectedProjectIds?.size || 0}
+                  totalCount={projects.length}
+                  selectionState={getProjectSelectionState?.(projects) || 'none'}
+                  onToggleSelectAll={toggleSelectAllProjects}
+                  className="!px-0 mb-2"
+                />
               )}
-
-              {/* Dataset Scope Banner (ADR 0047) */}
-              <DatasetScopeBanner selectedCount={selectedProjectIds?.size || 0} totalCount={projects.length} />
 
               <div className="space-y-2">
                 {projects.map((p, index) => {

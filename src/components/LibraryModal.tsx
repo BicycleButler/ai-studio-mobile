@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { DatasetScopeBanner } from "./DatasetScopeBanner";
+import { BatchSelectionHeader } from "./BatchSelectionHeader";
 import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
 import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
 import {
@@ -13,9 +13,7 @@ import {
   Layers,
   CheckSquare,
   Square,
-  MinusSquare,
-
-} from "lucide-react";
+  } from "lucide-react";
 import { SavedPrompt } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { STARTER_TEMPLATES } from "../data/templates";
@@ -223,36 +221,14 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
         {/* Bulk Action Selection Header */}
         {savedPrompts.length > 0 && (
-          <div className="px-2 py-2 border-b border-border bg-muted/40 flex flex-col gap-2 text-xs mb-2">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => toggleSelectAll()}
-                className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
-                aria-label="Select all prompts on this page"
-              >
-                {getSelectionState(savedPrompts) === 'all' ? (
-                  <CheckSquare className="w-4 h-4 text-primary" />
-                ) : getSelectionState(savedPrompts) === 'some' ? (
-                  <MinusSquare className="w-4 h-4 text-primary" />
-                ) : (
-                  <Square className="w-4 h-4" />
-                )}
-              </button>
-              <span className="text-muted-foreground font-medium">
-                {selectedPromptIds.size > 0
-                  ? `${selectedPromptIds.size} selected`
-                  : "Select all on this page"}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Dataset Scope Banner (ADR 0047) */}
-        <DatasetScopeBanner
+          <BatchSelectionHeader
           selectedCount={selectedPromptIds.size}
           totalCount={savedPrompts.length}
+          selectionState={getSelectionState(savedPrompts)}
+          onToggleSelectAll={() => toggleSelectAll()}
+          className="!px-2 mb-2"
         />
+        )}
 
         {savedPrompts.length === 0 ? (
           <div className="p-6 rounded-xl bg-card border border-dashed border-border text-center text-xs text-muted-foreground">

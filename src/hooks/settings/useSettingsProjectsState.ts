@@ -2,7 +2,7 @@ import { useBatchSelection } from "../useBatchSelection";
 import { useBulkActionConfirm } from "../useBulkActionConfirm";
 import { ProjectInfo } from "../../types";
 
-export function useSettingsProjectsState(projects: ProjectInfo[], onBulkDeleteProjects?: (ids: string[]) => void, onDeleteProject?: (project: ProjectInfo) => void) {
+export function useSettingsProjectsState(projects: ProjectInfo[], activeTab: string, onBulkDeleteProjects?: (ids: string[]) => void, onDeleteProject?: (project: ProjectInfo) => void) {
   const {
     selectedIds: selectedProjectIds,
     toggleSelection: toggleProjectSelection,
@@ -12,6 +12,7 @@ export function useSettingsProjectsState(projects: ProjectInfo[], onBulkDeletePr
   } = useBatchSelection({
     items: projects,
     getItemId: (p) => p.id,
+    clearOnDependencies: [activeTab]
   });
 
   const {

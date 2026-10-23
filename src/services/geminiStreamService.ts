@@ -1,6 +1,7 @@
 import { GenerateRequestBody } from "../types";
 import { apiFetch, apiFetchStream, BaseApiError, isAbortError } from "../utils/apiClient";
 import { SSEStreamParser } from "../utils/sseParser";
+import { ILogger, defaultLogger } from "../utils/logger";
 
 
 export interface StreamCallbacks {
@@ -95,7 +96,7 @@ export interface IGeminiStreamService {
 }
 
 export class GeminiStreamService implements IGeminiStreamService {
-  constructor(private fetchFn = apiFetch, private fetchStreamFn = apiFetchStream) {}
+  constructor(private fetchFn = apiFetch, private fetchStreamFn = apiFetchStream, private logger: ILogger = defaultLogger) {}
 
   public sanitizeLogMessage(message: string): string {
     if (!message) return "";
