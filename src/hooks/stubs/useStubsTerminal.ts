@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { connectStubsStream, executeStubsCommand } from "../../services/stubsService";
+import { useServices } from "../../services/ServiceContext";
 
 export interface LogEntry {
   type: string;
@@ -9,16 +9,17 @@ export interface LogEntry {
 }
 
 export function useStubsTerminal() {
+  const { stubsClient } = useServices();
   const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([]);
   const [isExecutingCommand, setIsExecutingCommand] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const cleanup = connectStubsStream((log) => {
+    const cleanup = stubsClient.connectStubsStream((log) => {
       setTerminalLogs((prev) => [...prev.slice(-200), log]);
     });
     return cleanup;
-  }, []);
+  }, [stubsClient]);
 
   const clearLogs = useCallback(() => {
     setTerminalLogs([]);
@@ -37,7 +38,7 @@ export function useStubsTerminal() {
       setIsExecutingCommand(true);
       callbacks?.onStart?.();
       try {
-        await executeStubsCommand(command, args);
+        await stubsClient.executeStubsCommand(command, args);
         callbacks?.onSuccess?.();
       } catch (err: unknown) {
         callbacks?.onError?.(err);
@@ -45,7 +46,7 @@ export function useStubsTerminal() {
         setIsExecutingCommand(false);
       }
     },
-    []
+    [stubsClient]
   );
 
   return {

@@ -2,14 +2,13 @@ import { describe, test } from 'vitest';
 // Unit tests for geminiStreamService and error formatting
 import {
   GeminiApiError,
-  buildHeaders,
-  formatStreamError,
+  defaultGeminiStreamService,
 } from "./geminiStreamService";
 
 describe('testStreamService', () => {
   test('main', () => {
   // 1. Test buildHeaders
-  const defaultHeaders = buildHeaders();
+  const defaultHeaders = defaultGeminiStreamService.buildHeaders();
   if (defaultHeaders["Content-Type"] !== "application/json") {
     throw new Error("Default headers missing application/json content type");
   }
@@ -17,7 +16,7 @@ describe('testStreamService', () => {
     throw new Error("Default headers should not have api key when none provided");
   }
 
-  const customHeaders = buildHeaders("test-custom-key-123");
+  const customHeaders = defaultGeminiStreamService.buildHeaders("test-custom-key-123");
   if (customHeaders["x-gemini-api-key"] !== "test-custom-key-123") {
     throw new Error("Custom headers did not include custom key correctly");
   }
@@ -41,7 +40,7 @@ describe('testStreamService', () => {
   // 3. Test formatStreamError
   const abortErr = new Error("AbortError");
   abortErr.name = "AbortError";
-  const formattedAbort = formatStreamError(abortErr);
+  const formattedAbort = defaultGeminiStreamService.formatStreamError(abortErr);
   if (!formattedAbort.message.includes("stopped by user")) {
     throw new Error("Expected abort error to format friendly message");
   }

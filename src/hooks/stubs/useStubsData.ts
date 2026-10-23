@@ -5,17 +5,13 @@ import {
   StubsLintViolation,
   StubsImpactResult,
 } from "../../types";
-import {
-  fetchGraphData,
-  fetchDiagram,
-  fetchImpact,
-  fetchLintResults,
-  connectStubsStream,
-} from "../../services/stubsService";
 import mermaid from "mermaid";
+import { useServices } from "../../services/ServiceContext";
 
 
 export function useStubsData(showToast: (msg: string) => void) {
+  const { stubsClient } = useServices();
+
   // Graph state
   const [graphData, setGraphData] = useState<StubsGraphData | null>(null);
   const [isLoadingGraph, setIsLoadingGraph] = useState(false);
@@ -40,19 +36,19 @@ export function useStubsData(showToast: (msg: string) => void) {
   const loadGraph = useCallback(async () => {
     setIsLoadingGraph(true);
     try {
-      const data = await fetchGraphData();
+      const data = await stubsClient.fetchGraphData();
       setGraphData(data);
     } catch (err: unknown) {
       showToast(`Failed to load graph: ${getErrorMessage(err)}`);
     } finally {
       setIsLoadingGraph(false);
     }
-  }, [showToast]);
+  }, [showToast, stubsClient]);
 
   const loadDiagram = useCallback(async () => {
     setIsLoadingDiagram(true);
     try {
-      const res = await fetchDiagram(diagramGroupBy);
+      const res = await stubsClient.fetchDiagram(diagramGroupBy);
       setDiagramMermaid(res.mermaid);
       try {
         const id = "mermaid-svg-" + Date.now();
@@ -68,12 +64,12 @@ export function useStubsData(showToast: (msg: string) => void) {
     } finally {
       setIsLoadingDiagram(false);
     }
-  }, [diagramGroupBy, showToast]);
+  }, [diagramGroupBy, showToast, stubsClient]);
 
   const loadLint = useCallback(async () => {
     setIsLoadingLint(true);
     try {
-      const res = await fetchLintResults();
+      const res = await stubsClient.fetchLintResults();
       setLintViolations(res.violations);
       setLintPassed(res.passed);
       setTotalLintChecks(res.totalChecks);
@@ -82,23 +78,23 @@ export function useStubsData(showToast: (msg: string) => void) {
     } finally {
       setIsLoadingLint(false);
     }
-  }, [showToast]);
+  }, [showToast, stubsClient]);
 
   const loadImpact = useCallback(async (target: string) => {
     setIsLoadingImpact(true);
     try {
-      const res = await fetchImpact(target);
+      const res = await stubsClient.fetchImpact(target);
       setImpactResult(res);
     } catch (err: unknown) {
       showToast(`Failed to calculate blast radius: ${getErrorMessage(err)}`);
     } finally {
       setIsLoadingImpact(false);
     }
-  }, [showToast]);
+  }, [showToast, stubsClient]);
 
   // Establish SSE connection to listen for graph invalidation
   useEffect(() => {
-    const cleanup = connectStubsStream((log) => {
+    const cleanup = stubsClient.connectStubsStream((log) => {
       // Whenever `stubs scan` completes, or a "graph_updated" signal is detected, reload graph
       if (log.type === "exit" && log.text.includes("code 0") && log.code === 0) {
         // If a command like 'stubs scan' successfully exited, proactive refresh the graph data.
@@ -107,7 +103,7 @@ export function useStubsData(showToast: (msg: string) => void) {
       }
     });
     return cleanup;
-  }, [loadGraph]);
+  }, [loadGraph, stubsClient]);
 
   return {
     // Graph
