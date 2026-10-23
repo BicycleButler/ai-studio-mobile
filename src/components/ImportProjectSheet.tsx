@@ -49,7 +49,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   onSuccess,
   availableModels = DEFAULT_MODELS,
 }) => {
-  const { keyVerificationService } = useServices();
+  const { keyVerificationService, logger } = useServices();
 
   // Enable device/browser back navigation to dismiss sheet smoothly
   useBackNavigation(isOpen, () => {
@@ -164,7 +164,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
       onSuccess(savedProject);
       onClose();
     } catch (err: unknown) {
-      console.error("Failed to save and activate project:", err);
+      logger.error("Failed to save and activate project:", err);
     } finally {
       setIsSaving(false);
     }

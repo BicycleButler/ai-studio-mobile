@@ -47,6 +47,7 @@ export interface IServices {
   codeGeneratorService: ICodeGeneratorService;
   apiClient: IApiClient;
   syncOrchestrator: SyncOrchestrator;
+  logger: typeof defaultLogger;
 }
 
 
@@ -112,6 +113,7 @@ const defaultServices: IServices = {
   keyVerificationService: defaultKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,
   codeGeneratorService: defaultCodeGeneratorService,
+  logger: defaultLogger,
 };
 
 

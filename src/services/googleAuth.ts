@@ -3,6 +3,7 @@ import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
 import { IApiClient, defaultClient } from "../utils/apiClient";
 import { isBrowserEnvironment, getSafeWindow, safeAddEventListener } from "../utils/platform";
 import { IAuthProvider } from "./authProvider";
+import { ILogger, defaultLogger } from "../utils/logger";
 
 export interface GoogleAuthServiceConfig {
   apiClient?: IApiClient;
@@ -10,6 +11,7 @@ export interface GoogleAuthServiceConfig {
   storageSingleton?: StorageSingleton<GoogleUser | null>;
   isBrowserEnv?: () => boolean;
   getWindow?: typeof getSafeWindow;
+  logger?: ILogger;
 }
 
 export class GoogleAuthService {
@@ -20,10 +22,12 @@ export class GoogleAuthService {
   private googleUserSingleton: StorageSingleton<GoogleUser | null>;
   private isBrowserEnv: () => boolean;
   private getWindow: typeof getSafeWindow;
+  private logger: ILogger;
 
   constructor(config?: GoogleAuthServiceConfig) {
     this.apiClient = config?.apiClient || defaultClient;
     this.currentAuthProvider = config?.authProvider || null;
+    this.logger = config?.logger || defaultLogger;
     this.googleUserSingleton = config?.storageSingleton || new StorageSingleton<GoogleUser | null>(
       STORAGE_KEYS.GOOGLE_USER,
       null
@@ -189,7 +193,7 @@ export class GoogleAuthService {
     try {
       if (this.currentAuthProvider) await this.currentAuthProvider.signOut();
     } catch (err: unknown) {
-      console.warn("Auth provider signout error:", err);
+      this.logger.warn("Auth provider signout error:", err);
     }
     this.cachedAccessToken = null;
     try {

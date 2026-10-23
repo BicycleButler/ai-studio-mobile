@@ -10,7 +10,7 @@ import { useServices } from "../../services/ServiceContext";
 
 
 export function useStubsData(showToast: (msg: string) => void) {
-  const { stubsClient } = useServices();
+  const { stubsClient, logger } = useServices();
 
   // Graph state
   const [graphData, setGraphData] = useState<StubsGraphData | null>(null);
@@ -55,7 +55,7 @@ export function useStubsData(showToast: (msg: string) => void) {
         const { svg } = await mermaid.render(id, res.mermaid);
         setRenderedSvg(svg);
       } catch (renderErr: unknown) {
-        console.warn("Client-side Mermaid SVG render failed, displaying code view:", renderErr);
+        logger.warn("Client-side Mermaid SVG render failed, displaying code view:", renderErr);
         setRenderedSvg("");
         setDiagramViewMode("code");
       }

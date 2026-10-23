@@ -13,7 +13,7 @@ export function useProjectManager(
   promptType: PromptType,
   config: PromptConfig
 ) {
-  const { chatHistoryService, projectService, generalSettingsService, draftStateService } = useServices();
+  const { chatHistoryService, projectService, generalSettingsService, draftStateService, logger } = useServices();
   const projectManagerStore = useStore(projectService.projectsManager);
   const projects = projectManagerStore.items;
 
@@ -86,7 +86,7 @@ export function useProjectManager(
     try {
       chatHistoryService.clearAllChatSessions.bind(chatHistoryService)(id);
     } catch(e) {
-      console.error("Failed to clean up chat sessions", e);
+      logger.error("Failed to clean up chat sessions", e);
     }
     const updated = projectService.projectsManager.getItems();
     if (activeProject?.id === id) {
@@ -105,7 +105,7 @@ export function useProjectManager(
     try {
       ids.forEach(id => chatHistoryService.clearAllChatSessions.bind(chatHistoryService)(id));
     } catch(e) {
-      console.error("Failed to clean up chat sessions", e);
+      logger.error("Failed to clean up chat sessions", e);
     }
     const updated = projectService.projectsManager.getItems();
 

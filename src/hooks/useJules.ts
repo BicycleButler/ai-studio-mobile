@@ -7,7 +7,7 @@ import { JulesTaskPayload } from "../services/julesService";
 import { useServices } from "../services/ServiceContext";
 
 export function useJules() {
-  const { julesStorageService, julesClient } = useServices();
+  const { julesStorageService, julesClient, logger } = useServices();
   const julesSessionsManager = julesStorageService.julesSessionsManager;
   const [julesApiKey, setJulesApiKey] = useState<string>(() => julesStorageService.loadStoredJulesApiKey());
 
@@ -196,7 +196,7 @@ export function useJules() {
             }
           },
           (error) => {
-            console.error("Jules polling error:", error);
+            logger.error("Jules polling error:", error);
             setIsJulesExecuting(false);
           }
         );
@@ -302,7 +302,7 @@ export function useJules() {
            });
         }
       } catch (err: unknown) {
-        console.error("Failed to reject plan:", err);
+        logger.error("Failed to reject plan:", err);
       }
     },
     [julesApiKey]

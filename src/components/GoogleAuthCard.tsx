@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { GoogleUser } from "../types";
 import { GoogleIcon } from "./GoogleIcon";
+import { useServices } from "../services/ServiceContext";
 
 export interface GoogleAuthActionHandlers {
   onLogin: (email?: string, name?: string) => Promise<void>;
@@ -30,6 +31,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
   liveModelsCount = 55,
   compact = false,
 }) => {
+  const { logger } = useServices();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +42,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
     try {
       await onLogin();
     } catch (err: unknown) {
-      console.error("Sign in error:", err);
+      logger.error("Sign in error:", err);
       setError(
         err instanceof Error
           ? err.message

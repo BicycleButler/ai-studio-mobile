@@ -12,11 +12,17 @@ import {
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { isBrowserEnvironment } from "../utils/platform";
 import firebaseConfig from "../../firebase-applet-config.json";
+import { ILogger, defaultLogger } from "../utils/logger";
 
 export class FirebaseAuthProvider implements IAuthProvider {
   private firebaseAppInstance: FirebaseApp | null = null;
   private firebaseAuthInstance: Auth | null = null;
   private googleAuthProviderInstance: GoogleAuthProvider | null = null;
+  private logger: ILogger;
+
+  constructor(logger: ILogger = defaultLogger) {
+    this.logger = logger;
+  }
 
   public getFirebaseAuth(): Auth | null {
     if (this.firebaseAuthInstance) return this.firebaseAuthInstance;
@@ -32,7 +38,7 @@ export class FirebaseAuthProvider implements IAuthProvider {
       this.firebaseAuthInstance = getAuth(this.firebaseAppInstance);
       return this.firebaseAuthInstance;
     } catch (err: unknown) {
-      console.error("Failed to initialize Firebase Auth:", err);
+      this.logger.error("Failed to initialize Firebase Auth:", err);
       return null;
     }
   }
@@ -86,7 +92,7 @@ export class FirebaseAuthProvider implements IAuthProvider {
       if (errObj?.code === "auth/popup-blocked") {
         throw new Error("Sign-in popup was blocked by the browser. Please allow popups for this site and try again.");
       }
-      console.error("Google sign in error:", error);
+      this.logger.error("Google sign in error:", error);
       throw error instanceof Error ? error : new Error(String(error));
     }
   }

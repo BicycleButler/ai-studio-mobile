@@ -76,6 +76,7 @@ export interface UseSpeechToTextReturn {
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeechToTextReturn {
+  const { logger } = useServices();
   const [isListening, setIsListening] = useState(false);
   const [isAudioDetected, setIsAudioDetected] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -159,7 +160,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
       // Pre-flight microphone permission check if supported
       if (isBrowserEnvironment() && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
         navigator.mediaDevices.getUserMedia({ audio: true }).catch((permErr: unknown) => {
-          console.warn("[SpeechToText] Microphone pre-flight check notice:", permErr);
+          logger.warn("[SpeechToText] Microphone pre-flight check notice:", permErr);
         });
       }
 

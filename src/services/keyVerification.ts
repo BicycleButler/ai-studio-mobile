@@ -2,6 +2,7 @@ import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
 import { apiFetch } from "../utils/apiClient";
 import { getSafeNavigatorClipboard } from "../utils/platform";
+import { ILogger, defaultLogger } from "../utils/logger";
 
 // Base string patterns for dynamic regex composition
 const BASE_STANDARD_GOOGLE_KEY = "AIza[0-9A-Za-z\\-_]{35}";
@@ -50,13 +51,16 @@ export interface IKeyVerificationService {
 
 export interface KeyVerificationServiceConfig {
   apiClient?: typeof apiFetch;
+  logger?: ILogger;
 }
 
 export class KeyVerificationService implements IKeyVerificationService {
   private fetchFn: typeof apiFetch;
+  private logger: ILogger;
 
   constructor(config?: KeyVerificationServiceConfig) {
     this.fetchFn = config?.apiClient || apiFetch;
+    this.logger = config?.logger || defaultLogger;
   }
 
   public isValidJulesApiKeyFormat(key: string): boolean {
@@ -174,7 +178,7 @@ export class KeyVerificationService implements IKeyVerificationService {
       }
     } catch (err: unknown) {
       // Clipboard write may be restricted in non-gesture or sandboxed context
-      console.debug("Clipboard clear skipped or restricted:", err);
+      this.logger.debug("Clipboard clear skipped or restricted:", err);
     }
     return false;
   }
