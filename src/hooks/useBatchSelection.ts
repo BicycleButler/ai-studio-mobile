@@ -1,15 +1,28 @@
-import { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { BatchSelectionManager, SelectionState } from '../utils/batchSelectionManager';
 import { useStore } from './useStore';
 
 export interface UseBatchSelectionProps<T> {
   items: T[];
   getItemId: (item: T) => string;
+  clearOnDependencies?: unknown[];
 }
 
-export function useBatchSelection<T>({ items, getItemId }: UseBatchSelectionProps<T>) {
+export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [] }: UseBatchSelectionProps<T>) {
   const manager = useMemo(() => new BatchSelectionManager<T>(getItemId), [getItemId]);
   const state = useStore(manager);
+
+  // ADR 0047 Option A: Clear selection on filter/tab changes
+  const prevDepsRef = React.useRef(clearOnDependencies);
+  useEffect(() => {
+    if (clearOnDependencies.length > 0) {
+      const hasChanged = clearOnDependencies.some((dep, i) => Object.is(dep, prevDepsRef.current[i]) === false);
+      if (hasChanged) {
+        manager.clearSelection();
+      }
+    }
+    prevDepsRef.current = clearOnDependencies;
+  }, [clearOnDependencies, manager]);
 
   const toggleSelection = useCallback(
     (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredList: T[] = items) => {

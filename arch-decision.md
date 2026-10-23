@@ -485,3 +485,18 @@ Create an `IStorageFactory` interface responsible for instantiating registries, 
 
 **Recommendation:**
 **Path 1 (Direct Interface Injection)** was implemented. It perfectly leverages the existing interface abstractions (`IMutableCollection`, `IMutableSingleton`, `IStorageRegistry`) without introducing a complex abstract factory layer. It satisfies Dependency Inversion, vastly improving Generality and testability by allowing direct injection of mock storage instances.
+
+
+## Architectural Decision: Abstracting Batch Selection UI & Boilerplate
+
+**Context:**
+The application had duplicate UI boilerplate across `JulesSessionDrawer`, `LibraryModal`, `ChatHistoryPopover`, `PromptTemplateDrawer`, and `UnifiedSettingsModal` for managing batch selection headers (the "Select All" toggle, selection count text, and `DatasetScopeBanner`). Additionally, ADR 0047 Option A requires clearing the selection when filter queries or tabs change, leading to repetitive `useEffect` blocks in every list component.
+
+**Path 1: Extracted Compound Components & Hook Encapsulation (Composition)**
+Update `useBatchSelection` to accept a `clearOnDependencies` array to internalize the selection-clearing logic. Create a new `BatchSelectionHeader` component to encapsulate the "Select All" button, count display, and `DatasetScopeBanner`. Consumers compose this header into their lists.
+
+**Path 2: Higher-Order List Component**
+Create a monolithic `BatchSelectionList` component that accepts the raw data array, render functions for items, and configuration. It handles all state, header rendering, and mapping internally.
+
+**Recommendation:**
+**Path 1 (Extracted Compound Components & Hook Encapsulation)** is the recommended path. It preserves the flexibility of consumers to lay out their lists (which often have highly custom row designs or floating toolbars) while eliminating the boilerplate of the header and the `useEffect` selection-clearing hook. It aligns with React's compositional nature and improves both Maintainability and Reusability.

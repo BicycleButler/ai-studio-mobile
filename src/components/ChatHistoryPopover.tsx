@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { ChatSession } from "../types";
 import { formatRelativeTime } from "../utils/timeUtils";
-import { DatasetScopeBanner } from "./DatasetScopeBanner";
+import { BatchSelectionHeader } from "./BatchSelectionHeader";
 
 export interface ChatHistoryPopoverProps {
   isJulesMode: boolean;
@@ -85,25 +85,13 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
 
       {/* 3. Batch Select All Toggle (Only if there are valid history items) */}
       {validHistorySessions.length > 0 && (
-        <div className="px-3 py-2 flex flex-col gap-2 border-b border-border/40 bg-muted/20 items-start">
-          <button
-            type="button"
-            onClick={toggleSelectAllHistory}
-            className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors border-0 bg-transparent cursor-pointer p-0"
-          >
-            {selectedHistoryIds.size === validHistorySessions.length ? (
-              <CheckSquare className="w-4 h-4 text-primary" />
-            ) : (
-              <Square className="w-4 h-4" />
-            )}
-            {selectedHistoryIds.size === validHistorySessions.length ? "Deselect All" : "Select All"}
-          </button>
-          {/* Dataset Scope Banner (ADR 0047) */}
-          <DatasetScopeBanner
-            selectedCount={selectedHistoryIds.size}
-            totalCount={validHistorySessions.length}
-          />
-        </div>
+        <BatchSelectionHeader
+          selectedCount={selectedHistoryIds.size}
+          totalCount={validHistorySessions.length}
+          selectionState={selectedHistoryIds.size === 0 ? 'none' : selectedHistoryIds.size === validHistorySessions.length ? 'all' : 'some'}
+          onToggleSelectAll={toggleSelectAllHistory}
+          className="!px-3 !bg-muted/20 border-border/40"
+        />
       )}
 
       {/* 4. Scrollable History List */}

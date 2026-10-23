@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { DatasetScopeBanner } from "./DatasetScopeBanner";
+import { BatchSelectionHeader } from "./BatchSelectionHeader";
 import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
 import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
 import {
@@ -21,8 +21,7 @@ import {
   ArrowLeft,
   CheckSquare,
   Square,
-  MinusSquare,
-} from "lucide-react";
+  } from "lucide-react";
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { useServices } from "../services/ServiceContext";
@@ -426,34 +425,12 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
         {/* Bulk Action Selection Header */}
         {filteredSessions.length > 0 && (
-          <div className="px-4 py-2 border-b border-border bg-muted/40 flex flex-col gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => toggleSelectAll(filteredSessions)}
-                className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center"
-                aria-label="Select all sessions on this page"
-              >
-                {getSelectionState(filteredSessions) === 'all' ? (
-                  <CheckSquare className="w-4 h-4 text-primary" />
-                ) : getSelectionState(filteredSessions) === 'some' ? (
-                  <MinusSquare className="w-4 h-4 text-primary" />
-                ) : (
-                  <Square className="w-4 h-4" />
-                )}
-              </button>
-              <span className="text-muted-foreground font-medium">
-                {selectedSessionIds.size > 0
-                  ? `${selectedSessionIds.size} selected`
-                  : "Select all on this page"}
-              </span>
-            </div>
-            {/* Dataset Scope Banner (ADR 0047) */}
-            <DatasetScopeBanner
-              selectedCount={selectedSessionIds.size}
-              totalCount={filteredSessions.length}
-            />
-          </div>
+          <BatchSelectionHeader
+            selectedCount={selectedSessionIds.size}
+            totalCount={filteredSessions.length}
+            selectionState={getSelectionState(filteredSessions)}
+            onToggleSelectAll={() => toggleSelectAll(filteredSessions)}
+          />
         )}
 
         {/* Sessions List */}

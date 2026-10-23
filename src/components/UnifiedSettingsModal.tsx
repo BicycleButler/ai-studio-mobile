@@ -197,16 +197,13 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     clearProjectSelection,
     handleBulkDeleteProjects,
     getProjectSelectionState,
-  } = useSettingsProjectsState(projects, onBulkDeleteProjects, onDeleteProject as unknown as (project: ProjectInfo) => void);
+  } = useSettingsProjectsState(projects, activeTab, onBulkDeleteProjects, onDeleteProject as unknown as (project: ProjectInfo) => void);
 
   const toggleSelectAllProjects = useCallback(() => {
     toggleSelectAllProjectsRaw(projects);
   }, [toggleSelectAllProjectsRaw, projects]);
 
-  // Clear project selection when switching tabs (ADR 0047)
-  useEffect(() => {
-    clearProjectSelection();
-  }, [activeTab, clearProjectSelection]);
+
   const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
 
   // Enable device/browser back navigation to dismiss drawer smoothly
