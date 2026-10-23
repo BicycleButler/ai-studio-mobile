@@ -51,7 +51,10 @@ export class JulesStorageService {
       DEFAULT_JULES_SETTINGS
     );
 
-    this.syncAdapter = config?.syncAdapter || new NetworkStorageSyncAdapter<JulesSession[]>(defaultClient, defaultOfflineService);
+    this.syncAdapter = config?.syncAdapter || new NetworkStorageSyncAdapter<JulesSession[]>({
+        apiClient: defaultClient,
+        offlineService: defaultOfflineService
+    });
 
     this.julesSessionsManager = config?.julesSessionsManager || createActiveItemManager<JulesSession>({
       collectionKey: STORAGE_KEYS.JULES_SESSIONS,

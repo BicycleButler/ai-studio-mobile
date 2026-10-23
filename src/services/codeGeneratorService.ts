@@ -1,13 +1,7 @@
 import { PromptConfig, ChatMessage } from "../types";
+import { ICodeGeneratorPlugin, CodeLangId, PythonGenerator, TypeScriptGenerator, KotlinGenerator, CurlGenerator } from "./codeGenerators";
 
-export type CodeLangId = "kotlin" | "python" | "typescript" | "curl";
-
-export interface CodeGenerator {
-  id: CodeLangId;
-  name: string;
-  language: string; // Used for syntax highlighting (e.g., 'bash', 'python')
-  generate: (config: PromptConfig, messages: ChatMessage[]) => string;
-}
+export type { CodeLangId, ICodeGeneratorPlugin as CodeGenerator };
 
 export interface ICodeGeneratorService {
   escapeStringForCode(str: string): string;
@@ -16,12 +10,36 @@ export interface ICodeGeneratorService {
   generateTypeScriptCode(config: PromptConfig, messages: ChatMessage[]): string;
   generateAndroidKotlinCode(config: PromptConfig, messages: ChatMessage[]): string;
   generateCurlCode(config: PromptConfig, messages: ChatMessage[]): string;
-  getGenerator(id: CodeLangId): CodeGenerator | undefined;
-  getAllGenerators(): CodeGenerator[];
+  getGenerator(id: CodeLangId): ICodeGeneratorPlugin | undefined;
+  getAllGenerators(): ICodeGeneratorPlugin[];
+  registerGenerator(generator: ICodeGeneratorPlugin): void;
+}
+
+export interface CodeGeneratorServiceConfig {
+    generators?: ICodeGeneratorPlugin[];
 }
 
 export class CodeGeneratorService implements ICodeGeneratorService {
+  private generators: Map<CodeLangId, ICodeGeneratorPlugin>;
 
+  constructor(config?: CodeGeneratorServiceConfig) {
+    this.generators = new Map();
+    const defaultGenerators = config?.generators || [
+        new KotlinGenerator(),
+        new TypeScriptGenerator(),
+        new PythonGenerator(),
+        new CurlGenerator()
+    ];
+    for (const gen of defaultGenerators) {
+        this.registerGenerator(gen);
+    }
+  }
+
+  public registerGenerator(generator: ICodeGeneratorPlugin): void {
+      this.generators.set(generator.id, generator);
+  }
+
+  // Keeping these methods for backwards compatibility but delegating.
   public escapeStringForCode(str: string): string {
     if (!str) return "";
     return str
@@ -39,148 +57,27 @@ export class CodeGeneratorService implements ICodeGeneratorService {
   }
 
   public generatePythonCode(config: PromptConfig, messages: ChatMessage[]): string {
-    const { promptText, sysInst } = this.extractPromptContext(config, messages);
-
-    return `import os
-from google import genai
-from google.genai import types
-
-# Initialize client (uses GEMINI_API_KEY from environment)
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-
-response = client.models.generate_content(
-    model="${config.model}",
-    contents="${promptText}",
-    config=types.GenerateContentConfig(
-        ${sysInst ? `system_instruction="${sysInst}",\n        ` : ""}temperature=${config.temperature},
-        top_p=${config.topP},
-        top_k=${config.topK},
-        max_output_tokens=${config.maxOutputTokens},
-        ${config.responseMimeType === "application/json" ? `response_mime_type="application/json",\n        ` : ""}
-    ),
-)
-
-print(response.text)
-`;
+    return this.getGenerator("python")!.generate(config, messages);
   }
 
   public generateTypeScriptCode(config: PromptConfig, messages: ChatMessage[]): string {
-    const { promptText, sysInst } = this.extractPromptContext(config, messages);
-
-    return `import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
-
-async function main() {
-  const response = await ai.models.generateContent({
-    model: "${config.model}",
-    contents: "${promptText}",
-    config: {
-      ${sysInst ? `systemInstruction: "${sysInst}",\n      ` : ""}temperature: ${config.temperature},
-      topP: ${config.topP},
-      topK: ${config.topK},
-      maxOutputTokens: ${config.maxOutputTokens},
-      ${config.responseMimeType === "application/json" ? `responseMimeType: "application/json",\n      ` : ""}
-    },
-  });
-
-  console.log(response.text);
-}
-
-main();
-`;
+    return this.getGenerator("typescript")!.generate(config, messages);
   }
 
   public generateAndroidKotlinCode(config: PromptConfig, messages: ChatMessage[]): string {
-    const { promptText, sysInst } = this.extractPromptContext(config, messages);
-
-    return `// In your Android app build.gradle.kts:
-// implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
-
-package com.example.aistudio
-
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.generationConfig
-import kotlinx.coroutines.runBlocking
-
-fun main() {
-    val config = generationConfig {
-        temperature = ${config.temperature}f
-        topP = ${config.topP}f
-        topK = ${config.topK}
-        maxOutputTokens = ${config.maxOutputTokens}
-    }
-
-    val generativeModel = GenerativeModel(
-        modelName = "${config.model}",
-        apiKey = BuildConfig.GEMINI_API_KEY,
-        generationConfig = config,
-        ${sysInst ? `systemInstruction = content { text("${sysInst}") }\n    ` : ""}
-    )
-
-    runBlocking {
-        val response = generativeModel.generateContent("${promptText}")
-        println(response.text)
-    }
-}
-`;
+    return this.getGenerator("kotlin")!.generate(config, messages);
   }
 
   public generateCurlCode(config: PromptConfig, messages: ChatMessage[]): string {
-    const { promptText } = this.extractPromptContext(config, messages);
-
-    return `curl "https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=\${GEMINI_API_KEY}" \\
-  -H "Content-Type: application/json" \\
-  -X POST \\
-  -d '{
-    "contents": [{
-      "parts": [{"text": "${promptText}"}]
-    }],
-    "generationConfig": {
-      "temperature": ${config.temperature},
-      "topP": ${config.topP},
-      "topK": ${config.topK},
-      "maxOutputTokens": ${config.maxOutputTokens}
-    }
-  }'
-`;
+    return this.getGenerator("curl")!.generate(config, messages);
   }
 
-  private generators: Record<CodeLangId, CodeGenerator> = {
-    kotlin: {
-      id: "kotlin",
-      name: "MainActivity.kt",
-      language: "kotlin",
-      generate: (config, messages) => this.generateAndroidKotlinCode(config, messages),
-    },
-    typescript: {
-      id: "typescript",
-      name: "gemini_service.ts",
-      language: "typescript",
-      generate: (config, messages) => this.generateTypeScriptCode(config, messages),
-    },
-    python: {
-      id: "python",
-      name: "gemini_app.py",
-      language: "python",
-      generate: (config, messages) => this.generatePythonCode(config, messages),
-    },
-    curl: {
-      id: "curl",
-      name: "curl_request.sh",
-      language: "bash",
-      generate: (config, messages) => this.generateCurlCode(config, messages),
-    },
-  };
-
-  public getGenerator(id: CodeLangId): CodeGenerator | undefined {
-    return this.generators[id];
+  public getGenerator(id: CodeLangId): ICodeGeneratorPlugin | undefined {
+    return this.generators.get(id);
   }
 
-  public getAllGenerators(): CodeGenerator[] {
-    return Object.values(this.generators);
+  public getAllGenerators(): ICodeGeneratorPlugin[] {
+    return Array.from(this.generators.values());
   }
 }
 

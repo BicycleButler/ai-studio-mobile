@@ -25,6 +25,14 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
   private logger: ILogger;
   private requestBuilder: (item: T, method: string) => RequestInit;
 
+  constructor(config: NetworkStorageSyncAdapterConfig<T>);
+  constructor(
+    apiClient: IApiClient,
+    offlineService: IOfflineService,
+    networkStatusProvider?: INetworkStatusProvider,
+    retryStrategy?: IOfflineRetryStrategy,
+    logger?: ILogger
+  );
   constructor(
     apiClientOrConfig: IApiClient | NetworkStorageSyncAdapterConfig<T>,
     offlineService?: IOfflineService,
@@ -33,12 +41,13 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
     logger: ILogger = defaultLogger
   ) {
     if ('apiClient' in apiClientOrConfig) {
-      this.apiClient = apiClientOrConfig.apiClient;
-      this.offlineService = apiClientOrConfig.offlineService;
-      this.networkStatusProvider = apiClientOrConfig.networkStatusProvider || new BrowserNetworkStatusProvider();
-      this.retryStrategy = apiClientOrConfig.retryStrategy || new DefaultOfflineRetryStrategy();
-      this.logger = apiClientOrConfig.logger || defaultLogger;
-      this.requestBuilder = apiClientOrConfig.requestBuilder || ((item, method) => ({
+      const config = apiClientOrConfig as NetworkStorageSyncAdapterConfig<T>;
+      this.apiClient = config.apiClient;
+      this.offlineService = config.offlineService;
+      this.networkStatusProvider = config.networkStatusProvider || new BrowserNetworkStatusProvider();
+      this.retryStrategy = config.retryStrategy || new DefaultOfflineRetryStrategy();
+      this.logger = config.logger || defaultLogger;
+      this.requestBuilder = config.requestBuilder || ((item, method) => ({
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item),
