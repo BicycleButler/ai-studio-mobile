@@ -1,5 +1,5 @@
 import { describe, test } from 'vitest';
-import { parseGoogleJwtPayload } from "./googleAuth";
+import { defaultGoogleAuthService } from "./googleAuth";
 
 // Test suite for authentication helpers & header builders
 
@@ -59,12 +59,12 @@ describe('testAuthHelpers', () => {
   const encodedPayload = btoa(JSON.stringify(mockPayload));
   const mockToken = `${encodedHeader}.${encodedPayload}.mockSignature`;
 
-  const parsed = parseGoogleJwtPayload(mockToken);
+  const parsed = defaultGoogleAuthService.parseGoogleJwtPayload(mockToken);
   if (!parsed || parsed.email !== "developer@example.com" || parsed.name !== "Developer Name") {
     throw new Error("Google JWT parser failed to decode token payload accurately");
   }
 
-  const invalidTokenResult = parseGoogleJwtPayload("invalid.token");
+  const invalidTokenResult = defaultGoogleAuthService.parseGoogleJwtPayload("invalid.token");
   if (invalidTokenResult !== null) {
     throw new Error("Expected invalid token to return null");
   }
