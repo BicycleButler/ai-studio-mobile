@@ -1,7 +1,8 @@
 import { PromptConfig, PromptType, StructuredExample, ChatMessage } from "../../types";
 import { DEFAULT_CONFIG } from "../../data/templates";
 import { StorageSingleton } from "./StorageSingleton";
-import { StorageRegistry } from "./StorageRegistry";
+import { StorageRegistry, IStorageRegistry } from "./StorageRegistry";
+import { IMutableSingleton } from "./types";
 import { STORAGE_KEYS } from "./constants";
 import { cleanMockData, getNestedValue } from "./helpers";
 import { ILogger, defaultLogger } from "../logger";
@@ -24,16 +25,18 @@ export interface IDraftStateService {
 
 export interface DraftStateServiceConfig {
   logger?: ILogger;
+  draftRegistry?: IStorageRegistry<IMutableSingleton<DraftState | null>>;
 }
 
 export class DraftStateService implements IDraftStateService {
-  private draftRegistry = new StorageRegistry<StorageSingleton<DraftState | null>>((key) => {
-    return new StorageSingleton<DraftState | null>(key, null);
-  });
+  private draftRegistry: IStorageRegistry<IMutableSingleton<DraftState | null>>;
   private logger: ILogger;
 
   constructor(config?: DraftStateServiceConfig) {
     this.logger = config?.logger || defaultLogger;
+    this.draftRegistry = config?.draftRegistry || new StorageRegistry<IMutableSingleton<DraftState | null>>((key) => {
+      return new StorageSingleton<DraftState | null>(key, null);
+    });
   }
 
   public getProjectDraftKey(projectId?: string | null): string {
@@ -43,7 +46,7 @@ export class DraftStateService implements IDraftStateService {
     return STORAGE_KEYS.DRAFT_STATE;
   }
 
-  private getDraftSingleton(key: string): StorageSingleton<DraftState | null> {
+  private getDraftSingleton(key: string): IMutableSingleton<DraftState | null> {
     return this.draftRegistry.get(key);
   }
 
