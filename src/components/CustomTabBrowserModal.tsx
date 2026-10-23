@@ -15,7 +15,7 @@ import {
   Bot,
   ArrowLeft,
 } from "lucide-react";
-import { defaultKeyVerificationService } from "../services/keyVerification";
+import { useServices } from "../services/ServiceContext";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 import { getSafeNavigatorClipboard, getSafeWindow } from "../utils/platform";
 
@@ -39,6 +39,8 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   activeApiKey = "",
   initialService = "aistudio",
 }) => {
+  const { keyVerificationService } = useServices();
+
   // Enable device/browser back navigation to dismiss browser smoothly
   useBackNavigation(isOpen, onClose, "custom-tab-browser");
 
@@ -62,7 +64,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
     try {
       if (Boolean(getSafeNavigatorClipboard()?.readText)) {
         const text = await getSafeNavigatorClipboard()?.readText() || "";
-        const found = isJules ? (defaultKeyVerificationService.detectJulesApiKey(text) || defaultKeyVerificationService.detectGoogleApiKey(text)) : defaultKeyVerificationService.detectGoogleApiKey(text);
+        const found = isJules ? (keyVerificationService.detectJulesApiKey(text) || keyVerificationService.detectGoogleApiKey(text)) : keyVerificationService.detectGoogleApiKey(text);
         if (found && found !== activeApiKey.trim()) {
           setDetectedKey(found);
         }
@@ -239,7 +241,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                     {isJules ? "Jules API Key Intercepted!" : "AI Studio Key Intercepted!"}
                   </span>
                   <span className="text-[11px] font-mono text-muted-foreground block truncate">
-                    {defaultKeyVerificationService.maskApiKey(detectedKey)}
+                    {keyVerificationService.maskApiKey(detectedKey)}
                   </span>
                 </div>
               </div>

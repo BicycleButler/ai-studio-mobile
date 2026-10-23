@@ -12,9 +12,9 @@ import {
   GEMINI_VOICES,
   SpeechSettings,
   DeviceVoiceOption,
-  defaultSpeechVoicesService,
 } from "../../services/speechVoices";
 import { getSafeWindowSpeechSynthesis } from "../../utils/platform";
+import { useServices } from "../../services/ServiceContext";
 
 export interface SettingsAudioTabProps {
   currentSpeechSettings: SpeechSettings;
@@ -34,11 +34,12 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
   const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const { speechVoicesService } = useServices();
 
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    setDeviceVoices(defaultSpeechVoicesService.getAvailableDeviceVoices());
+    setDeviceVoices(speechVoicesService.getAvailableDeviceVoices());
   }, []);
 
   const stopPreview = () => {
@@ -79,7 +80,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
     if (engine === "gemini") {
       setIsPreviewLoading(true);
       try {
-        const audioResponse = await defaultSpeechVoicesService.fetchTTSAudioUrl(testPhrase, voiceId);
+        const audioResponse = await speechVoicesService.fetchTTSAudioUrl(testPhrase, voiceId);
         const audioUrl = audioResponse?.audioUrl;
         if (!audioUrl) throw new Error("Failed to load Gemini TTS preview.");
 

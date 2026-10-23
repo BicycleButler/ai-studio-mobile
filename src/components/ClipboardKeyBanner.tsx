@@ -1,6 +1,6 @@
 import React from "react";
 import { Key, X, ArrowRight } from "lucide-react";
-import { defaultKeyVerificationService } from "../services/keyVerification";
+import { useServices } from "../services/ServiceContext";
 
 interface ClipboardKeyBannerProps {
   clipboardToastKey: string | null;
@@ -17,6 +17,7 @@ export const ClipboardKeyBanner: React.FC<ClipboardKeyBannerProps> = ({
   onDismiss,
   onImport,
 }) => {
+  const { keyVerificationService } = useServices();
   if (!clipboardToastKey || showImportModal || showCustomTabBrowser) {
     return null;
   }
@@ -34,7 +35,7 @@ export const ClipboardKeyBanner: React.FC<ClipboardKeyBannerProps> = ({
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-white">Google API Key Copied</span>
             <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-mono">
-              {defaultKeyVerificationService.maskApiKey(clipboardToastKey)}
+              {keyVerificationService.maskApiKey(clipboardToastKey)}
             </span>
           </div>
           <p className="text-[11px] text-zinc-300 truncate">

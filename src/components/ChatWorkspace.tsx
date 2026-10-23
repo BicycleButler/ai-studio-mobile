@@ -57,7 +57,6 @@ import { GoogleIcon } from "./GoogleIcon";
 import { PromptTemplateDrawer } from "./PromptTemplateDrawer";
 import { useServices } from "../services/ServiceContext";
 import { PromptTemplate } from "../types";
-import { defaultSpeechVoicesService } from "../services/speechVoices";
 
 
 interface ChatWorkspaceProps {
@@ -140,10 +139,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [isOptimizingImage, setIsOptimizingImage] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { speechVoicesService } = useServices();
+
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBufferingAudio, setIsBufferingAudio] = useState(false);
   const [localSpeechSettings] = useState<SpeechSettings>(() =>
-    defaultSpeechVoicesService.loadSpeechSettings()
+    speechVoicesService.loadSpeechSettings()
   );
 
   // History & New Chat Popover State
@@ -664,6 +665,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         if (!sentenceQueueRef.current) {
           sentenceQueueRef.current = new SentenceSpeechQueue({
             speechSettings,
+            speechVoicesService,
             onSentenceStart: () => {
               setIsSpeaking(true);
               setVoiceState("speaking");
@@ -837,7 +839,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     if (speechSettings.engine === "gemini") {
       setIsBufferingAudio(true);
       try {
-        const data = await defaultSpeechVoicesService.fetchTTSAudioUrl(contentToSpeak, speechSettings.geminiVoice);
+        const data = await speechVoicesService.fetchTTSAudioUrl(contentToSpeak, speechSettings.geminiVoice);
 
         if (!data.audioUrl) {
           throw new Error("No audio payload returned from Gemini TTS");

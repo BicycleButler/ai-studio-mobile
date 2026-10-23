@@ -18,9 +18,7 @@ import {
 } from "lucide-react";
 import { ProjectInfo, KeyVerificationResult } from "../types";
 import { getSafeNavigatorClipboard } from "../utils/platform";
-import {
-  defaultKeyVerificationService,
-} from "../services/keyVerification";
+import { useServices } from "../services/ServiceContext";
 import {
   saveAndActivateProject,
   projectsManager,
@@ -51,6 +49,8 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   onSuccess,
   availableModels = DEFAULT_MODELS,
 }) => {
+  const { keyVerificationService } = useServices();
+
   // Enable device/browser back navigation to dismiss sheet smoothly
   useBackNavigation(isOpen, () => {
     void handleDismiss();
@@ -95,7 +95,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
       return;
     }
 
-    if (!defaultKeyVerificationService.isValidGoogleApiKeyFormat(trimmed)) {
+    if (!keyVerificationService.isValidGoogleApiKeyFormat(trimmed)) {
       setValidationState("invalid");
       setValidationResult({
         valid: false,
@@ -107,7 +107,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
     setValidationState("validating");
     setValidationResult(null);
 
-    const result = await defaultKeyVerificationService.verifyGoogleApiKey(trimmed, modelToTest);
+    const result = await keyVerificationService.verifyGoogleApiKey(trimmed, modelToTest);
 
     if (result.valid) {
       setValidationState("valid");
@@ -158,7 +158,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
       });
 
       // 2. Clear device clipboard to prevent lingering credential exposure
-      await defaultKeyVerificationService.clearClipboardSafe();
+      await keyVerificationService.clearClipboardSafe();
 
       // 3. Callback and dismiss
       onSuccess(savedProject);
@@ -175,8 +175,8 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
     try {
       if (Boolean(getSafeNavigatorClipboard()?.readText)) {
         const text = await getSafeNavigatorClipboard()?.readText() || "";
-        if (text && defaultKeyVerificationService.isValidGoogleApiKeyFormat(text.trim())) {
-          await defaultKeyVerificationService.clearClipboardSafe();
+        if (text && keyVerificationService.isValidGoogleApiKeyFormat(text.trim())) {
+          await keyVerificationService.clearClipboardSafe();
         }
       }
     } catch {
@@ -185,7 +185,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
     onClose();
   };
 
-  const maskedPreview = defaultKeyVerificationService.maskApiKey(apiKey);
+  const maskedPreview = keyVerificationService.maskApiKey(apiKey);
 
   return (
     <AnimatePresence>
@@ -281,7 +281,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                 <button
                   type="button"
                   onClick={async () => {
-                    await defaultKeyVerificationService.clearClipboardSafe();
+                    await keyVerificationService.clearClipboardSafe();
                   }}
                   className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors cursor-pointer"
                   title="Erase sensitive key from device clipboard"

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { SpeechSettings, defaultSpeechVoicesService, DeviceVoiceOption } from "../../services/speechVoices";
+import { SpeechSettings, DeviceVoiceOption } from "../../services/speechVoices";
 import { getSafeWindowSpeechSynthesis } from "../../utils/platform";
+import { useServices } from "../../services/ServiceContext";
 
 export function useAudioSettings(initialSettings: SpeechSettings, onSave: (settings: SpeechSettings) => void) {
+  const { speechVoicesService } = useServices();
   const [currentSpeechSettings, setCurrentSpeechSettings] = useState<SpeechSettings>(initialSettings);
   const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export function useAudioSettings(initialSettings: SpeechSettings, onSave: (setti
 
   useEffect(() => {
     const loadVoices = () => {
-      const voices = defaultSpeechVoicesService.getAvailableDeviceVoices();
+      const voices = speechVoicesService.getAvailableDeviceVoices();
       setDeviceVoices(voices);
     };
 
@@ -55,7 +57,7 @@ export function useAudioSettings(initialSettings: SpeechSettings, onSave: (setti
 
     if (engine === "gemini") {
       try {
-        const data = await defaultSpeechVoicesService.fetchTTSAudioUrl(samplePhrase, voiceName);
+        const data = await speechVoicesService.fetchTTSAudioUrl(samplePhrase, voiceName);
         if (!data || !data.audioUrl) throw new Error("Audio URL is null");
         const audio = new Audio(data.audioUrl);
         previewAudioRef.current = audio;
