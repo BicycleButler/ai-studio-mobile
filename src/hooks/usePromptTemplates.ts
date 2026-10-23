@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-export function usePromptTemplates() {
+export function usePromptTemplates(initialSelectedTemplateIds: string[] = []) {
   const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>(initialSelectedTemplateIds);
 
   const handleToggleTemplate = (templateId: string) => {
     setSelectedTemplateIds((prev) =>

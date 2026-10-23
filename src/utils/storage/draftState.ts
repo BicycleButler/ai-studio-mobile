@@ -14,6 +14,7 @@ export interface DraftState {
   freeformText: string;
   structuredExamples: StructuredExample[];
   messages?: ChatMessage[];
+  selectedTemplateIds?: string[];
   updatedAt: number;
 }
 
@@ -58,6 +59,7 @@ export class DraftStateService implements IDraftStateService {
       freeformText: "",
       structuredExamples: [],
       messages: undefined,
+      selectedTemplateIds: [],
       updatedAt: Date.now(),
     };
 
@@ -112,6 +114,7 @@ export class DraftStateService implements IDraftStateService {
       chatInputText: getNestedValue(stored, ['chatInputText'], ''),
       freeformText: getNestedValue(stored, ['freeformText'], ''),
       structuredExamples: getNestedValue(stored, ['structuredExamples'], []),
+      selectedTemplateIds: getNestedValue(stored, ['selectedTemplateIds'], []),
       updatedAt: getNestedValue(stored, ['updatedAt'], fallback.updatedAt),
     };
   }

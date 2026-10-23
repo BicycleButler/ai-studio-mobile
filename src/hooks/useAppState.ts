@@ -42,7 +42,7 @@ export function useAppState() {
   // External Services
   const { googleAuthService, authService, promptTemplateService } = useServices();
 
-  const promptTemplates = usePromptTemplates();
+  const promptTemplates = usePromptTemplates(initialDraft.selectedTemplateIds || []);
 
   // Model Config
   const [config, setConfig] = useState(initialDraft.config);
@@ -146,13 +146,14 @@ export function useAppState() {
           config,
           freeformText: chatSession.freeformText,
           structuredExamples: chatSession.structuredExamples,
+          selectedTemplateIds: promptTemplates.selectedTemplateIds,
           messages: chatSession.messages,
         },
         activeProject?.id
       );
     }, 500);
     return () => clearTimeout(timeout);
-  }, [promptType, config, chatSession.freeformText, chatSession.structuredExamples, chatSession.messages, activeProject?.id]);
+  }, [promptType, config, chatSession.freeformText, chatSession.structuredExamples, chatSession.messages, promptTemplates.selectedTemplateIds, activeProject?.id]);
 
   // Chat Session Persistence Effect
   useEffect(() => {
