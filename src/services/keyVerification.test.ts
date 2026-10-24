@@ -8,10 +8,6 @@ import {
 import {
   encryptSecret,
   decryptSecret,
-  loadStoredProjects,
-  saveAndActivateProject,
-
-
   projectsManager,
 } from "../utils/storage";
 
