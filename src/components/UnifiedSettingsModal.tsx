@@ -38,6 +38,7 @@ import { SettingsDisplayTab } from "./settings/SettingsDisplayTab";
 import { SettingsAccountTab } from "./settings/SettingsAccountTab";
 import { SettingsSecurityTab } from "./settings/SettingsSecurityTab";
 import { useBackNavigation } from "../hooks/useBackNavigation";
+import { useServices } from "../services/ServiceContext";
 import { SettingsTab } from "../types";
 
 export interface AccountSettingsProps {
@@ -203,7 +204,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   }, [toggleSelectAllProjectsRaw, projects]);
 
 
-  const [flagSecure, setFlagSecure] = useState<boolean>(() => defaultGeneralSettingsService.isFlagSecureEnabled());
+  const { generalSettingsService } = useServices();
+  const [flagSecure, setFlagSecure] = useState<boolean>(() => generalSettingsService.isFlagSecureEnabled());
 
   // Enable device/browser back navigation to dismiss drawer smoothly
   useBackNavigation(isOpen, () => {

@@ -47,7 +47,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   onSuccess,
   availableModels = DEFAULT_MODELS,
 }) => {
-  const { keyVerificationService, logger } = useServices();
+  const { keyVerificationService, logger, projectService } = useServices();
 
   // Enable device/browser back navigation to dismiss sheet smoothly
   useBackNavigation(isOpen, () => {
@@ -67,7 +67,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   // Initialize or reset when opening with a new key
   useEffect(() => {
     if (isOpen) {
-      const projects = projectsManager.getItems();
+      const projects = projectService.loadStoredProjects();
       const defaultName = `AI Studio Project ${projects.length + 1}`;
       setProjectName(defaultName);
       setSelectedModel("gemini-2.5-flash");
@@ -147,7 +147,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
     setIsSaving(true);
     try {
       // 1. Save project & its parameters to encrypted storage and mark as active
-      const savedProject = defaultProjectService.saveAndActivateProject({
+      const savedProject = projectService.saveAndActivateProject({
         name: projectName.trim() || "AI Studio Project",
         apiKey: trimmedKey,
         defaultModel: selectedModel,

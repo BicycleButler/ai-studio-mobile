@@ -1,7 +1,7 @@
 import { IOfflineService } from "../offlineService";
 import { IApiClient } from "../apiClient";
-import { INetworkStatusProvider, BrowserNetworkStatusProvider } from "../networkStatus";
-import { IOfflineRetryStrategy, DefaultOfflineRetryStrategy } from "./offlineRetryStrategy";
+import { INetworkStatusProvider } from "../networkStatus";
+import { IOfflineRetryStrategy } from "./offlineRetryStrategy";
 import { ILogger, defaultLogger } from "../logger";
 
 export interface IStorageSyncAdapter<T> {
