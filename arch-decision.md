@@ -542,3 +542,16 @@ Require services to lazily resolve dependencies via `useServices` or a global Se
 
 **Recommendation:**
 **Path 1 (Injected Instantiation)** is the recommended path. It strictly forces instances to declare their dependencies, allowing `ServiceContext` to orchestrate how `IApiClient` or `IOfflineService` propagate across all downstream services. However, due to scope, a phased approach is needed to untangle circular dependencies first. For now, the existing configuration fallbacks are preserved, but components should prefer using `ServiceContext` to retrieve explicitly configured instances.
+## Architectural Decision: NetworkStorageSyncAdapter Constructor Signature Deprecation
+
+**Context:**
+`NetworkStorageSyncAdapter` historically supported overloaded constructors, including a legacy signature passing arguments positionally and a newer signature accepting a `NetworkStorageSyncAdapterConfig` object. Having multiple signatures with runtime parsing violated Maintainability and Generality, adding unnecessary cognitive load and complexity.
+
+**Path 1: Configuration Object Enforced Injection (Composition)**
+Remove the positional signature and the `apiClientOrConfig` runtime type-checking block entirely. Strictly enforce the `NetworkStorageSyncAdapterConfig` object for dependency injection in the constructor.
+
+**Path 2: Retain Backwards Compatibility**
+Keep the overloads indefinitely to ensure tests or legacy consumers don't break.
+
+**Recommendation:**
+**Path 1 (Configuration Object Enforced Injection)** was implemented. It removes technical debt and enforces a clean dependency injection pattern using the configuration object, matching the rest of the storage layer's established patterns. The few unit tests relying on the positional arguments were trivially updated.

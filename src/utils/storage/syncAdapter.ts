@@ -25,47 +25,17 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
   private logger: ILogger;
   private requestBuilder: (item: T, method: string) => RequestInit;
 
-  constructor(config: NetworkStorageSyncAdapterConfig<T>);
-  constructor(
-    apiClient: IApiClient,
-    offlineService: IOfflineService,
-    networkStatusProvider?: INetworkStatusProvider,
-    retryStrategy?: IOfflineRetryStrategy,
-    logger?: ILogger
-  );
-  constructor(
-    apiClientOrConfig: IApiClient | NetworkStorageSyncAdapterConfig<T>,
-    offlineService?: IOfflineService,
-    networkStatusProvider: INetworkStatusProvider = new BrowserNetworkStatusProvider(),
-    retryStrategy?: IOfflineRetryStrategy,
-    logger: ILogger = defaultLogger
-  ) {
-    if ('apiClient' in apiClientOrConfig) {
-      const config = apiClientOrConfig as NetworkStorageSyncAdapterConfig<T>;
-      this.apiClient = config.apiClient;
-      this.offlineService = config.offlineService;
-      this.networkStatusProvider = config.networkStatusProvider || new BrowserNetworkStatusProvider();
-      this.retryStrategy = config.retryStrategy || new DefaultOfflineRetryStrategy();
-      this.logger = config.logger || defaultLogger;
-      this.requestBuilder = config.requestBuilder || ((item, method) => ({
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item),
-      }));
-    } else {
-      // Legacy signature
-      this.apiClient = apiClientOrConfig;
-      if (!offlineService) throw new Error("offlineService is required when not using config object");
-      this.offlineService = offlineService;
-      this.networkStatusProvider = networkStatusProvider;
-      this.retryStrategy = retryStrategy || new DefaultOfflineRetryStrategy();
-      this.logger = logger;
-      this.requestBuilder = (item, method) => ({
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item),
-      });
-    }
+  constructor(config: NetworkStorageSyncAdapterConfig<T>) {
+    this.apiClient = config.apiClient;
+    this.offlineService = config.offlineService;
+    this.networkStatusProvider = config.networkStatusProvider || new BrowserNetworkStatusProvider();
+    this.retryStrategy = config.retryStrategy || new DefaultOfflineRetryStrategy();
+    this.logger = config.logger || defaultLogger;
+    this.requestBuilder = config.requestBuilder || ((item, method) => ({
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(item),
+    }));
   }
 
   public syncItem(item: T, endpoint: string, mutationType: string, method: string = "POST"): void {
