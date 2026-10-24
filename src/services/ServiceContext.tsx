@@ -14,10 +14,10 @@ import { defaultOfflineService } from "../utils/offlineService";
 import { INetworkStatusProvider } from "../utils/networkStatus";
 import { defaultNetworkStatusProvider } from "../utils/networkStatus";
 import { defaultChatHistoryService, ChatHistoryService } from "./chatHistoryService";
-import { defaultProjectService, ProjectService } from "../utils/storage/projects";
+import { ProjectService } from "../utils/storage/projects";
 import { SavedPromptsService } from "../utils/storage/prompts";
-import { defaultGeneralSettingsService, GeneralSettingsService } from "../utils/storage/general";
-import { defaultDraftStateService, DraftStateService } from "../utils/storage/draftState";
+import { GeneralSettingsService } from "../utils/storage/general";
+import { DraftStateService } from "../utils/storage/draftState";
 import { JulesStorageService } from "../utils/storage/jules";
 import { JulesClient } from "./julesService";
 import { defaultSpeechVoicesService, SpeechVoicesService } from "./speechVoices";
@@ -92,6 +92,12 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   }),
 });
 
+const explicitlyInjectedProjectService = new ProjectService();
+
+const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService();
+
+const explicitlyInjectedDraftStateService = new DraftStateService();
+
 const defaultServices: IServices = {
   themeService: defaultThemeService,
   promptTemplateService: defaultPromptTemplateService,
@@ -102,10 +108,10 @@ const defaultServices: IServices = {
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
   networkStatusProvider: defaultNetworkStatusProvider,
   chatHistoryService: defaultChatHistoryService,
-  projectService: defaultProjectService,
+  projectService: explicitlyInjectedProjectService,
   savedPromptsService: explicitlyInjectedSavedPromptsService,
-  generalSettingsService: defaultGeneralSettingsService,
-  draftStateService: defaultDraftStateService,
+  generalSettingsService: explicitlyInjectedGeneralSettingsService,
+  draftStateService: explicitlyInjectedDraftStateService,
   julesStorageService: explicitlyInjectedJulesStorageService,
   julesClient: explicitlyInjectedJulesClient,
   speechVoicesService: defaultSpeechVoicesService,
