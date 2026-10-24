@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from "react";
 
-import { IApiClient, defaultClient, apiFetch, apiFetchStream } from "../utils/apiClient";
+import { IApiClient, defaultClient } from "../utils/apiClient";
 import { SyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter } from "../utils/storage/syncAdapter";
@@ -8,7 +8,7 @@ import { defaultLogger } from "../utils/logger";
 
 import { IThemeService, defaultThemeService } from "./themeService";
 import { IPromptTemplateService, defaultPromptTemplateService } from "./promptTemplateService";
-import { IAuthService, defaultAuthService } from "./auth";
+import { IAuthService, AuthService } from "./auth";
 import { GoogleAuthService } from "./googleAuth";
 import { IOfflineService } from "../utils/offlineService";
 import { defaultOfflineService } from "../utils/offlineService";
@@ -22,9 +22,9 @@ import { GeneralSettingsService } from "../utils/storage/general";
 import { DraftStateService } from "../utils/storage/draftState";
 import { JulesStorageService } from "../utils/storage/jules";
 import { JulesClient } from "./julesService";
-import { defaultSpeechVoicesService, SpeechVoicesService } from "./speechVoices";
+import { SpeechVoicesService } from "./speechVoices";
 import { GeminiStreamService } from "./geminiStreamService";
-import { defaultKeyVerificationService, KeyVerificationService } from "./keyVerification";
+import { KeyVerificationService } from "./keyVerification";
 import { StubsClient } from "./stubsService";
 import { defaultCodeGeneratorService, ICodeGeneratorService } from "./codeGeneratorService";
 import { PwaInstallService, defaultPwaInstallService } from "./pwaInstallService";
@@ -68,8 +68,22 @@ const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
   DEFAULT_SYNC_HANDLERS
 );
 
+const explicitlyInjectedAuthService = new AuthService({
+  apiClient: explicitlyInjectedApiClient,
+});
+
 const explicitlyInjectedGoogleAuthService = new GoogleAuthService({
   apiClient: explicitlyInjectedApiClient,
+});
+
+const explicitlyInjectedSpeechVoicesService = new SpeechVoicesService({
+  apiClient: explicitlyInjectedApiClient,
+  authService: explicitlyInjectedAuthService,
+});
+
+const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
+  apiClient: explicitlyInjectedApiClient,
+  logger: defaultLogger
 });
 
 
@@ -81,11 +95,10 @@ const explicitlyInjectedJulesClient = new JulesClient({
 
 const explicitlyInjectedStubsClient = new StubsClient(explicitlyInjectedApiClient);
 
-const explicitlyInjectedGeminiStreamService = new GeminiStreamService(
-  apiFetch,
-  apiFetchStream,
-  defaultLogger
-);
+const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
+  apiClient: explicitlyInjectedApiClient,
+  logger: defaultLogger
+});
 
 const explicitlyInjectedJulesStorageService = new JulesStorageService({
   julesSessionsManager: undefined,
@@ -124,7 +137,7 @@ const explicitlyInjectedImageCompressor = defaultImageCompressor;
 const defaultServices: IServices = {
   themeService: defaultThemeService,
   promptTemplateService: defaultPromptTemplateService,
-  authService: defaultAuthService,
+  authService: explicitlyInjectedAuthService,
   googleAuthService: explicitlyInjectedGoogleAuthService,
   offlineService: explicitlyInjectedOfflineService,
   apiClient: explicitlyInjectedApiClient,
@@ -137,9 +150,9 @@ const defaultServices: IServices = {
   draftStateService: explicitlyInjectedDraftStateService,
   julesStorageService: explicitlyInjectedJulesStorageService,
   julesClient: explicitlyInjectedJulesClient,
-  speechVoicesService: defaultSpeechVoicesService,
+  speechVoicesService: explicitlyInjectedSpeechVoicesService,
   geminiStreamService: explicitlyInjectedGeminiStreamService,
-  keyVerificationService: defaultKeyVerificationService,
+  keyVerificationService: explicitlyInjectedKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,
   codeGeneratorService: defaultCodeGeneratorService,
   pwaInstallService: defaultPwaInstallService,

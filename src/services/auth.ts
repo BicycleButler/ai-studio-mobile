@@ -5,7 +5,7 @@
  * or allows requests to rely on the server's configured GEMINI_API_KEY.
  */
 
-import { apiFetch } from "../utils/apiClient";
+import { IApiClient, defaultClient } from "../utils/apiClient";
 
 
 
@@ -16,16 +16,16 @@ export interface IAuthService {
 }
 
 export interface AuthServiceConfig {
-  apiClient?: typeof apiFetch;
+  apiClient?: IApiClient;
   loadStoredApiKeyFn?: () => string;
 }
 
 export class AuthService implements IAuthService {
-  private fetchFn: typeof apiFetch;
+  private apiClient: IApiClient;
   private getStoredApiKeyFn: () => string;
 
   constructor(config?: AuthServiceConfig) {
-    this.fetchFn = config?.apiClient || apiFetch;
+    this.apiClient = config?.apiClient || defaultClient;
     this.getStoredApiKeyFn = config?.loadStoredApiKeyFn || (() => "");
   }
 
@@ -36,14 +36,14 @@ export class AuthService implements IAuthService {
     if (apiKey) {
       headers["x-gemini-api-key"] = apiKey;
     }
-    return this.fetchFn<{ valid?: boolean; error?: string; authSource?: string }>("/api/auth/verify", {
+    return this.apiClient.fetch<{ valid?: boolean; error?: string; authSource?: string }>("/api/auth/verify", {
       method: "POST",
       headers,
     });
   }
 
   public async fetchServerHealth(): Promise<{ hasServerApiKey?: boolean }> {
-    return this.fetchFn<{ hasServerApiKey?: boolean }>("/api/health");
+    return this.apiClient.fetch<{ hasServerApiKey?: boolean }>("/api/health");
   }
 
   public getAuthHeaders(): Record<string, string> {

@@ -1,4 +1,4 @@
-import { apiFetch } from "../utils/apiClient";
+import { IApiClient, defaultClient } from "../utils/apiClient";
 import { IAuthService, defaultAuthService } from "./auth";
 import { getSafeWindowSpeechSynthesis, getSafeNavigatorLanguage } from "../utils/platform";
 /**
@@ -106,6 +106,7 @@ export interface ISpeechVoicesService {
 
 export interface SpeechVoicesServiceConfig {
   authService?: IAuthService;
+  apiClient?: IApiClient;
   speechSettingsSingleton?: IMutableSingleton<SpeechSettings>;
   getWindowSpeechSynthesis?: typeof getSafeWindowSpeechSynthesis;
   getNavigatorLanguage?: typeof getSafeNavigatorLanguage;
@@ -116,11 +117,13 @@ export class SpeechVoicesService implements ISpeechVoicesService {
   private getWindowSpeechSynthesis: typeof getSafeWindowSpeechSynthesis;
   private getNavigatorLanguage: typeof getSafeNavigatorLanguage;
   private authService: IAuthService;
+  private apiClient: IApiClient;
 
   constructor(config?: SpeechVoicesServiceConfig) {
     this.getWindowSpeechSynthesis = config?.getWindowSpeechSynthesis || getSafeWindowSpeechSynthesis;
     this.getNavigatorLanguage = config?.getNavigatorLanguage || getSafeNavigatorLanguage;
     this.authService = config?.authService || defaultAuthService;
+    this.apiClient = config?.apiClient || defaultClient;
     this.speechSettingsSingleton = config?.speechSettingsSingleton || new StorageSingleton<SpeechSettings>(
       STORAGE_KEYS.SPEECH_SETTINGS,
       DEFAULT_SPEECH_SETTINGS,
@@ -148,7 +151,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
    */
   public async fetchTTSAudioUrl(text: string, voiceName: string): Promise<{ audioUrl: string }> {
     const authHeaders = this.authService.getAuthHeaders();
-    return apiFetch<{ audioUrl: string }>("/api/tts", {
+    return this.apiClient.fetch<{ audioUrl: string }>("/api/tts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
