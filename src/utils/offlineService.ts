@@ -1,9 +1,9 @@
 import { generateUniqueId } from "./idGenerator";
-import { Mutex } from "./mutex";
-import { Observable, IObservable } from "./observable";
+import { IObservable } from "./observable";
 
 import { AsyncStorage, IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from "./asyncStorage";
 import { ILogger, defaultLogger } from "./logger";
+import { OfflineQueueStore, IOfflineQueueStore } from "./offlineQueueStore";
 
 export interface OfflineMutation {
   type: string;
@@ -39,134 +39,77 @@ export interface IOfflineService {
 
 export interface OfflineServiceConfig {
   storageKey?: string;
-  storageAdapter: AsyncStorage;
+  storageAdapter?: AsyncStorage;
+  queueStore?: IOfflineQueueStore;
   logger?: ILogger;
 }
 
 export class OfflineService implements IOfflineService {
   private syncRegistry: Record<string, SyncHandler> = {};
-  private queueMutex = new Mutex();
-  public queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>();
-  private cachedQueue: OfflineMutation[] = [];
-  private channel?: BroadcastChannel;
-  private storageKey: string;
-  private storageAdapter: AsyncStorage;
+  private queueStore: IOfflineQueueStore;
   private logger: ILogger;
 
   constructor(config: OfflineServiceConfig) {
-    this.storageKey = config.storageKey || OFFLINE_QUEUE_KEY;
-    this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || defaultLogger;
-    try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        this.channel = new BroadcastChannel(`${this.storageKey}_channel`);
-        this.channel.onmessage = (event) => {
-          if (event.data === 'SYNC') {
-            this.syncCacheFromStorage().catch((err) => this.logger.error("Failed to sync cache from storage", err));
-          }
-        };
-      }
-    } catch {
-      // Ignore broadcast channel init errors
+
+    if (config.queueStore) {
+      this.queueStore = config.queueStore;
+    } else if (config.storageAdapter) {
+      this.queueStore = new OfflineQueueStore({
+        storageKey: config.storageKey || OFFLINE_QUEUE_KEY,
+        storageAdapter: config.storageAdapter,
+        logger: this.logger,
+      });
+    } else {
+      throw new Error("OfflineService requires either a queueStore or a storageAdapter");
     }
-    this.syncCacheFromStorage().catch(() => {});
+  }
+
+  public get queueObservable(): IObservable<OfflineMutation[]> {
+    return this.queueStore.queueObservable;
   }
 
   public registerSyncHandler(type: string, handler: SyncHandler): void {
     this.syncRegistry[type] = handler;
   }
 
-  private notifyQueue(queue: OfflineMutation[]) {
-    this.queueObservable.notify(queue);
-  }
-
-  private async syncCacheFromStorage(): Promise<void> {
-    this.cachedQueue = await this.safeGetQueue();
-    this.notifyQueue(this.cachedQueue);
-  }
-
   public getSnapshot(): OfflineMutation[] {
-    return this.cachedQueue;
+    return this.queueStore.getSnapshot();
   }
 
   public subscribe(listener: () => void): () => void {
-    return this.queueObservable.subscribe(listener);
-  }
-
-  private async safeGetQueue(): Promise<OfflineMutation[]> {
-    try {
-      const data = await this.storageAdapter.getItem<OfflineMutation[]>(this.storageKey);
-      return Array.isArray(data) ? data : [];
-    } catch (err) {
-      this.logger.error(`[OfflineService] Critical failure reading from storage (${this.storageKey})`, err);
-      return [];
-    }
-  }
-
-  private async safeSetQueue(queue: OfflineMutation[]): Promise<void> {
-    try {
-      if (!Array.isArray(queue)) {
-        throw new Error("Invalid queue format: Expected an array.");
-      }
-      await this.storageAdapter.setItem(this.storageKey, queue);
-    } catch (err) {
-      this.logger.error(`[OfflineService] Critical failure writing to storage (${this.storageKey})`, err);
-    }
-  }
-
-  private async withQueueLock<T>(action: (queue: OfflineMutation[]) => Promise<T | void>): Promise<T | void> {
-    return this.queueMutex.run(async () => {
-      const queue = await this.safeGetQueue();
-      const result = await action(queue);
-      return result;
-    });
+    return this.queueStore.queueObservable.subscribe(listener);
   }
 
   public async enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {
-    await this.withQueueLock(async (queue) => {
-      queue.push({
-        type,
-        payload,
-        timestamp: Date.now(),
-        id: generateUniqueId("mutation"),
-        version,
-      });
-      await this.safeSetQueue(queue);
-      this.cachedQueue = queue;
-      this.notifyQueue(queue);
-      this.channel?.postMessage('SYNC');
-    });
+    const mutation: OfflineMutation = {
+      type,
+      payload,
+      timestamp: Date.now(),
+      id: generateUniqueId("mutation"),
+      version,
+    };
+    await this.queueStore.enqueue(mutation);
   }
 
   public async removeOfflineMutation(id: string): Promise<void> {
-    await this.withQueueLock(async (queue) => {
-      const newQueue = queue.filter((m) => m.id !== id);
-      await this.safeSetQueue(newQueue);
-      this.cachedQueue = newQueue;
-      this.notifyQueue(newQueue);
-      this.channel?.postMessage('SYNC');
-    });
+    await this.queueStore.remove(id);
   }
 
   public async getOfflineQueueLength(): Promise<number> {
-    return this.cachedQueue.length;
+    const queue = await this.queueStore.getQueue();
+    return queue.length;
   }
 
   public async clearOfflineMutations(): Promise<void> {
-    await this.withQueueLock(async () => {
-      await this.safeSetQueue([]);
-      this.cachedQueue = [];
-      this.notifyQueue([]);
-      this.channel?.postMessage('SYNC');
-    });
+    await this.queueStore.clear();
   }
 
   public async processOfflineMutations(): Promise<{
     success: boolean;
     conflicts: ConflictData[];
   }> {
-    let queue: OfflineMutation[] = [];
-    await this.withQueueLock(async (q) => { queue = q; });
+    const queue = await this.queueStore.getQueue();
 
     if (queue.length === 0) {
       return { success: true, conflicts: [] };
@@ -214,31 +157,28 @@ export class OfflineService implements IOfflineService {
       }
     }
 
-    await this.withQueueLock(async (currentQueue) => {
-      const successfulIds = new Set(
-        queue
-          .filter(m => !remainingQueue.some(rm => rm.id === m.id))
-          .map(m => m.id)
-      );
+    // To ensure thread safety when modifying the queue after processing,
+    // we calculate successful items and remove them.
+    // We use a replace call or remove them one by one.
+    // However, OfflineQueueStore doesn't expose `withQueueLock`.
+    // We can replace the queue with remainingQueue + whatever new items were added.
+    // A safer way is to remove successful items by their ID.
+    const successfulIds = queue
+      .filter(m => !remainingQueue.some(rm => rm.id === m.id))
+      .map(m => m.id);
 
-      const finalQueue = currentQueue.filter(m => !successfulIds.has(m.id));
-      await this.safeSetQueue(finalQueue);
-      this.cachedQueue = finalQueue;
-      this.notifyQueue(finalQueue);
-      this.channel?.postMessage('SYNC');
-    });
+    // Use the optimized batch remove to prevent performance and event spam regressions
+    await this.queueStore.removeMany(successfulIds);
 
     return { success: processSuccess, conflicts };
   }
 
   public async getOfflineQueue(): Promise<OfflineMutation[]> {
-    return this.cachedQueue;
+    return this.queueStore.getQueue();
   }
 
   public dispose(): void {
-    if (this.channel) {
-      this.channel.close();
-    }
+    this.queueStore.dispose();
   }
 }
 
