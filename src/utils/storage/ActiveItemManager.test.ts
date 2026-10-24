@@ -97,4 +97,21 @@ describe('ActiveItemManager', () => {
 
         expect(changeSpy).toHaveBeenCalledWith({ id: '2' });
     });
+
+    it('should handle dangling IDs on an empty collection', () => {
+        const collection = new StorageCollection<any>('test_col');
+        collection.save([]);
+        const activeIdSingleton = new StorageSingleton<string | null>('test_id', 'dangling_id');
+
+        const manager = new ActiveItemManager({
+            collection,
+            activeIdSingleton,
+            getId: (i) => i.id
+        });
+
+        const state = manager.getSnapshot();
+        expect(state.items.length).toBe(0);
+        expect(state.activeItem).toBeNull();
+        expect(manager.getActiveId()).toBeNull();
+    });
 });
