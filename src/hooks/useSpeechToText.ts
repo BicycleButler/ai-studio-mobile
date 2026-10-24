@@ -76,7 +76,7 @@ export interface UseSpeechToTextReturn {
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeechToTextReturn {
-  const { logger } = useServices();
+  const { defaultLogger: logger } = require("../utils/logger");
   const [isListening, setIsListening] = useState(false);
   const [isAudioDetected, setIsAudioDetected] = useState(false);
   const [transcript, setTranscript] = useState("");
