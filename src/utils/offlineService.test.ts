@@ -111,3 +111,11 @@ describe('FallbackAsyncStorage', () => {
         expect(v2).toBe('v'); // unchanged because it went to failStorage
     });
 });
+
+    it('should throw error when all adapters fail to set item', async () => {
+        const failStorage1 = new FailingAsyncStorage(10);
+        const failStorage2 = new FailingAsyncStorage(10);
+        const fallback = new FallbackAsyncStorage([failStorage1, failStorage2]);
+
+        await expect(fallback.setItem('k', 'v')).rejects.toThrow('Storage failed');
+    });

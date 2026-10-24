@@ -59,8 +59,11 @@ export class FallbackAsyncStorage implements AsyncStorage {
         }
       } catch (e) {
         _lastError = e;
-        // Continue to the next adapter
+        this.logger.warn(`Storage adapter failed to get key ${key}:`, e);
       }
+    }
+    if (this.adapters.length > 0 && _lastError) {
+      this.logger.warn(`All storage adapters failed to get key ${key}. Assuming cache miss.`, _lastError);
     }
     return undefined;
   }
@@ -73,8 +76,10 @@ export class FallbackAsyncStorage implements AsyncStorage {
         return; // Success, stop trying other adapters
       } catch (e) {
         _lastError = e;
-        // Continue to the next adapter
+        this.logger.warn(`Storage adapter failed to set key ${key}:`, e);
       }
     }
+    this.logger.error(`All storage adapters failed to set key ${key}.`, _lastError);
+    throw _lastError || new Error(`Failed to set item in any storage adapter`);
   }
 }
