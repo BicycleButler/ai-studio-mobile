@@ -563,3 +563,19 @@ Keep the overloads indefinitely to ensure tests or legacy consumers don't break.
 
 **Decision:**
 Updated `FallbackAsyncStorage.getItem` to explicitly check `val !== undefined` instead of assuming any truthy value means success.
+
+## Architectural Decision: Sync Orchestrator Configuration Abstraction
+
+**Context:**
+The `SyncOrchestrator` previously hardcoded the endpoint mappings and payload transformations for syncing offline mutations (e.g., `jules_sessions`, `saved_prompts`) directly inside its `registerHandlers` method. This violated the Open/Closed Principle and tightly coupled the generic sync engine to the application's specific domain logic, making it difficult to test or extend without modifying the core class.
+
+**Decision:**
+Implemented a Configuration Injection pattern by defining a `SyncHandlerConfig` interface. `SyncOrchestrator` now accepts an array of these configurations via its constructor, and `registerHandlers` dynamically registers them. This fully decouples the generic synchronization mechanism from the domain models.
+
+## Architectural Decision: Fallback Storage Error Propagation
+
+**Context:**
+`FallbackAsyncStorage` had a flaw in its `setItem` implementation: if all underlying storage adapters failed to set an item, the function would simply complete silently. This masked critical persistence failures and caused data loss in upstream consumers (like `OfflineService`) that expected an exception to be thrown if writing to storage failed completely.
+
+**Decision:**
+Updated `FallbackAsyncStorage.setItem` to explicitly throw an error (or re-throw the last caught error) if the item fails to write to all configured storage adapters. This ensures that failures bubble up correctly to the caller.

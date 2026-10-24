@@ -1,10 +1,18 @@
 import { IOfflineService, SyncHandler, OfflineMutation } from "./offlineService";
 import { IApiClient, BaseApiError } from "./apiClient";
 
+export interface SyncHandlerConfig {
+  mutationType: string;
+  endpoint: string;
+  method?: string;
+  payloadWrapper?: (payload: unknown) => unknown;
+}
+
 export class SyncOrchestrator {
   constructor(
     private offlineService: IOfflineService,
-    private apiClient: IApiClient
+    private apiClient: IApiClient,
+    private handlersConfig: SyncHandlerConfig[] = []
   ) {}
 
   public createGenericSyncHandler(endpoint: string, payloadWrapper?: (payload: unknown) => unknown, method: string = "POST"): SyncHandler {
@@ -42,8 +50,8 @@ export class SyncOrchestrator {
   }
 
   public registerHandlers(): void {
-    this.offlineService.registerSyncHandler("jules_sessions", this.createGenericSyncHandler("/api/jules/sessions"));
-    this.offlineService.registerSyncHandler("saved_prompts", this.createGenericSyncHandler("/api/prompts", (payload) => ({ prompts: payload })));
-    this.offlineService.registerSyncHandler("projects", this.createGenericSyncHandler("/api/projects", (payload) => ({ projects: payload })));
+    this.handlersConfig.forEach((config) => {
+      this.offlineService.registerSyncHandler(config.mutationType, this.createGenericSyncHandler(config.endpoint, config.payloadWrapper, config.method));
+    });
   }
 }

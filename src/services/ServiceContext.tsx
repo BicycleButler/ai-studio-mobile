@@ -2,6 +2,7 @@ import React, { createContext, useContext, ReactNode } from "react";
 
 import { IApiClient, defaultClient, apiFetch, apiFetchStream } from "../utils/apiClient";
 import { SyncOrchestrator } from "../utils/syncOrchestrator";
+import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter } from "../utils/storage/syncAdapter";
 import { defaultLogger } from "../utils/logger";
 
@@ -57,7 +58,8 @@ const explicitlyInjectedOfflineService = defaultOfflineService;
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
   explicitlyInjectedOfflineService,
-  explicitlyInjectedApiClient
+  explicitlyInjectedApiClient,
+  DEFAULT_SYNC_HANDLERS
 );
 
 const explicitlyInjectedGoogleAuthService = new GoogleAuthService({
