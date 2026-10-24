@@ -95,7 +95,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     clearSelection,
     removeFromSelection,
     getSelectionState,
-  } = useBatchSelection({
+  } = useBatchSelection({ clearOnDependencies: [searchQuery],
     items: filteredSessions,
     getItemId: (s) => s.id,
   });
@@ -114,11 +114,6 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     },
     onClearSelection: clearSelection,
   });
-
-  // Clear selection on filter change (ADR 0047 Option A)
-  useEffect(() => {
-    clearSelection();
-  }, [searchQuery, clearSelection]);
 
   useEffect(() => {
     if (isOpen) {
