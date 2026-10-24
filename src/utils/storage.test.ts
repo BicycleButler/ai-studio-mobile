@@ -1,3 +1,4 @@
+import { defaultDraftStateService } from './storage/draftState';
 // Unit tests for storage utilities
 import {
   safeGetStorage,
@@ -21,13 +22,13 @@ describe('storage', () => {
     expect(fetched.valid).toBe(true);
 
     // Test draft state initialization
-    const draft = loadDraftState();
+    const draft = defaultDraftStateService.loadDraftState();
     expect(draft.config).toBeTruthy();
     expect(draft.promptType).toBeTruthy();
 
     // Test partial draft save
-    saveDraftState({ chatInputText: "Sample test prompt" });
-    const updatedDraft = loadDraftState();
+    defaultDraftStateService.saveDraftState({ chatInputText: "Sample test prompt" });
+    const updatedDraft = defaultDraftStateService.loadDraftState();
     expect(updatedDraft.chatInputText).toBe("Sample test prompt");
   });
 });

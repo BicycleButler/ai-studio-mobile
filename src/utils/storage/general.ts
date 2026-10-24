@@ -59,18 +59,6 @@ export class GeneralSettingsService {
 
 export const defaultGeneralSettingsService = new GeneralSettingsService();
 
-export function loadStoredApiKey(): string {
-  return defaultGeneralSettingsService.loadStoredApiKey();
-}
 
-export function saveStoredApiKey(key: string): void {
-  defaultGeneralSettingsService.saveStoredApiKey(key);
-}
 
-export function isFlagSecureEnabled(): boolean {
-  return defaultGeneralSettingsService.isFlagSecureEnabled();
-}
 
-export function setFlagSecureEnabled(enabled: boolean): void {
-  defaultGeneralSettingsService.setFlagSecureEnabled(enabled);
-}

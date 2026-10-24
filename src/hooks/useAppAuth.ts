@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 import { GoogleUser } from "../types";
 import { useServices } from "../services/ServiceContext";
-import { loadStoredApiKey, saveStoredApiKey } from "../utils/storage";
 
 export function useAppAuth() {
+  const { generalSettingsService } = useServices();
   const { googleAuthService, logger } = useServices();
 
   const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => googleAuthService.loadStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState<boolean>(false);
-  const [customApiKey, setCustomApiKey] = useState<string>(() => loadStoredApiKey());
+  const [customApiKey, setCustomApiKey] = useState<string>(() => generalSettingsService.loadStoredApiKey());
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
   const handleSaveApiKey = (key: string) => {
-    saveStoredApiKey(key);
+    generalSettingsService.saveStoredApiKey(key);
     setCustomApiKey(key);
   };
 

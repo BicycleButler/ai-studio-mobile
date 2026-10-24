@@ -1,4 +1,3 @@
-import { loadStoredApiKey } from "../utils/storage";
 
 /**
  * Builds standard authentication headers for backend API proxy endpoints.
@@ -7,6 +6,7 @@ import { loadStoredApiKey } from "../utils/storage";
  */
 
 import { apiFetch } from "../utils/apiClient";
+import { defaultGeneralSettingsService } from "../utils/storage";
 
 
 export interface IAuthService {
@@ -17,16 +17,16 @@ export interface IAuthService {
 
 export interface AuthServiceConfig {
   apiClient?: typeof apiFetch;
-  loadStoredApiKeyFn?: typeof loadStoredApiKey;
+  loadStoredApiKeyFn?: () => string;
 }
 
 export class AuthService implements IAuthService {
   private fetchFn: typeof apiFetch;
-  private getStoredApiKeyFn: typeof loadStoredApiKey;
+  private getStoredApiKeyFn: () => string;
 
   constructor(config?: AuthServiceConfig) {
     this.fetchFn = config?.apiClient || apiFetch;
-    this.getStoredApiKeyFn = config?.loadStoredApiKeyFn || loadStoredApiKey;
+    this.getStoredApiKeyFn = config?.loadStoredApiKeyFn || (() => defaultGeneralSettingsService.loadStoredApiKey());
   }
 
   public async fetchAuthStatus(apiKey?: string): Promise<{ valid?: boolean; error?: string; authSource?: string }> {

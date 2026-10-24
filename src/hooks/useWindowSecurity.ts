@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
-import { isFlagSecureEnabled, setFlagSecureEnabled } from "../utils/storage";
+import { useServices } from "../services/ServiceContext";
+import { defaultGeneralSettingsService } from "../utils/storage";
 import { Observable } from "../utils/observable";
 import { useStore } from "./useStore";
 
@@ -9,7 +10,7 @@ interface UseWindowSecurityOptions {
 }
 
 // Global state for flagSecure
-export const flagSecureObservable = new Observable<boolean>(isFlagSecureEnabled());
+export const flagSecureObservable = new Observable<boolean>(defaultGeneralSettingsService.isFlagSecureEnabled());
 
 let isFlagSecureInitialized = false;
 
@@ -129,6 +130,7 @@ const shieldStore = new ShieldStore();
 export function useWindowSecurity({
   isSensitiveScreenActive = false,
 }: UseWindowSecurityOptions = {}) {
+  const { generalSettingsService } = useServices();
 
   // Need non-null assertion since we initialized it with a value
   const flagSecureEnabled = useStore(flagSecureObservable, initFlagSecureListeners)!;
@@ -149,7 +151,7 @@ export function useWindowSecurity({
   const toggleFlagSecure = useCallback((enabled: boolean) => {
     // Synchronously update for immediate getSnapshot return and state updates
     flagSecureObservable.notifySync(enabled);
-    setFlagSecureEnabled(enabled);
+    generalSettingsService.setFlagSecureEnabled(enabled);
   }, []);
 
   return {

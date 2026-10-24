@@ -20,9 +20,7 @@ import { ProjectInfo, KeyVerificationResult } from "../types";
 import { getSafeNavigatorClipboard } from "../utils/platform";
 import { useServices } from "../services/ServiceContext";
 import {
-  saveAndActivateProject,
-  projectsManager,
-} from "../utils/storage";
+  } from "../utils/storage";
 import {
   CURATED_MODELS,
   isDeprecatedOrUnusableModel,
@@ -149,7 +147,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
     setIsSaving(true);
     try {
       // 1. Save project & its parameters to encrypted storage and mark as active
-      const savedProject = saveAndActivateProject({
+      const savedProject = defaultProjectService.saveAndActivateProject({
         name: projectName.trim() || "AI Studio Project",
         apiKey: trimmedKey,
         defaultModel: selectedModel,

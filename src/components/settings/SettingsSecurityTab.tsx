@@ -1,6 +1,6 @@
 import React from "react";
 import { Lock, ShieldCheck } from "lucide-react";
-import { setFlagSecureEnabled } from "../../utils/storage";
+import { useServices } from "../../services/ServiceContext";
 
 export interface SettingsSecurityTabProps {
   flagSecure: boolean;
@@ -11,6 +11,7 @@ export const SettingsSecurityTab: React.FC<SettingsSecurityTabProps> = ({
   flagSecure,
   setFlagSecure,
 }) => {
+  const { generalSettingsService } = useServices();
   return (
     <div className="space-y-4">
       {/* Window & Screen Security (FLAG_SECURE) */}
@@ -36,7 +37,7 @@ export const SettingsSecurityTab: React.FC<SettingsSecurityTabProps> = ({
             onChange={(e) => {
               const enabled = e.target.checked;
               setFlagSecure(enabled);
-              setFlagSecureEnabled(enabled);
+              generalSettingsService.setFlagSecureEnabled(enabled);
             }}
             className="w-4 h-4 rounded text-primary bg-muted border-border focus:ring-primary cursor-pointer"
           />

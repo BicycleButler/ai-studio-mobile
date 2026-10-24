@@ -33,7 +33,6 @@ import {
 import { LibraryModal } from "./LibraryModal";
 import { CodeExportModal } from "./CodeExportModal";
 import { DesktopWrapperGuide } from "./DesktopWrapperGuide";
-import { isFlagSecureEnabled } from "../utils/storage";
 import { useTheme } from "../hooks/useTheme";
 import { SettingsDisplayTab } from "./settings/SettingsDisplayTab";
 import { SettingsAccountTab } from "./settings/SettingsAccountTab";
@@ -204,7 +203,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   }, [toggleSelectAllProjectsRaw, projects]);
 
 
-  const [flagSecure, setFlagSecure] = useState<boolean>(() => isFlagSecureEnabled());
+  const [flagSecure, setFlagSecure] = useState<boolean>(() => defaultGeneralSettingsService.isFlagSecureEnabled());
 
   // Enable device/browser back navigation to dismiss drawer smoothly
   useBackNavigation(isOpen, () => {

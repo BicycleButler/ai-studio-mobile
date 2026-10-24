@@ -138,15 +138,3 @@ export class DraftStateService implements IDraftStateService {
 
 export const defaultDraftStateService = new DraftStateService();
 
-export function getProjectDraftKey(projectId?: string | null): string {
-  return defaultDraftStateService.getProjectDraftKey(projectId);
-}
-
-export function loadDraftState(projectId?: string | null): DraftState {
-  return defaultDraftStateService.loadDraftState(projectId);
-}
-
-export function saveDraftState(draft: Partial<DraftState>, projectId?: string | null, _logger?: ILogger): void {
-  // Logger parameter maintained for backward compatibility in signature
-  return defaultDraftStateService.saveDraftState(draft, projectId);
-}
