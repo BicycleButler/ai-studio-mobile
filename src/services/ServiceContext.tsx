@@ -27,6 +27,8 @@ import { GeminiStreamService } from "./geminiStreamService";
 import { defaultKeyVerificationService, KeyVerificationService } from "./keyVerification";
 import { StubsClient } from "./stubsService";
 import { defaultCodeGeneratorService, ICodeGeneratorService } from "./codeGeneratorService";
+import { PwaInstallService, defaultPwaInstallService } from "./pwaInstallService";
+import { WindowSecurityService } from "./windowSecurityService";
 
 export interface IServices {
   themeService: IThemeService;
@@ -48,6 +50,8 @@ export interface IServices {
   stubsClient: StubsClient;
   codeGeneratorService: ICodeGeneratorService;
   apiClient: IApiClient;
+  pwaInstallService: PwaInstallService;
+  windowSecurityService: WindowSecurityService;
   syncOrchestrator: SyncOrchestrator;
   logger: typeof defaultLogger;
 }
@@ -103,6 +107,10 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
 
 const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService();
 
+const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
+    generalSettingsService: explicitlyInjectedGeneralSettingsService
+});
+
 const explicitlyInjectedProjectService = new ProjectService({
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
 });
@@ -130,6 +138,8 @@ const defaultServices: IServices = {
   keyVerificationService: defaultKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,
   codeGeneratorService: defaultCodeGeneratorService,
+  pwaInstallService: defaultPwaInstallService,
+  windowSecurityService: explicitlyInjectedWindowSecurityService,
   logger: defaultLogger,
 };
 
