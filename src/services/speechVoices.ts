@@ -106,12 +106,18 @@ export interface ISpeechVoicesService {
 
 export interface SpeechVoicesServiceConfig {
   speechSettingsSingleton?: IMutableSingleton<SpeechSettings>;
+  getWindowSpeechSynthesis?: typeof getSafeWindowSpeechSynthesis;
+  getNavigatorLanguage?: typeof getSafeNavigatorLanguage;
 }
 
 export class SpeechVoicesService implements ISpeechVoicesService {
   private speechSettingsSingleton: IMutableSingleton<SpeechSettings>;
+  private getWindowSpeechSynthesis: typeof getSafeWindowSpeechSynthesis;
+  private getNavigatorLanguage: typeof getSafeNavigatorLanguage;
 
   constructor(config?: SpeechVoicesServiceConfig) {
+    this.getWindowSpeechSynthesis = config?.getWindowSpeechSynthesis || getSafeWindowSpeechSynthesis;
+    this.getNavigatorLanguage = config?.getNavigatorLanguage || getSafeNavigatorLanguage;
     this.speechSettingsSingleton = config?.speechSettingsSingleton || new StorageSingleton<SpeechSettings>(
       STORAGE_KEYS.SPEECH_SETTINGS,
       DEFAULT_SPEECH_SETTINGS,
@@ -177,7 +183,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
    * Retrieves and filters system voices, scoring natural/neural voices to top
    */
   public getAvailableDeviceVoices(): DeviceVoiceOption[] {
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = this.getWindowSpeechSynthesis();
     if (!synth) {
       return [];
     }
@@ -195,7 +201,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
       };
     });
 
-    const userLangPrefix = getSafeNavigatorLanguage("en").slice(0, 2).toLowerCase();
+    const userLangPrefix = this.getNavigatorLanguage("en").slice(0, 2).toLowerCase();
 
     return options.sort((a, b) => {
       if (a.isNatural !== b.isNatural) {
@@ -214,7 +220,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
    * Automatically finds the highest-quality natural device voice matching the preferred URI or system
    */
   public getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null {
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = this.getWindowSpeechSynthesis();
     if (!synth) return null;
     const voices = synth.getVoices();
     if (!voices || voices.length === 0) return null;
@@ -224,7 +230,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
       if (matched) return matched;
     }
 
-    const userLang = getSafeNavigatorLanguage("en").toLowerCase();
+    const userLang = this.getNavigatorLanguage("en").toLowerCase();
     const userLangPrefix = userLang.slice(0, 2);
 
     const naturalExactLang = voices.find((v) => this.isNaturalVoiceName(v.name) && v.lang.toLowerCase() === userLang);
