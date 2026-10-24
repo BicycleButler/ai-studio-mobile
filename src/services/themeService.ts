@@ -33,6 +33,9 @@ export interface IThemeService {
 
 export interface ThemeServiceConfig {
   themeModeSingleton?: IMutableSingleton<ThemeMode>;
+  isBrowserEnv?: () => boolean;
+  getWindowMatchMedia?: typeof getSafeWindowMatchMedia;
+  addMatchMediaListener?: typeof safeAddMatchMediaListener;
 }
 
 export class ThemeService implements IThemeService {
@@ -42,8 +45,14 @@ export class ThemeService implements IThemeService {
   private currentResolved: ResolvedTheme = "dark";
   private initialized = false;
   private mediaQueryList: MediaQueryList | null = null;
+  private isBrowserEnv: () => boolean;
+  private getWindowMatchMedia: typeof getSafeWindowMatchMedia;
+  private addMatchMediaListener: typeof safeAddMatchMediaListener;
 
   constructor(config?: ThemeServiceConfig) {
+    this.isBrowserEnv = config?.isBrowserEnv || isBrowserEnvironment;
+    this.getWindowMatchMedia = config?.getWindowMatchMedia || getSafeWindowMatchMedia;
+    this.addMatchMediaListener = config?.addMatchMediaListener || safeAddMatchMediaListener;
     this.themeObservable = new Observable<ThemeState>();
     this.themeModeSingleton = config?.themeModeSingleton || new StorageSingleton<ThemeMode>(
       STORAGE_KEYS.THEME_MODE,
@@ -55,10 +64,10 @@ export class ThemeService implements IThemeService {
   }
 
   public getSystemResolvedTheme(): ResolvedTheme {
-    if (!isBrowserEnvironment()) {
+    if (!this.isBrowserEnv()) {
       return "dark"; // Default fallback
     }
-    const win = getSafeWindowMatchMedia();
+    const win = this.getWindowMatchMedia();
     if (!win || !win.matchMedia) return "dark";
     return win.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
@@ -79,7 +88,7 @@ export class ThemeService implements IThemeService {
   }
 
   public applyThemeToDOM(resolved: ResolvedTheme): void {
-    if (!isBrowserEnvironment()) return;
+    if (!this.isBrowserEnv()) return;
 
     const root = document.documentElement;
     root.setAttribute("data-theme", resolved);
@@ -134,7 +143,7 @@ export class ThemeService implements IThemeService {
   }
 
   public initThemeService(): () => void {
-    if (!isBrowserEnvironment()) {
+    if (!this.isBrowserEnv()) {
       return () => {};
     }
 
@@ -144,7 +153,7 @@ export class ThemeService implements IThemeService {
       this.currentResolved = this.resolveTheme(this.currentMode);
       this.applyThemeToDOM(this.currentResolved);
 
-      const win = getSafeWindowMatchMedia();
+      const win = this.getWindowMatchMedia();
       if (win && win.matchMedia) {
         this.mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
       }
@@ -159,7 +168,7 @@ export class ThemeService implements IThemeService {
           this.notifyListeners();
         }
       };
-      removeListener = safeAddMatchMediaListener(this.mediaQueryList, handleChange);
+      removeListener = this.addMatchMediaListener(this.mediaQueryList, handleChange);
     }
 
     return () => {

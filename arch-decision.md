@@ -579,3 +579,17 @@ Implemented a Configuration Injection pattern by defining a `SyncHandlerConfig` 
 
 **Decision:**
 Updated `FallbackAsyncStorage.setItem` to explicitly throw an error (or re-throw the last caught error) if the item fails to write to all configured storage adapters. This ensures that failures bubble up correctly to the caller.
+
+## Architectural Decision: Theme Service and Speech Voices Service DOM Decoupling
+
+**Context:**
+The `ThemeService` and `SpeechVoicesService` relied on direct imports of `isBrowserEnvironment`, `getSafeWindowMatchMedia`, and `getSafeWindowSpeechSynthesis`. This tight coupling made it difficult to unit test the services in a purely Node.js or simulated environment without relying on global DOM mocks, violating the Dependency Inversion Principle.
+
+**Path 1: Constructor Injection of DOM Utilities**
+Update the configuration objects to accept optional functions for DOM utilities. The services use these injected dependencies if provided, only falling back to the globally imported utilities for backward compatibility if omitted.
+
+**Path 2: Event Emitter Abstraction**
+Abstract the DOM event dispatching and window management behind a generic `IPlatformEnvironment` interface.
+
+**Recommendation:**
+**Path 1 (Constructor Injection of DOM Utilities)** was implemented. It aligns perfectly with the existing injection patterns used for `GoogleAuthService`. It immediately resolves the tight coupling to the global DOM objects, vastly improving testability, while remaining simple and fully backward-compatible.
