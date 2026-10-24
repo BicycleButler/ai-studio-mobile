@@ -4,7 +4,6 @@ import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
 import { IApiClient, defaultClient } from "../apiClient";
-import { NetworkStorageSyncAdapter } from "./syncAdapter";
 import { generateUniqueId } from "../idGenerator";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { StorageSingleton } from "./StorageSingleton";
@@ -12,7 +11,6 @@ import { ILogger, defaultLogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
-import { DefaultOfflineRetryStrategy } from "./offlineRetryStrategy";
 
 export interface JulesStorageServiceConfig {
   apiClient?: IApiClient;

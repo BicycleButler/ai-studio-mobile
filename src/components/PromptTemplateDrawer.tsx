@@ -24,6 +24,7 @@ import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
 import { safeAddEventListener } from "../utils/platform";
 import { Drawer } from "./ui/Drawer";
+import { BatchSelectionHeader } from "./BatchSelectionHeader";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
 import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
@@ -161,6 +162,8 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   const {
     selectedIds: selectedCustomTemplateIds,
     toggleSelection: toggleCustomTemplateSelection,
+    toggleSelectAll: toggleSelectAllCustomTemplates,
+    getSelectionState: getCustomTemplateSelectionState,
     clearSelection: clearCustomTemplateSelection,
   } = useBatchSelection({ clearOnDependencies: [searchQuery, activeCategory],
     items: customFilteredTemplates,
@@ -638,6 +641,15 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
               </div>
             </div>
 
+            {customFilteredTemplates.length > 0 && viewMode === "browse" && activeToolTab === "directives" && (
+              <BatchSelectionHeader
+                selectedCount={selectedCustomTemplateIds.size}
+                totalCount={customFilteredTemplates.length}
+                selectionState={getCustomTemplateSelectionState(customFilteredTemplates)}
+                onToggleSelectAll={() => toggleSelectAllCustomTemplates(customFilteredTemplates)}
+                className="!px-4 !border-x-0"
+              />
+            )}
             {/* Template Cards List */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 max-w-3xl mx-auto w-full">
               {filteredTemplates.length === 0 ? (

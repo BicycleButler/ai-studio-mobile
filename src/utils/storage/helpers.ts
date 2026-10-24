@@ -90,7 +90,7 @@ export function deepFreeze<T>(obj: T): T {
   if (obj instanceof Date) {
     const frozen = new Date(obj.getTime());
     const throwError = () => { throw new Error('Cannot mutate frozen Date'); };
-    const methods = ['setTime', 'setMilliseconds', 'setUTCMilliseconds', 'setSeconds', 'setUTCSeconds', 'setMinutes', 'setUTCMinutes', 'setHours', 'setUTCHours', 'setDate', 'setUTCDate', 'setMonth', 'setUTCMonth', 'setFullYear', 'setUTCFullYear', 'setYear'];
+    const methods = ['setTime', 'setMilliseconds', 'setUTCMilliseconds', 'setSeconds', 'setUTCSeconds', 'setMinutes', 'setUTCMinutes', 'setHours', 'setUTCHours', 'setDate', 'setUTCDate', 'setMonth', 'setUTCMonth', 'setFullYear', 'setUTCFullYear', 'setYear'] as const;
     for (const method of methods) {
       if (typeof (frozen as unknown as Record<string, unknown>)[method] === 'function') {
         (frozen as unknown as Record<string, unknown>)[method] = throwError;
