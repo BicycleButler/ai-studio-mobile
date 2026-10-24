@@ -9,7 +9,7 @@ import {
 import {
   encryptSecret,
   decryptSecret,
-  projectsManager,
+
 } from "../utils/storage";
 
 function assert(condition: boolean, message: string): void {

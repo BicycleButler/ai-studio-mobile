@@ -241,25 +241,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
 
   // Audio state
-  const [currentSpeechSettings, setCurrentSpeechSettings] = useState<SpeechSettings>(speechSettings);
-
-
-
-  useEffect(() => {
-    setCurrentSpeechSettings(speechSettings);
-  }, [speechSettings]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-      }, [isOpen, currentSpeechSettings.deviceVoiceURI]);
-
-  // Clean up audio playback when closing or unmounting
-  useEffect(() => {
-    return () => {
-
-    };
-  }, [isOpen]);
-
 
 
   const hasAnyAuth = Boolean(googleUser || customApiKey.trim() || hasServerKey);
@@ -429,7 +410,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           {/* TAB 2: VOICE & SPEECH */}
           {activeTab === "audio" && (
             <SettingsAudioTab
-              currentSpeechSettings={currentSpeechSettings}
+              currentSpeechSettings={speechSettings}
               handleSelectAudioEngine={handleSelectAudioEngine}
               handleSelectGeminiVoice={handleSelectGeminiVoice}
               handleSelectDeviceVoice={handleSelectDeviceVoice}
