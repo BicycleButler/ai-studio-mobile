@@ -162,7 +162,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
     selectedIds: selectedCustomTemplateIds,
     toggleSelection: toggleCustomTemplateSelection,
     clearSelection: clearCustomTemplateSelection,
-  } = useBatchSelection({
+  } = useBatchSelection({ clearOnDependencies: [searchQuery, activeCategory],
     items: customFilteredTemplates,
     getItemId: (t) => t.id,
   });
@@ -181,11 +181,6 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
     },
     onClearSelection: clearCustomTemplateSelection,
   });
-
-  // Clear selection on filter change (ADR 0047 Option A)
-  useEffect(() => {
-    clearCustomTemplateSelection();
-  }, [searchQuery, activeCategory, clearCustomTemplateSelection]);
 
   const selectedTemplates = useMemo(() => {
     const map = new Map<string, PromptTemplate>();
