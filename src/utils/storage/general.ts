@@ -3,6 +3,7 @@ import { StorageSingleton } from "./StorageSingleton";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeSetStorageString } from "./core";
 import { IMutableSingleton } from "./types";
+import { Observable } from "../observable";
 
 export interface GeneralSettingsServiceConfig {
   apiKeySingleton?: IMutableSingleton<string>;
@@ -12,6 +13,7 @@ export interface GeneralSettingsServiceConfig {
 export class GeneralSettingsService {
   private apiKeySingleton: IMutableSingleton<string>;
   private flagSecureSingleton: IMutableSingleton<boolean>;
+  public flagSecureObservable: Observable<boolean>;
 
   constructor(config?: GeneralSettingsServiceConfig) {
     this.apiKeySingleton = config?.apiKeySingleton || new StorageSingleton<string>(
@@ -31,6 +33,8 @@ export class GeneralSettingsService {
       STORAGE_KEYS.FLAG_SECURE_ENABLED,
       true
     );
+
+    this.flagSecureObservable = new Observable<boolean>(this.flagSecureSingleton.load());
   }
 
   public loadStoredApiKey(): string {
@@ -51,9 +55,7 @@ export class GeneralSettingsService {
 
   public setFlagSecureEnabled(enabled: boolean): void {
     this.flagSecureSingleton.save(enabled);
-    if (isBrowserEnvironment()) {
-      getSafeWindow()?.dispatchEvent(new CustomEvent("flag_secure_changed", { detail: enabled }));
-    }
+    this.flagSecureObservable.notify(enabled);
   }
 }
 
