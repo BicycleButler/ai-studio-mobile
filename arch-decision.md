@@ -555,3 +555,11 @@ Keep the overloads indefinitely to ensure tests or legacy consumers don't break.
 
 **Recommendation:**
 **Path 1 (Configuration Object Enforced Injection)** was implemented. It removes technical debt and enforces a clean dependency injection pattern using the configuration object, matching the rest of the storage layer's established patterns. The few unit tests relying on the positional arguments were trivially updated.
+
+## Architectural Decision: Storage Fallback Handling Fix
+
+**Context:**
+`FallbackAsyncStorage` had a bug where returning `undefined` from `getItem` was causing subsequent fallbacks to fail because `undefined` is falsy in the comparison `if (!val)`. It needed to specifically check for `val !== undefined`. This caused the `getItem` to iterate through all adapters and then log an error that all storage adapters failed to `getItem` instead of returning the properly retrieved `undefined` value which signifies a cache miss, not a fallback failure.
+
+**Decision:**
+Updated `FallbackAsyncStorage.getItem` to explicitly check `val !== undefined` instead of assuming any truthy value means success.

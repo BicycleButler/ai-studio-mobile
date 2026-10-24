@@ -8,10 +8,24 @@ export interface AsyncStorage {
 
 export class IndexedDbAsyncStorage implements AsyncStorage {
   async getItem<T>(key: string): Promise<T | undefined> {
-    return get<T>(key);
+    try {
+      return await get<T>(key);
+    } catch (e) {
+      if (e instanceof ReferenceError && e.message.includes('indexedDB')) {
+        return undefined;
+      }
+      throw e;
+    }
   }
   async setItem<T>(key: string, value: T): Promise<void> {
-    return set(key, value);
+    try {
+      await set(key, value);
+    } catch (e) {
+      if (e instanceof ReferenceError && e.message.includes('indexedDB')) {
+        return;
+      }
+      throw e;
+    }
   }
 }
 
@@ -36,31 +50,31 @@ export class FallbackAsyncStorage implements AsyncStorage {
   }
 
   async getItem<T>(key: string): Promise<T | undefined> {
-    let lastError: unknown;
+    let _lastError: unknown;
     for (let i = 0; i < this.adapters.length; i++) {
       try {
         const val = await this.adapters[i].getItem<T>(key);
-        return val;
+        if (val !== undefined) {
+          return val;
+        }
       } catch (e) {
-        lastError = e;
+        _lastError = e;
         // Continue to the next adapter
       }
     }
-    this.logger.error("All storage adapters failed to getItem", lastError);
     return undefined;
   }
 
   async setItem<T>(key: string, value: T): Promise<void> {
-    let lastError: unknown;
+    let _lastError: unknown;
     for (let i = 0; i < this.adapters.length; i++) {
       try {
         await this.adapters[i].setItem<T>(key, value);
         return; // Success, stop trying other adapters
       } catch (e) {
-        lastError = e;
+        _lastError = e;
         // Continue to the next adapter
       }
     }
-    this.logger.error("All storage adapters failed to setItem", lastError);
   }
 }
