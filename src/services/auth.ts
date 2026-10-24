@@ -6,7 +6,7 @@
  */
 
 import { apiFetch } from "../utils/apiClient";
-import { defaultGeneralSettingsService } from "../utils/storage";
+
 
 
 export interface IAuthService {
@@ -26,7 +26,7 @@ export class AuthService implements IAuthService {
 
   constructor(config?: AuthServiceConfig) {
     this.fetchFn = config?.apiClient || apiFetch;
-    this.getStoredApiKeyFn = config?.loadStoredApiKeyFn || (() => defaultGeneralSettingsService.loadStoredApiKey());
+    this.getStoredApiKeyFn = config?.loadStoredApiKeyFn || (() => "");
   }
 
   public async fetchAuthStatus(apiKey?: string): Promise<{ valid?: boolean; error?: string; authSource?: string }> {

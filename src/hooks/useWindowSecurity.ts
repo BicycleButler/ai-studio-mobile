@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 import { useServices } from "../services/ServiceContext";
-import { defaultGeneralSettingsService } from "../utils/storage";
+
 import { Observable } from "../utils/observable";
 import { useStore } from "./useStore";
 
@@ -10,7 +10,7 @@ interface UseWindowSecurityOptions {
 }
 
 // Global state for flagSecure
-export const flagSecureObservable = new Observable<boolean>(defaultGeneralSettingsService.isFlagSecureEnabled());
+export const flagSecureObservable = new Observable<boolean>(true); // Will be updated by ServiceContext later
 
 let isFlagSecureInitialized = false;
 

@@ -1,6 +1,6 @@
 // Test suite for code generators
 import { PromptConfig, ChatMessage } from "../types";
-import { defaultCodeGeneratorService } from "./codeGeneratorService";
+import { CodeGeneratorService } from "./codeGeneratorService";
 
 // Verification that explicit 'any' is permitted in test files
 const mockConfig: PromptConfig = {
@@ -32,18 +32,20 @@ import { describe, test, expect } from 'vitest';
 
 describe('codeGenerators', () => {
   test('testGenerators', () => {
+  const service = new CodeGeneratorService();
+
     expect(testMockPayload).toBeTruthy();
 
-    const kotlin = defaultCodeGeneratorService.getGenerator("kotlin")!.generate(mockConfig, mockMessages);
+    const kotlin = service.getGenerator("kotlin")!.generate(mockConfig, mockMessages);
     expect(kotlin).toContain("com.google.ai.client.generativeai");
 
-    const python = defaultCodeGeneratorService.getGenerator("python")!.generate(mockConfig, mockMessages);
+    const python = service.getGenerator("python")!.generate(mockConfig, mockMessages);
     expect(python).toContain("from google import genai");
 
-    const ts = defaultCodeGeneratorService.getGenerator("typescript")!.generate(mockConfig, mockMessages);
+    const ts = service.getGenerator("typescript")!.generate(mockConfig, mockMessages);
     expect(ts).toContain("@google/genai");
 
-    const curl = defaultCodeGeneratorService.getGenerator("curl")!.generate(mockConfig, mockMessages);
+    const curl = service.getGenerator("curl")!.generate(mockConfig, mockMessages);
     expect(curl).toContain("generativelanguage.googleapis.com");
   });
 });

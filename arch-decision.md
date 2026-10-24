@@ -593,3 +593,24 @@ Abstract the DOM event dispatching and window management behind a generic `IPlat
 
 **Recommendation:**
 **Path 1 (Constructor Injection of DOM Utilities)** was implemented. It aligns perfectly with the existing injection patterns used for `GoogleAuthService`. It immediately resolves the tight coupling to the global DOM objects, vastly improving testability, while remaining simple and fully backward-compatible.
+
+## Architectural Decision: Logger and Singleton Decoupling
+**Context:**
+The core domain singletons inside `src/utils` and `src/services` (`defaultLogger`, `defaultChatHistoryService`, etc.) were occasionally implicitly bound rather than relying on dependency injection.
+
+**Decision:**
+Removed hardcoded `require("../utils/logger")` usages inside hooks like `useSpeechToText` and converted them to `useServices()`. Commented `defaultLogger` to emphasize DI preference. Kept exported `default` instances solely for backward compatibility and `ServiceContext` initialization.
+
+## Architectural Decision: Subsystem Default Instances and DI Container
+**Context:**
+The core domain singletons inside `src/utils` and `src/services` (`defaultThemeService`, `defaultChatHistoryService`, `defaultAuthService`, etc.) were occasionally implicitly bound rather than relying on dependency injection.
+
+**Decision:**
+These exported `default` instances are deliberately kept to act as the primary, fallback dependencies for the `ServiceContext.tsx` root container configuration (which is the actual DI container). The services themselves should use `ServiceContext` hooks to retrieve these, and unit tests construct fresh instances directly, effectively bypassing the global defaults and achieving Dependency Inversion.
+
+## Architectural Decision: Storage Base Registry Extraction
+**Context:**
+The core domain singletons inside `src/utils/storage` used hard-coded `new StorageCollection` and `new StorageSingleton` which violated Dependency Inversion and made testing difficult since mock storage objects couldn't easily be swapped.
+
+**Decision:**
+Implemented a registry interface pattern, where `StorageRegistry` provides instances of the generic storage containers. The dependencies are injected using `ServiceContext` providing testability and removing rigid constructor instantiations.

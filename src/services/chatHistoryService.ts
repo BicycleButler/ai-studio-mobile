@@ -103,14 +103,16 @@ export class ChatHistoryService implements IChatHistoryService {
 
         keysToClean.forEach((key) => {
           const collection = this.getChatCollectionByKey(key);
-          const rawCollection = new StorageCollection<ChatSession>(key, {});
+          const rawCollection = this.config.collectionRegistry.get(key);
           const rawSessions = rawCollection.load();
 
           const cleanSessions = collection.load();
           if (cleanSessions.length !== rawSessions.length) {
             collection.save(cleanSessions);
           }
-          rawCollection.dispose();
+          if (typeof rawCollection.dispose === "function") {
+            rawCollection.dispose();
+          }
         });
       }
     } catch {

@@ -1,5 +1,6 @@
 import { isBrowserEnvironment, getSafeWindowSpeech, getSafeNavigatorLanguage } from "../utils/platform";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useServices } from "../services/ServiceContext";
 
 // Safe Web Speech API TypeScript definitions
 interface SpeechRecognitionResultItem {
@@ -76,7 +77,7 @@ export interface UseSpeechToTextReturn {
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeechToTextReturn {
-  const { defaultLogger: logger } = require("../utils/logger");
+  const { logger } = useServices();
   const [isListening, setIsListening] = useState(false);
   const [isAudioDetected, setIsAudioDetected] = useState(false);
   const [transcript, setTranscript] = useState("");
