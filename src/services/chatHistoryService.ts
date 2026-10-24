@@ -55,6 +55,16 @@ export class ChatHistoryService implements IChatHistoryService {
     this.config.logger.warn("ChatHistoryService: Storage quota exceeded. Evicting old chat histories to recover space.");
     try {
       const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX);
+      if (keysToClean.length === 0) {
+        // Fallback for tests or environments where safeGetStorageKeys might not work as expected
+        // Check the registry directly
+        const keys = this.collectionRegistry.keys;
+        for (const key of keys) {
+             if (key.startsWith(this.config.storageKeys.CHAT_SESSIONS_PREFIX)) {
+                 keysToClean.push(key);
+             }
+        }
+      }
       keysToClean.forEach((key) => {
         const collection = this.getChatCollectionByKey(key);
         let sessions = collection.load();
@@ -110,8 +120,8 @@ export class ChatHistoryService implements IChatHistoryService {
           if (cleanSessions.length !== rawSessions.length) {
             collection.save(cleanSessions);
           }
-          if (typeof rawCollection.dispose === "function") {
-            rawCollection.dispose();
+          if (typeof (rawCollection as unknown as { dispose?: () => void }).dispose === "function") {
+            (rawCollection as unknown as { dispose: () => void }).dispose();
           }
         });
       }
@@ -197,5 +207,3 @@ export class ChatHistoryService implements IChatHistoryService {
 }
 
 export const defaultChatHistoryService = new ChatHistoryService();
-
-

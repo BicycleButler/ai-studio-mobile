@@ -614,3 +614,17 @@ The core domain singletons inside `src/utils/storage` used hard-coded `new Stora
 
 **Decision:**
 Implemented a registry interface pattern, where `StorageRegistry` provides instances of the generic storage containers. The dependencies are injected using `ServiceContext` providing testability and removing rigid constructor instantiations.
+
+## Architectural Decision: Image Compressor Strategy Abstraction
+
+**Context:**
+`compressImageForGemini` in `src/utils/imageCompressor.ts` currently hardcodes the compression logic (using canvas, drawing image, and returning base64). It tightly couples DOM manipulation (`document.createElement('canvas')`) within the utility, making it harder to test or swap with other compression strategies (like WebWorkers, OffscreenCanvas, or native APIs in Capacitor).
+
+**Path 1: Extract `IImageCompressionStrategy` interface**
+Define an `IImageCompressionStrategy` interface and implement `CanvasImageCompressionStrategy`. Expose an `ImageCompressor` that uses this strategy.
+
+**Path 2: Callback/Functional Injection**
+Keep the function and pass a callback `compressFn`.
+
+**Recommendation:**
+**Path 1 (Extract Interface)** is the recommended path. It abstracts DOM-dependent logic and allows providing a mock strategy or WebWorker strategy without changing the interface, adhering to the Strategy Pattern and improving Abstraction and Reusability.
