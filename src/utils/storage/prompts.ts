@@ -1,12 +1,9 @@
 import { SavedPrompt } from "../../types";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { STORAGE_KEYS } from "./constants";
-import { defaultClient } from "../apiClient";
-import { defaultOfflineService } from "../offlineService";
 import { NetworkStorageSyncAdapter } from "./syncAdapter";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
-import { defaultNetworkStatusProvider } from "../networkStatus";
 import { DefaultOfflineRetryStrategy } from "./offlineRetryStrategy";
 
 export interface SavedPromptsServiceConfig {
@@ -19,12 +16,8 @@ export class SavedPromptsService {
   private syncAdapter: IStorageSyncAdapter<SavedPrompt[]>;
 
   constructor(config?: SavedPromptsServiceConfig) {
-    this.syncAdapter = config?.syncAdapter || new NetworkStorageSyncAdapter<SavedPrompt[]>({
-        apiClient: defaultClient,
-        offlineService: defaultOfflineService,
-        networkStatusProvider: defaultNetworkStatusProvider,
-        retryStrategy: new DefaultOfflineRetryStrategy()
-    });
+    if (!config?.syncAdapter) { throw new Error("syncAdapter is required for SavedPromptsService"); }
+    this.syncAdapter = config.syncAdapter;
 
     this.savedPromptsManager = config?.savedPromptsManager || createActiveItemManager<SavedPrompt>({
       collectionKey: STORAGE_KEYS.SAVED_PROMPTS,

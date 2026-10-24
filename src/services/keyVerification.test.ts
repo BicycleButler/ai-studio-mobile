@@ -1,4 +1,5 @@
-import { defaultProjectService } from '../utils/storage/projects';
+import { ProjectService } from '../utils/storage/projects';
+import { GeneralSettingsService } from '../utils/storage/general';
 import { describe, test } from 'vitest';
 import {
   STANDARD_GOOGLE_KEY_REGEX,
@@ -19,6 +20,7 @@ function assert(condition: boolean, message: string): void {
 
 describe('testKeyVerificationSubsystem', () => {
   test('main', async () => {
+const defaultProjectService = new ProjectService({ generalSettingsService: new GeneralSettingsService() });
   // Test 1: Standard Google API Key pattern validation (AIza + 35 characters = 39 chars total)
   const validStandardKey = "AIzaSyD" + "A".repeat(32); // 4 + 35 = 39 chars
   assert(validStandardKey.length === 39, "Standard key must be 39 chars long");
@@ -84,7 +86,7 @@ describe('testKeyVerificationSubsystem', () => {
   assert(testProject.defaultModel === "gemini-2.5-flash", "Project default model must be gemini-2.5-flash");
 
   await Promise.resolve();
-  const active = projectsManager.getActiveItem();
+  const active = defaultProjectService.projectsManager.getActiveItem();
   assert(active !== null, "Active project must exist");
   assert(active?.id === testProject.id, "Active project ID must match newly activated project");
   assert(active?.apiKey === validStandardKey, "Active project decrypted API key must match");
@@ -93,7 +95,7 @@ describe('testKeyVerificationSubsystem', () => {
   assert(projects.some((p) => p.id === testProject.id), "Project must be present in stored projects list");
 
   // Cleanup test project
-  projectsManager.collection.delete(testProject.id);
+  defaultProjectService.projectsManager.collection.delete(testProject.id);
   await Promise.resolve(); // wait for cleanup
 
 

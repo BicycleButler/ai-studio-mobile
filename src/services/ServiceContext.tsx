@@ -82,6 +82,7 @@ const explicitlyInjectedGeminiStreamService = new GeminiStreamService(
 );
 
 const explicitlyInjectedJulesStorageService = new JulesStorageService({
+  julesSessionsManager: undefined,
   syncAdapter: new NetworkStorageSyncAdapter({
     apiClient: explicitlyInjectedApiClient,
     offlineService: explicitlyInjectedOfflineService,
@@ -91,6 +92,7 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
 });
 
 const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
+  savedPromptsManager: undefined,
   syncAdapter: new NetworkStorageSyncAdapter({
     apiClient: explicitlyInjectedApiClient,
     offlineService: explicitlyInjectedOfflineService,
@@ -99,9 +101,11 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   }),
 });
 
-const explicitlyInjectedProjectService = new ProjectService();
-
 const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService();
+
+const explicitlyInjectedProjectService = new ProjectService({
+  generalSettingsService: explicitlyInjectedGeneralSettingsService,
+});
 
 const explicitlyInjectedDraftStateService = new DraftStateService();
 

@@ -3,8 +3,7 @@ import { STORAGE_KEYS } from "./constants";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
-import { apiFetch, defaultClient } from "../apiClient";
-import { defaultOfflineService } from "../offlineService";
+import { IApiClient, defaultClient } from "../apiClient";
 import { NetworkStorageSyncAdapter } from "./syncAdapter";
 import { generateUniqueId } from "../idGenerator";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
@@ -13,10 +12,10 @@ import { ILogger, defaultLogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
-import { defaultNetworkStatusProvider } from "../networkStatus";
 import { DefaultOfflineRetryStrategy } from "./offlineRetryStrategy";
 
 export interface JulesStorageServiceConfig {
+  apiClient?: IApiClient;
   julesApiKeySingleton?: IMutableSingleton<string>;
   julesSettingsSingleton?: IMutableSingleton<JulesSettings>;
   julesSessionsManager?: IActiveItemManager<JulesSession>;
@@ -35,9 +34,11 @@ export class JulesStorageService {
   public julesSessionsManager: IActiveItemManager<JulesSession>;
   private syncAdapter: IStorageSyncAdapter<JulesSession[]>;
   private logger: ILogger;
+  private apiClient: IApiClient;
 
   constructor(config?: JulesStorageServiceConfig) {
     this.logger = config?.logger || defaultLogger;
+    this.apiClient = config?.apiClient || defaultClient;
 
     this.julesApiKeySingleton = config?.julesApiKeySingleton || new StorageSingleton<string>(
       STORAGE_KEYS.JULES_API_KEY,
@@ -53,12 +54,8 @@ export class JulesStorageService {
       DEFAULT_JULES_SETTINGS
     );
 
-    this.syncAdapter = config?.syncAdapter || new NetworkStorageSyncAdapter<JulesSession[]>({
-        apiClient: defaultClient,
-        offlineService: defaultOfflineService,
-        networkStatusProvider: defaultNetworkStatusProvider,
-        retryStrategy: new DefaultOfflineRetryStrategy()
-    });
+    if (!config?.syncAdapter) { throw new Error("syncAdapter is required for JulesStorageService"); }
+    this.syncAdapter = config.syncAdapter;
 
     this.julesSessionsManager = config?.julesSessionsManager || createActiveItemManager<JulesSession>({
       collectionKey: STORAGE_KEYS.JULES_SESSIONS,
@@ -88,7 +85,7 @@ export class JulesStorageService {
 
   public async fetchJulesSessionsFromServer(logger: ILogger = this.logger): Promise<JulesSession[]> {
     try {
-      const data = await apiFetch<unknown>("/api/jules/sessions");
+      const data = await this.apiClient.fetch<unknown>("/api/jules/sessions");
       const cleanServerSessions = Array.isArray(data) ? cleanMockData(data, "jules") as JulesSession[] : [];
 
       const localSessions = this.julesSessionsManager.getItems();

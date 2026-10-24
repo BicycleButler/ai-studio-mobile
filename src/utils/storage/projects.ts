@@ -4,10 +4,11 @@ import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
-import { defaultGeneralSettingsService } from "./general";
+import { GeneralSettingsService } from "./general";
 import { IActiveItemManager } from "./ActiveItemManager";
 
 export interface ProjectServiceConfig {
+  generalSettingsService?: GeneralSettingsService;
   projectsManager?: IActiveItemManager<ProjectInfo>;
 }
 
@@ -40,7 +41,9 @@ export class ProjectService {
       },
       getId: (p) => p.id,
       onActiveItemChange: (activeProject) => {
-        defaultGeneralSettingsService.saveStoredApiKey(activeProject ? activeProject.apiKey : "");
+        if (!config?.generalSettingsService) { throw new Error("generalSettingsService is required for ProjectService"); }
+        const genSettings = config.generalSettingsService;
+        genSettings.saveStoredApiKey(activeProject ? activeProject.apiKey : "");
       }
     });
   }

@@ -7,7 +7,6 @@ import { useProjectManager } from "./useProjectManager";
 import { useUIState } from "./useUIState";
 import { useModelConfig } from "./useModelConfig";
 import { PromptType, ChatMessage, ChatSession } from "../types";
-import { defaultDraftStateService, defaultGeneralSettingsService } from "../utils/storage";
 
 import { fetchModels, isDeprecatedOrUnusableModel } from "../utils/modelCatalog";
 import { ModelInfo } from "../types";
@@ -23,7 +22,8 @@ export function useAppState() {
       return null;
     }
   })();
-  const initialDraft = defaultDraftStateService.loadDraftState(initialActiveProjectId);
+  const { draftStateService, generalSettingsService: genSettings } = useServices();
+  const initialDraft = draftStateService.loadDraftState(initialActiveProjectId);
 
   const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
 
@@ -31,7 +31,7 @@ export function useAppState() {
   // or refactoring completely)
   const [googleUser, setGoogleUser] = useState(() => googleAuthService.loadStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState(false);
-  const [customApiKey, setCustomApiKey] = useState(() => defaultGeneralSettingsService.loadStoredApiKey());
+  const [customApiKey, setCustomApiKey] = useState(() => genSettings.loadStoredApiKey());
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
   // External Services
@@ -135,7 +135,7 @@ export function useAppState() {
   // Draft Save Effect
   useEffect(() => {
     const timeout = setTimeout(() => {
-      defaultDraftStateService.saveDraftState(
+      draftStateService.saveDraftState(
         {
           promptType,
           config,

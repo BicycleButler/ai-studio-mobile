@@ -1,12 +1,14 @@
 import { describe, test } from 'vitest';
 import {
-  defaultChatHistoryService,
+  ChatHistoryService,
 } from "./chatHistoryService";
 import { formatRelativeTime } from "../utils/timeUtils";
 import { ChatSession, ChatMessage } from "../types";
 
 describe('testChatHistoryService', () => {
   test('main', () => {
+  const service = new ChatHistoryService();
+
   const activeProjectId = "proj_mobile_arch_101";
 
   // 1. Verify mock data detection and strict rejection
@@ -18,20 +20,20 @@ describe('testChatHistoryService', () => {
     updatedAt: 1000,
     projectId: activeProjectId,
   };
-  if (!defaultChatHistoryService.isMockChatSession(mockCandidateSession)) {
+  if (!service.isMockChatSession(mockCandidateSession)) {
     throw new Error("Expected mock session to be flagged by isMockChatSession");
   }
 
   // Attempting to save mock session should be safely ignored
-  defaultChatHistoryService.clearAllChatSessions(activeProjectId);
-  defaultChatHistoryService.saveChatSession(mockCandidateSession, activeProjectId);
-  if (defaultChatHistoryService.getChatSessions(activeProjectId).length !== 0) {
+  service.clearAllChatSessions(activeProjectId);
+  service.saveChatSession(mockCandidateSession, activeProjectId);
+  if (service.getChatSessions(activeProjectId).length !== 0) {
     throw new Error("Mock sessions must never be saved or returned in chat history");
   }
 
   // 2. Clean initial state for authentic user sessions
-  defaultChatHistoryService.clearAllChatSessions(activeProjectId);
-  let sessions = defaultChatHistoryService.getChatSessions(activeProjectId);
+  service.clearAllChatSessions(activeProjectId);
+  let sessions = service.getChatSessions(activeProjectId);
   if (sessions.length !== 0) {
     throw new Error("Expected initial chat sessions to be empty");
   }
@@ -52,7 +54,7 @@ describe('testChatHistoryService', () => {
     },
   ];
 
-  const generatedTitle = defaultChatHistoryService.generateSessionTitle(realMessages);
+  const generatedTitle = service.generateSessionTitle(realMessages);
   if (!generatedTitle.startsWith("How do I implement dynamic")) {
     throw new Error(`Unexpected generated title: ${generatedTitle}`);
   }
@@ -68,13 +70,13 @@ describe('testChatHistoryService', () => {
     model: "gemini-2.5-flash",
   };
 
-  defaultChatHistoryService.saveChatSession(realSession1, activeProjectId);
-  sessions = defaultChatHistoryService.getChatSessions(activeProjectId);
+  service.saveChatSession(realSession1, activeProjectId);
+  sessions = service.getChatSessions(activeProjectId);
   if (sessions.length !== 1) {
     throw new Error(`Expected 1 saved session, got ${sessions.length}`);
   }
 
-  const fetched = defaultChatHistoryService.getChatSessionById("sess_material_theme_001", activeProjectId);
+  const fetched = service.getChatSessionById("sess_material_theme_001", activeProjectId);
   if (!fetched || fetched.id !== "sess_material_theme_001") {
     throw new Error("Failed to fetch session by ID");
   }
@@ -90,7 +92,7 @@ describe('testChatHistoryService', () => {
     },
   ];
 
-  defaultChatHistoryService.saveChatSession(
+  service.saveChatSession(
     {
       ...realSession1,
       messages: updatedMessages,
@@ -98,7 +100,7 @@ describe('testChatHistoryService', () => {
     activeProjectId
   );
 
-  const updated = defaultChatHistoryService.getChatSessionById("sess_material_theme_001", activeProjectId);
+  const updated = service.getChatSessionById("sess_material_theme_001", activeProjectId);
   if (!updated || updated.messages.length !== 3) {
     throw new Error(`Expected updated session to have 3 messages, got ${updated?.messages.length}`);
   }
@@ -115,16 +117,16 @@ describe('testChatHistoryService', () => {
   }
 
   // 7. Test storage key generation
-  if (defaultChatHistoryService.getChatSessionsStorageKey("proj_123") !== "ai_studio_chat_sessions_v1_proj_123") {
+  if (service.getChatSessionsStorageKey("proj_123") !== "ai_studio_chat_sessions_v1_proj_123") {
     throw new Error("Invalid project storage key");
   }
 
   // 8. Test deleting session
-  const deleted = defaultChatHistoryService.deleteChatSession("sess_material_theme_001", activeProjectId);
+  const deleted = service.deleteChatSession("sess_material_theme_001", activeProjectId);
   if (!deleted) {
     throw new Error("Failed to delete sess_material_theme_001");
   }
-  if (defaultChatHistoryService.getChatSessions(activeProjectId).length !== 0) {
+  if (service.getChatSessions(activeProjectId).length !== 0) {
     throw new Error("Expected 0 sessions after deletion");
   }
 
@@ -145,18 +147,18 @@ describe('testChatHistoryService', () => {
     updatedAt: 2000,
     projectId: activeProjectId,
   };
-  defaultChatHistoryService.saveChatSession(sessionAlpha, activeProjectId);
-  defaultChatHistoryService.saveChatSession(sessionBeta, activeProjectId);
-  const orderedSessions = defaultChatHistoryService.getChatSessions(activeProjectId);
+  service.saveChatSession(sessionAlpha, activeProjectId);
+  service.saveChatSession(sessionBeta, activeProjectId);
+  const orderedSessions = service.getChatSessions(activeProjectId);
   if (orderedSessions.length !== 2 || orderedSessions[0].id !== "sess_later_arch_conv_2") {
     throw new Error("Expected sessions to be ordered with newest first");
   }
 
   // 10. Test storage purge
-  defaultChatHistoryService.purgeMockSessionsFromStorage();
+  service.purgeMockSessionsFromStorage();
 
   // Cleanup
-  defaultChatHistoryService.clearAllChatSessions(activeProjectId);
+  service.clearAllChatSessions(activeProjectId);
 
   });
 });
