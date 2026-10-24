@@ -99,7 +99,7 @@ describe('FallbackAsyncStorage', () => {
     it('should retry all adapters', async () => {
         const failStorage = new FailingAsyncStorage(1);
         const memStorage = new MockAsyncStorage();
-        const fallback = new FallbackAsyncStorage([failStorage, memStorage]);
+        const fallback = new FallbackAsyncStorage([failStorage, memStorage], new NoOpLogger());
 
         await fallback.setItem('k', 'v');
         const v = await memStorage.getItem('k');
@@ -110,12 +110,12 @@ describe('FallbackAsyncStorage', () => {
         const v2 = await memStorage.getItem('k');
         expect(v2).toBe('v'); // unchanged because it went to failStorage
     });
-});
 
     it('should throw error when all adapters fail to set item', async () => {
         const failStorage1 = new FailingAsyncStorage(10);
         const failStorage2 = new FailingAsyncStorage(10);
-        const fallback = new FallbackAsyncStorage([failStorage1, failStorage2]);
+        const fallback = new FallbackAsyncStorage([failStorage1, failStorage2], new NoOpLogger());
 
         await expect(fallback.setItem('k', 'v')).rejects.toThrow('Storage failed');
     });
+});
