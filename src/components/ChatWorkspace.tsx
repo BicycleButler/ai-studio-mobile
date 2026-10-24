@@ -36,7 +36,6 @@ import {
   ChatSession,
   JulesSession,
 } from "../types";
-import { compressImageForGemini } from "../utils/imageCompressor";
 import { extractSpokenText } from "../utils/speechExtractor";
 import {
   SpeechSettings,
@@ -144,7 +143,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const { julesStorageService, chatHistoryService } = useServices();
+  const { julesStorageService, chatHistoryService, imageCompressor } = useServices();
   const rawChatSessions = useStore(chatHistoryService.getChatCollection(activeProjectId));
   const julesSessionsState = useStore(julesStorageService.julesSessionsManager);
 
@@ -935,7 +934,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     setIsOptimizingImage(true);
     try {
       const compressedList = await Promise.all(
-        imageFiles.map((file) => compressImageForGemini(file))
+        imageFiles.map((file) => imageCompressor.compressImageForGemini(file))
       );
       setAttachments((prev) => [...prev, ...compressedList]);
     } catch (err: unknown) {
