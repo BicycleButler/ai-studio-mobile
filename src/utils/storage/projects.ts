@@ -3,8 +3,8 @@ import { generateUniqueId } from "../idGenerator";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";
-import { saveStoredApiKey } from "./general";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
+import { defaultGeneralSettingsService } from "./general";
 import { IActiveItemManager } from "./ActiveItemManager";
 
 export interface ProjectServiceConfig {
@@ -40,7 +40,7 @@ export class ProjectService {
       },
       getId: (p) => p.id,
       onActiveItemChange: (activeProject) => {
-        saveStoredApiKey(activeProject ? activeProject.apiKey : "");
+        defaultGeneralSettingsService.saveStoredApiKey(activeProject ? activeProject.apiKey : "");
       }
     });
   }
@@ -90,24 +90,4 @@ export const defaultProjectService = new ProjectService();
 
 export const projectsManager = defaultProjectService.projectsManager;
 
-export function loadStoredProjects(): ProjectInfo[] {
-  return defaultProjectService.loadStoredProjects();
-}
 
-export function saveStoredProjects(projects: ProjectInfo[]): void {
-  defaultProjectService.saveStoredProjects(projects);
-}
-
-export function getActiveProjectId(): string | null {
-  return defaultProjectService.getActiveProjectId();
-}
-
-export function setActiveProjectId(id: string | null): void {
-  defaultProjectService.setActiveProjectId(id);
-}
-
-export function saveAndActivateProject(
-  projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
-): ProjectInfo {
-  return defaultProjectService.saveAndActivateProject(projectData);
-}

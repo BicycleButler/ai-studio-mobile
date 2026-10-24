@@ -1,3 +1,4 @@
+import { defaultProjectService } from '../utils/storage/projects';
 import { describe, test } from 'vitest';
 import {
   STANDARD_GOOGLE_KEY_REGEX,
@@ -76,7 +77,7 @@ describe('testKeyVerificationSubsystem', () => {
   assert(decrypted === plainSecret, "Decrypted secret must match original plain text");
 
   // Test 6: Project persistence & active activation
-  const testProject = saveAndActivateProject({
+  const testProject = defaultProjectService.saveAndActivateProject({
     name: "Automated Test Project",
     apiKey: validStandardKey,
     defaultModel: "gemini-2.5-flash",
@@ -92,7 +93,7 @@ describe('testKeyVerificationSubsystem', () => {
   assert(active?.id === testProject.id, "Active project ID must match newly activated project");
   assert(active?.apiKey === validStandardKey, "Active project decrypted API key must match");
 
-  const projects = loadStoredProjects();
+  const projects = defaultProjectService.loadStoredProjects();
   assert(projects.some((p) => p.id === testProject.id), "Project must be present in stored projects list");
 
   // Cleanup test project

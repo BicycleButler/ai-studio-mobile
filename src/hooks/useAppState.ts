@@ -7,12 +7,7 @@ import { useProjectManager } from "./useProjectManager";
 import { useUIState } from "./useUIState";
 import { useModelConfig } from "./useModelConfig";
 import { PromptType, ChatMessage, ChatSession } from "../types";
-import {
-  loadStoredApiKey,
-  saveStoredApiKey,
-  loadDraftState,
-  saveDraftState,
-} from "../utils/storage";
+import { defaultDraftStateService, defaultGeneralSettingsService } from "../utils/storage";
 
 import { fetchModels, isDeprecatedOrUnusableModel } from "../utils/modelCatalog";
 import { ModelInfo } from "../types";
@@ -28,7 +23,7 @@ export function useAppState() {
       return null;
     }
   })();
-  const initialDraft = loadDraftState(initialActiveProjectId);
+  const initialDraft = defaultDraftStateService.loadDraftState(initialActiveProjectId);
 
   const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
 
@@ -36,11 +31,11 @@ export function useAppState() {
   // or refactoring completely)
   const [googleUser, setGoogleUser] = useState(() => googleAuthService.loadStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState(false);
-  const [customApiKey, setCustomApiKey] = useState(() => loadStoredApiKey());
+  const [customApiKey, setCustomApiKey] = useState(() => defaultGeneralSettingsService.loadStoredApiKey());
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
   // External Services
-  const { googleAuthService, authService, promptTemplateService } = useServices();
+  const { googleAuthService, authService, promptTemplateService, generalSettingsService } = useServices();
 
   const promptTemplates = usePromptTemplates(initialDraft.selectedTemplateIds || []);
 
@@ -82,7 +77,7 @@ export function useAppState() {
     const user = await googleAuthService.initiateGoogleLogin(email, name);
     if (user) {
       setGoogleUser(user);
-      const key = customApiKey || loadStoredApiKey();
+      const key = customApiKey || generalSettingsService.loadStoredApiKey();
       fetchModels(key, true)
         .then((data) => {
           if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
@@ -103,7 +98,7 @@ export function useAppState() {
 
   const handleSaveApiKey = (key: string) => {
     setCustomApiKey(key);
-    saveStoredApiKey(key);
+    generalSettingsService.saveStoredApiKey(key);
     if (key.trim()) {
       fetchModels(key.trim(), true)
         .then((data) => {
@@ -140,7 +135,7 @@ export function useAppState() {
   // Draft Save Effect
   useEffect(() => {
     const timeout = setTimeout(() => {
-      saveDraftState(
+      defaultDraftStateService.saveDraftState(
         {
           promptType,
           config,
