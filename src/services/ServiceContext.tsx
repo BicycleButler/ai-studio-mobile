@@ -29,6 +29,7 @@ import { StubsClient } from "./stubsService";
 import { defaultCodeGeneratorService, ICodeGeneratorService } from "./codeGeneratorService";
 import { PwaInstallService, defaultPwaInstallService } from "./pwaInstallService";
 import { WindowSecurityService } from "./windowSecurityService";
+import { ImageCompressor, defaultImageCompressor } from "../utils/imageCompressor";
 
 export interface IServices {
   themeService: IThemeService;
@@ -54,6 +55,7 @@ export interface IServices {
   windowSecurityService: WindowSecurityService;
   syncOrchestrator: SyncOrchestrator;
   logger: typeof defaultLogger;
+  imageCompressor: ImageCompressor;
 }
 
 
@@ -117,6 +119,8 @@ const explicitlyInjectedProjectService = new ProjectService({
 
 const explicitlyInjectedDraftStateService = new DraftStateService();
 
+const explicitlyInjectedImageCompressor = defaultImageCompressor;
+
 const defaultServices: IServices = {
   themeService: defaultThemeService,
   promptTemplateService: defaultPromptTemplateService,
@@ -141,6 +145,7 @@ const defaultServices: IServices = {
   pwaInstallService: defaultPwaInstallService,
   windowSecurityService: explicitlyInjectedWindowSecurityService,
   logger: defaultLogger,
+  imageCompressor: explicitlyInjectedImageCompressor,
 };
 
 

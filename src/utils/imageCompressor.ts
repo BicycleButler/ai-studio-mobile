@@ -115,10 +115,3 @@ export class ImageCompressor {
 }
 
 export const defaultImageCompressor = new ImageCompressor(new CanvasImageCompressionStrategy());
-
-export async function compressImageForGemini(
-  file: File,
-  options: CompressionOptions = {}
-): Promise<MessageAttachment> {
-  return defaultImageCompressor.compressImageForGemini(file, options);
-}
