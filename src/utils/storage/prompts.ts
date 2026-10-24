@@ -6,6 +6,8 @@ import { defaultOfflineService } from "../offlineService";
 import { NetworkStorageSyncAdapter } from "./syncAdapter";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
+import { defaultNetworkStatusProvider } from "../networkStatus";
+import { DefaultOfflineRetryStrategy } from "./offlineRetryStrategy";
 
 export interface SavedPromptsServiceConfig {
   savedPromptsManager?: IActiveItemManager<SavedPrompt>;
@@ -19,7 +21,9 @@ export class SavedPromptsService {
   constructor(config?: SavedPromptsServiceConfig) {
     this.syncAdapter = config?.syncAdapter || new NetworkStorageSyncAdapter<SavedPrompt[]>({
         apiClient: defaultClient,
-        offlineService: defaultOfflineService
+        offlineService: defaultOfflineService,
+        networkStatusProvider: defaultNetworkStatusProvider,
+        retryStrategy: new DefaultOfflineRetryStrategy()
     });
 
     this.savedPromptsManager = config?.savedPromptsManager || createActiveItemManager<SavedPrompt>({

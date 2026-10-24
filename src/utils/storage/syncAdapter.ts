@@ -11,8 +11,8 @@ export interface IStorageSyncAdapter<T> {
 export interface NetworkStorageSyncAdapterConfig<T> {
   apiClient: IApiClient;
   offlineService: IOfflineService;
-  networkStatusProvider?: INetworkStatusProvider;
-  retryStrategy?: IOfflineRetryStrategy;
+  networkStatusProvider: INetworkStatusProvider;
+  retryStrategy: IOfflineRetryStrategy;
   logger?: ILogger;
   requestBuilder?: (item: T, method: string) => RequestInit;
 }
@@ -28,8 +28,8 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
   constructor(config: NetworkStorageSyncAdapterConfig<T>) {
     this.apiClient = config.apiClient;
     this.offlineService = config.offlineService;
-    this.networkStatusProvider = config.networkStatusProvider || new BrowserNetworkStatusProvider();
-    this.retryStrategy = config.retryStrategy || new DefaultOfflineRetryStrategy();
+    this.networkStatusProvider = config.networkStatusProvider;
+    this.retryStrategy = config.retryStrategy;
     this.logger = config.logger || defaultLogger;
     this.requestBuilder = config.requestBuilder || ((item, method) => ({
       method,

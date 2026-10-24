@@ -13,6 +13,8 @@ import { ILogger, defaultLogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
+import { defaultNetworkStatusProvider } from "../networkStatus";
+import { DefaultOfflineRetryStrategy } from "./offlineRetryStrategy";
 
 export interface JulesStorageServiceConfig {
   julesApiKeySingleton?: IMutableSingleton<string>;
@@ -53,7 +55,9 @@ export class JulesStorageService {
 
     this.syncAdapter = config?.syncAdapter || new NetworkStorageSyncAdapter<JulesSession[]>({
         apiClient: defaultClient,
-        offlineService: defaultOfflineService
+        offlineService: defaultOfflineService,
+        networkStatusProvider: defaultNetworkStatusProvider,
+        retryStrategy: new DefaultOfflineRetryStrategy()
     });
 
     this.julesSessionsManager = config?.julesSessionsManager || createActiveItemManager<JulesSession>({

@@ -13,6 +13,7 @@ import { IOfflineService } from "../utils/offlineService";
 import { defaultOfflineService } from "../utils/offlineService";
 import { INetworkStatusProvider } from "../utils/networkStatus";
 import { defaultNetworkStatusProvider } from "../utils/networkStatus";
+import { DefaultOfflineRetryStrategy } from "../utils/storage/offlineRetryStrategy";
 import { defaultChatHistoryService, ChatHistoryService } from "./chatHistoryService";
 import { ProjectService } from "../utils/storage/projects";
 import { SavedPromptsService } from "../utils/storage/prompts";
@@ -82,6 +83,8 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
   syncAdapter: new NetworkStorageSyncAdapter({
     apiClient: explicitlyInjectedApiClient,
     offlineService: explicitlyInjectedOfflineService,
+    networkStatusProvider: defaultNetworkStatusProvider,
+    retryStrategy: new DefaultOfflineRetryStrategy(),
   }),
 });
 
@@ -89,6 +92,8 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   syncAdapter: new NetworkStorageSyncAdapter({
     apiClient: explicitlyInjectedApiClient,
     offlineService: explicitlyInjectedOfflineService,
+    networkStatusProvider: defaultNetworkStatusProvider,
+    retryStrategy: new DefaultOfflineRetryStrategy(),
   }),
 });
 
