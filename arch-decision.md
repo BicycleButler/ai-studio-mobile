@@ -628,3 +628,17 @@ Keep the function and pass a callback `compressFn`.
 
 **Recommendation:**
 **Path 1 (Extract Interface)** is the recommended path. It abstracts DOM-dependent logic and allows providing a mock strategy or WebWorker strategy without changing the interface, adhering to the Strategy Pattern and improving Abstraction and Reusability.
+
+## Architectural Decision: Uniform IApiClient Interface Injection
+
+**Context:**
+Several services (`SpeechVoicesService`, `KeyVerificationService`, `AuthService`, `GeminiStreamService`) either directly imported global functional fetchers (`apiFetch`, `apiFetchStream`) or injected them as `typeof apiFetch`. This violated the Dependency Inversion Principle, caused inconsistent mocking in unit tests, and circumvented the `IApiClient` interface used by other services like `JulesClient` and `StubsClient`.
+
+**Path 1: Refactor to Full `IApiClient` Interface Injection**
+Standardize all services to accept an `apiClient: IApiClient` dependency via constructor injection. Services will use `this.apiClient.fetch()` and `this.apiClient.fetchStream()` instead of standalone functions.
+
+**Path 2: Pure Functional Injection**
+Continue injecting functional `fetchFn` and `fetchStreamFn` across all services. (Drawback: Fractures the networking architecture between class-based interface injection and functional injection, making it harder to intercept or proxy client calls uniformly).
+
+**Recommendation:**
+**Path 1 (Full `IApiClient` Interface Injection)** was implemented. It strictly enforces the Dependency Inversion Principle by programming against the `IApiClient` interface. It unifies networking across the codebase, simplifies testing by standardizing on `IApiClient` mocks, and ensures all services can seamlessly adopt interceptors, retry strategies, and custom headers managed by the client instance.

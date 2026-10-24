@@ -1,6 +1,6 @@
 import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
-import { apiFetch } from "../utils/apiClient";
+import { IApiClient, defaultClient } from "../utils/apiClient";
 import { getSafeNavigatorClipboard } from "../utils/platform";
 import { ILogger, defaultLogger } from "../utils/logger";
 
@@ -50,16 +50,16 @@ export interface IKeyVerificationService {
 }
 
 export interface KeyVerificationServiceConfig {
-  apiClient?: typeof apiFetch;
+  apiClient?: IApiClient;
   logger?: ILogger;
 }
 
 export class KeyVerificationService implements IKeyVerificationService {
-  private fetchFn: typeof apiFetch;
+  private apiClient: IApiClient;
   private logger: ILogger;
 
   constructor(config?: KeyVerificationServiceConfig) {
-    this.fetchFn = config?.apiClient || apiFetch;
+    this.apiClient = config?.apiClient || defaultClient;
     this.logger = config?.logger || defaultLogger;
   }
 
@@ -137,7 +137,7 @@ export class KeyVerificationService implements IKeyVerificationService {
     }
 
     try {
-      const data = await this.fetchFn<KeyVerificationResult>("/api/verify-key", {
+      const data = await this.apiClient.fetch<KeyVerificationResult>("/api/verify-key", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

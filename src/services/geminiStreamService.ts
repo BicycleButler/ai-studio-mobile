@@ -1,5 +1,5 @@
 import { GenerateRequestBody } from "../types";
-import { apiFetch, apiFetchStream, BaseApiError, isAbortError } from "../utils/apiClient";
+import { IApiClient, defaultClient, BaseApiError, isAbortError } from "../utils/apiClient";
 import { SSEStreamParser } from "../utils/sseParser";
 import { ILogger, defaultLogger } from "../utils/logger";
 
@@ -95,8 +95,19 @@ export interface IGeminiStreamService {
   ): Promise<{ text: string; durationMs: number; totalTokens: number }>;
 }
 
+export interface GeminiStreamServiceConfig {
+  apiClient?: IApiClient;
+  logger?: ILogger;
+}
+
 export class GeminiStreamService implements IGeminiStreamService {
-  constructor(private fetchFn = apiFetch, private fetchStreamFn = apiFetchStream, private logger: ILogger = defaultLogger) {}
+  private apiClient: IApiClient;
+  private logger: ILogger;
+
+  constructor(config?: GeminiStreamServiceConfig) {
+    this.apiClient = config?.apiClient || defaultClient;
+    this.logger = config?.logger || defaultLogger;
+  }
 
   public sanitizeLogMessage(message: string): string {
     if (!message) return "";
@@ -153,7 +164,7 @@ export class GeminiStreamService implements IGeminiStreamService {
     error?: string;
     usageMetadata?: { totalTokenCount?: number };
   }> {
-    return this.fetchFn("/api/generate", {
+    return this.apiClient.fetch("/api/generate", {
       method: "POST",
       headers: this.buildHeaders(options?.apiKey),
       signal: options?.signal,
@@ -181,7 +192,7 @@ export class GeminiStreamService implements IGeminiStreamService {
       }),
     };
     try {
-      response = await this.fetchStreamFn("/api/generate", reqOptions);
+      response = await this.apiClient.fetchStream("/api/generate", reqOptions);
     } catch (err: unknown) {
       if (err instanceof BaseApiError) {
         throw new GeminiApiError(err.message, err.statusCode);
