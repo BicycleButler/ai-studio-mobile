@@ -6,11 +6,13 @@ import { INetworkStatusProvider, NetworkStatus } from '../networkStatus';
 import { Observable } from '../observable';
 
 import { NoOpLogger } from '../logger';
+import { DefaultOfflineRetryStrategy } from './offlineRetryStrategy';
 
 describe('NetworkStorageSyncAdapter', () => {
     let mockApiClient: any;
     let mockOfflineService: any;
     let noOpLogger: NoOpLogger;
+    let defaultRetryStrategy: DefaultOfflineRetryStrategy;
 
     beforeEach(() => {
         mockApiClient = {
@@ -22,6 +24,7 @@ describe('NetworkStorageSyncAdapter', () => {
         } as unknown as IOfflineService;
 
         noOpLogger = new NoOpLogger();
+        defaultRetryStrategy = new DefaultOfflineRetryStrategy();
     });
 
     it('should call apiClient.fetch when online', async () => {
@@ -30,7 +33,7 @@ describe('NetworkStorageSyncAdapter', () => {
             getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
         };
 
-        const adapter = new NetworkStorageSyncAdapter({ apiClient: mockApiClient, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, logger: noOpLogger });
+        const adapter = new NetworkStorageSyncAdapter({ apiClient: mockApiClient, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger });
         const item = { id: 1, name: 'test' };
 
         mockApiClient.fetch.mockResolvedValueOnce({ ok: true });
@@ -54,7 +57,7 @@ describe('NetworkStorageSyncAdapter', () => {
             getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: false, wasOffline: true }))
         };
 
-        const adapter = new NetworkStorageSyncAdapter({ apiClient: mockApiClient, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, logger: noOpLogger });
+        const adapter = new NetworkStorageSyncAdapter({ apiClient: mockApiClient, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger });
         const item = { id: 1, name: 'test' };
 
         mockOfflineService.enqueueOfflineMutation.mockResolvedValueOnce(undefined);
@@ -72,7 +75,7 @@ describe('NetworkStorageSyncAdapter', () => {
             getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
         };
 
-        const adapter = new NetworkStorageSyncAdapter({ apiClient: mockApiClient, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, logger: noOpLogger });
+        const adapter = new NetworkStorageSyncAdapter({ apiClient: mockApiClient, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger });
         const item = { id: 1, name: 'test' };
 
         mockApiClient.fetch.mockRejectedValueOnce(new Error('Network failure'));

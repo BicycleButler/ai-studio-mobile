@@ -39,7 +39,7 @@ export interface IOfflineService {
 
 export interface OfflineServiceConfig {
   storageKey?: string;
-  storageAdapter?: AsyncStorage;
+  storageAdapter: AsyncStorage;
   logger?: ILogger;
 }
 
@@ -53,13 +53,10 @@ export class OfflineService implements IOfflineService {
   private storageAdapter: AsyncStorage;
   private logger: ILogger;
 
-  constructor(config?: OfflineServiceConfig) {
-    this.storageKey = config?.storageKey || OFFLINE_QUEUE_KEY;
-    this.storageAdapter = config?.storageAdapter || new FallbackAsyncStorage([
-      new IndexedDbAsyncStorage(),
-      new MemoryAsyncStorage()
-    ]);
-    this.logger = config?.logger || defaultLogger;
+  constructor(config: OfflineServiceConfig) {
+    this.storageKey = config.storageKey || OFFLINE_QUEUE_KEY;
+    this.storageAdapter = config.storageAdapter;
+    this.logger = config.logger || defaultLogger;
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         this.channel = new BroadcastChannel(`${this.storageKey}_channel`);
@@ -245,4 +242,9 @@ export class OfflineService implements IOfflineService {
   }
 }
 
-export const defaultOfflineService = new OfflineService();
+export const defaultOfflineService = new OfflineService({
+  storageAdapter: new FallbackAsyncStorage([
+    new IndexedDbAsyncStorage(),
+    new MemoryAsyncStorage()
+  ])
+});
