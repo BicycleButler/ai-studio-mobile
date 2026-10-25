@@ -659,3 +659,17 @@ Several test files and core utilities (`src/utils/storage/syncAdapter.test.ts`, 
 
 **Decision:**
 Replaced loosely typed `any` mocks with strictly typed `Mocked<Interface>` or explicitly structured types (e.g. `unknown` where appropriate, or defining the mocked methods explicitly). This deepens abstraction by enforcing interface contracts strictly even at the testing boundary, dramatically improving maintainability and code quality without altering application behavior.
+
+## Architectural Decision: Vitest Mocking Standards
+
+**Context:**
+A bug was introduced during refactoring because `vi.mocked()` cannot be used inline when wrapping methods of dependencies injected directly via TS interface mocks (e.g. `mockActiveItemManager.getItems` casted via `as unknown as IActiveItemManager`). Attempting to use `vi.mocked()` inline on these generated a runtime TypeError `vi.mocked is not a function` during test execution when using `esbuild` transformer in Vitest, causing multiple tests to fail in `draftState.test.ts`, `general.test.ts`, `projects.test.ts`, and `julesService.test.ts`.
+
+**Path 1: Standardize casting with `as import("vitest").Mock`**
+Replace all inline instances of `vi.mocked(fn)` with a direct Typescript cast `(fn as import("vitest").Mock)` for inline mocking/spy checks. This explicitly satisfies TS without invoking the `vi.mocked` wrapper function at runtime.
+
+**Path 2: Restructure all Mocks to use `vi.mock()`**
+Refactor the entire test suite to use module-level `vi.mock()` and import the actual modules.
+
+**Recommendation:**
+**Path 1** was chosen as it resolves the runtime TypeErrors immediately without requiring a heavy rewrite of the test files and preserves the existing behavior and design pattern of the unit tests.
