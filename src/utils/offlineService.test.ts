@@ -3,7 +3,7 @@ import { OfflineService } from './offlineService';
 import { AsyncStorage } from './asyncStorage';
 
 class MockAsyncStorage implements AsyncStorage {
-  private store = new Map<string, any>();
+  private store = new Map<string, unknown>();
 
   async getItem<T>(key: string): Promise<T | undefined> {
     return this.store.get(key) as T;

@@ -9,19 +9,19 @@ import { NoOpLogger } from '../logger';
 import { DefaultOfflineRetryStrategy } from './offlineRetryStrategy';
 
 describe('NetworkStorageSyncAdapter', () => {
-    let mockApiClient: any;
-    let mockOfflineService: any;
+    let mockApiClient: import("vitest").Mocked<IApiClient>;
+    let mockOfflineService: import("vitest").Mocked<IOfflineService>;
     let noOpLogger: NoOpLogger;
     let defaultRetryStrategy: DefaultOfflineRetryStrategy;
 
     beforeEach(() => {
         mockApiClient = {
             fetch: vi.fn(),
-        } as unknown as IApiClient;
+        } as unknown as import("vitest").Mocked<IApiClient>;
 
         mockOfflineService = {
             enqueueOfflineMutation: vi.fn(),
-        } as unknown as IOfflineService;
+        } as unknown as import("vitest").Mocked<IOfflineService>;
 
         noOpLogger = new NoOpLogger();
         defaultRetryStrategy = new DefaultOfflineRetryStrategy();

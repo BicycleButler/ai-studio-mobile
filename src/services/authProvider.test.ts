@@ -11,7 +11,7 @@ class MockAuthProvider implements IAuthProvider {
 
     async signOut(): Promise<void> {}
 
-    onAuthStateChanged(callback: (user: any, token: any) => void) {
+    onAuthStateChanged(callback: (user: Partial<import("../types").GoogleUser> | null, token: string | null) => void) {
         callback({ email: 'test@example.com' }, 'token');
         return () => {};
     }
@@ -28,7 +28,7 @@ describe('IAuthProvider', () => {
         let called = false;
         provider.onAuthStateChanged((user) => {
             called = true;
-            expect(user.email).toBe('test@example.com');
+            expect(user?.email).toBe('test@example.com');
         });
 
         expect(called).toBe(true);

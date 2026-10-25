@@ -3,13 +3,13 @@ import { StubsClient } from './stubsService';
 import { IApiClient } from '../utils/apiClient';
 
 describe('StubsClient', () => {
-    let mockApiClient: any;
+    let mockApiClient: import("vitest").Mocked<IApiClient>;
     let client: StubsClient;
 
     beforeEach(() => {
         mockApiClient = {
             fetch: vi.fn(),
-        } as unknown as IApiClient;
+        } as unknown as import("vitest").Mocked<IApiClient>;
         client = new StubsClient(mockApiClient);
     });
 

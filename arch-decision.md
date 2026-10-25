@@ -650,3 +650,12 @@ The `OfflineQueueStore` class managed the queue state with duplicated lock mecha
 
 **Decision:**
 Created a centralized `applyQueueUpdate(newQueue: OfflineMutation[])` private method inside `OfflineQueueStore`. All state-mutating queue methods inside `withQueueLock` now purely mutate/filter the array and pass the result to `applyQueueUpdate`. This drastically simplifies the methods, adheres strictly to DRY, and establishes a single choke point for modifying the offline queue state safely and accurately across listeners and tabs.
+
+
+## Architectural Decision: TypeScript Type Safety Enforcement
+
+**Context:**
+Several test files and core utilities (`src/utils/storage/syncAdapter.test.ts`, `src/utils/offlineService.test.ts`, `src/utils/storage/ActiveItemManager.test.ts`, `src/services/authProvider.test.ts`) used loose `any` types for mocking complex dependencies (`IApiClient`, `IOfflineService`, `StorageCollection`) or event payloads. This bypassed the TypeScript compiler's structural checks, reducing robustness and making refactoring perilous as API contracts changed.
+
+**Decision:**
+Replaced loosely typed `any` mocks with strictly typed `Mocked<Interface>` or explicitly structured types (e.g. `unknown` where appropriate, or defining the mocked methods explicitly). This deepens abstraction by enforcing interface contracts strictly even at the testing boundary, dramatically improving maintainability and code quality without altering application behavior.
