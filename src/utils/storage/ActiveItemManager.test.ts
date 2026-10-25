@@ -5,7 +5,7 @@ import { StorageSingleton } from './StorageSingleton';
 
 describe('ActiveItemManager', () => {
     it('should initialize with implicit selection', () => {
-        const collection = new StorageCollection<any>('test_col');
+        const collection = new StorageCollection<{ id: string }>('test_col');
         collection.save([{ id: '1' }, { id: '2' }]);
         const activeIdSingleton = new StorageSingleton<string | null>('test_id', null);
 
@@ -22,7 +22,7 @@ describe('ActiveItemManager', () => {
     });
 
     it('should initialize with explicit selection', () => {
-        const collection = new StorageCollection<any>('test_col');
+        const collection = new StorageCollection<{ id: string }>('test_col');
         collection.save([{ id: '1' }, { id: '2' }]);
         const activeIdSingleton = new StorageSingleton<string | null>('test_id', '2');
 
@@ -38,7 +38,7 @@ describe('ActiveItemManager', () => {
     });
 
     it('should respect allowImplicitSelection=false', () => {
-        const collection = new StorageCollection<any>('test_col');
+        const collection = new StorageCollection<{ id: string }>('test_col');
         collection.save([{ id: '1' }, { id: '2' }]);
         const activeIdSingleton = new StorageSingleton<string | null>('test_id', null);
 
@@ -55,7 +55,7 @@ describe('ActiveItemManager', () => {
     });
 
     it('should update state when collection changes', async () => {
-        const collection = new StorageCollection<any>('test_col');
+        const collection = new StorageCollection<{ id: string }>('test_col');
         const activeIdSingleton = new StorageSingleton<string | null>('test_id', null);
 
         const manager = new ActiveItemManager({
@@ -75,7 +75,7 @@ describe('ActiveItemManager', () => {
     });
 
     it('should fire onActiveItemChange callback', async () => {
-        const collection = new StorageCollection<any>('test_col');
+        const collection = new StorageCollection<{ id: string }>('test_col');
         collection.save([{ id: '1' }, { id: '2' }]);
         const activeIdSingleton = new StorageSingleton<string | null>('test_id', '1');
 
@@ -99,7 +99,7 @@ describe('ActiveItemManager', () => {
     });
 
     it('should handle dangling IDs on an empty collection', () => {
-        const collection = new StorageCollection<any>('test_col');
+        const collection = new StorageCollection<{ id: string }>('test_col');
         collection.save([]);
         const activeIdSingleton = new StorageSingleton<string | null>('test_id', 'dangling_id');
 

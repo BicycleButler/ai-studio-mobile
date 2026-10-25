@@ -24,7 +24,7 @@ const mockMessages: ChatMessage[] = [
 ];
 
 // In test files, loose assertion / mock objects with 'any' are permitted and often required:
-const testMockPayload: any = {
+const testMockPayload: Record<string, unknown> = {
   dynamicProperty: "test-property-allowed-in-test-files",
 };
 
