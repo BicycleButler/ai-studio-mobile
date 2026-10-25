@@ -1,5 +1,12 @@
+import { ILogger, defaultLogger } from "./logger";
+
 export class Mutex {
   private queue: Promise<void> = Promise.resolve();
+  private logger: ILogger;
+
+  constructor(logger: ILogger = defaultLogger) {
+    this.logger = logger;
+  }
 
   public async acquire(timeoutMs?: number): Promise<() => void> {
     let release: () => void;
@@ -26,7 +33,7 @@ export class Mutex {
     if (timeoutMs !== undefined) {
       timeoutId = setTimeout(() => {
         if (!isReleased) {
-           console.warn(`Mutex lock timed out after ${timeoutMs}ms`);
+           this.logger.warn(`Mutex lock timed out after ${timeoutMs}ms`);
            wrappedRelease();
         }
       }, timeoutMs);

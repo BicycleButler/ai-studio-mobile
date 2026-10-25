@@ -23,7 +23,7 @@ export interface OfflineQueueStoreConfig {
 }
 
 export class OfflineQueueStore implements IOfflineQueueStore {
-  private queueMutex = new Mutex();
+  private queueMutex: Mutex;
   private _queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>();
 
   public getObservable(): IObservable<OfflineMutation[]> {
@@ -39,6 +39,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     this.storageKey = config.storageKey;
     this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || defaultLogger;
+    this.queueMutex = new Mutex(this.logger);
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         this.channel = new BroadcastChannel(`${this.storageKey}_channel`);
