@@ -1,0 +1,106 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { DraftStateService, DraftState } from './draftState';
+import { IStorageRegistry } from './StorageRegistry';
+import { IMutableSingleton } from './types';
+import { DEFAULT_CONFIG } from '../../data/templates';
+import { STORAGE_KEYS } from './constants';
+import { ILogger } from '../logger';
+
+describe('DraftStateService', () => {
+  let mockDraftRegistry: Required<IStorageRegistry<IMutableSingleton<DraftState | null>>>;
+  let mockDraftSingleton: IMutableSingleton<DraftState | null>;
+  let mockGlobalDraftSingleton: IMutableSingleton<DraftState | null>;
+  let mockLogger: Required<ILogger>;
+
+  beforeEach(() => {
+    mockDraftSingleton = {
+      load: vi.fn(),
+      save: vi.fn(),
+      clear: vi.fn(),
+      getFallback: vi.fn(),
+      setFallback: vi.fn(),
+    } as unknown as IMutableSingleton<DraftState | null>;
+
+    mockGlobalDraftSingleton = {
+      load: vi.fn(),
+      save: vi.fn(),
+      clear: vi.fn(),
+      getFallback: vi.fn(),
+      setFallback: vi.fn(),
+    } as unknown as IMutableSingleton<DraftState | null>;
+
+    mockDraftRegistry = {
+      get: vi.fn((key: string) => {
+        if (key === STORAGE_KEYS.DRAFT_STATE) {
+            return mockGlobalDraftSingleton;
+        }
+        return mockDraftSingleton;
+      }),
+      delete: vi.fn(),
+      clear: vi.fn(),
+      keys: [],
+      values: [],
+    };
+
+    mockLogger = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    };
+  });
+
+  it('initializes and generates correct keys', () => {
+    const service = new DraftStateService({ logger: mockLogger, draftRegistry: mockDraftRegistry });
+    expect(service.getProjectDraftKey()).toBe(STORAGE_KEYS.DRAFT_STATE);
+    expect(service.getProjectDraftKey('proj1')).toBe(`${STORAGE_KEYS.DRAFT_STATE}_proj1`);
+  });
+
+  it('loads default fallback state when nothing is stored', () => {
+    vi.mocked(mockDraftSingleton.load).mockReturnValue(null);
+    const service = new DraftStateService({ logger: mockLogger, draftRegistry: mockDraftRegistry });
+    const draft = service.loadDraftState('proj1');
+    expect(draft.promptType).toBe('chat');
+    expect(draft.config).toEqual(DEFAULT_CONFIG);
+  });
+
+  it('falls back to global draft if project draft is null but global exists', () => {
+    vi.mocked(mockDraftSingleton.load).mockReturnValue(null);
+    const globalState = {
+        promptType: 'code' as const,
+        config: { ...DEFAULT_CONFIG, temperature: 0.8 },
+        chatInputText: 'hello',
+        freeformText: '',
+        structuredExamples: [],
+        updatedAt: 123,
+    };
+    vi.mocked(mockGlobalDraftSingleton.load).mockReturnValue(globalState);
+
+    const service = new DraftStateService({ logger: mockLogger, draftRegistry: mockDraftRegistry });
+    const draft = service.loadDraftState('proj1');
+
+    expect(draft.promptType).toBe('code');
+    expect(draft.config.temperature).toBe(0.8);
+  });
+
+  it('saves draft state', () => {
+    const existingState = {
+        promptType: 'chat' as const,
+        config: DEFAULT_CONFIG,
+        chatInputText: 'existing',
+        freeformText: '',
+        structuredExamples: [],
+        updatedAt: 123,
+    };
+    vi.mocked(mockDraftSingleton.load).mockReturnValue(existingState);
+
+    const service = new DraftStateService({ logger: mockLogger, draftRegistry: mockDraftRegistry });
+    service.saveDraftState({ chatInputText: 'new text' }, 'proj1');
+
+    expect(mockDraftSingleton.save).toHaveBeenCalled();
+    const savedArg = vi.mocked(mockDraftSingleton.save).mock.calls[0][0];
+    expect(savedArg?.chatInputText).toBe('new text');
+    expect(savedArg?.promptType).toBe('chat');
+    expect(savedArg?.updatedAt).toBeGreaterThan(123);
+  });
+});

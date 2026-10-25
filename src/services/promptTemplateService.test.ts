@@ -120,6 +120,20 @@ describe('testPromptTemplateService', () => {
       throw new Error("Failed to compose when user text is empty");
     }
 
+    // bulk delete tests
+    const t1 = service.saveCustomTemplate({ title: 't1', content: 'c1', category: 'custom' });
+    const t2 = service.saveCustomTemplate({ title: 't2', content: 'c2', category: 'custom' });
+    const t3 = service.saveCustomTemplate({ title: 't3', content: 'c3', category: 'custom' });
+
+    const res = service.bulkDeleteCustomTemplates([t1.id!, t3.id!]);
+    if (res !== true) throw new Error("Expected bulk delete to return true");
+    const all = service.getCustomTemplates();
+    if (all.length !== 1 || all[0].id !== t2.id) throw new Error("Bulk delete failed");
+
+    if (service.bulkDeleteCustomTemplates([]) !== false) {
+       throw new Error("Expected bulk delete with empty array to return false");
+    }
+
     service.clearCustomTemplates();
   });
 });
