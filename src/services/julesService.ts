@@ -42,7 +42,7 @@ export interface JulesTaskPayload {
 export interface JulesServiceConfig {
   getApiKey: () => string;
   getSettings: () => { autoApprovePlans: boolean; defaultBranch: string };
-  apiClient?: IApiClient;
+  apiClient: IApiClient;
   startPolling?: <T>(fetcher: (signal: AbortSignal) => Promise<T>, options: PollingOptions<T>) => { stop: () => void };
 }
 
@@ -72,7 +72,7 @@ export class JulesClient {
     }
 
     try {
-      const fetcher = this.config.apiClient ? this.config.apiClient.fetch.bind(this.config.apiClient) : apiFetch;
+      const fetcher = this.config.apiClient.fetch.bind(this.config.apiClient);
       const data = await fetcher<{ valid?: boolean; error?: string; status?: string }>("/api/jules/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -95,7 +95,7 @@ export class JulesClient {
     if (!key) return [];
 
     try {
-      const fetcher = this.config.apiClient ? this.config.apiClient.fetch.bind(this.config.apiClient) : apiFetch;
+      const fetcher = this.config.apiClient.fetch.bind(this.config.apiClient);
       const data = await fetcher<{ repositories?: JulesRepositoryItem[] }>("/api/jules/repos", {
         headers: { "x-jules-api-key": key },
       });
@@ -128,7 +128,7 @@ export class JulesClient {
       const settings = this.getSettings();
       const autoApprove = params.autoApprove ?? settings.autoApprovePlans;
 
-      const fetcher = this.config.apiClient ? this.config.apiClient.fetch.bind(this.config.apiClient) : apiFetch;
+      const fetcher = this.config.apiClient.fetch.bind(this.config.apiClient);
       const data = await fetcher<{ task: JulesTaskPayload }>("/api/jules/tasks", {
         method: "POST",
         headers: {
@@ -181,7 +181,7 @@ export class JulesClient {
     onError?: (error: unknown) => void,
     intervalMs: number = 2500
   ): { stop: () => void } {
-    const fetcherFn = this.config.apiClient ? this.config.apiClient.fetch.bind(this.config.apiClient) : apiFetch;
+    const fetcherFn = this.config.apiClient.fetch.bind(this.config.apiClient);
     const pollingFn = this.config.startPolling || startPolling;
 
     const poller = pollingFn<{ task: JulesTaskPayload }>(
@@ -217,7 +217,7 @@ export class JulesClient {
     const apiKey = this.resolveApiKey(apiKeyOverride);
 
     try {
-      const fetcher = this.config.apiClient ? this.config.apiClient.fetch.bind(this.config.apiClient) : apiFetch;
+      const fetcher = this.config.apiClient.fetch.bind(this.config.apiClient);
       const data = await fetcher<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}`, {
         headers: { "x-jules-api-key": apiKey || "" },
       }, "Failed to fetch Jules task.");
@@ -239,7 +239,7 @@ export class JulesClient {
     const key = this.resolveApiKey(apiKeyOverride);
 
     try {
-      const fetcher = this.config.apiClient ? this.config.apiClient.fetch.bind(this.config.apiClient) : apiFetch;
+      const fetcher = this.config.apiClient.fetch.bind(this.config.apiClient);
       const data = await fetcher<{ task: JulesTaskPayload }>(`/api/jules/tasks/${encodeURIComponent(taskId)}/approve`, {
         method: "POST",
         headers: {

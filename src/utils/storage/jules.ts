@@ -13,12 +13,12 @@ import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
 
 export interface JulesStorageServiceConfig {
-  apiClient?: IApiClient;
+  apiClient: IApiClient;
   julesApiKeySingleton?: IMutableSingleton<string>;
   julesSettingsSingleton?: IMutableSingleton<JulesSettings>;
   julesSessionsManager?: IActiveItemManager<JulesSession>;
   syncAdapter?: IStorageSyncAdapter<JulesSession[]>;
-  logger?: ILogger;
+  logger: ILogger;
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {
@@ -34,9 +34,9 @@ export class JulesStorageService {
   private logger: ILogger;
   private apiClient: IApiClient;
 
-  constructor(config?: JulesStorageServiceConfig) {
-    this.logger = config?.logger || defaultLogger;
-    this.apiClient = config?.apiClient || defaultClient;
+  constructor(config: JulesStorageServiceConfig) {
+    this.logger = config.logger;
+    this.apiClient = config.apiClient;
 
     this.julesApiKeySingleton = config?.julesApiKeySingleton || new StorageSingleton<string>(
       STORAGE_KEYS.JULES_API_KEY,

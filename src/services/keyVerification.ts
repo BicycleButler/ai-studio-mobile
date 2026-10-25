@@ -50,17 +50,17 @@ export interface IKeyVerificationService {
 }
 
 export interface KeyVerificationServiceConfig {
-  apiClient?: IApiClient;
-  logger?: ILogger;
+  apiClient: IApiClient;
+  logger: ILogger;
 }
 
 export class KeyVerificationService implements IKeyVerificationService {
   private apiClient: IApiClient;
   private logger: ILogger;
 
-  constructor(config?: KeyVerificationServiceConfig) {
-    this.apiClient = config?.apiClient || defaultClient;
-    this.logger = config?.logger || defaultLogger;
+  constructor(config: KeyVerificationServiceConfig) {
+    this.apiClient = config.apiClient;
+    this.logger = config.logger;
   }
 
   public isValidJulesApiKeyFormat(key: string): boolean {
@@ -184,4 +184,4 @@ export class KeyVerificationService implements IKeyVerificationService {
   }
 }
 
-export const defaultKeyVerificationService = new KeyVerificationService();
+export const defaultKeyVerificationService = new KeyVerificationService({ apiClient: defaultClient, logger: defaultLogger });

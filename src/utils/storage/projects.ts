@@ -15,7 +15,7 @@ export interface ProjectServiceConfig {
 export class ProjectService {
   public projectsManager: IActiveItemManager<ProjectInfo>;
 
-  constructor(config?: ProjectServiceConfig) {
+  constructor(config: ProjectServiceConfig) {
     this.projectsManager = config?.projectsManager || createActiveItemManager<ProjectInfo>({
       collectionKey: STORAGE_KEYS.PROJECTS,
       collectionOptions: {
@@ -41,7 +41,7 @@ export class ProjectService {
       },
       getId: (p) => p.id,
       onActiveItemChange: (activeProject) => {
-        if (!config?.generalSettingsService) { throw new Error("generalSettingsService is required for ProjectService"); }
+        if (!config.generalSettingsService) { throw new Error("generalSettingsService is required for ProjectService"); }
         const genSettings = config.generalSettingsService;
         genSettings.saveStoredApiKey(activeProject ? activeProject.apiKey : "");
       }
@@ -89,7 +89,7 @@ export class ProjectService {
   }
 }
 
-export const defaultProjectService = new ProjectService();
+export const defaultProjectService = new ProjectService({});
 
 export const projectsManager = defaultProjectService.projectsManager;
 

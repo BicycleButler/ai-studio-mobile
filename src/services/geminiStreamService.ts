@@ -96,17 +96,17 @@ export interface IGeminiStreamService {
 }
 
 export interface GeminiStreamServiceConfig {
-  apiClient?: IApiClient;
-  logger?: ILogger;
+  apiClient: IApiClient;
+  logger: ILogger;
 }
 
 export class GeminiStreamService implements IGeminiStreamService {
   private apiClient: IApiClient;
   private logger: ILogger;
 
-  constructor(config?: GeminiStreamServiceConfig) {
-    this.apiClient = config?.apiClient || defaultClient;
-    this.logger = config?.logger || defaultLogger;
+  constructor(config: GeminiStreamServiceConfig) {
+    this.apiClient = config.apiClient;
+    this.logger = config.logger;
   }
 
   public sanitizeLogMessage(message: string): string {

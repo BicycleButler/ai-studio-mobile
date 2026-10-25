@@ -15,7 +15,7 @@ export class GeneralSettingsService {
   private flagSecureSingleton: IMutableSingleton<boolean>;
   public flagSecureObservable: Observable<boolean>;
 
-  constructor(config?: GeneralSettingsServiceConfig) {
+  constructor(config: GeneralSettingsServiceConfig) {
     this.apiKeySingleton = config?.apiKeySingleton || new StorageSingleton<string>(
       STORAGE_KEYS.API_KEY,
       "",
@@ -59,7 +59,7 @@ export class GeneralSettingsService {
   }
 }
 
-export const defaultGeneralSettingsService = new GeneralSettingsService();
+export const defaultGeneralSettingsService = new GeneralSettingsService({});
 
 
 

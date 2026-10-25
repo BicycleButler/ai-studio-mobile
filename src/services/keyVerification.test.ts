@@ -20,7 +20,7 @@ function assert(condition: boolean, message: string): void {
 
 describe('testKeyVerificationSubsystem', () => {
   test('main', async () => {
-const defaultProjectService = new ProjectService({ generalSettingsService: new GeneralSettingsService() });
+const defaultProjectService = new ProjectService({ generalSettingsService: new GeneralSettingsService({}) });
   // Test 1: Standard Google API Key pattern validation (AIza + 35 characters = 39 chars total)
   const validStandardKey = "AIzaSyD" + "A".repeat(32); // 4 + 35 = 39 chars
   assert(validStandardKey.length === 39, "Standard key must be 39 chars long");

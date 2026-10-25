@@ -1,3 +1,5 @@
+import { defaultClient } from "../utils/apiClient";
+import { defaultAuthService } from "./auth";
 import { describe, test, expect } from 'vitest';
 import {
   DEFAULT_SPEECH_SETTINGS,
@@ -10,7 +12,7 @@ describe('testSpeechSettingsSuite', () => {
   test('main', () => {
     // We instantiate a local service for isolated testing without hitting globals if desired
     // For this exact parity test, we can just use the service to emulate what was happening globally.
-    const service = new SpeechVoicesService();
+    const service = new SpeechVoicesService({ apiClient: defaultClient, authService: defaultAuthService });
 
     // Test 1: Defaults
     expect(DEFAULT_SPEECH_SETTINGS.voiceButtonPlacement).toBe("footer");
