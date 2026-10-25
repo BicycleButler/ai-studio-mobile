@@ -1,7 +1,8 @@
-import { DraftStateService } from "./storage/draftState";
-import { safeGetStorage, safeSetStorage } from "./storage";
+import { defaultLogger } from "./logger";
 
 import { describe, test, expect } from 'vitest';
+import { safeGetStorage, safeSetStorage, safeRemoveStorage, safeGetStorageKeys, safeSetStorageString, safeGetStorageString, safeRemoveStorageKeysWithPrefix } from "./storage/core";
+import { DraftStateService } from './storage/draftState';
 
 describe('storage', () => {
   test('testStorage', () => {
@@ -16,7 +17,7 @@ describe('storage', () => {
     expect(fetched.valid).toBe(true);
 
     // Test draft state initialization
-    const draftStateService = new DraftStateService();
+    const draftStateService = new DraftStateService({ logger: defaultLogger });
     const draft = draftStateService.loadDraftState();
     expect(draft.config).toBeTruthy();
     expect(draft.promptType).toBeTruthy();

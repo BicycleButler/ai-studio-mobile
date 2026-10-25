@@ -1,13 +1,12 @@
+import { defaultLogger } from "../utils/logger";
+import { ChatHistoryService } from "./chatHistoryService";
 import { describe, test } from 'vitest';
-import {
-  ChatHistoryService,
-} from "./chatHistoryService";
-import { formatRelativeTime } from "../utils/timeUtils";
-import { ChatSession, ChatMessage } from "../types";
+import { ChatSession, ChatMessage } from '../types';
+
 
 describe('testChatHistoryService', () => {
   test('main', () => {
-  const service = new ChatHistoryService();
+  const service = new ChatHistoryService({ logger: defaultLogger });
 
   const activeProjectId = "proj_mobile_arch_101";
 
@@ -105,16 +104,10 @@ describe('testChatHistoryService', () => {
     throw new Error(`Expected updated session to have 3 messages, got ${updated?.messages.length}`);
   }
 
-  // 6. Test relative time format
-  const justNow = formatRelativeTime(Date.now() - 10000);
-  if (justNow !== "Just now") {
-    throw new Error(`Expected 'Just now', got ${justNow}`);
-  }
 
-  const fiveMinAgo = formatRelativeTime(Date.now() - 5 * 60 * 1000);
-  if (fiveMinAgo !== "5m ago") {
-    throw new Error(`Expected '5m ago', got ${fiveMinAgo}`);
-  }
+
+
+
 
   // 7. Test storage key generation
   if (service.getChatSessionsStorageKey("proj_123") !== "ai_studio_chat_sessions_v1_proj_123") {

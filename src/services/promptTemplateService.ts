@@ -85,7 +85,7 @@ export interface PromptTemplateServiceConfig {
 export class PromptTemplateService implements IPromptTemplateService {
   private customTemplatesCollection: IMutableCollection<PromptTemplate>;
 
-  constructor(config?: PromptTemplateServiceConfig) {
+  constructor(config: PromptTemplateServiceConfig) {
     this.customTemplatesCollection = config?.customTemplatesCollection || new StorageCollection<PromptTemplate>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
   }
 
@@ -222,4 +222,4 @@ export class PromptTemplateService implements IPromptTemplateService {
   }
 }
 
-export const defaultPromptTemplateService = new PromptTemplateService();
+export const defaultPromptTemplateService = new PromptTemplateService({});

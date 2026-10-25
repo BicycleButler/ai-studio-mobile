@@ -70,10 +70,12 @@ const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
 
 const explicitlyInjectedAuthService = new AuthService({
   apiClient: explicitlyInjectedApiClient,
+  loadStoredApiKeyFn: () => ""
 });
 
 const explicitlyInjectedGoogleAuthService = new GoogleAuthService({
   apiClient: explicitlyInjectedApiClient,
+  logger: defaultLogger
 });
 
 const explicitlyInjectedSpeechVoicesService = new SpeechVoicesService({
@@ -101,12 +103,15 @@ const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
 });
 
 const explicitlyInjectedJulesStorageService = new JulesStorageService({
+  logger: defaultLogger,
+  apiClient: explicitlyInjectedApiClient,
   julesSessionsManager: undefined,
   syncAdapter: new NetworkStorageSyncAdapter({
     apiClient: explicitlyInjectedApiClient,
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: defaultNetworkStatusProvider,
     retryStrategy: new DefaultOfflineRetryStrategy(),
+    logger: defaultLogger
   }),
 });
 
@@ -117,10 +122,11 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: defaultNetworkStatusProvider,
     retryStrategy: new DefaultOfflineRetryStrategy(),
+    logger: defaultLogger
   }),
 });
 
-const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService();
+const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService({});
 
 const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
     generalSettingsService: explicitlyInjectedGeneralSettingsService
@@ -130,7 +136,7 @@ const explicitlyInjectedProjectService = new ProjectService({
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
 });
 
-const explicitlyInjectedDraftStateService = new DraftStateService();
+const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger });
 
 const explicitlyInjectedImageCompressor = defaultImageCompressor;
 

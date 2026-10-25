@@ -23,7 +23,7 @@ export interface IChatHistoryService {
 export interface ChatHistoryServiceConfig {
   quotaObservable?: typeof globalStorageQuotaObservable;
   storageKeys?: typeof STORAGE_KEYS;
-  logger?: ILogger;
+  logger: ILogger;
   collectionRegistry?: IStorageRegistry<IMutableCollection<ChatSession>>;
 }
 
@@ -32,7 +32,7 @@ export class ChatHistoryService implements IChatHistoryService {
   private config: Required<ChatHistoryServiceConfig>;
   private collectionRegistry: IStorageRegistry<IMutableCollection<ChatSession>>;
 
-  constructor(config?: ChatHistoryServiceConfig) {
+  constructor(config: ChatHistoryServiceConfig) {
     this.config = {
       quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
       storageKeys: config?.storageKeys || STORAGE_KEYS,
@@ -206,4 +206,4 @@ export class ChatHistoryService implements IChatHistoryService {
   }
 }
 
-export const defaultChatHistoryService = new ChatHistoryService();
+export const defaultChatHistoryService = new ChatHistoryService({ logger: defaultLogger });

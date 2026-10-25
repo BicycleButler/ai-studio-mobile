@@ -541,7 +541,7 @@ Update the `defaultServices` map in `ServiceContext` to inject its own initializ
 Require services to lazily resolve dependencies via `useServices` or a global Service Locator proxy upon invocation. (Drawback: complex, mixes React and non-React scopes).
 
 **Recommendation:**
-**Path 1 (Injected Instantiation)** is the recommended path. It strictly forces instances to declare their dependencies, allowing `ServiceContext` to orchestrate how `IApiClient` or `IOfflineService` propagate across all downstream services. However, due to scope, a phased approach is needed to untangle circular dependencies first. For now, the existing configuration fallbacks are preserved, but components should prefer using `ServiceContext` to retrieve explicitly configured instances.
+**Path 1 (Injected Instantiation)** was implemented. It strictly forces instances to declare their dependencies, allowing `ServiceContext` to orchestrate how `IApiClient` or `IOfflineService` propagate across all downstream services. The codebase was refactored to remove implicit fallback patterns.
 ## Architectural Decision: NetworkStorageSyncAdapter Constructor Signature Deprecation
 
 **Context:**

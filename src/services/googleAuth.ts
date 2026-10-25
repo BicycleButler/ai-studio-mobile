@@ -6,12 +6,12 @@ import { IAuthProvider } from "./authProvider";
 import { ILogger, defaultLogger } from "../utils/logger";
 
 export interface GoogleAuthServiceConfig {
-  apiClient?: IApiClient;
+  apiClient: IApiClient;
   authProvider?: IAuthProvider | null;
   storageSingleton?: StorageSingleton<GoogleUser | null>;
   isBrowserEnv?: () => boolean;
   getWindow?: typeof getSafeWindow;
-  logger?: ILogger;
+  logger: ILogger;
 }
 
 export class GoogleAuthService {
@@ -24,10 +24,10 @@ export class GoogleAuthService {
   private getWindow: typeof getSafeWindow;
   private logger: ILogger;
 
-  constructor(config?: GoogleAuthServiceConfig) {
-    this.apiClient = config?.apiClient || defaultClient;
+  constructor(config: GoogleAuthServiceConfig) {
+    this.apiClient = config.apiClient;
     this.currentAuthProvider = config?.authProvider || null;
-    this.logger = config?.logger || defaultLogger;
+    this.logger = config.logger;
     this.googleUserSingleton = config?.storageSingleton || new StorageSingleton<GoogleUser | null>(
       STORAGE_KEYS.GOOGLE_USER,
       null

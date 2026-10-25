@@ -16,7 +16,7 @@ export interface IAuthService {
 }
 
 export interface AuthServiceConfig {
-  apiClient?: IApiClient;
+  apiClient: IApiClient;
   loadStoredApiKeyFn?: () => string;
 }
 
@@ -24,9 +24,9 @@ export class AuthService implements IAuthService {
   private apiClient: IApiClient;
   private getStoredApiKeyFn: () => string;
 
-  constructor(config?: AuthServiceConfig) {
-    this.apiClient = config?.apiClient || defaultClient;
-    this.getStoredApiKeyFn = config?.loadStoredApiKeyFn || (() => "");
+  constructor(config: Required<AuthServiceConfig>) {
+    this.apiClient = config.apiClient;
+    this.getStoredApiKeyFn = config.loadStoredApiKeyFn || (() => "");
   }
 
   public async fetchAuthStatus(apiKey?: string): Promise<{ valid?: boolean; error?: string; authSource?: string }> {
@@ -56,4 +56,4 @@ export class AuthService implements IAuthService {
   }
 }
 
-export const defaultAuthService = new AuthService();
+export const defaultAuthService = new AuthService({ apiClient: defaultClient, loadStoredApiKeyFn: () => "" });

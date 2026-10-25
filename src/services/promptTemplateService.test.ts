@@ -6,7 +6,7 @@ describe('testPromptTemplateService', () => {
   let service: IPromptTemplateService;
 
   beforeEach(() => {
-    service = new PromptTemplateService();
+    service = new PromptTemplateService({});
     service.clearCustomTemplates();
   });
 

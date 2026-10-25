@@ -105,8 +105,8 @@ export interface ISpeechVoicesService {
 }
 
 export interface SpeechVoicesServiceConfig {
-  authService?: IAuthService;
-  apiClient?: IApiClient;
+  authService: IAuthService;
+  apiClient: IApiClient;
   speechSettingsSingleton?: IMutableSingleton<SpeechSettings>;
   getWindowSpeechSynthesis?: typeof getSafeWindowSpeechSynthesis;
   getNavigatorLanguage?: typeof getSafeNavigatorLanguage;
@@ -119,11 +119,11 @@ export class SpeechVoicesService implements ISpeechVoicesService {
   private authService: IAuthService;
   private apiClient: IApiClient;
 
-  constructor(config?: SpeechVoicesServiceConfig) {
+  constructor(config: SpeechVoicesServiceConfig) {
     this.getWindowSpeechSynthesis = config?.getWindowSpeechSynthesis || getSafeWindowSpeechSynthesis;
     this.getNavigatorLanguage = config?.getNavigatorLanguage || getSafeNavigatorLanguage;
-    this.authService = config?.authService || defaultAuthService;
-    this.apiClient = config?.apiClient || defaultClient;
+    this.authService = config.authService;
+    this.apiClient = config.apiClient;
     this.speechSettingsSingleton = config?.speechSettingsSingleton || new StorageSingleton<SpeechSettings>(
       STORAGE_KEYS.SPEECH_SETTINGS,
       DEFAULT_SPEECH_SETTINGS,
@@ -253,4 +253,4 @@ export class SpeechVoicesService implements ISpeechVoicesService {
   }
 }
 
-export const defaultSpeechVoicesService = new SpeechVoicesService();
+export const defaultSpeechVoicesService = new SpeechVoicesService({ apiClient: defaultClient, authService: defaultAuthService });

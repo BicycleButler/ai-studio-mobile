@@ -13,7 +13,7 @@ export interface NetworkStorageSyncAdapterConfig<T> {
   offlineService: IOfflineService;
   networkStatusProvider: INetworkStatusProvider;
   retryStrategy: IOfflineRetryStrategy;
-  logger?: ILogger;
+  logger: ILogger;
   requestBuilder?: (item: T, method: string) => RequestInit;
 }
 
@@ -30,7 +30,7 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
     this.offlineService = config.offlineService;
     this.networkStatusProvider = config.networkStatusProvider;
     this.retryStrategy = config.retryStrategy;
-    this.logger = config.logger || defaultLogger;
+    this.logger = config.logger!;
     this.requestBuilder = config.requestBuilder || ((item, method) => ({
       method,
       headers: { "Content-Type": "application/json" },
