@@ -17,11 +17,11 @@ describe('ProjectService', () => {
         save: vi.fn(),
         upsert: vi.fn(),
       },
-    } as any as IActiveItemManager<ProjectInfo>;
+    } as unknown as IActiveItemManager<ProjectInfo>;
 
     mockGeneralSettingsService = {
       saveStoredApiKey: vi.fn(),
-    } as any as GeneralSettingsService;
+    } as unknown as GeneralSettingsService;
   });
 
   it('loads stored projects', () => {

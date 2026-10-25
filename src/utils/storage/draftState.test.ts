@@ -19,7 +19,7 @@ describe('DraftStateService', () => {
       clear: vi.fn(),
       getFallback: vi.fn(),
       setFallback: vi.fn(),
-    } as any as IMutableSingleton<DraftState | null>;
+    } as unknown as IMutableSingleton<DraftState | null>;
 
     mockGlobalDraftSingleton = {
       load: vi.fn(),
@@ -27,7 +27,7 @@ describe('DraftStateService', () => {
       clear: vi.fn(),
       getFallback: vi.fn(),
       setFallback: vi.fn(),
-    } as any as IMutableSingleton<DraftState | null>;
+    } as unknown as IMutableSingleton<DraftState | null>;
 
     mockDraftRegistry = {
       get: vi.fn((key: string) => {

@@ -17,11 +17,11 @@ describe('NetworkStorageSyncAdapter', () => {
     beforeEach(() => {
         mockApiClient = {
             fetch: vi.fn(),
-        } as any as import("vitest").Mocked<IApiClient>;
+        } as unknown as import("vitest").Mocked<IApiClient>;
 
         mockOfflineService = {
             enqueueOfflineMutation: vi.fn(),
-        } as any as import("vitest").Mocked<IOfflineService>;
+        } as unknown as import("vitest").Mocked<IOfflineService>;
 
         noOpLogger = new NoOpLogger();
         defaultRetryStrategy = new DefaultOfflineRetryStrategy();
