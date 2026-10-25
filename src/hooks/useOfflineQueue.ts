@@ -6,7 +6,7 @@ export function useOfflineQueue(customOfflineService?: IOfflineService): Offline
   const { offlineService: contextOfflineService } = useServices();
   const offlineService = customOfflineService || contextOfflineService;
   const subscribe = useCallback((listener: () => void) => {
-    return offlineService.queueObservable.subscribe(listener);
+    return offlineService.getObservable().subscribe(listener);
   }, [offlineService]);
 
   const getSnapshot = useCallback(() => {

@@ -1,7 +1,7 @@
 import { GenerateRequestBody } from "../types";
-import { IApiClient, defaultClient, BaseApiError, isAbortError } from "../utils/apiClient";
+import { IApiClient, BaseApiError, isAbortError } from "../utils/apiClient";
 import { SSEStreamParser } from "../utils/sseParser";
-import { ILogger, defaultLogger } from "../utils/logger";
+import { ILogger } from "../utils/logger";
 
 
 export interface StreamCallbacks {

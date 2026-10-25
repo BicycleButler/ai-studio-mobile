@@ -25,7 +25,7 @@ export type SyncHandler = (mutation: OfflineMutation) => Promise<{ success: bool
 export const OFFLINE_QUEUE_KEY = "ai_studio_offline_mutations";
 
 export interface IOfflineService {
-  queueObservable: IObservable<OfflineMutation[]>;
+  getObservable(): IObservable<OfflineMutation[]>;
   registerSyncHandler(type: string, handler: SyncHandler): void;
   enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void>;
   removeOfflineMutation(id: string): Promise<void>;
@@ -65,8 +65,8 @@ export class OfflineService implements IOfflineService {
     }
   }
 
-  public get queueObservable(): IObservable<OfflineMutation[]> {
-    return this.queueStore.queueObservable;
+  public getObservable(): IObservable<OfflineMutation[]> {
+    return this.queueStore.getObservable();
   }
 
   public registerSyncHandler(type: string, handler: SyncHandler): void {
@@ -78,7 +78,7 @@ export class OfflineService implements IOfflineService {
   }
 
   public subscribe(listener: () => void): () => void {
-    return this.queueStore.queueObservable.subscribe(listener);
+    return this.queueStore.getObservable().subscribe(listener);
   }
 
   public async enqueueOfflineMutation(type: string, payload: unknown, version?: number): Promise<void> {

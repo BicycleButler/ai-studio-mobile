@@ -1,7 +1,7 @@
 import { defaultLogger } from "./logger";
 
 import { describe, test, expect } from 'vitest';
-import { safeGetStorage, safeSetStorage, safeRemoveStorage, safeGetStorageKeys, safeSetStorageString, safeGetStorageString, safeRemoveStorageKeysWithPrefix } from "./storage/core";
+import { safeGetStorage, safeSetStorage } from "./storage/core";
 import { DraftStateService } from './storage/draftState';
 
 describe('storage', () => {

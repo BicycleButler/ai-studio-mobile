@@ -1,4 +1,4 @@
-import { PromptConfig, ChatMessage } from "../types";
+
 import { ICodeGeneratorPlugin, CodeLangId, PythonGenerator, TypeScriptGenerator, KotlinGenerator, CurlGenerator } from "./codeGenerators";
 
 export type { CodeLangId, ICodeGeneratorPlugin as CodeGenerator };
