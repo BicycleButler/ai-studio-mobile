@@ -673,3 +673,17 @@ Refactor the entire test suite to use module-level `vi.mock()` and import the ac
 
 **Recommendation:**
 **Path 1** was chosen as it resolves the runtime TypeErrors immediately without requiring a heavy rewrite of the test files and preserves the existing behavior and design pattern of the unit tests.
+
+## Architectural Decision: Mutex Logger Abstraction
+
+**Context:**
+The `Mutex` utility in `src/utils/mutex.ts` historically relied on a hardcoded `console.warn` call to report lock timeouts. This tight coupling violated the Dependency Inversion Principle, caused test output spew, and made it impossible to redirect lock timeout warnings (e.g., to an external telemetry service or custom UI toast notification) without global monkey-patching.
+
+**Path 1: Logger Interface Injection (Composition)**
+Update the `Mutex` constructor to accept an optional `ILogger` dependency. Use this injected logger for warnings, falling back to a default `NoOpLogger` or `ConsoleLogger` if none is provided. Consumers (like `OfflineQueueStore`) can pass their domain-specific loggers into the `Mutex`.
+
+**Path 2: Event Emitter Abstraction**
+Abstract the timeout warning behind a generic event emitter, and have consumers listen for timeout events instead of logging directly.
+
+**Recommendation:**
+**Path 1 (Logger Interface Injection)** is recommended and aligns with the existing Logger abstraction ADRs across the codebase. It properly conforms to Dependency Inversion, allows targeted log overriding per component, and completely resolves console spew in unit tests.
