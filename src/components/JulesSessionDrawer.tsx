@@ -25,7 +25,7 @@ import {
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { useServices } from "../services/ServiceContext";
-import { safeAddEventListener } from "../utils/platform";
+import { getSafeDocument, safeAddEventListener } from "../utils/platform";
 import { Combobox } from "./Combobox";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
@@ -182,7 +182,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "a" && !isCreating) {
         // Prevent default browser select all
-        if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        if (getSafeDocument()!.activeElement?.tagName !== 'INPUT' && getSafeDocument()!.activeElement?.tagName !== 'TEXTAREA') {
           e.preventDefault();
           toggleSelectAll(filteredSessions);
         }

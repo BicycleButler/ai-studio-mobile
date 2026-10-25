@@ -1,3 +1,4 @@
+import { getSafeDocument, getSafeNavigator } from "../utils/platform";
 import { ChatHistoryPopover } from "./ChatHistoryPopover";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
@@ -381,17 +382,17 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // Dismiss / hide the mobile soft keyboard safely across platforms
   const hideKeyboard = () => {
-    if (isBrowserEnvironment() && "virtualKeyboard" in navigator) {
+    if (isBrowserEnvironment() && "virtualKeyboard" in getSafeNavigator()!) {
       try {
-        (navigator as { virtualKeyboard?: { hide?: () => void } }).virtualKeyboard?.hide?.();
+        (getSafeNavigator()! as { virtualKeyboard?: { hide?: () => void } }).virtualKeyboard?.hide?.();
       } catch {
         // ignore
       }
     }
-    if (textareaRef.current && document.activeElement === textareaRef.current) {
+    if (textareaRef.current && getSafeDocument()!.activeElement === textareaRef.current) {
       textareaRef.current.blur();
-    } else if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
+    } else if (getSafeDocument()!.activeElement instanceof HTMLElement) {
+      (getSafeDocument()!.activeElement as HTMLElement)?.blur();
     }
     setIsInputFocused(false);
   };
@@ -426,7 +427,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
 
       // Guard against offline or missing API key so voice state does not hang indefinitely
-      if (isBrowserEnvironment() && !navigator.onLine) {
+      if (isBrowserEnvironment() && !getSafeNavigator()!.onLine) {
         setVoiceState("listening");
         startListening(undefined, true);
         return;
@@ -1125,7 +1126,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         }}
         onTouchMove={() => {
           // On mobile, dragging through message history hides the soft keyboard
-          if (isInputFocused || document.activeElement === textareaRef.current) {
+          if (isInputFocused || getSafeDocument()!.activeElement === textareaRef.current) {
             hideKeyboard();
           }
         }}
@@ -1822,7 +1823,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     }}
                     onBlur={() => {
                       setTimeout(() => {
-                        if (document.activeElement !== textareaRef.current) {
+                        if (getSafeDocument()!.activeElement !== textareaRef.current) {
                           setIsInputFocused(false);
                         }
                       }, 150);

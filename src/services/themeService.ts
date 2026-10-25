@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListener } from "../utils/platform";
+import { getSafeDocument, isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListener } from "../utils/platform";
 /**
  * Theme Service for Google AI Studio Mobile
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
@@ -90,7 +90,8 @@ export class ThemeService implements IThemeService {
   public applyThemeToDOM(resolved: ResolvedTheme): void {
     if (!this.isBrowserEnv()) return;
 
-    const root = document.documentElement;
+    const root = getSafeDocument()?.documentElement;
+    if (!root) return;
     root.setAttribute("data-theme", resolved);
     if (resolved === "dark") {
       root.classList.add("dark");
@@ -99,7 +100,7 @@ export class ThemeService implements IThemeService {
     }
 
     // Update theme-color meta tag if available
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    const metaThemeColor = getSafeDocument()?.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       const computedBg = getComputedStyle(root).getPropertyValue("--background").trim();
       if (computedBg) {

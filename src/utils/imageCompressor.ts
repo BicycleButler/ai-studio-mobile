@@ -1,5 +1,6 @@
 import { MessageAttachment } from "../types";
 import { generateUniqueId } from "./idGenerator";
+import { getSafeDocument } from "./platform";
 
 export interface CompressionOptions {
   maxDimension?: number;
@@ -30,8 +31,8 @@ export interface IImageCompressionStrategy {
 
 export class CanvasImageCompressionStrategy implements IImageCompressionStrategy {
   private isWebPSupported(): boolean {
-    if (typeof document === "undefined") return false;
-    const canvas = document.createElement("canvas");
+    if (!getSafeDocument()) return false;
+    const canvas = getSafeDocument()!.createElement("canvas");
     if (!canvas.toDataURL) return false;
     return canvas.toDataURL("image/webp").indexOf("data:image/webp") === 0;
   }
@@ -48,7 +49,7 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
           try {
             const { width, height } = calculateProportionalDimensions(img.width, img.height, maxDimension);
 
-            const canvas = document.createElement("canvas");
+            const canvas = getSafeDocument()!.createElement("canvas");
             canvas.width = width;
             canvas.height = height;
 

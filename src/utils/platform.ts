@@ -29,12 +29,16 @@ export type WindowWithVisualViewport = typeof window & { visualViewport?: Visual
 
 export type WindowWithNavigator = typeof window & { navigator?: Navigator };
 
+export function getSafeDocument(): Document | null {
+  return isBrowserEnvironment() ? document : null;
+}
+
 export function getSafeWindow(): WindowWithNavigator | null {
   return isBrowserEnvironment() ? window : null;
 }
 
 export function getSafeWindowVisualViewport(): VisualViewport | null {
-  return isBrowserEnvironment() && window.visualViewport ? window.visualViewport : null;
+  return isBrowserEnvironment() && getSafeWindow()?.visualViewport ? getSafeWindow()!.visualViewport! : null;
 }
 
 
@@ -53,6 +57,11 @@ export function getSafeWindowSpeechSynthesis(): SpeechSynthesis | null {
 /**
  * Safely retrieves the user's navigator language, providing a fallback if unavailable.
  */
+export function getSafeNavigator(): Navigator | null {
+  const win = getSafeWindow();
+  return win ? win.navigator || null : null;
+}
+
 export function getSafeNavigatorLanguage(fallback: string = "en-US"): string {
   const win = getSafeWindow();
   if (win && win.navigator && win.navigator.language) {
@@ -187,10 +196,10 @@ export function safeAddEventListener<K extends keyof WindowEventMap>(
     return () => {};
   }
 
-  window.addEventListener(type, listener, options);
+  getSafeWindow()?.addEventListener(type, listener, options);
 
   return () => {
-    window.removeEventListener(type, listener, options);
+    getSafeWindow()?.removeEventListener(type, listener, options);
   };
 }
 
@@ -207,10 +216,10 @@ export function safeAddDocumentListener<K extends keyof DocumentEventMap>(
     return () => {};
   }
 
-  document.addEventListener(type, listener, options);
+  getSafeDocument()?.addEventListener(type, listener, options);
 
   return () => {
-    document.removeEventListener(type, listener, options);
+    getSafeDocument()?.removeEventListener(type, listener, options);
   };
 }
 
@@ -223,11 +232,12 @@ export function safeAddVisualViewportListener<K extends keyof VisualViewportEven
   listener: (this: VisualViewport, ev: VisualViewportEventMap[K]) => void,
   options?: boolean | AddEventListenerOptions
 ): () => void {
-  if (!isBrowserEnvironment() || !window.visualViewport) {
+  if (!isBrowserEnvironment() || !getSafeWindow()?.visualViewport) {
     return () => {};
   }
 
-  const vv = window.visualViewport;
+  const vv = getSafeWindow()?.visualViewport;
+  if (!vv) return () => {};
   vv.addEventListener(type, listener, options);
 
   return () => {

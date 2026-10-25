@@ -1,3 +1,4 @@
+import { getSafeWindow } from "../../utils/platform";
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
@@ -39,8 +40,8 @@ export const Dialog: React.FC<DialogProps> = ({
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    getSafeWindow()!.addEventListener('keydown', handleKeyDown);
+    return () => getSafeWindow()!.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
   return (
