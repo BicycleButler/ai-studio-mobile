@@ -687,3 +687,17 @@ Abstract the timeout warning behind a generic event emitter, and have consumers 
 
 **Recommendation:**
 **Path 1 (Logger Interface Injection)** is recommended and aligns with the existing Logger abstraction ADRs across the codebase. It properly conforms to Dependency Inversion, allows targeted log overriding per component, and completely resolves console spew in unit tests.
+
+## Architectural Decision: Sync Adapter Transport Layer Abstraction
+
+**Context:**
+`NetworkStorageSyncAdapter` previously tightly coupled the `apiClient.fetch` invocation and the request building mechanism (`requestBuilder`) directly inside its main logic. This prevented using the sync adapter to orchestrate updates across different protocols (e.g., WebSockets, GraphQL, specialized client SDKs).
+
+**Path 1: ISyncTransport Interface**
+Extract the transport execution into a separate `ISyncTransport<T>` interface and define a standard implementation, `ApiClientSyncTransport<T>`. Update `NetworkStorageSyncAdapter` to compose this generic interface, maintaining backward compatibility by building the default implementation if only an `apiClient` is supplied.
+
+**Path 2: Callback functions**
+Pass generic `transmitFn` callbacks into `NetworkStorageSyncAdapter` instead of defining a specific structural interface.
+
+**Recommendation:**
+**Path 1 (ISyncTransport Interface)** was implemented. By applying the Dependency Inversion Principle, the sync adapter now purely orchestrates error handling, retry queues, and network status checks, while delegating the actual I/O to a composable and entirely mockable transport layer. This dramatically improves generality.

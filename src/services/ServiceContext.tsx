@@ -3,7 +3,7 @@ import React, { createContext, useContext, ReactNode } from "react";
 import { IApiClient, defaultClient } from "../utils/apiClient";
 import { SyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
-import { NetworkStorageSyncAdapter } from "../utils/storage/syncAdapter";
+import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
 import { defaultLogger } from "../utils/logger";
 
 import { IThemeService, defaultThemeService } from "./themeService";
@@ -107,7 +107,7 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
   apiClient: explicitlyInjectedApiClient,
   julesSessionsManager: undefined,
   syncAdapter: new NetworkStorageSyncAdapter({
-    apiClient: explicitlyInjectedApiClient,
+    transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: defaultNetworkStatusProvider,
     retryStrategy: new DefaultOfflineRetryStrategy(),
@@ -118,7 +118,7 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
 const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   savedPromptsManager: undefined,
   syncAdapter: new NetworkStorageSyncAdapter({
-    apiClient: explicitlyInjectedApiClient,
+    transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: defaultNetworkStatusProvider,
     retryStrategy: new DefaultOfflineRetryStrategy(),
