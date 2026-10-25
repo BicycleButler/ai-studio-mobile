@@ -2,14 +2,14 @@
 title: "ADR 0048: Combobox, Async Autocomplete & Date Range Pickers"
 type: "adr"
 status: "in-progress"
-description: "TODO Draft proposal: Interaction standards for async comboboxes, debounce timings, inline item creation, and dual-month date range pickers."
+description: "Draft proposal: Interaction standards for async comboboxes, debounce timings, inline item creation, and dual-month date range pickers."
 date: "2026-08-20"
 ---
 
 # ADR 0048: Combobox, Async Autocomplete & Date Range Pickers
 
 > [!NOTE]
-> **TODO / RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
+> **RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
 
 ---
 

@@ -1,7 +1,7 @@
 import { useBatchSelection } from "../useBatchSelection";
 import { ProjectInfo } from "../../types";
 
-export function useSettingsProjectsState(projects: ProjectInfo[], activeTab: string, onBulkDeleteProjects?: (ids: string[]) => void, onDeleteProject?: (project: ProjectInfo) => void) {
+export function useSettingsProjectsState(projects: ProjectInfo[], activeTab: string, onBulkDeleteProjects?: (ids: string[]) => void, onDeleteProject?: (id: string) => void) {
   const {
     selectedIds: selectedProjectIds,
     toggleSelection: toggleProjectSelection,
@@ -21,7 +21,7 @@ export function useSettingsProjectsState(projects: ProjectInfo[], activeTab: str
     } else if (onDeleteProject) {
       ids.forEach((id) => {
         const project = projects.find((p) => p.id === id);
-        if (project) onDeleteProject(project);
+        if (project) onDeleteProject(project.id);
       });
     }
     clearProjectSelection();

@@ -2,14 +2,14 @@
 title: "ADR 0051: Internationalization (i18n), RTL & High-Contrast Support"
 type: "adr"
 status: "in-progress"
-description: "TODO Draft proposal: Standards for CSS logical properties, Right-to-Left (RTL) mirroring, text expansion allowances, and Windows High Contrast Mode."
+description: "Draft proposal: Standards for CSS logical properties, Right-to-Left (RTL) mirroring, text expansion allowances, and Windows High Contrast Mode."
 date: "2026-08-20"
 ---
 
 # ADR 0051: Internationalization (i18n), RTL & High-Contrast Support
 
 > [!NOTE]
-> **TODO / RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
+> **RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
 
 ---
 

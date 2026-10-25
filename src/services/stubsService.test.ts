@@ -9,7 +9,7 @@ describe('StubsClient', () => {
     beforeEach(() => {
         mockApiClient = {
             fetch: vi.fn(),
-        } as unknown as import("vitest").Mocked<IApiClient>;
+        } as any as import("vitest").Mocked<IApiClient>;
         client = new StubsClient(mockApiClient);
     });
 

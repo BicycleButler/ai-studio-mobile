@@ -2,14 +2,14 @@
 title: "ADR 0047: Batch Selection & Bulk Data Operations"
 type: "adr"
 status: complete
-description: "TODO Draft proposal: Standards for multi-row selection, floating batch action bars, bulk edits, batch deletion, and select-all datasets."
+description: "Draft proposal: Standards for multi-row selection, floating batch action bars, bulk edits, batch deletion, and select-all datasets."
 date: "2026-08-20"
 ---
 
 # ADR 0047: Batch Selection & Bulk Data Operations
 
 > [!NOTE]
-> **TODO / RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
+> **RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
 
 ---
 

@@ -13,7 +13,7 @@ describe('GeneralSettingsService', () => {
       clear: vi.fn(),
       getFallback: vi.fn(),
       setFallback: vi.fn(),
-    } as unknown as IMutableSingleton<string>;
+    } as any as IMutableSingleton<string>;
 
     mockFlagSecureSingleton = {
       load: vi.fn().mockReturnValue(true),
@@ -21,7 +21,7 @@ describe('GeneralSettingsService', () => {
       clear: vi.fn(),
       getFallback: vi.fn(),
       setFallback: vi.fn(),
-    } as unknown as IMutableSingleton<boolean>;
+    } as any as IMutableSingleton<boolean>;
   });
 
   it('loads API key', () => {

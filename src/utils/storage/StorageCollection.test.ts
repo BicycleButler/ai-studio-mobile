@@ -15,7 +15,7 @@ describe('StorageCollection', () => {
 
   it('should validate and transformOut items', () => {
     const collection = new StorageCollection<{ id: string, val?: number }>('test_col', {
-        validate: (i) => (i as any).val > 0,
+        validate: (i) => ((i as {val?: number}).val || 0) > 0,
         transformOut: (i) => ({ ...i, val: (i.val || 0) * 2 })
     });
     // save bypasses transformOut, it only runs when read. Wait, transformIn runs on save.
