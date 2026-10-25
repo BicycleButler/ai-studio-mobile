@@ -188,10 +188,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   // Batch Selection State
   const {
     selectedProjectIds,
-    showBulkDeleteProjectsConfirm,
-    setShowBulkDeleteProjectsConfirm,
-    bulkDeleteConfirmationText,
-    setBulkDeleteConfirmationText,
     toggleProjectSelection: _toggleProjectSelection,
     toggleSelectAllProjectsRaw,
     clearProjectSelection,
@@ -218,10 +214,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (showBulkDeleteProjectsConfirm) {
-           setShowBulkDeleteProjectsConfirm(false);
-           setBulkDeleteConfirmationText("");
-        } else if (selectedProjectIds.size > 0 && activeTab === "account") {
+        if (selectedProjectIds.size > 0 && activeTab === "account") {
           clearProjectSelection();
         } else {
 
@@ -237,7 +230,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     };
     const removeKey = safeAddEventListener("keydown", handleKeyDown);
     return () => removeKey();
-  }, [isOpen, onClose, activeTab, selectedProjectIds.size, clearProjectSelection, toggleSelectAllProjects, showBulkDeleteProjectsConfirm]);
+  }, [isOpen, onClose, activeTab, selectedProjectIds.size, clearProjectSelection, toggleSelectAllProjects]);
 
 
   // Audio state
@@ -400,10 +393,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               clearProjectSelection={clearProjectSelection}
               getProjectSelectionState={getProjectSelectionState}
               handleBulkDeleteProjects={handleBulkDeleteProjects}
-              showBulkDeleteProjectsConfirm={showBulkDeleteProjectsConfirm}
-              setShowBulkDeleteProjectsConfirm={setShowBulkDeleteProjectsConfirm}
-              bulkDeleteConfirmationText={bulkDeleteConfirmationText}
-              setBulkDeleteConfirmationText={setBulkDeleteConfirmationText}
               liveModelsCount={liveModelsCount}
             />
           )}

@@ -1,8 +1,7 @@
 import { getSafeWindow, getSafeDocument } from "../utils/platform";
 import React, { useState, useEffect } from "react";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
-import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
-import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
+import { BatchDeleteOverlay } from "./BatchDeleteOverlay";
 import {
   FolderHeart,
   Trash2,
@@ -19,7 +18,6 @@ import { SavedPrompt } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { STARTER_TEMPLATES } from "../data/templates";
 import { useBatchSelection } from "../hooks/useBatchSelection";
-import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
 
 interface LibraryModalProps {
   savedPrompts: SavedPrompt[];
@@ -66,32 +64,20 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     getItemId: (p) => p.id,
   });
 
-  const {
-    showBulkDeleteConfirm,
-    setShowBulkDeleteConfirm,
-    bulkDeleteConfirmationText,
-    setBulkDeleteConfirmationText,
-    handleBulkDelete,
-  } = useBulkActionConfirm({
-    onConfirm: () => {
-      const ids = Array.from(selectedPromptIds);
-      if (onBulkDeletePrompts) {
-        onBulkDeletePrompts(ids);
-      } else {
-        ids.forEach((id) => onDeletePrompt(id));
-      }
-    },
-    onClearSelection: clearSelection,
-  });
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedPromptIds);
+    if (onBulkDeletePrompts) {
+      onBulkDeletePrompts(ids);
+    } else {
+      ids.forEach((id) => onDeletePrompt(id));
+    }
+  };
 
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-         if (showBulkDeleteConfirm) {
-            setShowBulkDeleteConfirm(false);
-            setBulkDeleteConfirmationText("");
-         } else if (selectedPromptIds.size > 0) {
+         if (selectedPromptIds.size > 0) {
             clearSelection();
          }
       }
@@ -106,7 +92,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
 
     getSafeWindow()!.addEventListener("keydown", handleKeyDown);
     return () => getSafeWindow()!.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSelectAll, savedPrompts, selectedPromptIds.size, showBulkDeleteConfirm, clearSelection, setShowBulkDeleteConfirm, setBulkDeleteConfirmationText]);
+  }, [toggleSelectAll, savedPrompts, selectedPromptIds.size, clearSelection]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,32 +294,12 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
         )}
       </div>
 
-      {/* Floating Batch Action Bar */}
-      <FloatingBatchActionBar
+      <BatchDeleteOverlay
         isVisible={selectedPromptIds.size > 0}
         selectedCount={selectedPromptIds.size}
-        actions={[
-          {
-            label: 'Delete',
-            icon: <Trash2 />,
-            onClick: () => setShowBulkDeleteConfirm(true),
-            variant: 'destructive'
-          }
-        ]}
-        onClearSelection={clearSelection}
-      />
-
-      <BulkDeleteConfirmModal
-        isOpen={showBulkDeleteConfirm}
-        onClose={() => {
-          setShowBulkDeleteConfirm(false);
-          setBulkDeleteConfirmationText("");
-        }}
-        onConfirm={handleBulkDelete}
-        selectedCount={selectedPromptIds.size}
         itemType="prompt"
-        confirmationText={bulkDeleteConfirmationText}
-        onConfirmationTextChange={setBulkDeleteConfirmationText}
+        onClearSelection={clearSelection}
+        onDelete={handleBulkDelete}
       />
     </div>
   );

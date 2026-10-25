@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
-import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
-import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
+import { BatchDeleteOverlay } from "./BatchDeleteOverlay";
 import {
   X,
   Plus,
@@ -28,7 +27,6 @@ import { useServices } from "../services/ServiceContext";
 import { getSafeDocument, safeAddEventListener } from "../utils/platform";
 import { Combobox } from "./Combobox";
 import { useBatchSelection } from "../hooks/useBatchSelection";
-import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
 import { Drawer } from "./ui/Drawer";
 
 interface JulesSessionDrawerProps {
@@ -100,20 +98,11 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     getItemId: (s) => s.id,
   });
 
-  const {
-    showBulkDeleteConfirm,
-    setShowBulkDeleteConfirm,
-    bulkDeleteConfirmationText,
-    setBulkDeleteConfirmationText,
-    handleBulkDelete,
-  } = useBulkActionConfirm({
-    onConfirm: () => {
-      const ids = Array.from(selectedSessionIds);
-      onBulkDeleteSessions(ids);
-      refreshSessions();
-    },
-    onClearSelection: clearSelection,
-  });
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedSessionIds);
+    onBulkDeleteSessions(ids);
+    refreshSessions();
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -171,10 +160,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (showBulkDeleteConfirm) {
-          setShowBulkDeleteConfirm(false);
-          setBulkDeleteConfirmationText("");
-        } else if (selectedSessionIds.size > 0) {
+        if (selectedSessionIds.size > 0) {
           clearSelection();
         } else {
           onClose();
@@ -191,7 +177,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
     const removeKey = safeAddEventListener("keydown", handleKeyDown);
     return () => removeKey();
-  }, [isOpen, selectedSessionIds.size, isCreating, filteredSessions, onClose, showBulkDeleteConfirm, setShowBulkDeleteConfirm, setBulkDeleteConfirmationText, clearSelection, toggleSelectAll]);
+  }, [isOpen, selectedSessionIds.size, isCreating, filteredSessions, onClose, clearSelection, toggleSelectAll]);
 
   const getStatusBadge = (status: JulesTaskStatus) => {
     switch (status) {
@@ -545,32 +531,13 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
         </div>
 
 
-        <BulkDeleteConfirmModal
-          isOpen={showBulkDeleteConfirm}
-          onClose={() => {
-            setShowBulkDeleteConfirm(false);
-            setBulkDeleteConfirmationText("");
-          }}
-          onConfirm={handleBulkDelete}
-          selectedCount={selectedSessionIds.size}
-          itemType="session"
-          confirmationText={bulkDeleteConfirmationText}
-          onConfirmationTextChange={setBulkDeleteConfirmationText}
-        />
-
         {/* Floating Batch Action Bar for Sessions */}
-        <FloatingBatchActionBar
+        <BatchDeleteOverlay
           isVisible={selectedSessionIds.size > 0}
           selectedCount={selectedSessionIds.size}
-          actions={[
-            {
-              label: 'Delete',
-              icon: <Trash2 />,
-              onClick: () => setShowBulkDeleteConfirm(true),
-              variant: 'destructive'
-            }
-          ]}
+          itemType="session"
           onClearSelection={clearSelection}
+          onDelete={handleBulkDelete}
         />
 
         {/* Drawer Footer */}
