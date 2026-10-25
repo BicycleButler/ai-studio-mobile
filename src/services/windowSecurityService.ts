@@ -1,4 +1,4 @@
-import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
+import { getSafeDocument, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 import { Observable } from "../utils/observable";
 import { GeneralSettingsService } from "../utils/storage/general";
 
@@ -45,9 +45,9 @@ export class WindowSecurityService {
           return;
       }
       this.clearScheduledTimer();
-      if (document.visibilityState === "hidden") {
+      if (getSafeDocument()?.visibilityState === "hidden") {
         this.updateShield(true);
-      } else if (document.visibilityState === "visible") {
+      } else if (getSafeDocument()?.visibilityState === "visible") {
         this.timerRef = setTimeout(() => {
           this.updateShield(false);
         }, 120);
@@ -89,7 +89,7 @@ export class WindowSecurityService {
          this.updateShield(false);
      } else if (flagChanged) {
         // Evaluate immediately if we just turned on flag secure
-        if (document.visibilityState === "hidden") {
+        if (getSafeDocument()?.visibilityState === "hidden") {
              this.updateShield(true);
         }
      }

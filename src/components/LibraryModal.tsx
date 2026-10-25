@@ -1,3 +1,4 @@
+import { getSafeWindow, getSafeDocument } from "../utils/platform";
 import React, { useState, useEffect } from "react";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
 import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
@@ -96,15 +97,15 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key === "a") {
-        if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        if (getSafeDocument()!.activeElement?.tagName !== 'INPUT' && getSafeDocument()!.activeElement?.tagName !== 'TEXTAREA') {
           e.preventDefault();
           toggleSelectAll(savedPrompts);
         }
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    getSafeWindow()!.addEventListener("keydown", handleKeyDown);
+    return () => getSafeWindow()!.removeEventListener("keydown", handleKeyDown);
   }, [toggleSelectAll, savedPrompts, selectedPromptIds.size, showBulkDeleteConfirm, clearSelection, setShowBulkDeleteConfirm, setBulkDeleteConfirmationText]);
 
   const handleSave = (e: React.FormEvent) => {

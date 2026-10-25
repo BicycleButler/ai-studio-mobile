@@ -1,4 +1,4 @@
-import { isBrowserEnvironment } from "./utils/platform";
+import { getSafeDocument, getSafeNavigator, isBrowserEnvironment } from "./utils/platform";
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
@@ -35,13 +35,13 @@ appServices.themeService.initThemeService();
 appServices.syncOrchestrator.registerHandlers();
 
 // Register PWA service worker with auto-update
-if (isBrowserEnvironment() && 'serviceWorker' in navigator) {
+if (isBrowserEnvironment() && 'serviceWorker' in getSafeNavigator()!) {
   registerSW({
     immediate: true,
   });
 }
 
-createRoot(document.getElementById('root')!).render(
+createRoot(getSafeDocument()!.getElementById('root')!).render(
   <StrictMode>
     <ServiceProvider services={appServices}>
 

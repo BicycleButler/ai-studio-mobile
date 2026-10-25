@@ -1,7 +1,7 @@
 import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsState";
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
-import { safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
+import { getSafeDocument, safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -229,7 +229,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "a" && activeTab === "account") {
-        if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        if (getSafeDocument()!.activeElement?.tagName !== 'INPUT' && getSafeDocument()!.activeElement?.tagName !== 'TEXTAREA') {
           e.preventDefault();
           toggleSelectAllProjects();
         }

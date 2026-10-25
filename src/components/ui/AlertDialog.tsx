@@ -1,3 +1,4 @@
+import { getSafeWindow } from "../../utils/platform";
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -49,8 +50,8 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
         }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    getSafeWindow()!.addEventListener('keydown', handleKeyDown);
+    return () => getSafeWindow()!.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onCancel, onClose]);
 
   return (

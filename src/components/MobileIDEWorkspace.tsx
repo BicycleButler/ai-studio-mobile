@@ -1,4 +1,4 @@
-import { getSafeNavigatorClipboard, getSafeWindow } from "../utils/platform";
+import { getSafeDocument, getSafeNavigatorClipboard, getSafeWindow } from "../utils/platform";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
@@ -147,12 +147,12 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     try {
       const blob = new Blob([activeFile.content], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = getSafeDocument()!.createElement("a");
       a.href = url;
       a.download = activeFile.name;
-      document.body.appendChild(a);
+      getSafeDocument()!.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      getSafeDocument()!.body.removeChild(a);
       URL.revokeObjectURL(url);
       addConsoleLog("success", `Exported ${activeFile.name} to downloads.`);
     } catch {
