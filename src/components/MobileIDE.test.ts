@@ -36,21 +36,21 @@ describe('testMobileIDEAndPromptModes', () => {
     },
   ];
 
-  const kotlinCode = defaultCodeGeneratorService.generateAndroidKotlinCode(sampleConfig, sampleMessages);
+  const kotlinCode = defaultCodeGeneratorService.getGenerator("kotlin")!.generate(sampleConfig, sampleMessages);
   assert(kotlinCode.includes("gemini-2.5-flash"), "Kotlin code should contain the configured model");
   assert(kotlinCode.includes("GenerativeModel"), "Kotlin code should import GenerativeModel");
   assert(kotlinCode.includes("reactive stream"), "Kotlin code should contain the prompt contents");
 
-  const tsCode = defaultCodeGeneratorService.generateTypeScriptCode(sampleConfig, sampleMessages);
+  const tsCode = defaultCodeGeneratorService.getGenerator("typescript")!.generate(sampleConfig, sampleMessages);
   assert(tsCode.includes("@google/genai"), "TypeScript code should use @google/genai SDK");
   assert(tsCode.includes("generateContent"), "TypeScript code should call generateContent");
   assert(tsCode.includes("gemini-2.5-flash"), "TypeScript code should use specified model");
 
-  const pyCode = defaultCodeGeneratorService.generatePythonCode(sampleConfig, sampleMessages);
+  const pyCode = defaultCodeGeneratorService.getGenerator("python")!.generate(sampleConfig, sampleMessages);
   assert(pyCode.includes("google.genai"), "Python code should use google.genai SDK");
   assert(pyCode.includes("client.models.generate_content"), "Python code should generate content");
 
-  const curlCode = defaultCodeGeneratorService.generateCurlCode(sampleConfig, sampleMessages);
+  const curlCode = defaultCodeGeneratorService.getGenerator("curl")!.generate(sampleConfig, sampleMessages);
   assert(curlCode.includes("curl \"https://generativelanguage.googleapis.com"), "cURL should have correct endpoint");
   assert(curlCode.includes("gemini-2.5-flash:generateContent"), "cURL should target configured model");
 
