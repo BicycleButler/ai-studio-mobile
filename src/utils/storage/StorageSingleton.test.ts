@@ -34,7 +34,7 @@ describe('StorageSingleton', () => {
     const memory = new MemoryStorage();
     const singleton = new StorageSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, {
       storageAdapter: memory,
-      validate: (i: any) => i.data === 'valid'
+      validate: (i: unknown) => (i as {data?: string})?.data === 'valid'
     });
 
     singleton.save({ data: 'invalid' });

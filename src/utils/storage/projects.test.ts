@@ -17,11 +17,11 @@ describe('ProjectService', () => {
         save: vi.fn(),
         upsert: vi.fn(),
       },
-    } as unknown as IActiveItemManager<ProjectInfo>;
+    } as any as IActiveItemManager<ProjectInfo>;
 
     mockGeneralSettingsService = {
       saveStoredApiKey: vi.fn(),
-    } as unknown as GeneralSettingsService;
+    } as any as GeneralSettingsService;
   });
 
   it('loads stored projects', () => {
@@ -69,7 +69,7 @@ describe('ProjectService', () => {
       apiKey: '  some-api-key  '
     };
 
-    const saved = service.saveAndActivateProject(projectData as any);
+    const saved = service.saveAndActivateProject(projectData as ProjectInfo);
 
     expect(saved.id).toMatch(/^proj_/);
     expect(saved.name).toBe('Test Project');
@@ -93,7 +93,7 @@ describe('ProjectService', () => {
       apiKey: 'some-api-key'
     };
 
-    const saved = service.saveAndActivateProject(projectData as any);
+    const saved = service.saveAndActivateProject(projectData as ProjectInfo);
     expect(saved.id).toBe('custom_id');
   });
 });

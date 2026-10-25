@@ -2,14 +2,14 @@
 title: "ADR 0049: Drag-and-Drop, Kanban & Reordering Interactions"
 type: "adr"
 status: "in-progress"
-description: "TODO Draft proposal: Visual states, ghost cards, insertion lines, and accessible keyboard reordering for Kanban boards and list sortables."
+description: "Draft proposal: Visual states, ghost cards, insertion lines, and accessible keyboard reordering for Kanban boards and list sortables."
 date: "2026-08-20"
 ---
 
 # ADR 0049: Drag-and-Drop, Kanban & Reordering Interactions
 
 > [!NOTE]
-> **TODO / RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
+> **RFC Draft:** This document is in draft status within `knowledge/in-progress/` and serves as a discussion proposal for future revision and adoption. The specifications below represent proposed guidelines for review, not yet active design system enforcement rules.
 
 ---
 

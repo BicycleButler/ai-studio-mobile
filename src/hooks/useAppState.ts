@@ -43,7 +43,7 @@ export function useAppState() {
   const [config, setConfig] = useState(initialDraft.config);
 
   // Chat Session
-  const chatSession = useChatSession(initialDraft, promptType, config, null as unknown as import("../types").ProjectInfo, promptTemplateService);
+  const chatSession = useChatSession(initialDraft, promptType, config, null, promptTemplateService);
 
   // UI State
   const uiState = useUIState();
