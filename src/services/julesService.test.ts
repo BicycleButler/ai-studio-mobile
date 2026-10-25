@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach, it } from 'vitest';
+import { describe, expect, vi, beforeEach, it } from 'vitest';
 import { defaultClient } from "../utils/apiClient";
 import { JulesClient } from "./julesService";
 

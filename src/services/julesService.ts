@@ -1,4 +1,4 @@
-import { apiFetch, IApiClient } from "../utils/apiClient";
+import { IApiClient } from "../utils/apiClient";
 import { startPolling, ExponentialBackoffPollingStrategy, PollingOptions } from "../utils/polling";
 import {
   JulesRepository,

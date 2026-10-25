@@ -30,7 +30,7 @@ describe('OfflineQueueStore', () => {
 
     it('should notify queue change when items change', async () => {
         let notified = false;
-        store.queueObservable.subscribe(() => notified = true);
+        store.getObservable().subscribe(() => notified = true);
         const item = { type: 't1', payload: 'p1', timestamp: 1, id: 'id1' };
         await store.enqueue(item);
         // microtask queued for notification

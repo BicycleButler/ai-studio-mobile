@@ -1,9 +1,9 @@
 import { GoogleUser } from "../types";
 import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
-import { IApiClient, defaultClient } from "../utils/apiClient";
+import { IApiClient } from "../utils/apiClient";
 import { isBrowserEnvironment, getSafeWindow, safeAddEventListener } from "../utils/platform";
 import { IAuthProvider } from "./authProvider";
-import { ILogger, defaultLogger } from "../utils/logger";
+import { ILogger } from "../utils/logger";
 
 export interface GoogleAuthServiceConfig {
   apiClient: IApiClient;

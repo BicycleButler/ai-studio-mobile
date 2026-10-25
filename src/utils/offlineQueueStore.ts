@@ -5,7 +5,7 @@ import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
 
 export interface IOfflineQueueStore {
-  queueObservable: IObservable<OfflineMutation[]>;
+  getObservable(): IObservable<OfflineMutation[]>;
   enqueue(mutation: OfflineMutation): Promise<void>;
   remove(id: string): Promise<void>;
   removeMany(ids: string[]): Promise<void>;
@@ -24,7 +24,11 @@ export interface OfflineQueueStoreConfig {
 
 export class OfflineQueueStore implements IOfflineQueueStore {
   private queueMutex = new Mutex();
-  public queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>();
+  private _queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>();
+
+  public getObservable(): IObservable<OfflineMutation[]> {
+    return this._queueObservable;
+  }
   private cachedQueue: OfflineMutation[] = [];
   private channel?: BroadcastChannel;
   private storageKey: string;
@@ -51,7 +55,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   }
 
   private notifyQueue(queue: OfflineMutation[]) {
-    this.queueObservable.notify(queue);
+    this._queueObservable.notify(queue);
   }
 
   private async syncCacheFromStorage(): Promise<void> {
