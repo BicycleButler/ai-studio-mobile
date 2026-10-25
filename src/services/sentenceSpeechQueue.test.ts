@@ -4,7 +4,7 @@ import { DEFAULT_SPEECH_SETTINGS } from "./speechVoices";
 
 describe('testSentenceSpeechQueue', () => {
   test('main', () => {
-  console.log("Testing SentenceSpeechQueue...");
+
 
   // 1. Static sentence extraction verification during streaming
   {
@@ -42,7 +42,7 @@ describe('testSentenceSpeechQueue', () => {
     }
   }
 
-  console.log("SentenceSpeechQueue tests passed!");
+
 
   });
 });

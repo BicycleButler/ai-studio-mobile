@@ -51,7 +51,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   onSwitchToPrompt: _onSwitchToPrompt,
   onOpenParameters,
 }) => {
-  const { codeGeneratorService, geminiStreamService } = useServices();
+  const { codeGeneratorService, geminiStreamService, logger } = useServices();
 
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [
@@ -163,6 +163,13 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   const addConsoleLog = (type: ConsoleLog["type"], message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     setConsoleLogs((prev) => [...prev, { id: generateUniqueId("c"), timestamp, type, message }]);
+    if (type === "info" || type === "system" || type === "stdout") {
+        logger.info(`[IDE] ${message}`);
+    } else if (type === "stderr") {
+        logger.error(`[IDE] ${message}`);
+    } else if (type === "success") {
+        logger.info(`[IDE SUCCESS] ${message}`);
+    }
   };
 
   // Run/Execute Code simulation
