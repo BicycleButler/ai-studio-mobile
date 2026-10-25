@@ -642,3 +642,11 @@ Continue injecting functional `fetchFn` and `fetchStreamFn` across all services.
 
 **Recommendation:**
 **Path 1 (Full `IApiClient` Interface Injection)** was implemented. It strictly enforces the Dependency Inversion Principle by programming against the `IApiClient` interface. It unifies networking across the codebase, simplifies testing by standardizing on `IApiClient` mocks, and ensures all services can seamlessly adopt interceptors, retry strategies, and custom headers managed by the client instance.
+
+## Architectural Decision: OfflineQueueStore Mutation Operations Abstraction
+
+**Context:**
+The `OfflineQueueStore` class managed the queue state with duplicated lock mechanisms. Every operation (`enqueue`, `remove`, `removeMany`, `clear`, `replace`) individually repeated the sequence of `safeSetQueue`, `cachedQueue` update, `notifyQueue`, and `channel?.postMessage('SYNC')`. This violates the DRY principle and increases the chance of bugs when updating caching mechanisms.
+
+**Decision:**
+Created a centralized `applyQueueUpdate(newQueue: OfflineMutation[])` private method inside `OfflineQueueStore`. All state-mutating queue methods inside `withQueueLock` now purely mutate/filter the array and pass the result to `applyQueueUpdate`. This drastically simplifies the methods, adheres strictly to DRY, and establishes a single choke point for modifying the offline queue state safely and accurately across listeners and tabs.

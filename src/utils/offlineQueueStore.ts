@@ -84,6 +84,16 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     }
   }
 
+  private applyQueueUpdate(newQueue: OfflineMutation[]) {
+    this.safeSetQueue(newQueue).then(() => {
+      this.cachedQueue = newQueue;
+      this.notifyQueue(newQueue);
+      this.channel?.postMessage('SYNC');
+    }).catch(err => {
+        this.logger.error("Failed to apply queue update", err);
+    });
+  }
+
   private async withQueueLock<T>(action: (queue: OfflineMutation[]) => Promise<T | void>): Promise<T | void> {
     return this.queueMutex.run(async () => {
       const queue = await this.safeGetQueue();
@@ -95,20 +105,14 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   public async enqueue(mutation: OfflineMutation): Promise<void> {
     await this.withQueueLock(async (queue) => {
       queue.push(mutation);
-      await this.safeSetQueue(queue);
-      this.cachedQueue = queue;
-      this.notifyQueue(queue);
-      this.channel?.postMessage('SYNC');
+      this.applyQueueUpdate(queue);
     });
   }
 
   public async remove(id: string): Promise<void> {
     await this.withQueueLock(async (queue) => {
       const newQueue = queue.filter((m) => m.id !== id);
-      await this.safeSetQueue(newQueue);
-      this.cachedQueue = newQueue;
-      this.notifyQueue(newQueue);
-      this.channel?.postMessage('SYNC');
+      this.applyQueueUpdate(newQueue);
     });
   }
 
@@ -117,28 +121,19 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     const idsSet = new Set(ids);
     await this.withQueueLock(async (queue) => {
       const newQueue = queue.filter((m) => !idsSet.has(m.id));
-      await this.safeSetQueue(newQueue);
-      this.cachedQueue = newQueue;
-      this.notifyQueue(newQueue);
-      this.channel?.postMessage('SYNC');
+      this.applyQueueUpdate(newQueue);
     });
   }
 
   public async clear(): Promise<void> {
     await this.withQueueLock(async () => {
-      await this.safeSetQueue([]);
-      this.cachedQueue = [];
-      this.notifyQueue([]);
-      this.channel?.postMessage('SYNC');
+      this.applyQueueUpdate([]);
     });
   }
 
   public async replace(queue: OfflineMutation[]): Promise<void> {
     await this.withQueueLock(async () => {
-      await this.safeSetQueue(queue);
-      this.cachedQueue = queue;
-      this.notifyQueue(queue);
-      this.channel?.postMessage('SYNC');
+      this.applyQueueUpdate(queue);
     });
   }
 
