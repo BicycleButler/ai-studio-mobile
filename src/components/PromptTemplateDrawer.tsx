@@ -26,10 +26,7 @@ import { safeAddEventListener } from "../utils/platform";
 import { Drawer } from "./ui/Drawer";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
 import { useBatchSelection } from "../hooks/useBatchSelection";
-import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
-import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
-import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
-import { Trash2 } from "lucide-react";
+import { BatchDeleteOverlay } from "./BatchDeleteOverlay";
 
 interface PromptTemplateDrawerProps {
   isOpen: boolean;
@@ -170,20 +167,12 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
     getItemId: (t) => t.id,
   });
 
-  const {
-    showBulkDeleteConfirm,
-    setShowBulkDeleteConfirm,
-    bulkDeleteConfirmationText,
-    setBulkDeleteConfirmationText,
-    handleBulkDelete,
-  } = useBulkActionConfirm({
-    onConfirm: () => {
-      const ids = Array.from(selectedCustomTemplateIds);
-      promptTemplateService.bulkDeleteCustomTemplates(ids);
-      setTemplatesVersion((v) => v + 1);
-    },
-    onClearSelection: clearCustomTemplateSelection,
-  });
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedCustomTemplateIds);
+    promptTemplateService.bulkDeleteCustomTemplates(ids);
+    setTemplatesVersion((v) => v + 1);
+    clearCustomTemplateSelection();
+  };
 
   const selectedTemplates = useMemo(() => {
     const map = new Map<string, PromptTemplate>();
@@ -740,32 +729,13 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
       )}
       </div>
 
-      <BulkDeleteConfirmModal
-        isOpen={showBulkDeleteConfirm}
-        onClose={() => {
-          setShowBulkDeleteConfirm(false);
-          setBulkDeleteConfirmationText("");
-        }}
-        onConfirm={handleBulkDelete}
-        selectedCount={selectedCustomTemplateIds.size}
-        itemType="custom template"
-        confirmationText={bulkDeleteConfirmationText}
-        onConfirmationTextChange={setBulkDeleteConfirmationText}
-      />
-
       {/* Floating Batch Action Bar for Custom Templates */}
-      <FloatingBatchActionBar
+      <BatchDeleteOverlay
         isVisible={selectedCustomTemplateIds.size > 0 && viewMode === "browse"}
         selectedCount={selectedCustomTemplateIds.size}
+        itemType="custom template"
         onClearSelection={clearCustomTemplateSelection}
-        actions={[
-          {
-            label: "Delete",
-            icon: <Trash2 className="w-3.5 h-3.5" />,
-            onClick: () => setShowBulkDeleteConfirm(true),
-            variant: "destructive"
-          }
-        ]}
+        onDelete={handleBulkDelete}
       />
     </Drawer>
   );

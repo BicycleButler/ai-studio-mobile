@@ -1,7 +1,6 @@
 import { getSafeDocument, getSafeNavigator } from "../utils/platform";
 import { ChatHistoryPopover } from "./ChatHistoryPopover";
 import { useBatchSelection } from "../hooks/useBatchSelection";
-import { useBulkActionConfirm } from "../hooks/useBulkActionConfirm";
 import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeWindow, getSafeWindowVisualViewport } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo , useCallback} from "react";
 import {
@@ -23,12 +22,10 @@ import {
   Mic,
   Maximize2,
   Minimize2,
-  Trash2,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
-import { FloatingBatchActionBar } from "./FloatingBatchActionBar";
-import { BulkDeleteConfirmModal } from "./BulkDeleteConfirmModal";
+import { BatchDeleteOverlay } from "./BatchDeleteOverlay";
 import {
   ChatMessage,
   MessageAttachment,
@@ -176,28 +173,18 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     getItemId: (s) => s.id,
   });
 
-  const {
-    showBulkDeleteConfirm: showBulkDeleteHistoryConfirm,
-    setShowBulkDeleteConfirm: setShowBulkDeleteHistoryConfirm,
-    bulkDeleteConfirmationText,
-    setBulkDeleteConfirmationText,
-    handleBulkDelete: handleBulkDeleteHistory,
-  } = useBulkActionConfirm({
-    onConfirm: () => {
-      const ids = Array.from(selectedHistoryIds);
-      chatHistoryService.bulkDeleteChatSessions(ids, activeProjectId || "");
+  const handleBulkDeleteHistory = () => {
+    const ids = Array.from(selectedHistoryIds);
+    chatHistoryService.bulkDeleteChatSessions(ids, activeProjectId || "");
 
-      // Check if current session was deleted
-      if (new Set(ids).has(currentSessionId!)) {
-        if (onNewChat) {
-          onNewChat();
-        }
+    // Check if current session was deleted
+    if (new Set(ids).has(currentSessionId!)) {
+      if (onNewChat) {
+        onNewChat();
       }
-
-
-    },
-    onClearSelection: clearHistorySelection,
-  });
+    }
+    clearHistorySelection();
+  };
 
   const toggleHistorySelection = useCallback((id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
     toggleHistorySelectionRaw(id, e, index, validHistorySessions);
@@ -1087,31 +1074,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           )}
 
         {/* Floating Batch Action Bar for History */}
-        <FloatingBatchActionBar
+        <BatchDeleteOverlay
           isVisible={selectedHistoryIds.size > 0 && isHistoryOpen}
           selectedCount={selectedHistoryIds.size}
-          actions={[
-            {
-              label: 'Delete',
-              icon: <Trash2 />,
-              onClick: () => setShowBulkDeleteHistoryConfirm(true),
-              variant: 'destructive'
-            }
-          ]}
-          onClearSelection={clearHistorySelection}
-        />
-
-        <BulkDeleteConfirmModal
-          isOpen={showBulkDeleteHistoryConfirm}
-          onClose={() => {
-            setShowBulkDeleteHistoryConfirm(false);
-            setBulkDeleteConfirmationText("");
-          }}
-          onConfirm={handleBulkDeleteHistory}
-          selectedCount={selectedHistoryIds.size}
           itemType="chat"
-          confirmationText={bulkDeleteConfirmationText}
-          onConfirmationTextChange={setBulkDeleteConfirmationText}
+          onClearSelection={clearHistorySelection}
+          onDelete={handleBulkDeleteHistory}
         />
 
         </div>

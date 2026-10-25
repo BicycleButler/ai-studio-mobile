@@ -5,8 +5,7 @@ import { GoogleUser, ProjectInfo } from "../../types";
 import { useOfflineQueue } from "../../hooks/useOfflineQueue";
 import { GoogleAuthCard } from "../GoogleAuthCard";
 import { BatchSelectionHeader } from "../BatchSelectionHeader";
-import { FloatingBatchActionBar } from "../FloatingBatchActionBar";
-import { BulkDeleteConfirmModal } from "../BulkDeleteConfirmModal";
+import { BatchDeleteOverlay } from "../BatchDeleteOverlay";
 
 export interface SettingsAccountTabProps {
   customApiKey: string;
@@ -34,10 +33,6 @@ export interface SettingsAccountTabProps {
   clearProjectSelection?: () => void;
   getProjectSelectionState?: (items?: ProjectInfo[]) => 'none' | 'some' | 'all';
   handleBulkDeleteProjects?: () => void;
-  showBulkDeleteProjectsConfirm?: boolean;
-  setShowBulkDeleteProjectsConfirm?: (show: boolean) => void;
-  bulkDeleteConfirmationText?: string;
-  setBulkDeleteConfirmationText?: (text: string) => void;
   liveModelsCount: number;
 }
 
@@ -68,10 +63,6 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
   clearProjectSelection,
   getProjectSelectionState,
   handleBulkDeleteProjects,
-  showBulkDeleteProjectsConfirm,
-  setShowBulkDeleteProjectsConfirm,
-  bulkDeleteConfirmationText,
-  setBulkDeleteConfirmationText
 }) => {
 
   const offlineQueue = useOfflineQueue();
@@ -384,31 +375,12 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
       )}
 
       {/* Floating Batch Action Bar for Projects */}
-      <FloatingBatchActionBar
+      <BatchDeleteOverlay
         isVisible={!!(selectedProjectIds && selectedProjectIds.size > 0)}
         selectedCount={selectedProjectIds?.size || 0}
-        actions={[
-          {
-            label: 'Delete',
-            icon: <Trash2 />,
-            onClick: () => setShowBulkDeleteProjectsConfirm && setShowBulkDeleteProjectsConfirm(true),
-            variant: 'destructive'
-          }
-        ]}
-        onClearSelection={() => clearProjectSelection && clearProjectSelection()}
-      />
-
-      <BulkDeleteConfirmModal
-        isOpen={!!showBulkDeleteProjectsConfirm}
-        onClose={() => {
-          setShowBulkDeleteProjectsConfirm && setShowBulkDeleteProjectsConfirm(false);
-          setBulkDeleteConfirmationText && setBulkDeleteConfirmationText("");
-        }}
-        onConfirm={() => handleBulkDeleteProjects && handleBulkDeleteProjects()}
-        selectedCount={selectedProjectIds?.size || 0}
         itemType="project"
-        confirmationText={bulkDeleteConfirmationText || ""}
-        onConfirmationTextChange={(text) => setBulkDeleteConfirmationText && setBulkDeleteConfirmationText(text)}
+        onClearSelection={() => clearProjectSelection && clearProjectSelection()}
+        onDelete={() => handleBulkDeleteProjects && handleBulkDeleteProjects()}
       />
     </div>
   );
