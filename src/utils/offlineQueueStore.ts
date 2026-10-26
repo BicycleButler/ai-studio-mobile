@@ -2,6 +2,7 @@ import { IMutex, Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
+import { getSafeBroadcastChannel } from "./platform";
 
 export interface IOfflineQueueStore {
   getObservable(): IObservable<OfflineMutation[]>;
@@ -24,7 +25,7 @@ export interface OfflineQueueStoreConfig {
   storageKey: string;
   storageAdapter: IAsyncStorageAdapter;
   logger?: ILogger;
-  createBroadcastChannel?: (name: string) => BroadcastChannel | undefined;
+  createBroadcastChannel?: (name: string) => BroadcastChannel | null;
   mutex?: IMutex;
 }
 
@@ -40,18 +41,13 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   private storageKey: string;
   private storageAdapter: IAsyncStorageAdapter;
   private logger: ILogger;
-  private createBroadcastChannel: (name: string) => BroadcastChannel | undefined;
+  private createBroadcastChannel: (name: string) => BroadcastChannel | null;
 
   constructor(config: OfflineQueueStoreConfig) {
     this.storageKey = config.storageKey;
     this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || defaultLogger;
-    this.createBroadcastChannel = config.createBroadcastChannel || ((name: string) => {
-        if (typeof BroadcastChannel !== 'undefined') {
-            return new BroadcastChannel(name);
-        }
-        return undefined;
-    });
+    this.createBroadcastChannel = config.createBroadcastChannel || getSafeBroadcastChannel;
     this.queueMutex = config.mutex || new Mutex(this.logger);
     try {
         const channel = this.createBroadcastChannel(`${this.storageKey}_channel`);

@@ -27,7 +27,16 @@ export type NavigatorWithClipboard = typeof navigator & { clipboard?: Clipboard 
 export type WindowWithHistory = typeof window & { history?: History };
 export type WindowWithVisualViewport = typeof window & { visualViewport?: VisualViewport };
 
+export type WindowWithBroadcastChannel = typeof window & { BroadcastChannel?: typeof BroadcastChannel };
 export type WindowWithNavigator = typeof window & { navigator?: Navigator };
+
+export function getSafeBroadcastChannel(name: string): BroadcastChannel | null {
+  const win = getSafeWindow() as WindowWithBroadcastChannel | null;
+  if (win && typeof win.BroadcastChannel !== "undefined") {
+    return new win.BroadcastChannel(name);
+  }
+  return null;
+}
 
 export function getSafeDocument(): Document | null {
   return isBrowserEnvironment() ? document : null;

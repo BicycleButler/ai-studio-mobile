@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeWindowSpeech, getSafeNavigatorLanguage } from "../utils/platform";
+import { isBrowserEnvironment, getSafeWindowSpeech, getSafeNavigatorLanguage, getSafeNavigator } from "../utils/platform";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useServices } from "../services/ServiceContext";
 
@@ -159,8 +159,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
       }
 
       // Pre-flight microphone permission check if supported
-      if (isBrowserEnvironment() && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
-        navigator.mediaDevices.getUserMedia({ audio: true }).catch((permErr: unknown) => {
+      const nav = getSafeNavigator() as any;
+      if (nav && nav.mediaDevices && typeof nav.mediaDevices.getUserMedia === "function") {
+        nav.mediaDevices.getUserMedia({ audio: true }).catch((permErr: unknown) => {
           logger.warn("[SpeechToText] Microphone pre-flight check notice:", permErr);
         });
       }
