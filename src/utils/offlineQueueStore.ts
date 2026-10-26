@@ -1,4 +1,4 @@
-import { Mutex } from "./mutex";
+import { IMutex, Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
@@ -25,10 +25,11 @@ export interface OfflineQueueStoreConfig {
   storageAdapter: IAsyncStorageAdapter;
   logger?: ILogger;
   createBroadcastChannel?: (name: string) => BroadcastChannel | undefined;
+  mutex?: IMutex;
 }
 
 export class OfflineQueueStore implements IOfflineQueueStore {
-  private queueMutex: Mutex;
+  private queueMutex: IMutex;
   private _queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>([]);
 
   public getObservable(): IObservable<OfflineMutation[]> {
@@ -51,7 +52,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
         }
         return undefined;
     });
-    this.queueMutex = new Mutex(this.logger);
+    this.queueMutex = config.mutex || new Mutex(this.logger);
     try {
         const channel = this.createBroadcastChannel(`${this.storageKey}_channel`);
         if (channel) {
