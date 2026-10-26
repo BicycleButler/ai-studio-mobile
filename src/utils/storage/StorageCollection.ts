@@ -1,4 +1,4 @@
-import { ArrayCollection } from "./ArrayCollection";
+import { MapCollection } from "./MapCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { IMutableCollection, ICollectionEngine, IStorageAdapter } from "./types";
 import { IObservable } from "../observable";
@@ -66,7 +66,7 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
     super(key, baseOptions);
 
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
-    this.collectionEngine = options?.engine || new ArrayCollection<T>(this.keyExtractor);
+    this.collectionEngine = options?.engine || new MapCollection<T>(this.keyExtractor);
   }
 
   private applyOperation<R extends { items: T[]; changed: boolean }>(
