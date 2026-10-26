@@ -159,7 +159,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
       }
 
       // Pre-flight microphone permission check if supported
-      const nav = getSafeNavigator() as any;
+      const nav = getSafeNavigator() as Navigator & { mediaDevices?: { getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream> } } | null;
       if (nav && nav.mediaDevices && typeof nav.mediaDevices.getUserMedia === "function") {
         nav.mediaDevices.getUserMedia({ audio: true }).catch((permErr: unknown) => {
           logger.warn("[SpeechToText] Microphone pre-flight check notice:", permErr);
