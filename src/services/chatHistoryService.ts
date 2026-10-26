@@ -25,6 +25,7 @@ export interface ChatHistoryServiceConfig {
   storageKeys?: typeof STORAGE_KEYS;
   logger: ILogger;
   collectionRegistry?: IStorageRegistry<IMutableCollection<ChatSession>>;
+  isBrowserEnv?: typeof isBrowserEnvironment;
 }
 
 export class ChatHistoryService implements IChatHistoryService {
@@ -37,6 +38,7 @@ export class ChatHistoryService implements IChatHistoryService {
       quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
+      isBrowserEnv: config?.isBrowserEnv || isBrowserEnvironment,
       collectionRegistry: config?.collectionRegistry || new StorageRegistry<IMutableCollection<ChatSession>>((key) => {
         return new StorageCollection<ChatSession>(key, {
           keyExtractor: (item) => String(item.id || ""),
@@ -108,7 +110,7 @@ export class ChatHistoryService implements IChatHistoryService {
 
   public purgeMockSessionsFromStorage(): void {
     try {
-      if (isBrowserEnvironment()) {
+      if (this.config.isBrowserEnv()) {
         const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX);
 
         keysToClean.forEach((key) => {

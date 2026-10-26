@@ -17,12 +17,25 @@ export interface PWAInstallState {
   isNativeCapacitor: boolean;
 }
 
+export interface PwaInstallServiceConfig {
+    isBrowserEnv?: typeof isBrowserEnvironment;
+    getPlatformCaps?: typeof getPlatformCapabilities;
+    addEventListener?: typeof safeAddEventListener;
+}
+
 export class PwaInstallService {
   public stateObservable: Observable<PWAInstallState>;
   private isInitialized = false;
+  private isBrowserEnv: typeof isBrowserEnvironment;
+  private getPlatformCaps: typeof getPlatformCapabilities;
+  private addEventListener: typeof safeAddEventListener;
 
-  constructor() {
-    const caps = getPlatformCapabilities();
+  constructor(config?: PwaInstallServiceConfig) {
+    this.isBrowserEnv = config?.isBrowserEnv || isBrowserEnvironment;
+    this.getPlatformCaps = config?.getPlatformCaps || getPlatformCapabilities;
+    this.addEventListener = config?.addEventListener || safeAddEventListener;
+
+    const caps = this.getPlatformCaps();
     this.stateObservable = new Observable<PWAInstallState>({
       deferredPrompt: null,
       isInstalled: caps.isNative || caps.isPWA,
@@ -32,10 +45,10 @@ export class PwaInstallService {
   }
 
   public initListeners() {
-    if (!isBrowserEnvironment() || this.isInitialized) return;
+    if (!this.isBrowserEnv() || this.isInitialized) return;
     this.isInitialized = true;
 
-    const currentCaps = getPlatformCapabilities();
+    const currentCaps = this.getPlatformCaps();
     const currentState = this.stateObservable.getSnapshot()!;
 
     this.stateObservable.notify({
@@ -45,13 +58,13 @@ export class PwaInstallService {
       isIOS: currentCaps.isIOS,
     });
 
-    safeAddEventListener("beforeinstallprompt" as keyof WindowEventMap, ((e: Event) => {
+    this.addEventListener("beforeinstallprompt" as keyof WindowEventMap, ((e: Event) => {
       e.preventDefault();
       const current = this.stateObservable.getSnapshot()!;
       this.stateObservable.notify({ ...current, deferredPrompt: e as BeforeInstallPromptEvent });
     }) as EventListener);
 
-    safeAddEventListener("appinstalled" as keyof WindowEventMap, (() => {
+    this.addEventListener("appinstalled" as keyof WindowEventMap, (() => {
       const current = this.stateObservable.getSnapshot()!;
       this.stateObservable.notify({ ...current, isInstalled: true, deferredPrompt: null });
     }) as EventListener);
