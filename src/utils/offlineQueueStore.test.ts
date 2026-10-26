@@ -97,3 +97,45 @@ describe('OfflineQueueStore', () => {
         expect(q[0].id).toBe('id2');
     });
 });
+
+class FailingAsyncStorage implements AsyncStorage {
+  async getItem<T>(_key: string): Promise<T | undefined> {
+    return [] as T;
+  }
+  async setItem<T>(_key: string, _value: T): Promise<void> {
+    throw new Error('Storage write failed artificially');
+  }
+}
+
+describe('OfflineQueueStore Error Propagation', () => {
+    it('should throw an error and not modify cache if storage write fails', async () => {
+        const store = new OfflineQueueStore({
+            storageKey: 'test_queue_error',
+            storageAdapter: new FailingAsyncStorage(),
+            logger: new NoOpLogger()
+        });
+
+        await new Promise(r => setTimeout(r, 0)); // wait for initial load
+
+        await expect(store.enqueue({ type: 't1', payload: 'p1', timestamp: 1, id: 'id1' }))
+            .rejects.toThrow('Storage write failed artificially');
+
+        const q = await store.getQueue();
+        expect(q.length).toBe(0); // Should remain empty
+    });
+    it('should propagate errors correctly and unlock mutex for subsequent calls', async () => {
+        const store = new OfflineQueueStore({
+            storageKey: 'test_queue_error_2',
+            storageAdapter: new FailingAsyncStorage(),
+            logger: new NoOpLogger()
+        });
+
+        await new Promise(r => setTimeout(r, 0)); // wait for initial load
+
+        await expect(store.enqueue({ type: 't1', payload: 'p1', timestamp: 1, id: 'id1' }))
+            .rejects.toThrow('Storage write failed artificially');
+
+        // Test that mutex is released by asserting that a second call rejects cleanly and doesn't timeout
+        await expect(store.clear()).rejects.toThrow('Storage write failed artificially');
+    });
+});

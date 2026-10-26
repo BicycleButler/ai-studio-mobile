@@ -1,6 +1,5 @@
 import { Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
-import { AsyncStorage } from "./asyncStorage";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
 
@@ -115,46 +114,44 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     }
   }
 
-  private async withQueueLock<T>(action: (queue: OfflineMutation[]) => Promise<T | void>): Promise<T | void> {
-    return this.queueMutex.run(async () => {
+  private async withQueueLock(action: (queue: OfflineMutation[]) => OfflineMutation[] | Promise<OfflineMutation[]>): Promise<void> {
+    await this.queueMutex.run(async () => {
       const queue = await this.safeGetQueue();
-      const result = await action(queue);
-      return result;
+      const newQueue = await action(queue);
+      await this.applyQueueUpdate(newQueue);
     });
   }
 
   public async enqueue(mutation: OfflineMutation): Promise<void> {
-    await this.withQueueLock(async (queue) => {
+    await this.withQueueLock((queue) => {
       queue.push(mutation);
-      await this.applyQueueUpdate(queue);
+      return queue;
     });
   }
 
   public async remove(id: string): Promise<void> {
-    await this.withQueueLock(async (queue) => {
-      const newQueue = queue.filter((m) => m.id !== id);
-      await this.applyQueueUpdate(newQueue);
+    await this.withQueueLock((queue) => {
+      return queue.filter((m) => m.id !== id);
     });
   }
 
   public async removeMany(ids: string[]): Promise<void> {
     if (!ids || ids.length === 0) return;
     const idsSet = new Set(ids);
-    await this.withQueueLock(async (queue) => {
-      const newQueue = queue.filter((m) => !idsSet.has(m.id));
-      await this.applyQueueUpdate(newQueue);
+    await this.withQueueLock((queue) => {
+      return queue.filter((m) => !idsSet.has(m.id));
     });
   }
 
   public async clear(): Promise<void> {
-    await this.withQueueLock(async () => {
-      await this.applyQueueUpdate([]);
+    await this.withQueueLock(() => {
+      return [];
     });
   }
 
   public async replace(queue: OfflineMutation[]): Promise<void> {
-    await this.withQueueLock(async () => {
-      await this.applyQueueUpdate(queue);
+    await this.withQueueLock(() => {
+      return queue;
     });
   }
 
