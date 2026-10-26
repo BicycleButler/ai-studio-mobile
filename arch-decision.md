@@ -795,3 +795,11 @@ The `OfflineService` class historically handled both queue management (delegatin
 
 **Decision:**
 Extracted the `syncRegistry` and `processOfflineMutations` logic from `OfflineService` into a new, dedicated `SyncEngine` class (implementing `ISyncEngine`). `OfflineService` now acts as a facade, instantiating or accepting a `SyncEngine` dependency via its constructor configuration. This strictly adheres to the Single Responsibility Principle, improves testability, and allows future flexibility (e.g., swapping in a parallel processor) without modifying the queue management layer.
+
+## Architectural Decision: BatchSelectionManager Decoupling and Optimization
+
+**Context:**
+`BatchSelectionManager` was previously a generic class `BatchSelectionManager<T>` that required a `getItemId: (item: T) => string` function. This coupled the selection state management logic to the domain data structures. It also required a hacky `updateGetItemId` method to be called during render to avoid stale closures in React hooks. Additionally, operations like `clearSelection` and `toggleSelectAll` performed redundant `Set` allocations and emitted state change notifications even when the selection state did not actually change, leading to unnecessary re-renders.
+
+**Decision:**
+Refactored `BatchSelectionManager` to strictly manage sets of string IDs rather than generic items. The `T` generic parameter and `getItemId` function were removed from the class entirely. ID extraction is now completely delegated to the `useBatchSelection` hook using standard React memoization. Furthermore, the class methods were optimized to fail fast and return early if the requested operation (like clearing an already empty selection) results in no state change, vastly reducing unnecessary `notifySync` emissions and object allocations. This deepens abstraction, decoupling, and robustness.

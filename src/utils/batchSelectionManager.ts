@@ -7,16 +7,9 @@ export interface BatchSelectionState {
   lastSelectedId: string | null;
 }
 
-export class BatchSelectionManager<T> extends Observable<BatchSelectionState> {
-  private getItemId: (item: T) => string;
-
-  constructor(getItemId: (item: T) => string) {
+export class BatchSelectionManager extends Observable<BatchSelectionState> {
+  constructor() {
     super({ selectedIds: new Set<string>(), lastSelectedId: null });
-    this.getItemId = getItemId;
-  }
-
-  public updateGetItemId(getItemId: (item: T) => string): void {
-    this.getItemId = getItemId;
   }
 
   public get selectedIds(): Set<string> {
@@ -28,21 +21,22 @@ export class BatchSelectionManager<T> extends Observable<BatchSelectionState> {
   }
 
   public clearSelection(): void {
+    if (this.selectedIds.size === 0 && this.lastSelectedId === null) return;
     this.notifySync({ selectedIds: new Set<string>(), lastSelectedId: null });
   }
 
-  public toggleSelection(id: string, isShiftDown: boolean, index: number, items: T[]): void {
+  public toggleSelection(id: string, isShiftDown: boolean, index: number, itemIds: string[]): void {
     const prev = this.currentState!;
     const nextIds = new Set(prev.selectedIds);
     let nextLastId = id;
 
     if (isShiftDown && prev.lastSelectedId) {
-      const lastIndex = items.findIndex((item) => this.getItemId(item) === prev.lastSelectedId);
+      const lastIndex = itemIds.indexOf(prev.lastSelectedId);
       if (lastIndex !== -1) {
         const start = Math.min(index, lastIndex);
         const end = Math.max(index, lastIndex);
         for (let i = start; i <= end; i++) {
-          nextIds.add(this.getItemId(items[i]));
+          nextIds.add(itemIds[i]);
         }
         this.notifySync({ selectedIds: nextIds, lastSelectedId: nextLastId });
         return;
@@ -58,33 +52,53 @@ export class BatchSelectionManager<T> extends Observable<BatchSelectionState> {
     this.notifySync({ selectedIds: nextIds, lastSelectedId: nextLastId });
   }
 
-  public toggleSelectAll(filteredList: T[]): void {
+  public toggleSelectAll(filteredIds: string[]): void {
+    if (filteredIds.length === 0) return;
+
     const prev = this.currentState!;
-    const filteredIds = filteredList.map(this.getItemId);
-    const allFilteredSelected = filteredIds.length > 0 && filteredIds.every(id => prev.selectedIds.has(id));
+    let allFilteredSelected = true;
+    for (const id of filteredIds) {
+      if (!prev.selectedIds.has(id)) {
+        allFilteredSelected = false;
+        break;
+      }
+    }
 
     const nextIds = new Set(prev.selectedIds);
     if (allFilteredSelected) {
       // Deselect all filtered items
-      filteredIds.forEach(id => nextIds.delete(id));
+      for (const id of filteredIds) {
+        nextIds.delete(id);
+      }
     } else {
       // Select all filtered items
-      filteredIds.forEach(id => nextIds.add(id));
+      for (const id of filteredIds) {
+        nextIds.add(id);
+      }
     }
-    this.notifySync({ selectedIds: nextIds, lastSelectedId: prev.lastSelectedId });
+
+    // Only notify if something actually changed
+    if (nextIds.size !== prev.selectedIds.size || !allFilteredSelected) {
+        this.notifySync({ selectedIds: nextIds, lastSelectedId: prev.lastSelectedId });
+    }
   }
 
   public removeFromSelection(id: string): void {
     const prev = this.currentState!;
+    if (!prev.selectedIds.has(id)) return;
     const nextIds = new Set(prev.selectedIds);
     nextIds.delete(id);
     this.notifySync({ selectedIds: nextIds, lastSelectedId: prev.lastSelectedId === id ? null : prev.lastSelectedId });
   }
 
-  public getSelectionState(filteredList: T[]): SelectionState {
-    if (filteredList.length === 0) return 'none';
-    const filteredIds = filteredList.map(this.getItemId);
-    const selectedCount = filteredIds.filter(id => this.selectedIds.has(id)).length;
+  public getSelectionState(filteredIds: string[]): SelectionState {
+    if (filteredIds.length === 0) return 'none';
+    let selectedCount = 0;
+    for (const id of filteredIds) {
+      if (this.selectedIds.has(id)) {
+        selectedCount++;
+      }
+    }
     if (selectedCount === 0) return 'none';
     if (selectedCount === filteredIds.length) return 'all';
     return 'some';

@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { BatchSelectionManager, SelectionState } from '../utils/batchSelectionManager';
 import { useStore } from './useStore';
 
@@ -9,12 +9,7 @@ export interface UseBatchSelectionProps<T> {
 }
 
 export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [] }: UseBatchSelectionProps<T>) {
-  const [manager] = React.useState(() => new BatchSelectionManager<T>(getItemId));
-
-  // Update the getItemId reference synchronously during render to avoid stale closures
-  if (manager) {
-    manager.updateGetItemId(getItemId);
-  }
+  const [manager] = React.useState(() => new BatchSelectionManager());
 
   const state = useStore(manager);
 
@@ -30,19 +25,23 @@ export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [
     prevDepsRef.current = clearOnDependencies;
   }, [clearOnDependencies, manager]);
 
+  const itemIds = useMemo(() => items.map(getItemId), [items, getItemId]);
+
   const toggleSelection = useCallback(
     (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredList: T[] = items) => {
       e.stopPropagation();
-      manager.toggleSelection(id, e.shiftKey, index, filteredList);
+      const filteredItemIds = filteredList === items ? itemIds : filteredList.map(getItemId);
+      manager.toggleSelection(id, e.shiftKey, index, filteredItemIds);
     },
-    [manager, items]
+    [manager, items, itemIds, getItemId]
   );
 
   const toggleSelectAll = useCallback(
     (filteredList?: T[]) => {
-      manager.toggleSelectAll(filteredList || items);
+      const filteredItemIds = filteredList ? filteredList.map(getItemId) : itemIds;
+      manager.toggleSelectAll(filteredItemIds);
     },
-    [manager, items]
+    [manager, itemIds, getItemId]
   );
 
   const clearSelection = useCallback(() => {
@@ -58,9 +57,10 @@ export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [
 
   const getSelectionState = useCallback(
     (filteredList?: T[]): SelectionState => {
-      return manager.getSelectionState(filteredList || items);
+      const filteredItemIds = filteredList ? filteredList.map(getItemId) : itemIds;
+      return manager.getSelectionState(filteredItemIds);
     },
-    [manager, items]
+    [manager, itemIds, getItemId]
   );
 
   return {
