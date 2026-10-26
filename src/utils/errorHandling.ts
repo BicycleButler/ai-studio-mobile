@@ -1,30 +1,27 @@
+function tryParseJsonMessage(msg: string): string | null {
+  const trimmed = msg.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed?.error?.message) {
+        return String(parsed.error.message);
+      }
+    } catch {
+      // Fall back to returning null
+    }
+  }
+  return null;
+}
+
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    const trimmed = error.message.trim();
-    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed?.error?.message) {
-          return String(parsed.error.message);
-        }
-      } catch {
-        // Fall back to raw message
-      }
-    }
+    const jsonMsg = tryParseJsonMessage(error.message);
+    if (jsonMsg) return jsonMsg;
     return error.message;
   }
   if (typeof error === "string") {
-    const trimmed = error.trim();
-    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed?.error?.message) {
-          return String(parsed.error.message);
-        }
-      } catch {
-        // Fall back to raw string
-      }
-    }
+    const jsonMsg = tryParseJsonMessage(error);
+    if (jsonMsg) return jsonMsg;
     return error;
   }
   if (typeof error === "object" && error !== null) {
