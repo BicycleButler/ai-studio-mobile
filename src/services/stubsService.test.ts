@@ -10,7 +10,7 @@ describe('StubsClient', () => {
         mockApiClient = {
             fetch: vi.fn(),
         } as unknown as import("vitest").Mocked<IApiClient>;
-        client = new StubsClient(mockApiClient);
+        client = new StubsClient({ apiClient: mockApiClient });
     });
 
     it('should call fetchGraphData correctly', async () => {
@@ -113,5 +113,39 @@ describe('StubsClient', () => {
             'Failed to execute stubs scan'
         );
         expect(result).toEqual(mockData);
+    });
+});
+
+describe('StubsClient Stream Config', () => {
+    it('handles undefined EventSource environment gracefully via createEventSource', () => {
+        const mockApiClient = {
+            fetch: vi.fn(),
+        } as unknown as import("vitest").Mocked<import("../utils/apiClient").IApiClient>;
+
+        const mockLogger = {
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+        } as import("vitest").Mocked<import("../utils/logger").ILogger>;
+
+        const client = new StubsClient({
+            apiClient: mockApiClient,
+            logger: mockLogger,
+            createEventSource: () => undefined
+        });
+
+        const onLog = vi.fn();
+        const cleanup = client.connectStubsStream(onLog, '/test');
+
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+            "[stubs stream] EventSource is not supported in this environment"
+        );
+
+        // should return a callable cleanup function
+        expect(typeof cleanup).toBe('function');
+
+        // executing cleanup should not crash
+        cleanup();
     });
 });
