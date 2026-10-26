@@ -57,7 +57,7 @@ export class ComputedStore<T> extends Observable<T> {
     }
   }
 
-  public override getSnapshot(): T | undefined {
+  public override getSnapshot(): T {
     // Only check for dependencies changing dynamically if we are still active (not disposed)
     if (this.isDirty || (this.unsubscribes.length > 0 && this.checkDependenciesChanged())) {
       // Recompute state synchronously for the reader,

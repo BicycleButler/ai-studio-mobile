@@ -26,7 +26,7 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
   private cachedSnapshot: T | undefined = undefined;
 
   constructor(key: string, options: StorageBaseOptions<T>) {
-    super();
+    super(options.fallback);
     this.key = key;
     this.options = options;
     this.logger = options.logger || defaultLogger;

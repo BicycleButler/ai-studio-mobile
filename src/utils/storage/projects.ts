@@ -40,12 +40,18 @@ export class ProjectService {
         }
       },
       getId: (p) => p.id,
-      onActiveItemChange: (activeProject) => {
-        if (!config.generalSettingsService) { throw new Error("generalSettingsService is required for ProjectService"); }
-        const genSettings = config.generalSettingsService;
-        genSettings.saveStoredApiKey(activeProject ? activeProject.apiKey : "");
-      }
     });
+
+    if (config.generalSettingsService) {
+        let lastActiveItemId: string | null = this.projectsManager.getSnapshot().activeItem?.id ?? null;
+        this.projectsManager.subscribe((state) => {
+            const currentActiveId = state.activeItem ? state.activeItem.id : null;
+            if (lastActiveItemId !== currentActiveId) {
+                lastActiveItemId = currentActiveId;
+                config.generalSettingsService!.saveStoredApiKey(state.activeItem ? state.activeItem.apiKey : "");
+            }
+        });
+    }
   }
 
   public loadStoredProjects(): ProjectInfo[] {

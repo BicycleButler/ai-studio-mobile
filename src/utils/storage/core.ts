@@ -1,22 +1,23 @@
 import { IStorageAdapter } from "./types";
 import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "../platform";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
-import { Observable } from "../observable";
+
 import { ILogger, defaultLogger } from "../logger";
-export const globalStorageEventObservable = new Observable<StorageEvent>();
+import { EventEmitter } from "../eventEmitter";
+export const globalStorageEventObservable = new EventEmitter<StorageEvent>();
 
 if (isBrowserEnvironment()) {
   const win = getSafeWindow();
   if (win) {
     win.addEventListener("storage", (e) => {
-      globalStorageEventObservable.notify(e);
+      globalStorageEventObservable.emit(e);
     });
   }
 }
 
 
 let _storageInstance: FallbackStorageWrapper | MemoryStorage | null = null;
-export const globalStorageQuotaObservable = new Observable<void>();
+export const globalStorageQuotaObservable = new EventEmitter<void>();
 
 export function getStorageInstance(): Storage {
   if (_storageInstance) return _storageInstance;
@@ -31,7 +32,7 @@ export function getStorageInstance(): Storage {
         win.localStorage.removeItem(testKey);
         const wrapper = new FallbackStorageWrapper(win.localStorage);
         wrapper.quotaExceededEvent.subscribe(() => {
-            globalStorageQuotaObservable.notifySync();
+            globalStorageQuotaObservable.emit();
         });
         _storageInstance = wrapper;
         return _storageInstance;

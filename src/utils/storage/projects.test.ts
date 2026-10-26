@@ -13,6 +13,8 @@ describe('ProjectService', () => {
       getItems: vi.fn().mockReturnValue([]),
       getActiveId: vi.fn().mockReturnValue(null),
       setActiveId: vi.fn(),
+      subscribe: vi.fn().mockReturnValue(() => {}),
+      getSnapshot: vi.fn().mockReturnValue({ activeItem: null }),
       collection: {
         save: vi.fn(),
         upsert: vi.fn(),

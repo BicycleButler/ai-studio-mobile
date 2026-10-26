@@ -772,3 +772,18 @@ Create an Express middleware that injects an `ILogger` into the Express `req` ob
 
 **Recommendation:**
 **Path 1 (Direct File-Level Logger Initialization)** was implemented. While Dependency Injection (Path 2) is ideal for complex domain classes, `server.ts` acts as the composition root for the backend, and `stubsService.ts` consists primarily of pure, static utility functions. A module-level logger instance achieves the primary goal—eliminating tight coupling to the global `console` object and unifying the logging mechanism across the frontend and backend—without introducing the massive boilerplate required to thread loggers through every function signature and Express request type.
+## Architectural Decision: Observable Interface Segregation and EventEmitter
+
+**Context:**
+`Observable<T>` was being used dually as a stateful store (where `getSnapshot()` returns the current state) and as a pure event emitter for system events like `StorageEvent` or `QuotaExceeded` (where `getSnapshot()` is meaningless and would return `undefined`). This forced `getSnapshot()` to have an unsafe `T | undefined` signature, complicating React integrations like `useStore` and violating the Interface Segregation Principle.
+
+**Decision:**
+Implemented an explicit `EventEmitter<T>` class for publish/subscribe workflows that do not retain state. `globalStorageEventObservable`, `globalStorageQuotaObservable`, and `FallbackStorageWrapper.quotaExceededEvent` were migrated to this new primitive. `Observable<T>` is now strictly a stateful container requiring an initial state, allowing its `getSnapshot()` method to guarantee a `T` return type without `undefined`. This greatly improves Type Safety, Robustness, and Generality across the entire reactivity layer.
+
+## Architectural Decision: ActiveItemManager Side-Effect Decoupling (Strict CQS)
+
+**Context:**
+`ActiveItemManager` previously accepted an `onActiveItemChange` callback and manually executed this side effect inside its `notify()` and `notifySync()` methods by inspecting the state difference (`resolveSideEffects`). This coupled state derivation with side-effect execution, violating Command-Query Separation (CQS) and the Single Responsibility Principle.
+
+**Decision:**
+Removed the `onActiveItemChange` configuration from `ActiveItemManager`. Services that require side effects based on active item changes (e.g., `ProjectService` updating the global API key when the active project switches) now simply `subscribe()` to the `projectsManager` and execute their own domain-specific side effects. This perfectly decouples the store logic from downstream side effects, improving Abstraction and Maintainability.

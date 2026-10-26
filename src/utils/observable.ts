@@ -1,8 +1,10 @@
+import { ILogger, defaultLogger } from "./logger";
+
 export type Listener<T> = (state: T) => void;
 
 export interface IReadableStore<T> {
   subscribe(listener: Listener<T>): () => void;
-  getSnapshot(): T | undefined;
+  getSnapshot(): T;
 }
 
 export interface IObservable<T> extends IReadableStore<T> {
@@ -11,15 +13,13 @@ export interface IObservable<T> extends IReadableStore<T> {
   clearListeners(): void;
 }
 
-import { ILogger, defaultLogger } from "./logger";
-
 export class Observable<T> implements IObservable<T> {
   protected logger: ILogger;
   protected listeners = new Set<Listener<T>>();
-  protected currentState?: T;
+  protected currentState: T;
   private isNotificationPending = false;
 
-  constructor(initialState?: T, logger: ILogger = defaultLogger) {
+  constructor(initialState: T, logger: ILogger = defaultLogger) {
     this.logger = logger;
     this.currentState = initialState;
   }
@@ -34,14 +34,12 @@ export class Observable<T> implements IObservable<T> {
   public notify(state: T): void {
     this.currentState = state;
 
-    // Batch notifications via microtask to prevent render thrashing
-    // if multiple synchronous updates occur in the same tick.
     if (!this.isNotificationPending) {
       this.isNotificationPending = true;
       queueMicrotask(() => {
         if (!this.isNotificationPending) return;
         this.isNotificationPending = false;
-        const snapshot = this.currentState as T;
+        const snapshot = this.currentState;
         for (const listener of this.listeners) {
           try {
             listener(snapshot);
@@ -55,8 +53,8 @@ export class Observable<T> implements IObservable<T> {
 
   public notifySync(state: T): void {
     this.currentState = state;
-    this.isNotificationPending = false; // Cancel any pending async notification
-    const snapshot = this.currentState as T;
+    this.isNotificationPending = false;
+    const snapshot = this.currentState;
     for (const listener of this.listeners) {
       try {
         listener(snapshot);
@@ -66,7 +64,7 @@ export class Observable<T> implements IObservable<T> {
     }
   }
 
-  public getSnapshot(): T | undefined {
+  public getSnapshot(): T {
     return this.currentState;
   }
 

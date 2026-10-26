@@ -29,7 +29,7 @@ export interface OfflineQueueStoreConfig {
 
 export class OfflineQueueStore implements IOfflineQueueStore {
   private queueMutex: Mutex;
-  private _queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>();
+  private _queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>([]);
 
   public getObservable(): IObservable<OfflineMutation[]> {
     return this._queueObservable;
