@@ -36,6 +36,7 @@ export interface ThemeServiceConfig {
   isBrowserEnv?: () => boolean;
   getWindowMatchMedia?: typeof getSafeWindowMatchMedia;
   addMatchMediaListener?: typeof safeAddMatchMediaListener;
+  getSafeDoc?: typeof getSafeDocument;
 }
 
 export class ThemeService implements IThemeService {
@@ -48,11 +49,13 @@ export class ThemeService implements IThemeService {
   private isBrowserEnv: () => boolean;
   private getWindowMatchMedia: typeof getSafeWindowMatchMedia;
   private addMatchMediaListener: typeof safeAddMatchMediaListener;
+  private getSafeDoc: typeof getSafeDocument;
 
   constructor(config?: ThemeServiceConfig) {
     this.isBrowserEnv = config?.isBrowserEnv || isBrowserEnvironment;
     this.getWindowMatchMedia = config?.getWindowMatchMedia || getSafeWindowMatchMedia;
     this.addMatchMediaListener = config?.addMatchMediaListener || safeAddMatchMediaListener;
+    this.getSafeDoc = config?.getSafeDoc || getSafeDocument;
     this.themeObservable = new Observable<ThemeState>();
     this.themeModeSingleton = config?.themeModeSingleton || new StorageSingleton<ThemeMode>(
       STORAGE_KEYS.THEME_MODE,
@@ -90,7 +93,7 @@ export class ThemeService implements IThemeService {
   public applyThemeToDOM(resolved: ResolvedTheme): void {
     if (!this.isBrowserEnv()) return;
 
-    const root = getSafeDocument()?.documentElement;
+    const root = this.getSafeDoc()?.documentElement;
     if (!root) return;
     root.setAttribute("data-theme", resolved);
     if (resolved === "dark") {
@@ -100,7 +103,7 @@ export class ThemeService implements IThemeService {
     }
 
     // Update theme-color meta tag if available
-    const metaThemeColor = getSafeDocument()?.querySelector('meta[name="theme-color"]');
+    const metaThemeColor = this.getSafeDoc()?.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       const computedBg = getComputedStyle(root).getPropertyValue("--background").trim();
       if (computedBg) {

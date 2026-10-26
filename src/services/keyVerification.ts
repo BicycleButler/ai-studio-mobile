@@ -52,15 +52,18 @@ export interface IKeyVerificationService {
 export interface KeyVerificationServiceConfig {
   apiClient: IApiClient;
   logger: ILogger;
+  getNavigatorClipboard?: typeof getSafeNavigatorClipboard;
 }
 
 export class KeyVerificationService implements IKeyVerificationService {
   private apiClient: IApiClient;
   private logger: ILogger;
+  private getNavigatorClipboard: typeof getSafeNavigatorClipboard;
 
   constructor(config: KeyVerificationServiceConfig) {
     this.apiClient = config.apiClient;
     this.logger = config.logger;
+    this.getNavigatorClipboard = config.getNavigatorClipboard || getSafeNavigatorClipboard;
   }
 
   public isValidJulesApiKeyFormat(key: string): boolean {
@@ -172,8 +175,8 @@ export class KeyVerificationService implements IKeyVerificationService {
 
   public async clearClipboardSafe(): Promise<boolean> {
     try {
-      if (Boolean(getSafeNavigatorClipboard()?.writeText)) {
-        await getSafeNavigatorClipboard()?.writeText("");
+      if (Boolean(this.getNavigatorClipboard()?.writeText)) {
+        await this.getNavigatorClipboard()?.writeText("");
         return true;
       }
     } catch (err: unknown) {

@@ -29,10 +29,19 @@ export interface IImageCompressionStrategy {
   compress(file: File, options: CompressionOptions): Promise<MessageAttachment>;
 }
 
+export interface CanvasImageCompressionStrategyConfig {
+  getSafeDoc?: typeof getSafeDocument;
+}
+
 export class CanvasImageCompressionStrategy implements IImageCompressionStrategy {
+  private getSafeDoc: typeof getSafeDocument;
+
+  constructor(config?: CanvasImageCompressionStrategyConfig) {
+    this.getSafeDoc = config?.getSafeDoc || getSafeDocument;
+  }
   private isWebPSupported(): boolean {
-    if (!getSafeDocument()) return false;
-    const canvas = getSafeDocument()!.createElement("canvas");
+    if (!this.getSafeDoc()) return false;
+    const canvas = this.getSafeDoc()!.createElement("canvas");
     if (!canvas.toDataURL) return false;
     return canvas.toDataURL("image/webp").indexOf("data:image/webp") === 0;
   }
@@ -49,7 +58,7 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
           try {
             const { width, height } = calculateProportionalDimensions(img.width, img.height, maxDimension);
 
-            const canvas = getSafeDocument()!.createElement("canvas");
+            const canvas = this.getSafeDoc()!.createElement("canvas");
             canvas.width = width;
             canvas.height = height;
 
