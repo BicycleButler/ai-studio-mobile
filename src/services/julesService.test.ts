@@ -30,7 +30,7 @@ describe("julesService", () => {
       expect(result.error).toContain("blank");
     });
 
-    it("should call apiFetch and return true on success", async () => {
+    it("should call apiClient.fetch and return true on success", async () => {
       ( defaultClient.fetch as import("vitest").Mock ).mockResolvedValueOnce({ valid: true });
       const result = await defaultJulesClient.verifyApiKey("valid-key");
       expect(result.valid).toBe(true);
@@ -41,7 +41,7 @@ describe("julesService", () => {
       );
     });
 
-    it("should handle apiFetch failure gracefully", async () => {
+    it("should handle apiClient.fetch failure gracefully", async () => {
       ( defaultClient.fetch as import("vitest").Mock ).mockRejectedValueOnce(new Error("Network Error"));
       const result = await defaultJulesClient.verifyApiKey("invalid-key");
       expect(result.valid).toBe(false);
@@ -72,7 +72,7 @@ describe("julesService", () => {
   });
 
   describe("createJulesTask", () => {
-    it("should call apiFetch with correct params", async () => {
+    it("should call apiClient.fetch with correct params", async () => {
       ( defaultClient.fetch as import("vitest").Mock ).mockResolvedValueOnce({
         task: { id: "task-123", status: "queued" }
       });

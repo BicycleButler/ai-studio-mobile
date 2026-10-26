@@ -141,32 +141,6 @@ export class ApiClient implements IApiClient {
 // Expose the interface but keep the instance variable typed as ApiClient internally to avoid type issues with retryConfig.
 export const defaultClient = new ApiClient();
 
-export function addInterceptor(interceptor: Interceptor) {
-    defaultClient.addInterceptor(interceptor);
-}
-
-export function clearInterceptors() {
-    defaultClient.clearInterceptors();
-}
-
-export function apiFetch<T>(
-  endpoint: string,
-  options?: RequestInit,
-  defaultErrorMessage?: string,
-  queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
-): Promise<T> {
-  return defaultClient.fetch<T>(endpoint, options, defaultErrorMessage, queryParams);
-}
-
-export function apiFetchStream(
-  endpoint: string,
-  options?: RequestInit,
-  defaultErrorMessage?: string,
-  queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
-): Promise<Response> {
-  return defaultClient.fetchStream(endpoint, options, defaultErrorMessage, queryParams);
-}
-
 export * from "./apiClientErrors";
 export * from "./apiClientInterceptors";
 export * from "./apiClientRetry";

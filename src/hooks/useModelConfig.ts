@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ModelInfo, PromptConfig, SavedPrompt, PromptType } from "../types";
+import { useServices } from "../services/ServiceContext";
 import {
   CURATED_MODELS,
   isDeprecatedOrUnusableModel,
@@ -11,11 +12,12 @@ export function useModelConfig(
   customApiKey: string,
   chatSession: ReturnType<typeof import("./useChatSession").useChatSession>
 ) {
+  const { apiClient } = useServices();
   const [models, setModels] = useState<ModelInfo[]>(CURATED_MODELS);
   const [config, setConfig] = useState<PromptConfig>(initialConfig);
 
   useEffect(() => {
-    fetchModels(customApiKey)
+    fetchModels(apiClient, customApiKey)
       .then((data) => {
         if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
           const cleaned = data.models.filter((m: ModelInfo) => !isDeprecatedOrUnusableModel(m.id));
