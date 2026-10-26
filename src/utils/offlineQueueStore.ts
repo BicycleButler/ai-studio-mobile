@@ -20,6 +20,7 @@ export interface OfflineQueueStoreConfig {
   storageKey: string;
   storageAdapter: AsyncStorage;
   logger?: ILogger;
+  createBroadcastChannel?: (name: string) => BroadcastChannel | undefined;
 }
 
 export class OfflineQueueStore implements IOfflineQueueStore {
@@ -34,21 +35,29 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   private storageKey: string;
   private storageAdapter: AsyncStorage;
   private logger: ILogger;
+  private createBroadcastChannel: (name: string) => BroadcastChannel | undefined;
 
   constructor(config: OfflineQueueStoreConfig) {
     this.storageKey = config.storageKey;
     this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || defaultLogger;
+    this.createBroadcastChannel = config.createBroadcastChannel || ((name: string) => {
+        if (typeof BroadcastChannel !== 'undefined') {
+            return new BroadcastChannel(name);
+        }
+        return undefined;
+    });
     this.queueMutex = new Mutex(this.logger);
     try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        this.channel = new BroadcastChannel(`${this.storageKey}_channel`);
-        this.channel.onmessage = (event) => {
-          if (event.data === 'SYNC') {
-            this.syncCacheFromStorage().catch((err) => this.logger.error("Failed to sync cache from storage", err));
-          }
-        };
-      }
+        const channel = this.createBroadcastChannel(`${this.storageKey}_channel`);
+        if (channel) {
+            this.channel = channel;
+            this.channel.onmessage = (event) => {
+              if (event.data === 'SYNC') {
+                this.syncCacheFromStorage().catch((err) => this.logger.error("Failed to sync cache from storage", err));
+              }
+            };
+        }
     } catch {
       // Ignore broadcast channel init errors
     }

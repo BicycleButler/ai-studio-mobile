@@ -8,6 +8,9 @@ export interface ShieldState {
 
 export interface WindowSecurityServiceConfig {
     generalSettingsService: GeneralSettingsService;
+    getSafeDoc?: typeof getSafeDocument;
+    addEventListener?: typeof safeAddEventListener;
+    addDocumentListener?: typeof safeAddDocumentListener;
 }
 
 export class WindowSecurityService {
@@ -16,9 +19,15 @@ export class WindowSecurityService {
   private flagSecureEnabled: boolean;
   private timerRef: ReturnType<typeof setTimeout> | null = null;
   private sensitiveScreenRegistrations = new Set<string>();
+  private getSafeDoc: typeof getSafeDocument;
+  private addEventListener: typeof safeAddEventListener;
+  private addDocumentListener: typeof safeAddDocumentListener;
 
   constructor(config: WindowSecurityServiceConfig) {
     this.generalSettingsService = config.generalSettingsService;
+    this.getSafeDoc = config.getSafeDoc || getSafeDocument;
+    this.addEventListener = config.addEventListener || safeAddEventListener;
+    this.addDocumentListener = config.addDocumentListener || safeAddDocumentListener;
     this.shieldStore = new Observable<ShieldState>({ isShieldActive: false });
     this.flagSecureEnabled = this.generalSettingsService.flagSecureObservable.getSnapshot() || false;
     this.initListeners();
@@ -39,22 +48,22 @@ export class WindowSecurityService {
   }
 
   private initListeners() {
-    safeAddDocumentListener("visibilitychange", () => {
+    this.addDocumentListener("visibilitychange", () => {
       if (!this.flagSecureEnabled) {
           this.updateShield(false);
           return;
       }
       this.clearScheduledTimer();
-      if (getSafeDocument()?.visibilityState === "hidden") {
+      if (this.getSafeDoc()?.visibilityState === "hidden") {
         this.updateShield(true);
-      } else if (getSafeDocument()?.visibilityState === "visible") {
+      } else if (this.getSafeDoc()?.visibilityState === "visible") {
         this.timerRef = setTimeout(() => {
           this.updateShield(false);
         }, 120);
       }
     });
 
-    safeAddEventListener("blur", () => {
+    this.addEventListener("blur", () => {
       if (!this.flagSecureEnabled) {
           this.updateShield(false);
           return;
@@ -64,7 +73,7 @@ export class WindowSecurityService {
       }
     });
 
-    safeAddEventListener("focus", () => {
+    this.addEventListener("focus", () => {
       if (!this.flagSecureEnabled) {
           this.updateShield(false);
           return;
@@ -89,7 +98,7 @@ export class WindowSecurityService {
          this.updateShield(false);
      } else if (flagChanged) {
         // Evaluate immediately if we just turned on flag secure
-        if (getSafeDocument()?.visibilityState === "hidden") {
+        if (this.getSafeDoc()?.visibilityState === "hidden") {
              this.updateShield(true);
         }
      }

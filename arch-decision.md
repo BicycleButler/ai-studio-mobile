@@ -701,3 +701,17 @@ Pass generic `transmitFn` callbacks into `NetworkStorageSyncAdapter` instead of 
 
 **Recommendation:**
 **Path 1 (ISyncTransport Interface)** was implemented. By applying the Dependency Inversion Principle, the sync adapter now purely orchestrates error handling, retry queues, and network status checks, while delegating the actual I/O to a composable and entirely mockable transport layer. This dramatically improves generality.
+
+## Architectural Decision: Subsystem DOM Dependency Injection
+
+**Context:**
+Multiple core services (`WindowSecurityService`, `PwaInstallService`, `ChatHistoryService`, and `OfflineQueueStore`) were tightly coupled to global DOM apis, including checking `isBrowserEnvironment()`, `getSafeDocument()`, `safeAddEventListener`, and instantiating `new BroadcastChannel()`. This violated the Dependency Inversion Principle and hindered testability in non-browser environments like Node (e.g. Vitest runs).
+
+**Path 1: Refactoring to utilize Configuration Object Injection**
+Expand the configuration objects of these services to include function dependencies (e.g., `isBrowserEnv?: typeof isBrowserEnvironment`, `getSafeDoc?: typeof getSafeDocument`, `createBroadcastChannel?: (name: string) => BroadcastChannel`). If omitted, the constructor defaults to using the existing platform utilities.
+
+**Path 2: Environmental Global Mocks**
+Attempt to mock the `isBrowserEnvironment` and DOM globals within testing frameworks on an individual basis.
+
+**Recommendation:**
+**Path 1 (Configuration Object Injection)** was implemented. It strictly enforces dependency inversion at the constructor level and standardizes the services with the patterns used by `ThemeService`, `NetworkStorageSyncAdapter` and `GoogleAuthService`. By explicitly passing functional overrides, we significantly enhance robustness, simplify testing, and reduce the likelihood of side effects during testing.
