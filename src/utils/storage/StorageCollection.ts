@@ -2,6 +2,7 @@ import { MapCollection } from "./MapCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { IMutableCollection, ICollectionEngine, IStorageAdapter } from "./types";
 import { IObservable } from "../observable";
+import { IEventEmitter } from "../eventEmitter";
 import { ILogger, defaultLogger } from "../logger";
 
 export interface StorageCollectionOptions<T> {
@@ -14,7 +15,7 @@ export interface StorageCollectionOptions<T> {
   adapter?: IStorageAdapter<T[]>;
   onSave?: (items: T[]) => void;
   storageAdapter?: Storage;
-  storageEventObservable?: IObservable<StorageEvent>;
+  storageEventObservable?: IEventEmitter<StorageEvent>;
   logger?: ILogger;
 }
 
