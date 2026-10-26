@@ -787,3 +787,11 @@ Implemented an explicit `EventEmitter<T>` class for publish/subscribe workflows 
 
 **Decision:**
 Removed the `onActiveItemChange` configuration from `ActiveItemManager`. Services that require side effects based on active item changes (e.g., `ProjectService` updating the global API key when the active project switches) now simply `subscribe()` to the `projectsManager` and execute their own domain-specific side effects. This perfectly decouples the store logic from downstream side effects, improving Abstraction and Maintainability.
+
+## Architectural Decision: OfflineService Sync Engine Extraction
+
+**Context:**
+The `OfflineService` class historically handled both queue management (delegating to `OfflineQueueStore`) and the orchestration of processing those mutations (`processOfflineMutations` and `syncRegistry`). This violated the Single Responsibility Principle and made it difficult to unit-test the orchestration logic independently of the storage mechanisms.
+
+**Decision:**
+Extracted the `syncRegistry` and `processOfflineMutations` logic from `OfflineService` into a new, dedicated `SyncEngine` class (implementing `ISyncEngine`). `OfflineService` now acts as a facade, instantiating or accepting a `SyncEngine` dependency via its constructor configuration. This strictly adheres to the Single Responsibility Principle, improves testability, and allows future flexibility (e.g., swapping in a parallel processor) without modifying the queue management layer.
