@@ -1,6 +1,6 @@
 import { DefaultStorageAdapter } from "./core";
 import { IStorageAdapter, IDisposable } from "./types";
-import { Observable, IObservable } from "../observable";
+import { Observable } from "../observable";
 import { ILogger, defaultLogger } from "../logger";
 import { deepFreeze } from "./helpers";
 import { IEventEmitter } from "../eventEmitter";

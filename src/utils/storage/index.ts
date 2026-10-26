@@ -10,11 +10,10 @@ export * from "./core";
 
 
 import { StorageCollection } from "./StorageCollection";
-import { ArrayCollection } from "./ArrayCollection";
 import { MapCollection } from "./MapCollection";
 import { StorageSingleton } from "./StorageSingleton";
 export * from "./StorageRegistry";
-export { StorageCollection, StorageSingleton, ArrayCollection, MapCollection };
+export { StorageCollection, StorageSingleton, MapCollection };
 export * from "./ActiveItemManager";
 export * from "./ActiveItemManagerFactory";
 export * from "./StorageBase";
