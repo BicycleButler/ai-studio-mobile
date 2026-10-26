@@ -1,7 +1,6 @@
 import { MapCollection } from "./MapCollection";
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { IMutableCollection, ICollectionEngine, IStorageAdapter } from "./types";
-import { IObservable } from "../observable";
 import { IEventEmitter } from "../eventEmitter";
 import { ILogger, defaultLogger } from "../logger";
 
