@@ -758,3 +758,17 @@ Keep the backwards compatibility.
 
 **Recommendation:**
 **Path 1 (Enforce Strict ApiClientConfig Injection)** was implemented. It removes the legacy union type and the associated runtime checks. This improves type safety, reduces cognitive load, and aligns `ApiClient` with the codebase's dependency injection standards.
+
+## Architectural Decision: Server Logger Abstraction
+
+**Context:**
+The Express server (`server.ts`) and its underlying Stub Service (`server/stubsService.ts`) historically relied on hardcoded `console.error`, `console.warn`, and `console.log` calls to report critical failures, errors, and informational events. This tight coupling to the global `console` object violated the Dependency Inversion Principle, caused test output spew (if backend logic was unit tested), and made it impossible to easily redirect error reporting (e.g., to an external telemetry service) without global monkey-patching. It also fractured the logging architecture between the frontend and the backend.
+
+**Path 1: Direct File-Level Logger Initialization (Singleton)**
+Import `defaultLogger` (which defaults to `ConsoleLogger`) from `src/utils/logger.ts` into `server.ts` and `server/stubsService.ts`. Replace all raw `console` calls with methods on the imported `defaultLogger` instance. This abstracts away the direct `console` calls, allowing us to swap the logger implementation globally for the backend later if needed.
+
+**Path 2: Express Request/Response Context Injection (Middleware)**
+Create an Express middleware that injects an `ILogger` into the Express `req` object, and update all route handlers to use `req.logger`. For `stubsService.ts`, update the utility functions to accept an optional `ILogger` dependency as a parameter.
+
+**Recommendation:**
+**Path 1 (Direct File-Level Logger Initialization)** was implemented. While Dependency Injection (Path 2) is ideal for complex domain classes, `server.ts` acts as the composition root for the backend, and `stubsService.ts` consists primarily of pure, static utility functions. A module-level logger instance achieves the primary goal—eliminating tight coupling to the global `console` object and unifying the logging mechanism across the frontend and backend—without introducing the massive boilerplate required to thread loggers through every function signature and Express request type.

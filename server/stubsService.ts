@@ -1,3 +1,4 @@
+import { defaultLogger } from "../src/utils/logger";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -27,7 +28,7 @@ function getDatabase(): DatabaseSync | null {
     }
     return new DatabaseSync(DB_PATH);
   } catch (err) {
-    console.error("[stubsService] Error opening SQLite database:", err);
+    defaultLogger.error("[stubsService] Error opening SQLite database:", err);
     return null;
   }
 }
@@ -44,7 +45,7 @@ export async function getGraphData(): Promise<StubsGraphData> {
       await runCliCommand("scan");
       db = getDatabase();
     } catch (e) {
-      console.warn("[stubsService] Initial scan failed:", e);
+      defaultLogger.warn("[stubsService] Initial scan failed:", e);
     }
   }
 
@@ -120,7 +121,7 @@ export async function getGraphData(): Promise<StubsGraphData> {
         });
       }
     } catch (err) {
-      console.error("[stubsService] Query error:", err);
+      defaultLogger.error("[stubsService] Query error:", err);
     }
   }
 
@@ -455,7 +456,7 @@ export async function listSidecarSpecs(): Promise<StubsSidecarSpec[]> {
             targetExists,
           });
         } catch (e) {
-          console.warn("[stubsService] Error reading spec file:", full, e);
+          defaultLogger.warn("[stubsService] Error reading spec file:", full, e);
         }
       }
     }

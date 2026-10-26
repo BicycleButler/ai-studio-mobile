@@ -1,3 +1,4 @@
+import { defaultLogger } from "./src/utils/logger";
 import express, { Request, Response } from "express";
 import path from "path";
 import fs from "fs";
@@ -42,7 +43,7 @@ function readJulesSessions(): unknown[] {
       return JSON.parse(data) as unknown[];
     }
   } catch (e) {
-    console.error("Failed to read Jules sessions:", e);
+    defaultLogger.error("Failed to read Jules sessions:", e);
   }
   return [];
 }
@@ -55,7 +56,7 @@ function writeJulesSessions(sessions: unknown[]): void {
     }
     fs.writeFileSync(JULES_SESSIONS_FILE, JSON.stringify(sessions, null, 2), "utf-8");
   } catch (e) {
-    console.error("Failed to write Jules sessions:", e);
+    defaultLogger.error("Failed to write Jules sessions:", e);
   }
 }
 const PORT = 3000;
@@ -683,7 +684,7 @@ app.post(
         return;
       }
     } catch (err: unknown) {
-      console.error("Gemini API Error:", err);
+      defaultLogger.error("Gemini API Error:", err);
       const statusCode = getErrorStatus(err);
       const errorMessage = getErrorMessage(err) || "Failed to generate AI Studio response.";
 
@@ -789,7 +790,7 @@ app.post("/api/tts", async (req: Request, res: Response): Promise<void> => {
       sampleRate: 24000,
     });
   } catch (err: unknown) {
-    console.error("Gemini TTS Error:", err);
+    defaultLogger.error("Gemini TTS Error:", err);
     const statusCode = getErrorStatus(err);
     const errorMessage = getErrorMessage(err) || "Failed to generate speech with Gemini TTS.";
     res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
@@ -1374,7 +1375,7 @@ async function startServer(): Promise<void> {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`AI Studio Android Server listening on http://0.0.0.0:${PORT}`);
+    defaultLogger.info(`AI Studio Android Server listening on http://0.0.0.0:${PORT}`);
   });
 }
 
