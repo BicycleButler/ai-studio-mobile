@@ -16,6 +16,7 @@ import { defaultSpeechVoicesService } from "./speechVoices"; // Default fallback
 export interface SentenceQueueOptions {
   speechSettings: SpeechSettings;
   speechVoicesService?: SpeechVoicesService;
+  getWindowSpeechSynthesis?: typeof getSafeWindowSpeechSynthesis;
   onSentenceStart?: (sentence: string, index: number) => void;
   onSentenceEnd?: (sentence: string, index: number) => void;
   onAllSentencesCompleted?: () => void;
@@ -32,9 +33,11 @@ export class SentenceSpeechQueue {
   private isFinalized = false;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private options: SentenceQueueOptions;
+  private getWindowSpeechSynthesis: typeof getSafeWindowSpeechSynthesis;
 
   constructor(options: SentenceQueueOptions) {
     this.options = options;
+    this.getWindowSpeechSynthesis = options.getWindowSpeechSynthesis || getSafeWindowSpeechSynthesis;
   }
 
   public updateSettings(settings: SpeechSettings): void {
@@ -46,7 +49,7 @@ export class SentenceSpeechQueue {
    * Splits at sentence boundaries and immediately dispatches completed sentences to speech synthesis.
    */
   public feed(fullStreamedText: string, isStreaming = true): void {
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = this.getWindowSpeechSynthesis();
     if (!synth) {
       return;
     }
@@ -110,7 +113,7 @@ export class SentenceSpeechQueue {
    * Prepares and enqueues a clean sentence utterance
    */
   private enqueueSentence(rawSentence: string): void {
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = this.getWindowSpeechSynthesis();
     if (!synth) return;
 
     const spokenText = extractSpokenText(rawSentence, false).trim();
@@ -185,7 +188,7 @@ export class SentenceSpeechQueue {
   private startHeartbeat(): void {
     if (this.heartbeatTimer) return;
     this.heartbeatTimer = setInterval(() => {
-      const synth = getSafeWindowSpeechSynthesis();
+      const synth = this.getWindowSpeechSynthesis();
       if (synth && synth.speaking) {
         synth.pause();
         synth.resume();
@@ -209,7 +212,7 @@ export class SentenceSpeechQueue {
     this.isSpeaking = false;
     this.isFinalized = true;
 
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = this.getWindowSpeechSynthesis();
     if (synth) {
       try {
         synth.cancel();
@@ -222,7 +225,7 @@ export class SentenceSpeechQueue {
   }
 
   public getIsSpeaking(): boolean {
-    return this.isSpeaking || Boolean(getSafeWindowSpeechSynthesis()?.speaking);
+    return this.isSpeaking || Boolean(this.getWindowSpeechSynthesis()?.speaking);
   }
 
   public getQueueLength(): number {
