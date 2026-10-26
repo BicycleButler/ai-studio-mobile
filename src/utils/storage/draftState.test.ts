@@ -57,7 +57,7 @@ describe('DraftStateService', () => {
   });
 
   it('loads default fallback state when nothing is stored', () => {
-    ( mockDraftSingleton.load as import("vitest").Mock ).mockReturnValue(null);
+    vi.mocked(mockDraftSingleton.load).mockReturnValue(null);
     const service = new DraftStateService({ logger: mockLogger, draftRegistry: mockDraftRegistry });
     const draft = service.loadDraftState('proj1');
     expect(draft.promptType).toBe('chat');
@@ -65,7 +65,7 @@ describe('DraftStateService', () => {
   });
 
   it('falls back to global draft if project draft is null but global exists', () => {
-    ( mockDraftSingleton.load as import("vitest").Mock ).mockReturnValue(null);
+    vi.mocked(mockDraftSingleton.load).mockReturnValue(null);
     const globalState = {
         promptType: 'code' as const,
         config: { ...DEFAULT_CONFIG, temperature: 0.8 },
@@ -74,7 +74,7 @@ describe('DraftStateService', () => {
         structuredExamples: [],
         updatedAt: 123,
     };
-    ( mockGlobalDraftSingleton.load as import("vitest").Mock ).mockReturnValue(globalState);
+    vi.mocked(mockGlobalDraftSingleton.load).mockReturnValue(globalState);
 
     const service = new DraftStateService({ logger: mockLogger, draftRegistry: mockDraftRegistry });
     const draft = service.loadDraftState('proj1');
@@ -92,13 +92,13 @@ describe('DraftStateService', () => {
         structuredExamples: [],
         updatedAt: 123,
     };
-    ( mockDraftSingleton.load as import("vitest").Mock ).mockReturnValue(existingState);
+    vi.mocked(mockDraftSingleton.load).mockReturnValue(existingState);
 
     const service = new DraftStateService({ logger: mockLogger, draftRegistry: mockDraftRegistry });
     service.saveDraftState({ chatInputText: 'new text' }, 'proj1');
 
     expect(mockDraftSingleton.save).toHaveBeenCalled();
-    const savedArg = ( mockDraftSingleton.save as import("vitest").Mock ).mock.calls[0][0];
+    const savedArg = vi.mocked(mockDraftSingleton.save).mock.calls[0][0];
     expect(savedArg?.chatInputText).toBe('new text');
     expect(savedArg?.promptType).toBe('chat');
     expect(savedArg?.updatedAt).toBeGreaterThan(123);

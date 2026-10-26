@@ -95,7 +95,7 @@ const explicitlyInjectedJulesClient = new JulesClient({
   apiClient: explicitlyInjectedApiClient,
 });
 
-const explicitlyInjectedStubsClient = new StubsClient(explicitlyInjectedApiClient);
+const explicitlyInjectedStubsClient = new StubsClient({ apiClient: explicitlyInjectedApiClient, logger: defaultLogger });
 
 const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
   apiClient: explicitlyInjectedApiClient,
