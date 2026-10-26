@@ -7,8 +7,7 @@ export class FixedIntervalPollingStrategy extends FixedIntervalDelayStrategy imp
 export class ExponentialBackoffPollingStrategy extends ExponentialBackoffDelayStrategy implements IPollingStrategy {}
 
 export interface PollingOptions<T> {
-  intervalMs?: number; // Kept for backwards compatibility
-  strategy?: IPollingStrategy;
+  strategy: IPollingStrategy;
   onUpdate: (data: T) => void;
   onError?: (error: unknown) => void;
   isComplete?: (data: T) => boolean;
@@ -18,8 +17,7 @@ export function startPolling<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
   options: PollingOptions<T>
 ): { stop: () => void } {
-  const { onUpdate, onError, isComplete } = options;
-  let strategy = options.strategy || new FixedIntervalPollingStrategy(options.intervalMs ?? 2500);
+  const { strategy, onUpdate, onError, isComplete } = options;
 
   let stopped = false;
   let abortController = new AbortController();

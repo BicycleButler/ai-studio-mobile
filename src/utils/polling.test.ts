@@ -41,7 +41,7 @@ describe('startPolling', () => {
     const onUpdate = vi.fn();
 
     const { stop } = startPolling(fetcher, {
-      intervalMs: 100,
+      strategy: new FixedIntervalPollingStrategy(100),
       onUpdate,
     });
 

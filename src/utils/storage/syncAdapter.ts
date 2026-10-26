@@ -30,13 +30,11 @@ export class ApiClientSyncTransport<T> implements ISyncTransport<T> {
 }
 
 export interface NetworkStorageSyncAdapterConfig<T> {
-  transport?: ISyncTransport<T>;
-  apiClient?: IApiClient; // Kept for backwards compatibility
+  transport: ISyncTransport<T>;
   offlineService: IOfflineService;
   networkStatusProvider: INetworkStatusProvider;
   retryStrategy: IOfflineRetryStrategy;
   logger: ILogger;
-  requestBuilder?: (item: T, method: string) => RequestInit; // Kept for backwards compatibility
 }
 
 export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
@@ -47,18 +45,11 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
   private logger: ILogger;
 
   constructor(config: NetworkStorageSyncAdapterConfig<T>) {
-    if (config.transport) {
-      this.transport = config.transport;
-    } else if (config.apiClient) {
-      this.transport = new ApiClientSyncTransport<T>(config.apiClient, config.requestBuilder);
-    } else {
-      throw new Error("NetworkStorageSyncAdapter requires either a transport or an apiClient");
-    }
-
+    this.transport = config.transport;
     this.offlineService = config.offlineService;
     this.networkStatusProvider = config.networkStatusProvider;
     this.retryStrategy = config.retryStrategy;
-    this.logger = config.logger!;
+    this.logger = config.logger;
   }
 
   public syncItem(item: T, endpoint: string, mutationType: string, method: string = "POST"): void {

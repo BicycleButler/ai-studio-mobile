@@ -200,7 +200,7 @@ app.get("/auth/callback", (_req: Request, res: Response): void => {
           window.location.href = '/';
         }
       } catch (err) {
-        console.error("Callback error:", err);
+        defaultLogger.error("Callback error:", err);
         window.location.href = '/';
       }
     })();
