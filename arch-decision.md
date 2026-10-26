@@ -715,3 +715,33 @@ Attempt to mock the `isBrowserEnvironment` and DOM globals within testing framew
 
 **Recommendation:**
 **Path 1 (Configuration Object Injection)** was implemented. It strictly enforces dependency inversion at the constructor level and standardizes the services with the patterns used by `ThemeService`, `NetworkStorageSyncAdapter` and `GoogleAuthService`. By explicitly passing functional overrides, we significantly enhance robustness, simplify testing, and reduce the likelihood of side effects during testing.
+
+## Architectural Decision: Map Collection Engine Implementation
+
+**Context:**
+`ArrayCollection` used the `abstractMapMutate` method and sequentially checked each item in the array to resolve mutations like `update` or `upsert`. This operation has an O(N) complexity for every single change. For very large collections in production, O(N) can severely impact rendering loop latency. We needed an engine optimized for constant-time complexity lookups to handle frequent large scale state updates efficiently without relying solely on full array iteration checks where unnecessary.
+
+**Path 1: Continue extending `ArrayCollection` Optimization**
+Retain `ArrayCollection` and just modify the algorithm. However, its array-focused design and abstractions make changing it to a Map based structure difficult without breaking its contract entirely or relying on heavy object translation mapping layers under the hood.
+
+**Path 2: Implement `MapCollection<T>` as a New Implementation of `ICollectionEngine<T>`**
+Leveraging the `ICollectionEngine<T>` abstraction (introduced in ADR Collection Engine Abstraction), implement a new `MapCollection<T>` that resolves `bulkUpdate` and `bulkUpsert` directly utilizing Map lookup structures O(1).
+
+**Recommendation:**
+**Path 2 (Implement `MapCollection<T>`)** is the recommended path. It strictly adheres to the Open/Closed principle by introducing a highly optimized collection engine without mutating the legacy `ArrayCollection`. The `MapCollection` handles duplicate tracking, updates, and deduplication purely via Map references for constant-time lookups (O(1) vs O(N)) when resolving updates. It achieves this while matching the `ICollectionEngine<T>` API and behavior perfectly, serving as a scalable drop-in replacement.
+
+## Architectural Decision: OfflineQueueStore Storage Adapter Interface Abstraction
+
+**Context:**
+`OfflineQueueStore` previously strictly typed its `storageAdapter` dependency to `AsyncStorage` (from `src/utils/asyncStorage.ts`). This coupled the queue store specifically to the implementations defined in that file, hindering tests and violating the Interface Segregation and Dependency Inversion principles.
+
+**Decision:**
+Introduced an `IAsyncStorageAdapter` interface directly within `offlineQueueStore.ts` that defines only the `getItem` and `setItem` methods required by the queue store. By changing `OfflineQueueStoreConfig` to accept `IAsyncStorageAdapter` instead of `AsyncStorage`, the component is now entirely decoupled from the concrete implementation details. It allows for mock adapters in testing without casting and promotes complete independence of the storage layer.
+
+## Architectural Decision: OfflineQueueStore Lock Error Propagation
+
+**Context:**
+Inside `OfflineQueueStore`, the `applyQueueUpdate` method mutated storage and subsequently updated the memory cache and observables. However, if the `safeSetQueue` function encountered an error, the queue's internal state mechanism could become out of sync because the state modification implicitly suppressed the write failure. Moreover, if multiple async operations queued up, failing to throw on a lock action could allow the mutex to resolve silently instead of throwing correctly.
+
+**Decision:**
+Modified `safeSetQueue` to re-throw unhandled write exceptions and removed the blanket `try/catch` wrapping the state notification step in `applyQueueUpdate`. Now, if a storage write fails, the entire transaction correctly aborts. The state does not mutate, the cache isn't erroneously updated, and the mutex propagation is strictly preserved, increasing the robustness and integrity of the offline mutation queue.

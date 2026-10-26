@@ -16,9 +16,14 @@ export interface IOfflineQueueStore {
   dispose(): void;
 }
 
+export interface IAsyncStorageAdapter {
+    getItem<T>(key: string): Promise<T | undefined>;
+    setItem<T>(key: string, value: T): Promise<void>;
+}
+
 export interface OfflineQueueStoreConfig {
   storageKey: string;
-  storageAdapter: AsyncStorage;
+  storageAdapter: IAsyncStorageAdapter;
   logger?: ILogger;
   createBroadcastChannel?: (name: string) => BroadcastChannel | undefined;
 }
@@ -33,7 +38,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   private cachedQueue: OfflineMutation[] = [];
   private channel?: BroadcastChannel;
   private storageKey: string;
-  private storageAdapter: AsyncStorage;
+  private storageAdapter: IAsyncStorageAdapter;
   private logger: ILogger;
   private createBroadcastChannel: (name: string) => BroadcastChannel | undefined;
 
@@ -95,17 +100,18 @@ export class OfflineQueueStore implements IOfflineQueueStore {
       await this.storageAdapter.setItem(this.storageKey, queue);
     } catch (err) {
       this.logger.error(`[OfflineQueueStore] Critical failure writing to storage (${this.storageKey})`, err);
+      throw err;
     }
   }
 
   private async applyQueueUpdate(newQueue: OfflineMutation[]): Promise<void> {
+    await this.safeSetQueue(newQueue);
+    this.cachedQueue = newQueue;
+    this.notifyQueue(newQueue);
     try {
-      await this.safeSetQueue(newQueue);
-      this.cachedQueue = newQueue;
-      this.notifyQueue(newQueue);
-      this.channel?.postMessage('SYNC');
+        this.channel?.postMessage('SYNC');
     } catch (err) {
-      this.logger.error("Failed to apply queue update", err);
+      this.logger.error("Failed to notify broadcast channel", err);
     }
   }
 
