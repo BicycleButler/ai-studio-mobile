@@ -9,7 +9,13 @@ export interface UseBatchSelectionProps<T> {
 }
 
 export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [] }: UseBatchSelectionProps<T>) {
-  const manager = useMemo(() => new BatchSelectionManager<T>(getItemId), [getItemId]);
+  const [manager] = React.useState(() => new BatchSelectionManager<T>(getItemId));
+
+  // Update the getItemId reference synchronously during render to avoid stale closures
+  if (manager) {
+    manager.updateGetItemId(getItemId);
+  }
+
   const state = useStore(manager);
 
   // ADR 0047 Option A: Clear selection on filter/tab changes
