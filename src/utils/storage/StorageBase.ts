@@ -1,8 +1,9 @@
-import { DefaultStorageAdapter, globalStorageEventObservable } from "./core";
+import { DefaultStorageAdapter } from "./core";
 import { IStorageAdapter, IDisposable } from "./types";
 import { Observable, IObservable } from "../observable";
 import { ILogger, defaultLogger } from "../logger";
 import { deepFreeze } from "./helpers";
+import { IEventEmitter } from "../eventEmitter";
 
 export interface StorageBaseOptions<T> {
   fallback: T;
@@ -12,7 +13,7 @@ export interface StorageBaseOptions<T> {
   adapter?: IStorageAdapter<T>;
   storageAdapter?: Storage;
   onSave?: (items: T) => void;
-  storageEventObservable?: IObservable<StorageEvent>;
+  storageEventObservable?: IEventEmitter<StorageEvent>;
   logger?: ILogger;
 }
 
@@ -34,8 +35,10 @@ export class StorageBase<T> extends Observable<T> implements IDisposable {
 
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 
-    const observableToUse = this.options.storageEventObservable || globalStorageEventObservable;
-    this.globalUnsubscribe = observableToUse.subscribe(this.boundHandleStorageEvent);
+    const observableToUse = this.options.storageEventObservable;
+    if (observableToUse) {
+      this.globalUnsubscribe = observableToUse.subscribe(this.boundHandleStorageEvent);
+    }
   }
 
   private processRawValue(raw: T): T {
