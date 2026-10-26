@@ -13,7 +13,6 @@ export interface CreateActiveItemManagerOptions<T> {
   activeIdSingleton?: IMutableSingleton<string | null>;
 
   getId: (item: T) => string;
-  onActiveItemChange?: (activeItem: T | null) => void;
   allowImplicitSelection?: boolean;
 }
 
@@ -25,7 +24,6 @@ export function createActiveItemManager<T>(options: CreateActiveItemManagerOptio
     collection,
     activeIdSingleton,
     getId: options.getId,
-    onActiveItemChange: options.onActiveItemChange,
     allowImplicitSelection: options.allowImplicitSelection,
   });
 }

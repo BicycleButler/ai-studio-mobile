@@ -1,12 +1,12 @@
 import { MemoryStorage } from "./core";
 import { getSafeWindow } from "../platform";
-import { Observable } from "../observable";
+import { EventEmitter } from "../eventEmitter";
 import { ILogger, defaultLogger } from "../logger";
 
 export class FallbackStorageWrapper implements Storage {
   private activeStorage: Storage;
   private memoryFallback: MemoryStorage | null = null;
-  public quotaExceededEvent = new Observable<void>();
+  public quotaExceededEvent = new EventEmitter<void>();
 
   private logger: ILogger;
 
@@ -57,7 +57,7 @@ export class FallbackStorageWrapper implements Storage {
         const win = getSafeWindow();
         if (win) {
           try {
-             this.quotaExceededEvent.notifySync();
+             this.quotaExceededEvent.emit();
              // win.dispatchEvent(new CustomEvent("storage_quota_exceeded")); // Redundant, handled by quotaExceededEvent
              // Retry write after synchronous event dispatch which may have cleared space
              this.activeStorage.setItem(key, value);

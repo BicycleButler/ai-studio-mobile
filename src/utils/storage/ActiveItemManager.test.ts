@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { ActiveItemManager } from './ActiveItemManager';
 import { StorageCollection } from './StorageCollection';
 import { StorageSingleton } from './StorageSingleton';
@@ -74,29 +74,6 @@ describe('ActiveItemManager', () => {
         expect(state.activeItem).toEqual({ id: '3' });
     });
 
-    it('should fire onActiveItemChange callback', async () => {
-        const collection = new StorageCollection<{ id: string }>('test_col');
-        collection.save([{ id: '1' }, { id: '2' }]);
-        const activeIdSingleton = new StorageSingleton<string | null>('test_id', '1');
-
-        const changeSpy = vi.fn();
-        const manager = new ActiveItemManager({
-            collection,
-            activeIdSingleton,
-            getId: (i) => i.id,
-            onActiveItemChange: changeSpy
-        });
-
-        manager.setActiveId('2');
-
-        // Allow microtasks to settle
-        await Promise.resolve();
-
-        // Wait for microtask-based observer notification which triggers the side effect
-        await new Promise((resolve) => setTimeout(resolve, 0));
-
-        expect(changeSpy).toHaveBeenCalledWith({ id: '2' });
-    });
 
     it('should handle dangling IDs on an empty collection', () => {
         const collection = new StorageCollection<{ id: string }>('test_col');

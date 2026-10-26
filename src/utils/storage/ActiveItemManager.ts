@@ -6,7 +6,6 @@ export interface ActiveItemManagerOptions<T> {
   collection: IMutableCollection<T>;
   activeIdSingleton: IMutableSingleton<string | null>;
   getId: (item: T) => string;
-  onActiveItemChange?: (activeItem: T | null) => void;
   allowImplicitSelection?: boolean;
 }
 
@@ -30,9 +29,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   public collection: IMutableCollection<T>;
   public activeIdSingleton: IMutableSingleton<string | null>;
   private getId: (item: T) => string;
-  private onActiveItemChange?: (activeItem: T | null) => void;
   private allowImplicitSelection: boolean;
-  private lastActiveItemId: string | null = null;
 
   constructor(options: ActiveItemManagerOptions<T>) {
     const allowImplicitSelection = options.allowImplicitSelection ?? true;
@@ -64,42 +61,18 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     this.collection = options.collection;
     this.activeIdSingleton = options.activeIdSingleton;
     this.getId = options.getId;
-    this.onActiveItemChange = options.onActiveItemChange;
     this.allowImplicitSelection = allowImplicitSelection;
 
-    // Call it initially
-    const initialState = this.getSnapshot();
-    this.lastActiveItemId = initialState.activeItem ? this.getId(initialState.activeItem) : null;
   }
 
-  private resolveSideEffects(state: ActiveItemManagerState<T>) {
-    const currentActiveId = state.activeItem ? this.getId(state.activeItem) : null;
-    if (this.lastActiveItemId !== currentActiveId) {
-      this.lastActiveItemId = currentActiveId;
-      if (this.onActiveItemChange) {
-        this.onActiveItemChange(state.activeItem);
-      }
-    }
-  }
 
-  public notify(state: ActiveItemManagerState<T>): void {
-    super.notify(state);
-    this.resolveSideEffects(state);
-  }
 
-  public notifySync(state: ActiveItemManagerState<T>): void {
-    super.notifySync(state);
-    this.resolveSideEffects(state);
-  }
 
   public getSnapshot(): ActiveItemManagerState<T> {
     // Because ComputedStore may defer state re-computation via a microtask for batching,
     // we must call super.getSnapshot() here instead of simply returning this.currentState!
     // to force a synchronous evaluation of any dirty dependencies before returning.
     const state = super.getSnapshot()!;
-    // Note: resolveSideEffects is explicitly omitted here to preserve Command-Query Separation (CQS).
-    // getSnapshot() must be a pure read operation. The side effect will execute safely
-    // when the deferred microtask invokes notifySync().
     return state;
   }
 

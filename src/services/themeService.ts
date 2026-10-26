@@ -56,7 +56,7 @@ export class ThemeService implements IThemeService {
     this.getWindowMatchMedia = config?.getWindowMatchMedia || getSafeWindowMatchMedia;
     this.addMatchMediaListener = config?.addMatchMediaListener || safeAddMatchMediaListener;
     this.getSafeDoc = config?.getSafeDoc || getSafeDocument;
-    this.themeObservable = new Observable<ThemeState>();
+    this.themeObservable = new Observable<ThemeState>({ mode: "system", resolvedTheme: "dark" });
     this.themeModeSingleton = config?.themeModeSingleton || new StorageSingleton<ThemeMode>(
       STORAGE_KEYS.THEME_MODE,
       "system",

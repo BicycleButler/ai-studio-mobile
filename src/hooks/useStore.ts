@@ -16,7 +16,7 @@ export function useStore<T>(
   );
 
   const getSnapshot = useCallback(() => {
-    return storeInstance.getSnapshot() as T;
+    return storeInstance.getSnapshot();
   }, [storeInstance]);
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
