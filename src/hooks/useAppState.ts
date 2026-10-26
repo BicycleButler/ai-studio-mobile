@@ -35,7 +35,7 @@ export function useAppState() {
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
   // External Services
-  const { googleAuthService, authService, promptTemplateService, generalSettingsService } = useServices();
+  const { googleAuthService, authService, promptTemplateService, generalSettingsService, apiClient } = useServices();
 
   const promptTemplates = usePromptTemplates(initialDraft.selectedTemplateIds || []);
 
@@ -78,7 +78,7 @@ export function useAppState() {
     if (user) {
       setGoogleUser(user);
       const key = customApiKey || generalSettingsService.loadStoredApiKey();
-      fetchModels(key, true)
+      fetchModels(apiClient, key, true)
         .then((data) => {
           if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
             const cleaned = data.models.filter((m: ModelInfo) => !isDeprecatedOrUnusableModel(m.id));
@@ -100,7 +100,7 @@ export function useAppState() {
     setCustomApiKey(key);
     generalSettingsService.saveStoredApiKey(key);
     if (key.trim()) {
-      fetchModels(key.trim(), true)
+      fetchModels(apiClient, key.trim(), true)
         .then((data) => {
           if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
             modelConfig.setModels(data.models);
