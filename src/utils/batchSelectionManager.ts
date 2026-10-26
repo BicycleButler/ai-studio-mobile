@@ -15,6 +15,10 @@ export class BatchSelectionManager<T> extends Observable<BatchSelectionState> {
     this.getItemId = getItemId;
   }
 
+  public updateGetItemId(getItemId: (item: T) => string): void {
+    this.getItemId = getItemId;
+  }
+
   public get selectedIds(): Set<string> {
     return this.currentState!.selectedIds;
   }
