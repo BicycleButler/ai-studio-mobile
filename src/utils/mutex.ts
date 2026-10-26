@@ -1,6 +1,11 @@
 import { ILogger, defaultLogger } from "./logger";
 
-export class Mutex {
+export interface IMutex {
+  acquire(timeoutMs?: number): Promise<() => void>;
+  run<T>(task: () => Promise<T>, timeoutMs?: number): Promise<T>;
+}
+
+export class Mutex implements IMutex {
   private queue: Promise<void> = Promise.resolve();
   private logger: ILogger;
 

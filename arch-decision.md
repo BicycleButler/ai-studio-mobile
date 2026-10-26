@@ -803,3 +803,17 @@ Extracted the `syncRegistry` and `processOfflineMutations` logic from `OfflineSe
 
 **Decision:**
 Refactored `BatchSelectionManager` to strictly manage sets of string IDs rather than generic items. The `T` generic parameter and `getItemId` function were removed from the class entirely. ID extraction is now completely delegated to the `useBatchSelection` hook using standard React memoization. Furthermore, the class methods were optimized to fail fast and return early if the requested operation (like clearing an already empty selection) results in no state change, vastly reducing unnecessary `notifySync` emissions and object allocations. This deepens abstraction, decoupling, and robustness.
+
+## Architectural Decision: Mutex Interface Abstraction
+
+**Context:**
+The `Mutex` class in `src/utils/mutex.ts` was implemented as a concrete class and directly instantiated by consumers like `OfflineQueueStore`. While the logger dependency was properly injected, the `Mutex` itself lacked an interface. This tight coupling violates the Dependency Inversion Principle, making it difficult to inject custom lock strategies (e.g., distributed locks, mock locks for testing, or non-blocking try-locks) without modifying the consumer or monkey-patching the concrete class.
+
+**Path 1: Extract an `IMutex` Interface (Composition)**
+Define an `IMutex` interface with `acquire` and `run` methods. Update the existing `Mutex` class to implement this interface. Update consumers like `OfflineQueueStore` to optionally accept an `IMutex` via constructor injection (defaulting to the concrete `Mutex` if not provided to maintain backward compatibility).
+
+**Path 2: Event-Driven Lock Coordination**
+Instead of a lock object, rely on an event bus to coordinate state access between systems. (Drawback: Highly asynchronous, adds extreme complexity to the sequential offline mutation queue process).
+
+**Recommendation:**
+**Path 1 (Extract an `IMutex` Interface)** was implemented. It strictly enforces the Dependency Inversion Principle, aligning the locking mechanism with the rest of the generic service injection patterns in the codebase. It improves Testability and Generality by allowing seamless substitution of the lock engine.
