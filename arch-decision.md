@@ -745,3 +745,16 @@ Inside `OfflineQueueStore`, the `applyQueueUpdate` method mutated storage and su
 
 **Decision:**
 Modified `safeSetQueue` to re-throw unhandled write exceptions and removed the blanket `try/catch` wrapping the state notification step in `applyQueueUpdate`. Now, if a storage write fails, the entire transaction correctly aborts. The state does not mutate, the cache isn't erroneously updated, and the mutex propagation is strictly preserved, increasing the robustness and integrity of the offline mutation queue.
+## Architectural Decision: ApiClient Constructor Signature Deprecation
+
+**Context:**
+`ApiClient` supported a legacy signature `ApiClientConfig | RetryConfig = {}` with runtime type checking (`'retryConfig' in config`) to support backwards compatibility. This violated the Principle of Least Astonishment and added unnecessary runtime complexity similar to what was removed from `NetworkStorageSyncAdapter`.
+
+**Path 1: Enforce Strict ApiClientConfig Injection**
+Remove the union type and runtime checks, accepting only `ApiClientConfig = {}`.
+
+**Path 2: Retain Union Type**
+Keep the backwards compatibility.
+
+**Recommendation:**
+**Path 1 (Enforce Strict ApiClientConfig Injection)** was implemented. It removes the legacy union type and the associated runtime checks. This improves type safety, reduces cognitive load, and aligns `ApiClient` with the codebase's dependency injection standards.
