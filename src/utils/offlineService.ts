@@ -1,9 +1,9 @@
 import { generateUniqueId } from "./idGenerator";
 import { IObservable } from "./observable";
-
 import { AsyncStorage, IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from "./asyncStorage";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineQueueStore, IOfflineQueueStore } from "./offlineQueueStore";
+import { ISyncEngine, SyncEngine } from "./syncEngine";
 
 export interface OfflineMutation {
   type: string;
@@ -41,12 +41,13 @@ export interface OfflineServiceConfig {
   storageKey?: string;
   storageAdapter?: AsyncStorage;
   queueStore?: IOfflineQueueStore;
+  syncEngine?: ISyncEngine;
   logger?: ILogger;
 }
 
 export class OfflineService implements IOfflineService {
-  private syncRegistry: Record<string, SyncHandler> = {};
   private queueStore: IOfflineQueueStore;
+  private syncEngine: ISyncEngine;
   private logger: ILogger;
 
   constructor(config: OfflineServiceConfig) {
@@ -63,6 +64,12 @@ export class OfflineService implements IOfflineService {
     } else {
       throw new Error("OfflineService requires either a queueStore or a storageAdapter");
     }
+
+    if (config.syncEngine) {
+      this.syncEngine = config.syncEngine;
+    } else {
+      this.syncEngine = new SyncEngine(this.queueStore, this.logger);
+    }
   }
 
   public getObservable(): IObservable<OfflineMutation[]> {
@@ -70,7 +77,7 @@ export class OfflineService implements IOfflineService {
   }
 
   public registerSyncHandler(type: string, handler: SyncHandler): void {
-    this.syncRegistry[type] = handler;
+    this.syncEngine.registerSyncHandler(type, handler);
   }
 
   public getSnapshot(): OfflineMutation[] {
@@ -109,68 +116,7 @@ export class OfflineService implements IOfflineService {
     success: boolean;
     conflicts: ConflictData[];
   }> {
-    const queue = await this.queueStore.getQueue();
-
-    if (queue.length === 0) {
-      return { success: true, conflicts: [] };
-    }
-
-    const remainingQueue: OfflineMutation[] = [];
-    const conflicts: ConflictData[] = [];
-    let processSuccess = true;
-
-    for (let i = 0; i < queue.length; i++) {
-      const mutation = queue[i];
-      let success = false;
-      let retryable = true; // Default to true to be safe
-      try {
-        const handler = this.syncRegistry[mutation.type];
-        if (handler) {
-          const result = await handler(mutation);
-          success = result.success;
-          if (result.retryable !== undefined) {
-            retryable = result.retryable;
-          }
-          if (result.conflict) {
-            conflicts.push(result.conflict);
-          }
-        } else {
-          success = true; // No handler means we can just drop it
-        }
-      } catch (e) {
-        this.logger.error(`Failed to sync offline mutation ${mutation.type}`, e);
-      }
-
-      if (!success) {
-        if (!retryable) {
-          this.logger.warn(`Dropping non-retryable offline mutation ${mutation.type}`);
-          continue; // Drop from queue without halting the rest
-        }
-
-        // Strict FIFO Halting: Break out of the processing loop entirely on the first retryable failure.
-        // This ensures causal consistency (e.g. don't try to sync an "update" if the "create" failed).
-        processSuccess = false;
-
-        // Push the failed mutation and ALL subsequent mutations to the remaining queue
-        remainingQueue.push(...queue.slice(i));
-        break;
-      }
-    }
-
-    // To ensure thread safety when modifying the queue after processing,
-    // we calculate successful items and remove them.
-    // We use a replace call or remove them one by one.
-    // However, OfflineQueueStore doesn't expose `withQueueLock`.
-    // We can replace the queue with remainingQueue + whatever new items were added.
-    // A safer way is to remove successful items by their ID.
-    const successfulIds = queue
-      .filter(m => !remainingQueue.some(rm => rm.id === m.id))
-      .map(m => m.id);
-
-    // Use the optimized batch remove to prevent performance and event spam regressions
-    await this.queueStore.removeMany(successfulIds);
-
-    return { success: processSuccess, conflicts };
+    return this.syncEngine.processOfflineMutations();
   }
 
   public async getOfflineQueue(): Promise<OfflineMutation[]> {
