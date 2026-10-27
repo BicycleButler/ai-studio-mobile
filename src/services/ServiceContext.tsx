@@ -112,7 +112,8 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: defaultNetworkStatusProvider,
     retryStrategy: new DefaultOfflineRetryStrategy(),
-    logger: defaultLogger
+    logger: defaultLogger,
+    endpoint: "/api/jules/sessions"
   }),
 });
 
@@ -123,7 +124,8 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: defaultNetworkStatusProvider,
     retryStrategy: new DefaultOfflineRetryStrategy(),
-    logger: defaultLogger
+    logger: defaultLogger,
+    endpoint: "/api/prompts"
   }),
 });
 

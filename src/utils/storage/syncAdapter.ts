@@ -5,7 +5,7 @@ import { IOfflineRetryStrategy } from "./offlineRetryStrategy";
 import { ILogger } from "../logger";
 
 export interface IStorageSyncAdapter<T> {
-  syncItem(item: T, endpoint: string, mutationType: string, method?: string): void;
+  syncItem(item: T, mutationType: string, endpoint?: string, method?: string): void;
 }
 
 export interface ISyncTransport<T> {
@@ -35,6 +35,8 @@ export interface NetworkStorageSyncAdapterConfig<T> {
   networkStatusProvider: INetworkStatusProvider;
   retryStrategy: IOfflineRetryStrategy;
   logger: ILogger;
+  endpoint?: string;
+  method?: string;
 }
 
 export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
@@ -43,6 +45,8 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
   private offlineService: IOfflineService;
   private networkStatusProvider: INetworkStatusProvider;
   private logger: ILogger;
+  private defaultEndpoint?: string;
+  private defaultMethod: string;
 
   constructor(config: NetworkStorageSyncAdapterConfig<T>) {
     this.transport = config.transport;
@@ -50,11 +54,20 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
     this.networkStatusProvider = config.networkStatusProvider;
     this.retryStrategy = config.retryStrategy;
     this.logger = config.logger;
+    this.defaultEndpoint = config.endpoint;
+    this.defaultMethod = config.method || "POST";
   }
 
-  public syncItem(item: T, endpoint: string, mutationType: string, method: string = "POST"): void {
+  public syncItem(item: T, mutationType: string, endpoint?: string, method?: string): void {
+    const finalEndpoint = endpoint || this.defaultEndpoint;
+    const finalMethod = method || this.defaultMethod;
+
+    if (!finalEndpoint) {
+        throw new Error(`NetworkStorageSyncAdapter: Cannot sync item, no endpoint provided and no default endpoint configured for mutation type ${mutationType}.`);
+    }
+
     if (this.networkStatusProvider.isOnline()) {
-      this.transport.transmit(endpoint, item, method).catch((e) => {
+      this.transport.transmit(finalEndpoint, item, finalMethod).catch((e) => {
         if (this.retryStrategy.shouldEnqueue(e)) {
           this.logger.debug(`Failed to save ${mutationType} to server, falling back to offline queue`, e);
           this.offlineService.enqueueOfflineMutation(mutationType, item).catch((err) => this.logger.error("Failed to enqueue offline mutation", err));

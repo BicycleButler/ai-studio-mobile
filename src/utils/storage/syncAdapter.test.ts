@@ -34,12 +34,12 @@ describe('NetworkStorageSyncAdapter', () => {
         };
 
         const transport = new ApiClientSyncTransport(mockApiClient);
-        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger });
+        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger, endpoint: '/api/test' });
         const item = { id: 1, name: 'test' };
 
         mockApiClient.fetch.mockResolvedValueOnce({ ok: true });
 
-        adapter.syncItem(item, '/api/test', 'test_mutation');
+        adapter.syncItem(item, 'test_mutation');
 
         expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).toHaveBeenCalledWith('/api/test', {
@@ -59,12 +59,12 @@ describe('NetworkStorageSyncAdapter', () => {
         };
 
         const transport = new ApiClientSyncTransport(mockApiClient);
-        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger });
+        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger, endpoint: '/api/test' });
         const item = { id: 1, name: 'test' };
 
         mockOfflineService.enqueueOfflineMutation.mockResolvedValueOnce(undefined);
 
-        adapter.syncItem(item, '/api/test', 'test_mutation');
+        adapter.syncItem(item, 'test_mutation');
 
         expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).not.toHaveBeenCalled();
@@ -78,13 +78,13 @@ describe('NetworkStorageSyncAdapter', () => {
         };
 
         const transport = new ApiClientSyncTransport(mockApiClient);
-        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger });
+        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger, endpoint: '/api/test' });
         const item = { id: 1, name: 'test' };
 
         mockApiClient.fetch.mockRejectedValueOnce(new Error('Network failure'));
         mockOfflineService.enqueueOfflineMutation.mockResolvedValueOnce(undefined);
 
-        adapter.syncItem(item, '/api/test', 'test_mutation');
+        adapter.syncItem(item, 'test_mutation');
 
         expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).toHaveBeenCalled();
@@ -106,13 +106,13 @@ describe('NetworkStorageSyncAdapter', () => {
         };
 
         const transport = new ApiClientSyncTransport(mockApiClient);
-        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: mockRetryStrategy, logger: noOpLogger });
+        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: mockRetryStrategy, logger: noOpLogger, endpoint: '/api/test' });
         const item = { id: 1, name: 'test' };
 
         const testError = new Error('Validation failure');
         mockApiClient.fetch.mockRejectedValueOnce(testError);
 
-        adapter.syncItem(item, '/api/test', 'test_mutation');
+        adapter.syncItem(item, 'test_mutation');
 
         expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).toHaveBeenCalled();

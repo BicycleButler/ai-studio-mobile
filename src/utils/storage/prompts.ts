@@ -31,7 +31,7 @@ export class SavedPromptsService {
           })),
         }),
         onSave: (clean) => {
-          this.syncAdapter.syncItem(clean, "/api/prompts", "saved_prompts");
+          this.syncAdapter.syncItem(clean, "saved_prompts");
         }
       },
       activeIdKey: STORAGE_KEYS.SAVED_PROMPTS + "_activeId",
