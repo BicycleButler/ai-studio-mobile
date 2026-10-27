@@ -31,6 +31,8 @@ import { PythonGenerator, TypeScriptGenerator, KotlinGenerator, CurlGenerator } 
 import { IPwaInstallService, defaultPwaInstallService } from "./pwaInstallService";
 import { IWindowSecurityService, WindowSecurityService } from "./windowSecurityService";
 import { IImageCompressor, defaultImageCompressor } from "../utils/imageCompressor";
+import { IClipboardService, BrowserClipboardService } from "./clipboardService";
+import { IFileDownloadService, BrowserFileDownloadService } from "./fileDownloadService";
 
 export interface IServices {
   themeService: IThemeService;
@@ -57,6 +59,8 @@ export interface IServices {
   syncOrchestrator: ISyncOrchestrator;
   logger: typeof defaultLogger;
   imageCompressor: IImageCompressor;
+  clipboardService: IClipboardService;
+  fileDownloadService: IFileDownloadService;
 }
 
 
@@ -156,6 +160,9 @@ const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
   ]
 });
 
+const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLogger);
+const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(defaultLogger);
+
 const defaultServices: IServices = {
   themeService: defaultThemeService,
   promptTemplateService: explicitlyInjectedPromptTemplateService,
@@ -181,6 +188,8 @@ const defaultServices: IServices = {
   windowSecurityService: explicitlyInjectedWindowSecurityService,
   logger: defaultLogger,
   imageCompressor: explicitlyInjectedImageCompressor,
+  clipboardService: explicitlyInjectedClipboardService,
+  fileDownloadService: explicitlyInjectedFileDownloadService,
 };
 
 

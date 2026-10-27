@@ -1,5 +1,4 @@
 import { getErrorMessage } from "../utils/errorHandling";
-import { getSafeNavigatorClipboard } from "../utils/platform";
 import React, { useState, useEffect } from "react";
 import {
   GitBranch,
@@ -43,7 +42,7 @@ type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal
 
 
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
-  const { julesClient, logger } = useServices();
+  const { julesClient, logger, clipboardService } = useServices();
     // Navigation & Sub-views
   const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
@@ -94,7 +93,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
   const [copiedSpecId, setCopiedSpecId] = useState<string | null>(null);
   const handleCopySpec = async (id: string, content: string) => {
     try {
-      await getSafeNavigatorClipboard()?.writeText(content);
+      await clipboardService.writeText(content);
       setCopiedSpecId(id);
       setTimeout(() => setCopiedSpecId(null), 2000);
     } catch {

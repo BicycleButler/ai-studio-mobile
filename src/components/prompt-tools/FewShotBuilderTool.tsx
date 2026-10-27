@@ -1,8 +1,8 @@
-import { getSafeNavigatorClipboard } from "../../utils/platform";
 import React, { useState } from "react";
 import { Plus, Trash2, Copy, Check, Sparkles, Send, RotateCcw } from "lucide-react";
 import { StructuredExample } from "../../types";
 import { generateUniqueId } from "../../utils/idGenerator";
+import { useServices } from "../../services/ServiceContext";
 
 interface FewShotBuilderToolProps {
   onInsertText?: (text: string) => void;
@@ -64,6 +64,7 @@ const PRESETS: Array<{
 ];
 
 export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsertText }) => {
+  const { clipboardService } = useServices();
   const [examples, setExamples] = useState<StructuredExample[]>([]);
   const [testInput, setTestInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -110,7 +111,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
 
   const handleCopy = async () => {
     const formatted = formatFewShotPrompt();
-    await getSafeNavigatorClipboard()?.writeText(formatted);
+    await clipboardService.writeText(formatted);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };

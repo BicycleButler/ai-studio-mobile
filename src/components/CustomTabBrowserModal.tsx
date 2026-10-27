@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useServices } from "../services/ServiceContext";
 import { useBackNavigation } from "../hooks/useBackNavigation";
-import { getSafeNavigatorClipboard, getSafeWindow } from "../utils/platform";
+import { getSafeWindow } from "../utils/platform";
 
 export type CredentialTargetService = "aistudio" | "jules";
 
@@ -39,7 +39,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   activeApiKey = "",
   initialService = "aistudio",
 }) => {
-  const { keyVerificationService } = useServices();
+  const { keyVerificationService, clipboardService } = useServices();
 
   // Enable device/browser back navigation to dismiss browser smoothly
   useBackNavigation(isOpen, onClose, "custom-tab-browser");
@@ -62,12 +62,12 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   const checkClipboard = async () => {
     setIsCheckingClipboard(true);
     try {
-      if (Boolean(getSafeNavigatorClipboard()?.readText)) {
-        const text = await getSafeNavigatorClipboard()?.readText() || "";
-        const found = isJules ? (keyVerificationService.detectJulesApiKey(text) || keyVerificationService.detectGoogleApiKey(text)) : keyVerificationService.detectGoogleApiKey(text);
-        if (found && found !== activeApiKey.trim()) {
-          setDetectedKey(found);
-        }
+      const text = await clipboardService.readText();
+      if (text) {
+          const found = isJules ? (keyVerificationService.detectJulesApiKey(text) || keyVerificationService.detectGoogleApiKey(text)) : keyVerificationService.detectGoogleApiKey(text);
+          if (found && found !== activeApiKey.trim()) {
+            setDetectedKey(found);
+          }
       }
     } catch {
       // Ignore clipboard permission errors
@@ -93,7 +93,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
 
   const handleCopyUrl = async () => {
     try {
-      await getSafeNavigatorClipboard()?.writeText(targetUrl);
+      await clipboardService.writeText(targetUrl);
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
     } catch {

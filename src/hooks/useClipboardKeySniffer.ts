@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useServices } from "../services/ServiceContext";
-import { getSafeDocument, getSafeNavigatorClipboard, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
+import { getSafeDocument, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 
 interface UseClipboardKeySnifferOptions {
   activeApiKey?: string;
@@ -15,7 +15,7 @@ export function useClipboardKeySniffer({
   enabled = true,
   detectKeyFn,
 }: UseClipboardKeySnifferOptions = {}) {
-  const { keyVerificationService } = useServices();
+  const { keyVerificationService, clipboardService } = useServices();
   const [detectedKey, setDetectedKey] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const dismissedKeyRef = useRef<string | null>(null);
@@ -23,13 +23,10 @@ export function useClipboardKeySniffer({
 
   const inspectClipboard = useCallback(async (): Promise<string | null> => {
     if (!enabled) return null;
-    if (!getSafeNavigatorClipboard()?.readText) {
-      return null;
-    }
 
     setIsChecking(true);
     try {
-      const text = await getSafeNavigatorClipboard()?.readText() || "";
+      const text = await clipboardService.readText() || "";
       if (!text || text === lastCheckedTextRef.current) {
         setIsChecking(false);
         return null;
