@@ -183,42 +183,42 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     switch (status) {
       case "planning":
         return (
-          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 flex items-center gap-1">
             <RefreshCw className="w-3 h-3 animate-spin" />
             <span>Planning</span>
           </span>
         );
       case "awaiting_approval":
         return (
-          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
             <span>Needs Review</span>
           </span>
         );
       case "executing":
         return (
-          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 flex items-center gap-1">
             <PlayCircle className="w-3 h-3 animate-spin" />
             <span>Coding</span>
           </span>
         );
       case "completed":
         return (
-          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" />
             <span>Completed</span>
           </span>
         );
       case "failed":
         return (
-          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
             <span>Failed</span>
           </span>
         );
       default:
         return (
-          <span className="text-xs font-medium text-muted-foreground/70 flex items-center gap-1">
+          <span className="text-[10px] font-medium text-muted-foreground/80 flex items-center gap-1">
             <span>Idle</span>
           </span>
         );

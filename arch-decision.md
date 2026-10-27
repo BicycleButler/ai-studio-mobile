@@ -833,3 +833,17 @@ Extracted an `IBatchSelectionManager` interface and made `BatchSelectionManager`
 
 **Decision:**
 Extracted an `IBatchSelectionManager` interface and made `BatchSelectionManager` implement it. `useBatchSelection` now types its internal manager state as `IBatchSelectionManager`. This strictly enforces the Dependency Inversion Principle, matching other utility patterns (like `IMutex`) and improving testability and code structure.
+
+## Architectural Decision: Core Service Interface Abstraction
+
+**Context:**
+Several core services (`JulesClient`, `GoogleAuthService`, `PwaInstallService`, and `WindowSecurityService`) were previously implemented as concrete classes and injected as such into the `ServiceContext`. This coupled consumers directly to the concrete implementations, hindered testability by making it difficult to inject pure mocks, and violated the Dependency Inversion Principle. It also diverged from the established pattern where other domain services (like `IThemeService`, `IChatHistoryService`) expose clear interfaces.
+
+**Path 1: Extract Explicit Interfaces (Dependency Inversion)**
+Extract interfaces (`IJulesClient`, `IGoogleAuthService`, `IPwaInstallService`, `IWindowSecurityService`) for these services and make the concrete classes implement them. Update the `IServices` registry in `ServiceContext` to strictly depend on these interfaces instead of the concrete implementations.
+
+**Path 2: Keep Concrete Implementations (Status Quo)**
+Continue relying on TypeScript's structural typing and class definitions as the defacto interfaces. While TypeScript can mock classes, this leaves the API contract implicit rather than explicit and ties the type definition directly to implementation details (like private fields, even if technically ignorable via `Omit`).
+
+**Recommendation:**
+**Path 1 (Extract Explicit Interfaces)** was implemented. It strictly enforces the Dependency Inversion Principle, aligning with the interface abstraction patterns established in previous ADRs (e.g., `IMutex`, `IBatchSelectionManager`). It improves Robustness, Generality, and Testability by creating clear API contracts, allowing seamless substitution of service implementations (e.g., mock implementations during unit testing or platform-specific overrides) without relying on structural typing workarounds.
