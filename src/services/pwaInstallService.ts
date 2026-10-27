@@ -23,7 +23,12 @@ export interface PwaInstallServiceConfig {
     addEventListener?: typeof safeAddEventListener;
 }
 
-export class PwaInstallService {
+export interface IPwaInstallService {
+  stateObservable: Observable<PWAInstallState>;
+  initListeners(): void;
+}
+
+export class PwaInstallService implements IPwaInstallService {
   public stateObservable: Observable<PWAInstallState>;
   private isInitialized = false;
   private isBrowserEnv: typeof isBrowserEnvironment;
