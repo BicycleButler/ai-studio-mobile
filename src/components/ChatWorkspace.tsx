@@ -167,6 +167,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     selectedIds: selectedHistoryIds,
     toggleSelection: toggleHistorySelectionRaw,
     toggleSelectAll: toggleSelectAllHistoryRaw,
+    getSelectionState: getHistorySelectionState,
+
+
+
     clearSelection: clearHistorySelection,
   } = useBatchSelection({
     items: validHistorySessions,
@@ -192,7 +196,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   const toggleSelectAllHistory = useCallback(() => {
     toggleSelectAllHistoryRaw(validHistorySessions);
-  }, [toggleSelectAllHistoryRaw, validHistorySessions]);
+  }, [toggleSelectAllHistoryRaw,
+    validHistorySessions]);
 
   // Clear selection on popover close
   useEffect(() => {
@@ -1070,6 +1075,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               handleDeleteSession={handleDeleteSession}
               currentSessionId={currentSessionId || null}
               popoverRef={historyPopoverRef}
+              getHistorySelectionState={getHistorySelectionState}
+
+
             />
           )}
 
