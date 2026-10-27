@@ -22,7 +22,9 @@ export function useAppState() {
       return null;
     }
   })();
-  const { draftStateService, generalSettingsService: genSettings } = useServices();
+  // External Services
+  const { googleAuthService, authService, promptTemplateService, generalSettingsService, apiClient, draftStateService } = useServices();
+
   const initialDraft = draftStateService.loadDraftState(initialActiveProjectId);
 
   const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
@@ -31,11 +33,9 @@ export function useAppState() {
   // or refactoring completely)
   const [googleUser, setGoogleUser] = useState(() => googleAuthService.loadStoredGoogleUser());
   const [hasServerKey, setHasServerKey] = useState(false);
-  const [customApiKey, setCustomApiKey] = useState(() => genSettings.loadStoredApiKey());
+  const [customApiKey, setCustomApiKey] = useState(() => generalSettingsService.loadStoredApiKey());
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
-  // External Services
-  const { googleAuthService, authService, promptTemplateService, generalSettingsService, apiClient } = useServices();
 
   const promptTemplates = usePromptTemplates(initialDraft.selectedTemplateIds || []);
 
