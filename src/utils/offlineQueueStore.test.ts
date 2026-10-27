@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { OfflineQueueStore } from './offlineQueueStore';
-import { AsyncStorage } from './asyncStorage';
+import { OfflineQueueStore, IAsyncStorageAdapter } from './offlineQueueStore';
 import { NoOpLogger } from './logger';
 
-class MockAsyncStorage implements AsyncStorage {
+class MockAsyncStorage implements IAsyncStorageAdapter {
   private store = new Map<string, unknown>();
 
   async getItem<T>(key: string): Promise<T | undefined> {
@@ -98,7 +97,7 @@ describe('OfflineQueueStore', () => {
     });
 });
 
-class FailingAsyncStorage implements AsyncStorage {
+class FailingAsyncStorage implements IAsyncStorageAdapter {
   async getItem<T>(_key: string): Promise<T | undefined> {
     return [] as T;
   }
