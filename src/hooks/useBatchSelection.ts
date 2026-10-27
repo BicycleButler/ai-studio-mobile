@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { BatchSelectionManager, SelectionState } from '../utils/batchSelectionManager';
+import { BatchSelectionManager, IBatchSelectionManager, SelectionState } from '../utils/batchSelectionManager';
 import { useStore } from './useStore';
 
 export interface UseBatchSelectionProps<T> {
@@ -9,7 +9,7 @@ export interface UseBatchSelectionProps<T> {
 }
 
 export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [] }: UseBatchSelectionProps<T>) {
-  const [manager] = React.useState(() => new BatchSelectionManager());
+  const [manager] = React.useState<IBatchSelectionManager>(() => new BatchSelectionManager());
 
   const state = useStore(manager);
 

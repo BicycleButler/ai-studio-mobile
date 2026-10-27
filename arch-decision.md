@@ -817,3 +817,19 @@ Instead of a lock object, rely on an event bus to coordinate state access betwee
 
 **Recommendation:**
 **Path 1 (Extract an `IMutex` Interface)** was implemented. It strictly enforces the Dependency Inversion Principle, aligning the locking mechanism with the rest of the generic service injection patterns in the codebase. It improves Testability and Generality by allowing seamless substitution of the lock engine.
+
+## Architectural Decision: IBatchSelectionManager Interface Abstraction
+
+**Context:**
+`BatchSelectionManager` was previously implemented as a concrete class and directly instantiated without an interface. This coupled consumers to the concrete implementation and hindered testability by making it difficult to inject mocks.
+
+**Decision:**
+Extracted an `IBatchSelectionManager` interface and made `BatchSelectionManager` implement it. `useBatchSelection` now types its internal manager state as `IBatchSelectionManager`. This strictly enforces the Dependency Inversion Principle, matching other utility patterns (like `IMutex`) and improving testability and code structure.
+
+## Architectural Decision: IBatchSelectionManager Interface Abstraction
+
+**Context:**
+`BatchSelectionManager` was previously implemented as a concrete class and directly instantiated without an interface. This coupled consumers to the concrete implementation and hindered testability by making it difficult to inject mocks.
+
+**Decision:**
+Extracted an `IBatchSelectionManager` interface and made `BatchSelectionManager` implement it. `useBatchSelection` now types its internal manager state as `IBatchSelectionManager`. This strictly enforces the Dependency Inversion Principle, matching other utility patterns (like `IMutex`) and improving testability and code structure.
