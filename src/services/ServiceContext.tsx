@@ -7,7 +7,7 @@ import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/stor
 import { defaultLogger } from "../utils/logger";
 
 import { IThemeService, defaultThemeService } from "./themeService";
-import { IPromptTemplateService, defaultPromptTemplateService } from "./promptTemplateService";
+import { IPromptTemplateService, PromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
 import { IAuthService, AuthService } from "./auth";
 import { GoogleAuthService } from "./googleAuth";
 import { IOfflineService } from "../utils/offlineService";
@@ -26,7 +26,8 @@ import { SpeechVoicesService } from "./speechVoices";
 import { GeminiStreamService } from "./geminiStreamService";
 import { KeyVerificationService } from "./keyVerification";
 import { StubsClient } from "./stubsService";
-import { defaultCodeGeneratorService, ICodeGeneratorService } from "./codeGeneratorService";
+import { CodeGeneratorService, ICodeGeneratorService } from "./codeGeneratorService";
+import { PythonGenerator, TypeScriptGenerator, KotlinGenerator, CurlGenerator } from "./codeGenerators";
 import { PwaInstallService, defaultPwaInstallService } from "./pwaInstallService";
 import { WindowSecurityService } from "./windowSecurityService";
 import { ImageCompressor, defaultImageCompressor } from "../utils/imageCompressor";
@@ -140,9 +141,22 @@ const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defa
 
 const explicitlyInjectedImageCompressor = defaultImageCompressor;
 
+const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
+  builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
+});
+
+const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
+  generators: [
+    new KotlinGenerator(),
+    new TypeScriptGenerator(),
+    new PythonGenerator(),
+    new CurlGenerator()
+  ]
+});
+
 const defaultServices: IServices = {
   themeService: defaultThemeService,
-  promptTemplateService: defaultPromptTemplateService,
+  promptTemplateService: explicitlyInjectedPromptTemplateService,
   authService: explicitlyInjectedAuthService,
   googleAuthService: explicitlyInjectedGoogleAuthService,
   offlineService: explicitlyInjectedOfflineService,
@@ -160,7 +174,7 @@ const defaultServices: IServices = {
   geminiStreamService: explicitlyInjectedGeminiStreamService,
   keyVerificationService: explicitlyInjectedKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,
-  codeGeneratorService: defaultCodeGeneratorService,
+  codeGeneratorService: explicitlyInjectedCodeGeneratorService,
   pwaInstallService: defaultPwaInstallService,
   windowSecurityService: explicitlyInjectedWindowSecurityService,
   logger: defaultLogger,

@@ -1,4 +1,10 @@
-import { IReadableStore } from "../observable";
+import { IObservable } from "../observable";
+
+export interface IStorageBase<T> extends IObservable<T>, IDisposable {
+  load(): T;
+  save(item: T): void;
+  clear(): void;
+}
 
 export interface IDisposable {
   dispose(): void;
@@ -19,22 +25,16 @@ export interface ICollectionEngine<T> {
   bulkUpsert(items: T[], newItems: T[], prepend?: boolean): CollectionOperationResult<T>;
 }
 
-export interface IMutableCollection<T> extends IReadableStore<T[]> {
-  save: (items: T[]) => void;
+export interface IMutableCollection<T> extends IStorageBase<T[]> {
   delete: (id: string) => T[];
   bulkDelete: (ids: string[]) => T[];
   upsert: (item: T, prepend?: boolean) => T;
   bulkUpsert: (newItems: T[], prepend?: boolean) => T[];
   update: (id: string, updates: Partial<T>) => T | null;
   bulkUpdate: (updates: { id: string; changes: Partial<T> }[]) => T[];
-  load: () => T[];
-  clear: () => void;
 }
 
-export interface IMutableSingleton<T> extends IReadableStore<T> {
-  save: (item: T) => void;
-  clear: () => void;
-  load: () => T;
+export interface IMutableSingleton<T> extends IStorageBase<T> {
 }
 
 export interface IStorageAdapter<T> {

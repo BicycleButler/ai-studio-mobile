@@ -1,6 +1,8 @@
 import { describe, test } from 'vitest';
 import { PromptConfig, ChatMessage, PromptType } from "../types";
-import { defaultCodeGeneratorService } from "../services/codeGeneratorService";
+import { CodeGeneratorService } from "../services/codeGeneratorService";
+import { KotlinGenerator, TypeScriptGenerator, PythonGenerator, CurlGenerator } from "../services/codeGenerators";
+const defaultCodeGeneratorService = new CodeGeneratorService({ generators: [new KotlinGenerator(), new TypeScriptGenerator(), new PythonGenerator(), new CurlGenerator()] });
 
 function assert(condition: boolean, message: string) {
   if (!condition) {

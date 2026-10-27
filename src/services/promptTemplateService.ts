@@ -79,18 +79,21 @@ export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
 ];
 
 export interface PromptTemplateServiceConfig {
+  builtinTemplates?: PromptTemplate[];
   customTemplatesCollection?: IMutableCollection<PromptTemplate>;
 }
 
 export class PromptTemplateService implements IPromptTemplateService {
   private customTemplatesCollection: IMutableCollection<PromptTemplate>;
+  private builtinTemplates: PromptTemplate[];
 
   constructor(config: PromptTemplateServiceConfig) {
+    this.builtinTemplates = config?.builtinTemplates || BUILTIN_PROMPT_TEMPLATES;
     this.customTemplatesCollection = config?.customTemplatesCollection || new StorageCollection<PromptTemplate>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
   }
 
   public getBuiltinTemplates(): PromptTemplate[] {
-    return [...BUILTIN_PROMPT_TEMPLATES];
+    return [...this.builtinTemplates];
   }
 
   public getCustomTemplates(): PromptTemplate[] {
@@ -149,7 +152,7 @@ export class PromptTemplateService implements IPromptTemplateService {
 
   public deleteCustomTemplate(id: string): boolean {
     // Built-in templates cannot be deleted
-    if (BUILTIN_PROMPT_TEMPLATES.some((t) => t.id === id)) {
+    if (this.builtinTemplates.some((t) => t.id === id)) {
       return false;
     }
 
