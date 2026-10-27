@@ -897,3 +897,17 @@ Continue relying on `getSafeNavigatorClipboard` and `getSafeDocument` but enhanc
 
 **Recommendation:**
 **Path 1 (Extract Interfaces)** is the recommended path. It strictly enforces the Dependency Inversion Principle, aligning with the interface abstraction patterns established in the application. It abstracts away ugly DOM manipulation (like appending invisible anchor tags for downloads) into a reusable service, deeply improving Generality and Testability while eliminating direct `document` and `navigator` dependencies from UI components.
+
+## Architectural Decision: Map Collection singleUpdatedItem Resolution Consistency
+
+**Context:**
+`MapCollection<T>` tracks mutations and returns a `singleUpdatedItem` in its `CollectionOperationResult`. Previously, if a bulk operation mutated or added multiple items, `singleUpdatedItem` would arbitrarily resolve to the last modified item or the first added item. If a mutation was requested but no change actually occurred (e.g. data is identical), it still returned an item. For deletions, it did not properly resolve the deleted item if exactly one was deleted. This inconsistency broke the contract of `ICollectionEngine<T>` which implies `item` is only returned for singular updates.
+
+**Path 1: Remove `item` from `CollectionOperationResult`**
+Force consumers to extract the updated item manually from the `items` array by inspecting state. (Drawback: highly disruptive, breaks consumers expecting the convenience property).
+
+**Path 2: Strict Mutation Counting**
+Implement an `updateCount` tracker inside `applyMutations` and `bulkDelete`. `item` is exclusively assigned if and only if exactly one item was mutated, added, or deleted across the entire operation.
+
+**Recommendation:**
+**Path 2 (Strict Mutation Counting)** was implemented. It fixes the semantic accuracy of the `singleUpdatedItem` resolution for batch operations while preserving the interface, ensuring downstream bugs are not triggered by false-positive singular resolves on multi-item operations.
