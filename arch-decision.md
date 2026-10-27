@@ -847,3 +847,17 @@ Continue relying on TypeScript's structural typing and class definitions as the 
 
 **Recommendation:**
 **Path 1 (Extract Explicit Interfaces)** was implemented. It strictly enforces the Dependency Inversion Principle, aligning with the interface abstraction patterns established in previous ADRs (e.g., `IMutex`, `IBatchSelectionManager`). It improves Robustness, Generality, and Testability by creating clear API contracts, allowing seamless substitution of service implementations (e.g., mock implementations during unit testing or platform-specific overrides) without relying on structural typing workarounds.
+
+## Architectural Decision: Batch Selection Abstraction Standardization
+**Context:**
+Certain UI components like `ChatHistoryPopover` manually calculated batch selection states (e.g. `selectedHistoryIds.size === 0 ? 'none' : ...`) despite the existence of a standard `getSelectionState` function returned by the `useBatchSelection` hook. This led to duplicated logic and violated the DRY principle, risking inconsistency if selection definitions evolved.
+
+**Decision:**
+We standardized all consumers to exclusively use `getSelectionState` injected from the `useBatchSelection` hook. This reinforces the encapsulation of the batch selection manager, promotes Generality by allowing the underlying state calculations to change without impacting the UI, and simplifies component prop drilling.
+
+## Architectural Decision: Async Storage Adapter Interface Unification
+**Context:**
+The `AsyncStorage` interface was originally defined in `src/utils/asyncStorage.ts`, but `OfflineQueueStore` declared a nearly identical `IAsyncStorageAdapter` internally, leading to unnecessary type definitions and duplicate interface shapes.
+
+**Decision:**
+Removed the redundant `IAsyncStorageAdapter` definition in `offlineQueueStore.ts` and standardized its dependency on the `AsyncStorage` interface exported by `asyncStorage.ts`. This improves maintainability and centralizes the abstraction of the storage layer.

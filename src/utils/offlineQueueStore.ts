@@ -3,6 +3,7 @@ import { Observable, IObservable } from "./observable";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
 import { getSafeBroadcastChannel } from "./platform";
+import { AsyncStorage } from "./asyncStorage";
 
 export interface IOfflineQueueStore {
   getObservable(): IObservable<OfflineMutation[]>;
@@ -16,14 +17,10 @@ export interface IOfflineQueueStore {
   dispose(): void;
 }
 
-export interface IAsyncStorageAdapter {
-    getItem<T>(key: string): Promise<T | undefined>;
-    setItem<T>(key: string, value: T): Promise<void>;
-}
 
 export interface OfflineQueueStoreConfig {
   storageKey: string;
-  storageAdapter: IAsyncStorageAdapter;
+  storageAdapter: AsyncStorage;
   logger?: ILogger;
   createBroadcastChannel?: (name: string) => BroadcastChannel | null;
   mutex?: IMutex;
@@ -39,7 +36,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   private cachedQueue: OfflineMutation[] = [];
   private channel?: BroadcastChannel;
   private storageKey: string;
-  private storageAdapter: IAsyncStorageAdapter;
+  private storageAdapter: AsyncStorage;
   private logger: ILogger;
   private createBroadcastChannel: (name: string) => BroadcastChannel | null;
 

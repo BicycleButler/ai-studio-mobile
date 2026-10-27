@@ -24,6 +24,7 @@ export interface ChatHistoryPopoverProps {
   handleDeleteSession: (id: string) => void;
   currentSessionId: string | null;
   popoverRef: React.RefObject<HTMLDivElement | null>;
+  getHistorySelectionState: (items?: ChatSession[]) => "none" | "some" | "all";
 }
 
 export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
@@ -37,6 +38,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
   handleDeleteSession,
   currentSessionId,
   popoverRef,
+  getHistorySelectionState,
 }) => {
   return (
     <div
@@ -88,7 +90,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
         <BatchSelectionHeader
           selectedCount={selectedHistoryIds.size}
           totalCount={validHistorySessions.length}
-          selectionState={selectedHistoryIds.size === 0 ? 'none' : selectedHistoryIds.size === validHistorySessions.length ? 'all' : 'some'}
+          selectionState={getHistorySelectionState(validHistorySessions)}
           onToggleSelectAll={toggleSelectAllHistory}
           className="!px-3 !bg-muted/20 border-border/40"
         />
