@@ -38,7 +38,7 @@ import { extractSpokenText } from "../utils/speechExtractor";
 import {
   SpeechSettings,
 } from "../services/speechVoices";
-import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
+import { SentenceSpeechQueue, ISentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { useStore } from "../hooks/useStore";
@@ -349,7 +349,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const isVoiceModeActiveRef = useRef<boolean>(isVoiceModeActive);
   isVoiceModeActiveRef.current = isVoiceModeActive;
 
-  const sentenceQueueRef = useRef<SentenceSpeechQueue | null>(null);
+  const sentenceQueueRef = useRef<ISentenceSpeechQueue | null>(null);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -9,7 +9,17 @@ export interface SyncHandlerConfig {
   requestBuilder?: (payload: unknown, method: string) => RequestInit;
 }
 
-export class SyncOrchestrator {
+export interface ISyncOrchestrator {
+  createGenericSyncHandler(
+    endpoint: string,
+    payloadWrapper?: (payload: unknown) => unknown,
+    method?: string,
+    requestBuilder?: (payload: unknown, method: string) => RequestInit
+  ): SyncHandler;
+  registerHandlers(): void;
+}
+
+export class SyncOrchestrator implements ISyncOrchestrator {
   constructor(
     private offlineService: IOfflineService,
     private apiClient: IApiClient,

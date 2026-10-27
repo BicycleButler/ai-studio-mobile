@@ -24,7 +24,17 @@ export interface SentenceQueueOptions {
   onError?: (err: unknown) => void;
 }
 
-export class SentenceSpeechQueue {
+export interface ISentenceSpeechQueue {
+  updateSettings(settings: SpeechSettings): void;
+  feed(fullStreamedText: string, isStreaming?: boolean): void;
+  finalize(): void;
+  cancel(): void;
+  getIsSpeaking(): boolean;
+  getQueueLength(): number;
+  getProcessedIndex(): number;
+}
+
+export class SentenceSpeechQueue implements ISentenceSpeechQueue {
   private buffer = "";
   private processedIndex = 0;
   private sentenceCount = 0;
