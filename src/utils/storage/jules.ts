@@ -60,7 +60,7 @@ export class JulesStorageService {
       collectionOptions: {
         validate: (s) => !this.isMockJulesSession(s as Partial<JulesSession>),
         onSave: (clean) => {
-          this.syncAdapter.syncItem(clean, "/api/jules/sessions", "jules_sessions");
+          this.syncAdapter.syncItem(clean, "jules_sessions");
         }
       },
       activeIdKey: STORAGE_KEYS.ACTIVE_JULES_SESSION_ID,
