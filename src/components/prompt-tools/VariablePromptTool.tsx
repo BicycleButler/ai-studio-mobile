@@ -1,6 +1,6 @@
-import { getSafeNavigatorClipboard } from "../../utils/platform";
 import React, { useState, useMemo } from "react";
 import { Variable, Copy, Check, Send, PlusCircle } from "lucide-react";
+import { useServices } from "../../services/ServiceContext";
 
 interface VariablePromptToolProps {
   onInsertText?: (text: string) => void;
@@ -48,6 +48,7 @@ const PRESETS: PresetItem[] = [
 ];
 
 export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsertText }) => {
+  const { clipboardService } = useServices();
   const [template, setTemplate] = useState<string>("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
@@ -85,7 +86,7 @@ export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsert
   }, [template, values]);
 
   const handleCopy = async () => {
-    await getSafeNavigatorClipboard()?.writeText(resolvedPrompt);
+    await clipboardService.writeText(resolvedPrompt);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };

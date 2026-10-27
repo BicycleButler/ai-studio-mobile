@@ -17,7 +17,6 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { ProjectInfo, KeyVerificationResult } from "../types";
-import { getSafeNavigatorClipboard } from "../utils/platform";
 import { useServices } from "../services/ServiceContext";
 import {
   } from "../utils/storage";
@@ -47,7 +46,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   onSuccess,
   availableModels = DEFAULT_MODELS,
 }) => {
-  const { keyVerificationService, logger, projectService } = useServices();
+  const { keyVerificationService, logger, projectService, clipboardService } = useServices();
 
   // Enable device/browser back navigation to dismiss sheet smoothly
   useBackNavigation(isOpen, () => {
@@ -171,11 +170,9 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   // Immediate clipboard erasure upon dismissal without saving
   const handleDismiss = async () => {
     try {
-      if (Boolean(getSafeNavigatorClipboard()?.readText)) {
-        const text = await getSafeNavigatorClipboard()?.readText() || "";
-        if (text && keyVerificationService.isValidGoogleApiKeyFormat(text.trim())) {
-          await keyVerificationService.clearClipboardSafe();
-        }
+      const text = await clipboardService.readText();
+      if (text && keyVerificationService.isValidGoogleApiKeyFormat(text.trim())) {
+        await keyVerificationService.clearClipboardSafe();
       }
     } catch {
       // ignore

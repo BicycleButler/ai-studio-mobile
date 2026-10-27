@@ -883,3 +883,17 @@ Continue relying on TypeScript's structural typing and class definitions as the 
 
 **Decision:**
 Extracted explicit interfaces (`ISentenceSpeechQueue` and `ISSEStreamParser`) for these classes and updated them to implement those interfaces. This adheres to the strict interface abstraction pattern in the codebase, significantly enhancing testability and satisfying the Core Service Interface Abstraction requirement.
+
+## Architectural Decision: Clipboard and Download System Interaction Abstraction
+
+**Context:**
+Currently, components and services like `CodeExportModal`, `MobileIDEWorkspace`, and `KeyVerificationService` directly import and invoke DOM-bound utility functions (e.g., `getSafeNavigatorClipboard()`) and manually orchestrate DOM element creation for downloads (e.g., `document.createElement('a')`). This violates the Dependency Inversion Principle, couples business and presentation logic to the browser environment, and hinders testability in Node.js/Vitest environments.
+
+**Path 1: Extract `IClipboardService` and `IFileDownloadService` Interfaces (Composition)**
+Define explicit interfaces (`IClipboardService` and `IFileDownloadService`) to encapsulate these system interactions. Implement browser-specific providers (`BrowserClipboardService`, `BrowserFileDownloadService`). Inject these services via the unified `ServiceContext` for React components and via constructor injection for domain classes (like `KeyVerificationService`).
+
+**Path 2: Mock Platform Utilities Globally**
+Continue relying on `getSafeNavigatorClipboard` and `getSafeDocument` but enhance the testing framework to globally mock these functions or the underlying `window.navigator.clipboard` API.
+
+**Recommendation:**
+**Path 1 (Extract Interfaces)** is the recommended path. It strictly enforces the Dependency Inversion Principle, aligning with the interface abstraction patterns established in the application. It abstracts away ugly DOM manipulation (like appending invisible anchor tags for downloads) into a reusable service, deeply improving Generality and Testability while eliminating direct `document` and `navigator` dependencies from UI components.

@@ -1,0 +1,36 @@
+import { getSafeNavigatorClipboard } from "../utils/platform";
+import { ILogger } from "../utils/logger";
+
+export interface IClipboardService {
+  writeText(text: string): Promise<boolean>;
+  readText(): Promise<string>;
+}
+
+export class BrowserClipboardService implements IClipboardService {
+  constructor(private logger: ILogger, private getClipboard = getSafeNavigatorClipboard) {}
+
+  public async readText(): Promise<string> {
+    try {
+      const clipboard = this.getClipboard();
+      if (clipboard && clipboard.readText) {
+        return await clipboard.readText();
+      }
+    } catch (err) {
+      this.logger.debug("Failed to read from clipboard:", err);
+    }
+    return "";
+  }
+
+  public async writeText(text: string): Promise<boolean> {
+    try {
+      const clipboard = this.getClipboard();
+      if (clipboard && clipboard.writeText) {
+        await clipboard.writeText(text);
+        return true;
+      }
+    } catch (err) {
+      this.logger.debug("Failed to write to clipboard:", err);
+    }
+    return false;
+  }
+}

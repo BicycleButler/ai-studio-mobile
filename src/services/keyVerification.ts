@@ -1,8 +1,8 @@
 import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
 import { IApiClient, defaultClient } from "../utils/apiClient";
-import { getSafeNavigatorClipboard } from "../utils/platform";
 import { ILogger, defaultLogger } from "../utils/logger";
+import { IClipboardService } from "./clipboardService";
 
 // Base string patterns for dynamic regex composition
 const BASE_STANDARD_GOOGLE_KEY = "AIza[0-9A-Za-z\\-_]{35}";
@@ -52,18 +52,18 @@ export interface IKeyVerificationService {
 export interface KeyVerificationServiceConfig {
   apiClient: IApiClient;
   logger: ILogger;
-  getNavigatorClipboard?: typeof getSafeNavigatorClipboard;
+  clipboardService?: IClipboardService;
 }
 
 export class KeyVerificationService implements IKeyVerificationService {
   private apiClient: IApiClient;
   private logger: ILogger;
-  private getNavigatorClipboard: typeof getSafeNavigatorClipboard;
+  private clipboardService?: IClipboardService;
 
   constructor(config: KeyVerificationServiceConfig) {
     this.apiClient = config.apiClient;
     this.logger = config.logger;
-    this.getNavigatorClipboard = config.getNavigatorClipboard || getSafeNavigatorClipboard;
+    this.clipboardService = config.clipboardService;
   }
 
   public isValidJulesApiKeyFormat(key: string): boolean {
@@ -174,17 +174,12 @@ export class KeyVerificationService implements IKeyVerificationService {
   }
 
   public async clearClipboardSafe(): Promise<boolean> {
-    try {
-      if (Boolean(this.getNavigatorClipboard()?.writeText)) {
-        await this.getNavigatorClipboard()?.writeText("");
-        return true;
-      }
-    } catch (err: unknown) {
-      // Clipboard write may be restricted in non-gesture or sandboxed context
-      this.logger.debug("Clipboard clear skipped or restricted:", err);
+    if (this.clipboardService) {
+        return this.clipboardService.writeText("");
     }
     return false;
   }
 }
 
-export const defaultKeyVerificationService = new KeyVerificationService({ apiClient: defaultClient, logger: defaultLogger });
+import { BrowserClipboardService } from "./clipboardService";
+export const defaultKeyVerificationService = new KeyVerificationService({ apiClient: defaultClient, logger: defaultLogger, clipboardService: new BrowserClipboardService(defaultLogger) });

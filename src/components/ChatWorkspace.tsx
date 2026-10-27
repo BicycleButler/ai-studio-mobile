@@ -1,7 +1,7 @@
 import { getSafeDocument, getSafeNavigator } from "../utils/platform";
 import { ChatHistoryPopover } from "./ChatHistoryPopover";
 import { useBatchSelection } from "../hooks/useBatchSelection";
-import { isBrowserEnvironment, getSafeNavigatorClipboard, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeWindow, getSafeWindowVisualViewport } from "../utils/platform";
+import { isBrowserEnvironment, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeWindow, getSafeWindowVisualViewport } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo , useCallback} from "react";
 import {
   Send,
@@ -130,7 +130,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [isOptimizingImage, setIsOptimizingImage] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const { speechVoicesService, logger } = useServices();
+  const { speechVoicesService, logger, clipboardService } = useServices();
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBufferingAudio, setIsBufferingAudio] = useState(false);
@@ -944,8 +944,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const handleCopy = (id: string, text: string) => {
-    getSafeNavigatorClipboard()?.writeText(text);
+  const handleCopy = async (id: string, text: string) => {
+    await clipboardService.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };

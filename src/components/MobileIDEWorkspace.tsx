@@ -1,4 +1,4 @@
-import { getSafeDocument, getSafeNavigatorClipboard, getSafeWindow } from "../utils/platform";
+import { getSafeWindow } from "../utils/platform";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
@@ -51,7 +51,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   onSwitchToPrompt: _onSwitchToPrompt,
   onOpenParameters,
 }) => {
-  const { codeGeneratorService, geminiStreamService, logger } = useServices();
+  const { codeGeneratorService, geminiStreamService, logger, clipboardService, fileDownloadService } = useServices();
 
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [
@@ -137,25 +137,17 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     );
   };
 
-  const handleCopyFile = () => {
-    getSafeNavigatorClipboard()?.writeText(activeFile.content);
+  const handleCopyFile = async () => {
+    await clipboardService.writeText(activeFile.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadFile = () => {
-    try {
-      const blob = new Blob([activeFile.content], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = getSafeDocument()!.createElement("a");
-      a.href = url;
-      a.download = activeFile.name;
-      getSafeDocument()!.body.appendChild(a);
-      a.click();
-      getSafeDocument()!.body.removeChild(a);
-      URL.revokeObjectURL(url);
+  const handleDownloadFile = async () => {
+    const success = await fileDownloadService.downloadText(activeFile.name, activeFile.content);
+    if (success) {
       addConsoleLog("success", `Exported ${activeFile.name} to downloads.`);
-    } catch {
+    } else {
       addConsoleLog("stderr", `Failed to export file: browser download blocked.`);
     }
   };
@@ -638,9 +630,9 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const text = consoleLogs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
-                    getSafeNavigatorClipboard()?.writeText(text);
+                    await clipboardService.writeText(text);
                   }}
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="Copy Console Logs"
@@ -713,9 +705,9 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const text = consoleLogs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
-                    getSafeNavigatorClipboard()?.writeText(text);
+                    await clipboardService.writeText(text);
                   }}
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
                   title="Copy Console Logs"
