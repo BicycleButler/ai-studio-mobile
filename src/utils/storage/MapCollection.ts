@@ -20,6 +20,7 @@ export class MapCollection<T> implements ICollectionEngine<T> {
   ): CollectionOperationResult<T> {
     let changed = false;
     let nextItems: T[] | undefined = undefined;
+    let updateCount = 0;
     let singleUpdatedItem: T | null | undefined = undefined;
 
     for (let i = 0; i < items.length; i++) {
@@ -37,8 +38,7 @@ export class MapCollection<T> implements ICollectionEngine<T> {
           if (!nextItems) nextItems = [...items];
           nextItems[i] = mutated;
           changed = true;
-          singleUpdatedItem = mutated;
-        } else {
+          updateCount++;
           singleUpdatedItem = mutated;
         }
       }
@@ -54,6 +54,7 @@ export class MapCollection<T> implements ICollectionEngine<T> {
           nextItems.push(...itemsToAdd);
         }
         changed = true;
+        updateCount += itemsToAdd.length;
         singleUpdatedItem = itemsToAdd[0];
       }
     }
@@ -61,12 +62,12 @@ export class MapCollection<T> implements ICollectionEngine<T> {
     return {
       items: changed && nextItems ? nextItems : items,
       changed,
-      item: singleUpdatedItem === undefined ? null : singleUpdatedItem
+      item: updateCount === 1 && singleUpdatedItem !== undefined ? singleUpdatedItem : null
     };
   }
 
   bulkUpdate(items: T[], updates: { id: string; changes: Partial<T> }[]): CollectionOperationResult<T> {
-    if (!updates || updates.length === 0) return { items, changed: false };
+    if (!updates || updates.length === 0) return { items, changed: false, item: null };
 
     const updatesMap = new Map<string, Partial<T>>();
     for (const update of updates) {
@@ -82,12 +83,27 @@ export class MapCollection<T> implements ICollectionEngine<T> {
   }
 
   bulkDelete(items: T[], ids: string[]): CollectionOperationResult<T> {
-    if (!ids || ids.length === 0) return { items, changed: false };
+    if (!ids || ids.length === 0) return { items, changed: false, item: null };
 
     const idSet = new Set(ids);
     const originalLength = items.length;
-    const filtered = items.filter((item) => !idSet.has(this.keyExtractor(item)));
-    return { items: filtered, changed: filtered.length !== originalLength };
+    let deletedItem: T | undefined = undefined;
+    let deletedCount = 0;
+
+    const filtered = items.filter((item) => {
+        if(idSet.has(this.keyExtractor(item))) {
+            deletedCount++;
+            deletedItem = item;
+            return false;
+        }
+        return true;
+    });
+
+    return {
+        items: filtered,
+        changed: filtered.length !== originalLength,
+        item: deletedCount === 1 && deletedItem !== undefined ? deletedItem : null
+    };
   }
 
   upsert(items: T[], item: T, prepend = false): CollectionOperationResult<T> {
@@ -95,7 +111,7 @@ export class MapCollection<T> implements ICollectionEngine<T> {
   }
 
   bulkUpsert(items: T[], newItems: T[], prepend = false): CollectionOperationResult<T> {
-    if (!newItems || newItems.length === 0) return { items, changed: false };
+    if (!newItems || newItems.length === 0) return { items, changed: false, item: null };
 
     const collapsedNewItems = new Map<string, Partial<T> | T>();
     for (const item of newItems) {
