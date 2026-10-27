@@ -46,7 +46,34 @@ export interface JulesServiceConfig {
   startPolling?: <T>(fetcher: (signal: AbortSignal) => Promise<T>, options: PollingOptions<T>) => { stop: () => void };
 }
 
-export class JulesClient {
+export interface IJulesClient {
+  setConfig(config: JulesServiceConfig): void;
+  resolveApiKey(override?: string): string;
+  getSettings(): { autoApprovePlans: boolean; defaultBranch: string };
+  verifyApiKey(apiKey: string): Promise<JulesVerificationResult>;
+  fetchRepositories(apiKeyOverride?: string): Promise<JulesRepository[]>;
+  createTask(params: CreateJulesTaskParams): Promise<{ task: JulesTaskPayload | null; error?: string }>;
+  dispatchTask(
+    apiKey: string,
+    params: {
+      repository: string;
+      prompt: string;
+      branch?: string;
+      autoApprove?: boolean;
+    }
+  ): Promise<JulesTaskPayload>;
+  subscribeToTask(
+    apiKey: string,
+    taskId: string,
+    onUpdate: (task: JulesTaskPayload) => void,
+    onError?: (error: unknown) => void,
+    intervalMs?: number
+  ): { stop: () => void };
+  fetchTask(taskId: string, apiKeyOverride?: string): Promise<{ task: JulesTaskPayload | null; error?: string }>;
+  approvePlan(taskId: string, approved?: boolean, apiKeyOverride?: string): Promise<{ task: JulesTaskPayload | null; error?: string }>;
+}
+
+export class JulesClient implements IJulesClient {
   private config: JulesServiceConfig;
 
   constructor(config: JulesServiceConfig) {

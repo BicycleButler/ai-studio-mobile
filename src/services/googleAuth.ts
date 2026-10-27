@@ -14,7 +14,31 @@ export interface GoogleAuthServiceConfig {
   logger: ILogger;
 }
 
-export class GoogleAuthService {
+export interface IGoogleAuthService {
+  setAuthProvider(provider: IAuthProvider): void;
+  getAccessToken(): Promise<string | null>;
+  loadStoredGoogleUser(): GoogleUser | null;
+  saveStoredGoogleUser(user: GoogleUser | null): void;
+  syncGoogleUserWithBackend(user: Partial<GoogleUser>): Promise<GoogleUser>;
+  parseGoogleJwtPayload(token: string): { email?: string; name?: string; picture?: string; sub?: string } | null;
+  googleSignIn(): Promise<{ user: GoogleUser; accessToken: string }>;
+  initiateGoogleLogin(
+    email?: string,
+    name?: string,
+    picture?: string,
+    sub?: string,
+    authSource?: "google_oauth" | "google_identity" | "google_account"
+  ): Promise<GoogleUser>;
+  initAuth(
+    onAuthSuccess?: (user: GoogleUser, token: string | null) => void,
+    onAuthFailure?: () => void
+  ): (() => void);
+  fetchCurrentGoogleUser(): Promise<GoogleUser | null>;
+  logoutGoogleUser(): Promise<void>;
+  openGoogleOAuthPopup(authUrl: string): Promise<{ token?: string; code?: string }>;
+}
+
+export class GoogleAuthService implements IGoogleAuthService {
   private cachedAccessToken: string | null = null;
   private isSigningIn = false;
   private currentAuthProvider: IAuthProvider | null = null;

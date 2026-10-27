@@ -13,7 +13,13 @@ export interface WindowSecurityServiceConfig {
     addDocumentListener?: typeof safeAddDocumentListener;
 }
 
-export class WindowSecurityService {
+export interface IWindowSecurityService {
+  shieldStore: Observable<ShieldState>;
+  registerScreen(id: string, isSensitive: boolean): void;
+  unregisterScreen(id: string): void;
+}
+
+export class WindowSecurityService implements IWindowSecurityService {
   public shieldStore: Observable<ShieldState>;
   private generalSettingsService: GeneralSettingsService;
   private flagSecureEnabled: boolean;
