@@ -82,6 +82,7 @@ export class GeminiApiError extends Error {
 
 
 export interface IGeminiStreamService {
+  formatStreamError(err: unknown): GeminiApiError;
   fetchGenerateContent(payload: GenerateRequestBody, options?: StreamOptions): Promise<{
     text?: string;
     durationMs?: number;

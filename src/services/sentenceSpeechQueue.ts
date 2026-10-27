@@ -10,12 +10,12 @@ import { getSafeWindowSpeechSynthesis } from "../utils/platform";
  */
 
 import { extractSpokenText } from "../utils/speechExtractor";
-import { SpeechSettings, SpeechVoicesService } from "./speechVoices";
+import { SpeechSettings, ISpeechVoicesService } from "./speechVoices";
 import { defaultSpeechVoicesService } from "./speechVoices"; // Default fallback if not injected
 
 export interface SentenceQueueOptions {
   speechSettings: SpeechSettings;
-  speechVoicesService?: SpeechVoicesService;
+  speechVoicesService?: ISpeechVoicesService;
   getWindowSpeechSynthesis?: typeof getSafeWindowSpeechSynthesis;
   onSentenceStart?: (sentence: string, index: number) => void;
   onSentenceEnd?: (sentence: string, index: number) => void;

@@ -12,6 +12,25 @@ import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
 
+export interface IJulesStorageService {
+  julesSessionsManager: IActiveItemManager<JulesSession>;
+  loadStoredJulesApiKey(): string;
+  saveStoredJulesApiKey(key: string): void;
+  isMockJulesSession(session: Partial<JulesSession>): boolean;
+  fetchJulesSessionsFromServer(logger?: ILogger): Promise<JulesSession[]>;
+  loadStoredJulesSettings(): JulesSettings;
+  saveStoredJulesSettings(settings: JulesSettings): void;
+  getStoredJulesSessions(): JulesSession[];
+  saveJulesSession(session: JulesSession): void;
+  deleteJulesSession(sessionId: string): void;
+  bulkDeleteJulesSessions(sessionIds: string[]): void;
+  createNewJulesSession(
+    repository: string,
+    branch?: string,
+    initialTitle?: string
+  ): JulesSession;
+}
+
 export interface JulesStorageServiceConfig {
   apiClient: IApiClient;
   julesApiKeySingleton?: IMutableSingleton<string>;
@@ -26,7 +45,7 @@ const DEFAULT_JULES_SETTINGS: JulesSettings = {
   defaultBranch: "main",
 };
 
-export class JulesStorageService {
+export class JulesStorageService implements IJulesStorageService {
   private julesApiKeySingleton: IMutableSingleton<string>;
   private julesSettingsSingleton: IMutableSingleton<JulesSettings>;
   public julesSessionsManager: IActiveItemManager<JulesSession>;

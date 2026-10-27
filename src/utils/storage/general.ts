@@ -5,12 +5,20 @@ import { safeGetStorageString, safeSetStorageString } from "./core";
 import { IMutableSingleton } from "./types";
 import { Observable } from "../observable";
 
+export interface IGeneralSettingsService {
+  flagSecureObservable: Observable<boolean>;
+  loadStoredApiKey(): string;
+  saveStoredApiKey(key: string): void;
+  isFlagSecureEnabled(): boolean;
+  setFlagSecureEnabled(enabled: boolean): void;
+}
+
 export interface GeneralSettingsServiceConfig {
   apiKeySingleton?: IMutableSingleton<string>;
   flagSecureSingleton?: IMutableSingleton<boolean>;
 }
 
-export class GeneralSettingsService {
+export class GeneralSettingsService implements IGeneralSettingsService {
   private apiKeySingleton: IMutableSingleton<string>;
   private flagSecureSingleton: IMutableSingleton<boolean>;
   public flagSecureObservable: Observable<boolean>;

@@ -4,12 +4,18 @@ import { STORAGE_KEYS } from "./constants";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
 
+export interface ISavedPromptsService {
+  savedPromptsManager: IActiveItemManager<SavedPrompt>;
+  loadSavedPrompts(): SavedPrompt[];
+  persistSavedPrompts(prompts: SavedPrompt[]): void;
+}
+
 export interface SavedPromptsServiceConfig {
   savedPromptsManager?: IActiveItemManager<SavedPrompt>;
   syncAdapter?: IStorageSyncAdapter<SavedPrompt[]>;
 }
 
-export class SavedPromptsService {
+export class SavedPromptsService implements ISavedPromptsService {
   public savedPromptsManager: IActiveItemManager<SavedPrompt>;
   private syncAdapter: IStorageSyncAdapter<SavedPrompt[]>;
 
