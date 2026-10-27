@@ -87,20 +87,16 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
       <div
         className={`p-4 rounded-xl border flex items-start justify-between gap-3 ${
           hasServerKey
-            ? "bg-emerald-950/20 border-emerald-500/40 text-emerald-300"
+            ? "bg-card border-primary/40 text-foreground"
             : "bg-card border-border text-muted-foreground"
         }`}
       >
         <div className="flex items-start gap-3">
           <div
-            className={`p-2 rounded-lg ${
-              hasServerKey
-                ? "bg-muted"
-                : "bg-muted"
-            }`}
+            className={`p-2 rounded-lg bg-muted`}
           >
             {hasServerKey ? (
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              <ShieldCheck className="w-5 h-5 text-primary" />
             ) : (
               <Lock className="w-5 h-5" />
             )}
