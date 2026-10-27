@@ -7,7 +7,19 @@ export interface BatchSelectionState {
   lastSelectedId: string | null;
 }
 
-export class BatchSelectionManager extends Observable<BatchSelectionState> {
+export interface IBatchSelectionManager {
+  readonly selectedIds: Set<string>;
+  readonly lastSelectedId: string | null;
+  clearSelection(): void;
+  toggleSelection(id: string, isShiftDown: boolean, index: number, itemIds: string[]): void;
+  toggleSelectAll(filteredIds: string[]): void;
+  removeFromSelection(id: string): void;
+  getSelectionState(filteredIds: string[]): SelectionState;
+  subscribe(listener: (state: BatchSelectionState) => void): () => void;
+  getSnapshot(): BatchSelectionState;
+}
+
+export class BatchSelectionManager extends Observable<BatchSelectionState> implements IBatchSelectionManager {
   constructor() {
     super({ selectedIds: new Set<string>(), lastSelectedId: null });
   }
