@@ -2,7 +2,7 @@ import { IMutex, Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
-import { getSafeBroadcastChannel } from "./platform";
+import { ICrossTabNotifier, createCrossTabNotifier } from "./crossTabNotifier";
 
 export interface IAsyncStorageAdapter {
   getItem<T>(key: string): Promise<T | undefined>;
@@ -26,7 +26,7 @@ export interface OfflineQueueStoreConfig {
   storageKey: string;
   storageAdapter: IAsyncStorageAdapter;
   logger?: ILogger;
-  createBroadcastChannel?: (name: string) => BroadcastChannel | null;
+  createCrossTabNotifier?: (name: string) => ICrossTabNotifier;
   mutex?: IMutex;
 }
 
@@ -38,30 +38,26 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     return this._queueObservable;
   }
   private cachedQueue: OfflineMutation[] = [];
-  private channel?: BroadcastChannel;
+  private notifier?: ICrossTabNotifier;
   private storageKey: string;
   private storageAdapter: IAsyncStorageAdapter;
   private logger: ILogger;
-  private createBroadcastChannel: (name: string) => BroadcastChannel | null;
 
   constructor(config: OfflineQueueStoreConfig) {
     this.storageKey = config.storageKey;
     this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || defaultLogger;
-    this.createBroadcastChannel = config.createBroadcastChannel || getSafeBroadcastChannel;
+    const createNotifier = config.createCrossTabNotifier || ((name) => createCrossTabNotifier(name, this.logger));
     this.queueMutex = config.mutex || new Mutex(this.logger);
     try {
-        const channel = this.createBroadcastChannel(`${this.storageKey}_channel`);
-        if (channel) {
-            this.channel = channel;
-            this.channel.onmessage = (event) => {
-              if (event.data === 'SYNC') {
-                this.syncCacheFromStorage().catch((err) => this.logger.error("Failed to sync cache from storage", err));
-              }
-            };
-        }
+        this.notifier = createNotifier(`${this.storageKey}_channel`);
+        this.notifier.onMessage((message) => {
+          if (message === 'SYNC') {
+            this.syncCacheFromStorage().catch((err) => this.logger.error("Failed to sync cache from storage", err));
+          }
+        });
     } catch {
-      // Ignore broadcast channel init errors
+      // Ignore cross tab init errors
     }
     this.syncCacheFromStorage().catch(() => {});
   }
@@ -106,9 +102,9 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     this.cachedQueue = newQueue;
     this.notifyQueue(newQueue);
     try {
-        this.channel?.postMessage('SYNC');
+        this.notifier?.notify('SYNC');
     } catch (err) {
-      this.logger.error("Failed to notify broadcast channel", err);
+      this.logger.error("Failed to notify cross tab notifier", err);
     }
   }
 
@@ -158,8 +154,8 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   }
 
   public dispose(): void {
-    if (this.channel) {
-      this.channel.close();
+    if (this.notifier) {
+      this.notifier.dispose();
     }
   }
 }
