@@ -26,6 +26,19 @@ export function useOfflineSync(customOfflineService?: IOfflineService) {
     return () => { mounted = false; };
   }, [isOnline, offlineService]);
 
+  const handleProcessResult = useCallback((conflicts: ConflictData[], mounted: boolean = true) => {
+    if (!mounted) return;
+    if (conflicts.length > 0) {
+      setConflictData(conflicts[0]);
+      setReconnectState("conflict");
+    } else {
+      setReconnectState("success");
+      setTimeout(() => {
+        setReconnectState((prev) => (prev === "success" ? "idle" : prev));
+      }, 3000);
+    }
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     if (isOnline && wasOffline) {
@@ -33,22 +46,13 @@ export function useOfflineSync(customOfflineService?: IOfflineService) {
 
       const processQueue = async () => {
         const { conflicts } = await offlineService.processOfflineMutations();
-        if (!mounted) return;
-        if (conflicts.length > 0) {
-           setConflictData(conflicts[0]);
-           setReconnectState("conflict");
-        } else {
-           setReconnectState("success");
-           setTimeout(() => {
-             if (mounted) setReconnectState("idle");
-           }, 3000);
-        }
+        handleProcessResult(conflicts, mounted);
       };
 
       processQueue();
     }
     return () => { mounted = false; };
-  }, [isOnline, wasOffline, offlineService]);
+  }, [isOnline, wasOffline, offlineService, handleProcessResult]);
 
   const handleResolveConflict = useCallback(async (action: 'keep' | 'overwrite') => {
      if (conflictData) {
@@ -68,18 +72,11 @@ export function useOfflineSync(customOfflineService?: IOfflineService) {
      const queueLength = await offlineService.getOfflineQueueLength();
      if (queueLength > 0) {
         const { conflicts } = await offlineService.processOfflineMutations();
-        if (conflicts.length > 0) {
-           setConflictData(conflicts[0]);
-           setReconnectState("conflict");
-        } else {
-           setReconnectState("success");
-           setTimeout(() => setReconnectState("idle"), 3000);
-        }
+        handleProcessResult(conflicts);
      } else {
-        setReconnectState("success");
-        setTimeout(() => setReconnectState("idle"), 3000);
+        handleProcessResult([]);
      }
-  }, [conflictData, offlineService]);
+  }, [conflictData, offlineService, handleProcessResult]);
 
   return {
     isOnline,
