@@ -1,3 +1,5 @@
+import { extractMessageFromUnknown } from "./errorHandling";
+
 export const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504, 0]);
 
 export class BaseApiError extends Error {
@@ -44,7 +46,7 @@ export async function parseErrorResponse(res: Response, defaultErrorMessage: str
     if (contentType?.includes("application/json")) {
       const err = await res.json();
       rawData = err;
-      errorMessage = err.error || err.message || res.statusText || defaultErrorMessage;
+      errorMessage = extractMessageFromUnknown(err) || res.statusText || defaultErrorMessage;
     } else {
       const text = await res.text();
       rawData = text;
