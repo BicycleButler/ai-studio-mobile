@@ -1,5 +1,5 @@
 
-import { ICodeGeneratorPlugin, CodeLangId, PythonGenerator, TypeScriptGenerator, KotlinGenerator, CurlGenerator } from "./codeGenerators";
+import { ICodeGeneratorPlugin, CodeLangId } from "./codeGenerators";
 
 export type { CodeLangId, ICodeGeneratorPlugin as CodeGenerator };
 
@@ -18,12 +18,7 @@ export class CodeGeneratorService implements ICodeGeneratorService {
 
   constructor(config?: CodeGeneratorServiceConfig) {
     this.generators = new Map();
-    const defaultGenerators = config?.generators || [
-        new KotlinGenerator(),
-        new TypeScriptGenerator(),
-        new PythonGenerator(),
-        new CurlGenerator()
-    ];
+    const defaultGenerators = config?.generators || [];
     for (const gen of defaultGenerators) {
         this.registerGenerator(gen);
     }

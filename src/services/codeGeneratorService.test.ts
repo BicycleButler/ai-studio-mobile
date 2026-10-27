@@ -1,3 +1,4 @@
+import { KotlinGenerator, TypeScriptGenerator, PythonGenerator, CurlGenerator } from "./codeGenerators";
 // Test suite for code generators
 import { PromptConfig, ChatMessage } from "../types";
 import { CodeGeneratorService } from "./codeGeneratorService";
@@ -32,7 +33,7 @@ import { describe, test, expect } from 'vitest';
 
 describe('codeGenerators', () => {
   test('testGenerators', () => {
-  const service = new CodeGeneratorService();
+  const service = new CodeGeneratorService({ generators: [new KotlinGenerator(), new TypeScriptGenerator(), new PythonGenerator(), new CurlGenerator()] });
 
     expect(testMockPayload).toBeTruthy();
 

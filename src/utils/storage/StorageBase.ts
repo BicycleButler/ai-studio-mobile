@@ -1,5 +1,5 @@
 import { DefaultStorageAdapter } from "./core";
-import { IStorageAdapter, IDisposable } from "./types";
+import { IStorageAdapter, IStorageBase } from "./types";
 import { Observable } from "../observable";
 import { ILogger, defaultLogger } from "../logger";
 import { deepFreeze } from "./helpers";
@@ -17,7 +17,7 @@ export interface StorageBaseOptions<T> {
   logger?: ILogger;
 }
 
-export class StorageBase<T> extends Observable<T> implements IDisposable {
+export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
   protected key: string;
   protected options: StorageBaseOptions<T>;
   protected adapter: IStorageAdapter<T>;
