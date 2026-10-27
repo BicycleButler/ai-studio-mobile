@@ -26,8 +26,8 @@ describe('buildUrlWithParams', () => {
   it('should ignore null or undefined values', () => {
     const url = buildUrlWithParams('/api/test', {
       search: 'query',
-      empty: null,
-      missing: undefined,
+      empty: null as unknown as string,
+      missing: undefined as unknown as string,
       limit: 5
     });
     expect(url).toBe('/api/test?search=query&limit=5');
