@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useRef } from "react";
+import React, { createContext, useContext, useRef } from "react";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
+import { useControllableState } from "../hooks/useControllableState";
 
 // Context to share state between Tabs, TabList, TabTriggers, and TabPanels
 interface TabsContextType {
@@ -27,13 +28,19 @@ export function Tabs({
   orientation?: "horizontal" | "vertical";
   className?: string;
 }) {
-  const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue || "");
-  const activeTab = value !== undefined ? value : uncontrolledValue;
+  const [activeTab, setActiveTab] = useControllableState<string>({
+    prop: value,
+    defaultProp: defaultValue || "",
+    onChange: onValueChange,
+  });
+
+  // Ensure activeTab is typed as a non-optional string for the context
+  const resolvedTab = activeTab ?? "";
+
   const tabRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
 
   const handleSetActiveTab = (newValue: string) => {
-    if (value === undefined) setUncontrolledValue(newValue);
-    onValueChange?.(newValue);
+    setActiveTab(newValue);
   };
 
   const registerTab = (tabValue: string, element: HTMLButtonElement | null) => {
@@ -46,7 +53,7 @@ export function Tabs({
   };
 
   return (
-    <TabsContext.Provider value={{ activeTab, setActiveTab: handleSetActiveTab, orientation, registerTab, focusTab }}>
+    <TabsContext.Provider value={{ activeTab: resolvedTab, setActiveTab: handleSetActiveTab, orientation, registerTab, focusTab }}>
       <div className={`w-full ${className}`}>
         {children}
       </div>

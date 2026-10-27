@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from "react";
+import React, { createContext, useContext, useRef, useEffect } from "react";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
+import { useControllableState } from "../hooks/useControllableState";
 
 interface SegmentedControlContextType {
   activeValue: string;
@@ -25,13 +26,19 @@ export function SegmentedControl({
   className?: string;
   ariaLabel?: string;
 }) {
-  const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue || "");
-  const activeValue = value !== undefined ? value : uncontrolledValue;
+  const [activeValue, setActiveValue] = useControllableState<string>({
+    prop: value,
+    defaultProp: defaultValue || "",
+    onChange: onValueChange,
+  });
+
+  // Ensure activeValue is correctly typed as string for the context since defaultProp guarantees a string
+  const resolvedValue = activeValue ?? "";
+
   const itemRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
 
   const handleSetActiveValue = (newValue: string) => {
-    if (value === undefined) setUncontrolledValue(newValue);
-    onValueChange?.(newValue);
+    setActiveValue(newValue);
   };
 
   const registerItem = (itemValue: string, element: HTMLButtonElement | null) => {
@@ -44,14 +51,14 @@ export function SegmentedControl({
   };
 
   const handleKeyDown = useKeyboardNavigation({
-    activeValue,
+    activeValue: resolvedValue,
     setActiveValue: handleSetActiveValue,
     focusItem,
     itemSelector: '[role="radio"]'
   });
 
   return (
-    <SegmentedControlContext.Provider value={{ activeValue, setActiveValue: handleSetActiveValue, registerItem, focusItem }}>
+    <SegmentedControlContext.Provider value={{ activeValue: resolvedValue, setActiveValue: handleSetActiveValue, registerItem, focusItem }}>
       <div
         role="radiogroup"
         aria-label={ariaLabel}
