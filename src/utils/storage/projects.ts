@@ -4,15 +4,26 @@ import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
-import { GeneralSettingsService } from "./general";
+import { IGeneralSettingsService } from "./general";
 import { IActiveItemManager } from "./ActiveItemManager";
 
+export interface IProjectService {
+  projectsManager: IActiveItemManager<ProjectInfo>;
+  loadStoredProjects(): ProjectInfo[];
+  saveStoredProjects(projects: ProjectInfo[]): void;
+  getActiveProjectId(): string | null;
+  setActiveProjectId(id: string | null): void;
+  saveAndActivateProject(
+    projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
+  ): ProjectInfo;
+}
+
 export interface ProjectServiceConfig {
-  generalSettingsService?: GeneralSettingsService;
+  generalSettingsService?: IGeneralSettingsService;
   projectsManager?: IActiveItemManager<ProjectInfo>;
 }
 
-export class ProjectService {
+export class ProjectService implements IProjectService {
   public projectsManager: IActiveItemManager<ProjectInfo>;
 
   constructor(config: ProjectServiceConfig) {
