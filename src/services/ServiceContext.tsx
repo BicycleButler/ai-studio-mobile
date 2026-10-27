@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from "react";
 
 import { IApiClient, defaultClient } from "../utils/apiClient";
-import { SyncOrchestrator } from "../utils/syncOrchestrator";
+import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
 import { defaultLogger } from "../utils/logger";
@@ -30,7 +30,7 @@ import { CodeGeneratorService, ICodeGeneratorService } from "./codeGeneratorServ
 import { PythonGenerator, TypeScriptGenerator, KotlinGenerator, CurlGenerator } from "./codeGenerators";
 import { IPwaInstallService, defaultPwaInstallService } from "./pwaInstallService";
 import { IWindowSecurityService, WindowSecurityService } from "./windowSecurityService";
-import { ImageCompressor, defaultImageCompressor } from "../utils/imageCompressor";
+import { IImageCompressor, defaultImageCompressor } from "../utils/imageCompressor";
 
 export interface IServices {
   themeService: IThemeService;
@@ -54,9 +54,9 @@ export interface IServices {
   apiClient: IApiClient;
   pwaInstallService: IPwaInstallService;
   windowSecurityService: IWindowSecurityService;
-  syncOrchestrator: SyncOrchestrator;
+  syncOrchestrator: ISyncOrchestrator;
   logger: typeof defaultLogger;
-  imageCompressor: ImageCompressor;
+  imageCompressor: IImageCompressor;
 }
 
 

@@ -5,7 +5,12 @@
 
 export type SSEEventCallback = (eventName: string, data: string) => void;
 
-export class SSEStreamParser {
+export interface ISSEStreamParser {
+  processChunk(chunk: string): void;
+  flush(): void;
+}
+
+export class SSEStreamParser implements ISSEStreamParser {
   private buffer: string = "";
   private onEvent: SSEEventCallback;
   private currentEventName: string = "message";

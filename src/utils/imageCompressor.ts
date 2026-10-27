@@ -116,7 +116,11 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
   }
 }
 
-export class ImageCompressor {
+export interface IImageCompressor {
+  compressImageForGemini(file: File, options?: CompressionOptions): Promise<MessageAttachment>;
+}
+
+export class ImageCompressor implements IImageCompressor {
   constructor(private strategy: IImageCompressionStrategy) {}
 
   public async compressImageForGemini(file: File, options?: CompressionOptions): Promise<MessageAttachment> {

@@ -861,3 +861,25 @@ The `AsyncStorage` interface was originally defined in `src/utils/asyncStorage.t
 
 **Decision:**
 Removed the redundant `IAsyncStorageAdapter` definition in `offlineQueueStore.ts` and standardized its dependency on the `AsyncStorage` interface exported by `asyncStorage.ts`. This improves maintainability and centralizes the abstraction of the storage layer.
+
+## Architectural Decision: SyncOrchestrator and ImageCompressor Interface Abstraction
+
+**Context:**
+`SyncOrchestrator` and `ImageCompressor` were provided as concrete classes and injected as such into the `ServiceContext`. This coupled consumers directly to the concrete implementations, hindered testability by making it difficult to inject pure mocks, and violated the Dependency Inversion Principle. It diverged from the established pattern where other domain services expose clear interfaces (like `IThemeService`, `IChatHistoryService`, etc.).
+
+**Path 1: Extract Explicit Interfaces (Dependency Inversion)**
+Extract interfaces (`ISyncOrchestrator`, `IImageCompressor`) for these services and make the concrete classes implement them. Update the `IServices` registry in `ServiceContext` to strictly depend on these interfaces instead of the concrete implementations.
+
+**Path 2: Keep Concrete Implementations (Status Quo)**
+Continue relying on TypeScript's structural typing and class definitions as the defacto interfaces. While TypeScript can mock classes, this leaves the API contract implicit rather than explicit and ties the type definition directly to implementation details.
+
+**Recommendation:**
+**Path 1 (Extract Explicit Interfaces)** is the recommended path. It strictly enforces the Dependency Inversion Principle, aligning with the interface abstraction patterns established in previous ADRs. It improves Robustness, Generality, and Testability by creating clear API contracts, allowing seamless substitution of service implementations without relying on structural typing workarounds.
+
+## Architectural Decision: SentenceSpeechQueue and SSEStreamParser Interface Abstraction
+
+**Context:**
+`SentenceSpeechQueue` and `SSEStreamParser` were implemented as concrete classes without corresponding interfaces. This made it difficult to inject pure mocks for them in tests, coupling components like `ChatWorkspace` and `GeminiStreamService` to concrete implementations, and violating the Dependency Inversion Principle.
+
+**Decision:**
+Extracted explicit interfaces (`ISentenceSpeechQueue` and `ISSEStreamParser`) for these classes and updated them to implement those interfaces. This adheres to the strict interface abstraction pattern in the codebase, significantly enhancing testability and satisfying the Core Service Interface Abstraction requirement.
