@@ -1,7 +1,32 @@
 import { describe, test, expect } from 'vitest';
-import { getNestedValue, deepFreeze } from './helpers';
+import { getNestedValue, deepFreeze, fastDeepEqual } from './helpers';
 
 describe('helpers', () => {
+  test('fastDeepEqual correctly checks equality for Dates, RegExp, Maps, and Sets', () => {
+    // Dates
+    expect(fastDeepEqual(new Date(100), new Date(100))).toBe(true);
+    expect(fastDeepEqual(new Date(100), new Date(200))).toBe(false);
+
+    // RegExp
+    expect(fastDeepEqual(/abc/g, /abc/g)).toBe(true);
+    expect(fastDeepEqual(/abc/g, /abc/i)).toBe(false);
+
+    // Maps
+    expect(fastDeepEqual(new Map([['a', 1]]), new Map([['a', 1]]))).toBe(true);
+    expect(fastDeepEqual(new Map([['a', 1]]), new Map([['a', 2]]))).toBe(false);
+    expect(fastDeepEqual(new Map([['a', { nested: true }]]), new Map([['a', { nested: true }]]))).toBe(true);
+
+    // Sets
+    expect(fastDeepEqual(new Set([1, 2]), new Set([1, 2]))).toBe(true);
+    expect(fastDeepEqual(new Set([1, 2]), new Set([1, 3]))).toBe(false);
+
+    // Edge cases against objects
+    expect(fastDeepEqual(new Date(100), {})).toBe(false);
+    expect(fastDeepEqual(/abc/g, {})).toBe(false);
+    expect(fastDeepEqual(new Map(), {})).toBe(false);
+    expect(fastDeepEqual(new Set(), {})).toBe(false);
+  });
+
   test('getNestedValue', () => {
     const obj = { a: { b: { c: 1 } } };
     expect(getNestedValue(obj, ['a', 'b', 'c'], 0)).toBe(1);

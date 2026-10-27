@@ -47,6 +47,34 @@ export function fastDeepEqual(a: unknown, b: unknown): boolean {
 
   if (Array.isArray(b)) return false;
 
+  if (a instanceof Date) {
+    return b instanceof Date && a.getTime() === b.getTime();
+  }
+  if (b instanceof Date) return false;
+
+  if (a instanceof RegExp) {
+    return b instanceof RegExp && a.source === b.source && a.flags === b.flags;
+  }
+  if (b instanceof RegExp) return false;
+
+  if (a instanceof Map) {
+    if (!(b instanceof Map) || a.size !== b.size) return false;
+    for (const [key, val] of a) {
+      if (!b.has(key) || !fastDeepEqual(val, b.get(key))) return false;
+    }
+    return true;
+  }
+  if (b instanceof Map) return false;
+
+  if (a instanceof Set) {
+    if (!(b instanceof Set) || a.size !== b.size) return false;
+    for (const val of a) {
+      if (!b.has(val)) return false;
+    }
+    return true;
+  }
+  if (b instanceof Set) return false;
+
   const objA = a as Record<string, unknown>;
   const objB = b as Record<string, unknown>;
   const keysA = Object.keys(objA);
