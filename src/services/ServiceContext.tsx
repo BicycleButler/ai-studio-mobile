@@ -4,7 +4,7 @@ import { IApiClient, defaultClient } from "../utils/apiClient";
 import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
-import { defaultLogger } from "../utils/logger";
+import { defaultLogger, ILogger } from "../utils/logger";
 
 import { IThemeService, defaultThemeService } from "./themeService";
 import { IPromptTemplateService, PromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
@@ -57,7 +57,7 @@ export interface IServices {
   pwaInstallService: IPwaInstallService;
   windowSecurityService: IWindowSecurityService;
   syncOrchestrator: ISyncOrchestrator;
-  logger: typeof defaultLogger;
+  logger: ILogger;
   imageCompressor: IImageCompressor;
   clipboardService: IClipboardService;
   fileDownloadService: IFileDownloadService;
