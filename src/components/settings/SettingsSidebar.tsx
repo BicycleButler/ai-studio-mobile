@@ -5,14 +5,12 @@ import { SETTINGS_TABS_CONFIG } from "./SettingsTabsConfig";
 export interface SettingsSidebarProps {
   activeTab: SettingsTab;
   setActiveTab: (tab: SettingsTab) => void;
-  stopPreview: () => void;
   hasAnyAuth: boolean;
 }
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   activeTab,
   setActiveTab,
-  stopPreview,
   hasAnyAuth,
 }) => {
   return (
@@ -34,7 +32,6 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             aria-selected={isActive}
             aria-controls={`tabpanel-${tabConfig.id}`}
             onClick={() => {
-              stopPreview();
               setActiveTab(tabConfig.id);
             }}
             className={`flex flex-col items-center justify-center gap-1.5 py-3 px-3 min-w-[76px] sm:min-w-[84px] text-xs transition-colors shrink-0 cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
