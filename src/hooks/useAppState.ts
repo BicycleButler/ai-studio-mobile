@@ -1,3 +1,4 @@
+import { defaultPlatformService } from "../services/platformService";
 import { useState, useEffect } from "react";
 import { usePromptTemplates } from "./usePromptTemplates";
 
@@ -15,7 +16,9 @@ export function useAppState() {
   // Load initial app draft safely before deriving other states
   const initialActiveProjectId = (() => {
     try {
-      const stored = localStorage.getItem("aistudio_active_project_id");
+      const platformService = defaultPlatformService;
+      const localStorage = platformService.getLocalStorage();
+      const stored = localStorage?.getItem("aistudio_active_project_id");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
