@@ -1,4 +1,4 @@
-import { ActiveItemManager } from "./ActiveItemManager";
+import { ActiveItemManager, IActiveItemManager } from "./ActiveItemManager";
 import { StorageCollection, StorageCollectionOptions } from "./StorageCollection";
 import { StorageSingleton, StorageSingletonOptions } from "./StorageSingleton";
 import { IMutableCollection, IMutableSingleton } from "./types";
@@ -16,14 +16,27 @@ export interface CreateActiveItemManagerOptions<T> {
   allowImplicitSelection?: boolean;
 }
 
-export function createActiveItemManager<T>(options: CreateActiveItemManagerOptions<T>): ActiveItemManager<T> {
-  const collection = options.collection || new StorageCollection<T>(options.collectionKey, options.collectionOptions);
-  const activeIdSingleton = options.activeIdSingleton || new StorageSingleton<string | null>(options.activeIdKey, null, options.activeIdOptions);
+export interface IActiveItemManagerFactory {
+  create<T>(options: CreateActiveItemManagerOptions<T>): IActiveItemManager<T>;
+}
 
-  return new ActiveItemManager<T>({
-    collection,
-    activeIdSingleton,
-    getId: options.getId,
-    allowImplicitSelection: options.allowImplicitSelection,
-  });
+export class DefaultActiveItemManagerFactory implements IActiveItemManagerFactory {
+  public create<T>(options: CreateActiveItemManagerOptions<T>): IActiveItemManager<T> {
+    const collection = options.collection || new StorageCollection<T>(options.collectionKey, options.collectionOptions);
+    const activeIdSingleton = options.activeIdSingleton || new StorageSingleton<string | null>(options.activeIdKey, null, options.activeIdOptions);
+
+    return new ActiveItemManager<T>({
+      collection,
+      activeIdSingleton,
+      getId: options.getId,
+      allowImplicitSelection: options.allowImplicitSelection,
+    });
+  }
+}
+
+export const defaultActiveItemManagerFactory = new DefaultActiveItemManagerFactory();
+
+// Kept for backwards compatibility
+export function createActiveItemManager<T>(options: CreateActiveItemManagerOptions<T>): IActiveItemManager<T> {
+  return defaultActiveItemManagerFactory.create(options);
 }

@@ -1,17 +1,25 @@
-import { ICrossTabNotifier } from "./types";
+import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./types";
 import { BroadcastChannelNotifier } from "./BroadcastChannelNotifier";
 import { StorageEventNotifier } from "./StorageEventNotifier";
 import { ILogger, defaultLogger } from "../logger";
 
-export function createCrossTabNotifier(name: string, logger: ILogger = defaultLogger): ICrossTabNotifier {
-  const broadcastNotifier = new BroadcastChannelNotifier(name, logger);
+export class DefaultCrossTabNotifierFactory implements ICrossTabNotifierFactory {
+  public createCrossTabNotifier(name: string, logger: ILogger = defaultLogger): ICrossTabNotifier {
+    const broadcastNotifier = new BroadcastChannelNotifier(name, logger);
 
-  if (broadcastNotifier.isSupported()) {
-    logger.debug(`Using BroadcastChannelNotifier for ${name}`);
-    return broadcastNotifier;
+    if (broadcastNotifier.isSupported()) {
+      logger.debug(`Using BroadcastChannelNotifier for ${name}`);
+      return broadcastNotifier;
+    }
+
+    logger.debug(`Falling back to StorageEventNotifier for ${name}`);
+    broadcastNotifier.dispose(); // clean up just in case
+    return new StorageEventNotifier(name, logger);
   }
+}
 
-  logger.debug(`Falling back to StorageEventNotifier for ${name}`);
-  broadcastNotifier.dispose(); // clean up just in case
-  return new StorageEventNotifier(name, logger);
+export const defaultCrossTabNotifierFactory = new DefaultCrossTabNotifierFactory();
+
+export function createCrossTabNotifier(name: string, logger: ILogger = defaultLogger): ICrossTabNotifier {
+  return defaultCrossTabNotifierFactory.createCrossTabNotifier(name, logger);
 }
