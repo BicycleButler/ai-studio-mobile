@@ -106,7 +106,16 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
       try {
           rawValueToCache = structuredClone(toStore);
       } catch {
-          rawValueToCache = toStore;
+          try {
+              const serialized = this.options.serializer
+                  ? this.options.serializer.serialize(toStore)
+                  : JSON.stringify(toStore);
+              rawValueToCache = this.options.serializer
+                  ? this.options.serializer.deserialize(serialized)
+                  : JSON.parse(serialized);
+          } catch {
+              rawValueToCache = toStore;
+          }
       }
       this.cachedSnapshot = this.processRawValue(rawValueToCache);
       savedSnapshot = this.cachedSnapshot;

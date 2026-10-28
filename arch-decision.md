@@ -939,3 +939,19 @@ Pass `localStorage` and `navigator` via constructor injection to these utilities
 
 **Recommendation:**
 **Path 1 (Standardize with Platform Utilities)** was implemented. It aligns perfectly with the established `getSafe*` pattern in `platform.ts`, preventing massive refactoring of utility constructors while successfully abstracting the DOM access away from the application logic layer, significantly improving robustness in non-browser environments.
+
+## Architectural Decision: ComputedStore Lifecycle Management
+
+**Context:**
+`ComputedStore` previously subscribed to its dependency stores immediately upon instantiation and remained subscribed until `dispose()` was explicitly called. This active subscription model could cause memory leaks if computed stores were created dynamically and not properly disposed, as they would remain referenced by their dependencies' listener sets. Furthermore, it performed unnecessary computations when its dependencies changed even if no observers were actively listening.
+
+**Decision:**
+Implemented **Lazy Subscription (Reference Counting)**. `ComputedStore` now only subscribes to its dependencies when it has at least one subscriber itself. When its own subscriber count drops to zero, it unsubscribes from its dependencies. `getSnapshot()` evaluates the compute function lazily when not actively subscribed. This strictly controls the lifecycle and side-effects without relying on non-deterministic garbage collection timing, deeply improving robustness and reusability (no manual `.dispose()` needed for dynamic derivations).
+
+## Architectural Decision: StorageBase Serialization Fallback
+
+**Context:**
+When saving items to `StorageBase`, the store attempts to cache the item. Previously, if `structuredClone` failed (e.g., when the object contained complex types or non-serializable nodes), it fell back to using the raw reference `toStore`. Since `processRawValue` runs this through `deepFreeze`, it would unintentionally freeze the user's original un-cloned input object, breaking application state mutability elsewhere.
+
+**Decision:**
+Implemented a robust **Serialization Fallback Pipeline**. If `structuredClone` fails, `StorageBase` now utilizes the injected `ISerializer` (or `JSON.stringify`/`JSON.parse` by default) to create a deeply decoupled clone. Only if both robust cloning mechanisms fail does it fallback to the raw reference. This prevents unexpected freezing of live application objects and preserves data integrity.

@@ -5,6 +5,7 @@ export class ComputedStore<T> extends Observable<T> {
   private isDirty = false;
   private microtaskQueued = false;
   private lastKnownDependencies: unknown[] = [];
+  private isDisposed = false;
 
   constructor(
     private stores: IReadableStore<unknown>[],
@@ -12,8 +13,16 @@ export class ComputedStore<T> extends Observable<T> {
   ) {
     super(compute());
     this.updateLastKnownDependencies();
+  }
 
-    // Subscribe to all dependencies
+  private startObservingDependencies() {
+    if (this.unsubscribes.length > 0) return;
+
+    if (this.checkDependenciesChanged()) {
+      this.currentState = this.compute();
+      this.updateLastKnownDependencies();
+    }
+
     for (const store of this.stores) {
       this.unsubscribes.push(
         store.subscribe(() => {
@@ -21,6 +30,29 @@ export class ComputedStore<T> extends Observable<T> {
         })
       );
     }
+  }
+
+  private stopObservingDependencies() {
+    for (const unsub of this.unsubscribes) {
+      unsub();
+    }
+    this.unsubscribes = [];
+  }
+
+  public override subscribe(listener: import("./observable").Listener<T>): () => void {
+    const isFirstSubscriber = this.listeners.size === 0;
+    const unsubscribeSuper = super.subscribe(listener);
+
+    if (isFirstSubscriber) {
+      this.startObservingDependencies();
+    }
+
+    return () => {
+      unsubscribeSuper();
+      if (this.listeners.size === 0) {
+        this.stopObservingDependencies();
+      }
+    };
   }
 
   private updateLastKnownDependencies() {
@@ -58,23 +90,30 @@ export class ComputedStore<T> extends Observable<T> {
   }
 
   public override getSnapshot(): T {
-    // Only check for dependencies changing dynamically if we are still active (not disposed)
-    if (this.isDirty || (this.unsubscribes.length > 0 && this.checkDependenciesChanged())) {
-      // Recompute state synchronously for the reader,
-      // but leave `microtaskQueued` true so the notification
-      // still fires asynchronously to subscribers.
-      this.currentState = this.compute();
-      this.isDirty = false;
-      this.updateLastKnownDependencies();
+    if (this.isDisposed) {
+      return super.getSnapshot();
+    }
+
+    const isObserved = this.unsubscribes.length > 0;
+
+    if (!isObserved) {
+      if (this.checkDependenciesChanged()) {
+        this.currentState = this.compute();
+        this.updateLastKnownDependencies();
+      }
+    } else {
+      if (this.isDirty || this.checkDependenciesChanged()) {
+        this.currentState = this.compute();
+        this.isDirty = false;
+        this.updateLastKnownDependencies();
+      }
     }
     return super.getSnapshot();
   }
 
   public dispose() {
-    for (const unsub of this.unsubscribes) {
-      unsub();
-    }
-    this.unsubscribes = [];
+    this.isDisposed = true;
+    this.stopObservingDependencies();
     this.clearListeners();
   }
 }
