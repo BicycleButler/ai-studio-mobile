@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useServices } from "../services/ServiceContext";
-import { getSafeDocument, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
+import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 
 interface UseClipboardKeySnifferOptions {
   activeApiKey?: string;
@@ -15,7 +15,7 @@ export function useClipboardKeySniffer({
   enabled = true,
   detectKeyFn,
 }: UseClipboardKeySnifferOptions = {}) {
-  const { keyVerificationService, clipboardService } = useServices();
+  const { keyVerificationService, clipboardService, platformService } = useServices();
   const [detectedKey, setDetectedKey] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const dismissedKeyRef = useRef<string | null>(null);
@@ -76,7 +76,8 @@ export function useClipboardKeySniffer({
     if (!enabled) return;
 
     const handleVisibilityChange = () => {
-      if (getSafeDocument()?.visibilityState === "visible") {
+      const doc = platformService.getDocument();
+      if (doc?.visibilityState === "visible") {
         // Slight delay to allow Android OS clipboard bridge to sync upon app resume
         setTimeout(() => {
           void inspectClipboard();

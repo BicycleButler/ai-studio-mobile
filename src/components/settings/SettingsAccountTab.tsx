@@ -1,7 +1,7 @@
 import React from "react";
 import { ShieldCheck, CheckCircle2, Lock, Smartphone, ExternalLink, Bot, Check, FolderPlus, Folder, Trash2,
   Clock, Edit2, Loader2, AlertCircle, } from "lucide-react";
-import { GoogleUser, ProjectInfo } from "../../types";
+import { ProjectInfo } from "../../types";
 import { useOfflineQueue } from "../../hooks/useOfflineQueue";
 import { GoogleAuthCard } from "../GoogleAuthCard";
 import { BatchSelectionHeader } from "../BatchSelectionHeader";
@@ -10,9 +10,6 @@ import { BatchDeleteOverlay } from "../BatchDeleteOverlay";
 export interface SettingsAccountTabProps {
   customApiKey: string;
   hasServerKey: boolean;
-  googleUser: GoogleUser | null;
-  onGoogleLogin?: () => Promise<void>;
-  onGoogleLogout?: () => Promise<void>;
   onRefreshServerAuth?: () => void;
   onOpenCustomTabBrowser: (service: "aistudio" | "jules") => void;
   isVerifyingKey: boolean;
@@ -39,9 +36,6 @@ export interface SettingsAccountTabProps {
 export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
   customApiKey,
   hasServerKey,
-  googleUser,
-  onGoogleLogin,
-  onGoogleLogout,
   onRefreshServerAuth,
   onOpenCustomTabBrowser,
   isVerifyingKey,
@@ -78,9 +72,6 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
 
     <div className="space-y-4">
       <GoogleAuthCard
-        user={googleUser}
-        onLogin={onGoogleLogin || (async () => {})}
-        onLogout={onGoogleLogout || (async () => {})}
         liveModelsCount={liveModelsCount}
       />
 

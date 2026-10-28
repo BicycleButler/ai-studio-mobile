@@ -85,8 +85,6 @@ export default function App() {
     handleRemoveTemplate,
     handleClearAllTemplates,
     handleOpenSettings,
-    handleGoogleLogin,
-    handleGoogleLogout,
     handleSaveApiKey,
     handleProjectActivated,
     handleStartNewChat,
@@ -475,9 +473,6 @@ export default function App() {
         onSaveCustomApiKey={handleSaveApiKey}
         hasServerKey={hasServerKey}
         onRefreshServerAuth={refreshServerAuth}
-        googleUser={googleUser}
-        onGoogleLogin={handleGoogleLogin}
-        onGoogleLogout={handleGoogleLogout}
         speechSettings={speechSettings}
         onSaveSpeechSettings={(newSettings) => {
           setSpeechSettings(newSettings);

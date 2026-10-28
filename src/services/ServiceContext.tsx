@@ -33,6 +33,7 @@ import { IWindowSecurityService, WindowSecurityService } from "./windowSecurityS
 import { IImageCompressor, defaultImageCompressor } from "../utils/imageCompressor";
 import { IClipboardService, BrowserClipboardService } from "./clipboardService";
 import { IFileDownloadService, BrowserFileDownloadService } from "./fileDownloadService";
+import { IPlatformService, defaultPlatformService } from "./platformService";
 
 export interface IServices {
   themeService: IThemeService;
@@ -61,6 +62,7 @@ export interface IServices {
   imageCompressor: IImageCompressor;
   clipboardService: IClipboardService;
   fileDownloadService: IFileDownloadService;
+  platformService: IPlatformService;
 }
 
 
@@ -190,6 +192,7 @@ const defaultServices: IServices = {
   imageCompressor: explicitlyInjectedImageCompressor,
   clipboardService: explicitlyInjectedClipboardService,
   fileDownloadService: explicitlyInjectedFileDownloadService,
+  platformService: defaultPlatformService,
 };
 
 

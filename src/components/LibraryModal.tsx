@@ -1,4 +1,4 @@
-import { getSafeWindow, getSafeDocument } from "../utils/platform";
+import { useServices } from "../services/ServiceContext";
 import React, { useState, useEffect } from "react";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
 import { BatchDeleteOverlay } from "./BatchDeleteOverlay";
@@ -73,6 +73,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     }
   };
 
+  const { platformService } = useServices();
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,16 +84,20 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key === "a") {
-        if (getSafeDocument()!.activeElement?.tagName !== 'INPUT' && getSafeDocument()!.activeElement?.tagName !== 'TEXTAREA') {
+        if (!platformService.isInputFocused()) {
           e.preventDefault();
           toggleSelectAll(savedPrompts);
         }
       }
     };
 
-    getSafeWindow()!.addEventListener("keydown", handleKeyDown);
-    return () => getSafeWindow()!.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSelectAll, savedPrompts, selectedPromptIds.size, clearSelection]);
+    const win = platformService.getWindow();
+    if (win) {
+      win.addEventListener("keydown", handleKeyDown);
+      return () => win.removeEventListener("keydown", handleKeyDown);
+    }
+    return undefined;
+  }, [toggleSelectAll, savedPrompts, selectedPromptIds.size, clearSelection, platformService]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();

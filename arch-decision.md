@@ -955,3 +955,35 @@ When saving items to `StorageBase`, the store attempts to cache the item. Previo
 
 **Decision:**
 Implemented a robust **Serialization Fallback Pipeline**. If `structuredClone` fails, `StorageBase` now utilizes the injected `ISerializer` (or `JSON.stringify`/`JSON.parse` by default) to create a deeply decoupled clone. Only if both robust cloning mechanisms fail does it fallback to the raw reference. This prevents unexpected freezing of live application objects and preserves data integrity.
+
+## Architectural Decision: IPlatformService Abstraction
+
+**Context:**
+Numerous components and hooks directly imported and used DOM-bound utilities (`getSafeWindow`, `getSafeDocument`, `getSafeNavigator`, `isBrowserEnvironment`) from `src/utils/platform.ts`. This tightly coupled UI components and domain hooks to concrete platform checks, violating Dependency Inversion, cluttering React lifecycle code with global references, and making it harder to mock these checks for unit tests.
+
+**Decision:**
+Introduced `IPlatformService` and its concrete implementation `BrowserPlatformService` within the DI layer (`ServiceContext`). Replaced direct utility imports in `LibraryModal`, `JulesSessionDrawer`, `UnifiedSettingsModal`, `useClipboardKeySniffer`, `useSpeechToText`, and `useUIState` with calls to methods like `platformService.isInputFocused()`, `platformService.getWindow()`, and `platformService.getNavigator()`. This provides a unified API for platform detection, enables easy mocking via `ServiceContext`, and significantly improves abstraction and testability.
+
+## Architectural Decision: GoogleAuthCard Decoupling via Hook
+
+**Context:**
+`GoogleAuthCard` directly accepted authentication callbacks (`onLogin`, `onLogout`) and tightly coupled its state (`isLoading`, `error`) to UI events. Components like `SettingsAccountTab` and `UnifiedSettingsModal` were forced to drill these props down from `App.tsx` (prop drilling), which violated the Single Responsibility Principle and muddied the component tree.
+
+**Decision:**
+Created `useGoogleAuth` hook that extracts all authentication state and methods, directly utilizing `googleAuthService` from the `ServiceContext`. Refactored `GoogleAuthCard` to consume this hook directly. Removed prop drilling of `googleUser`, `onGoogleLogin`, and `onGoogleLogout` from `SettingsAccountTab`, `UnifiedSettingsModal`, and `App.tsx`, deepening abstraction and keeping the components focused purely on presentation.
+
+## Architectural Decision: OfflineQueueStore Storage Adapter Interface Abstraction Enhancement
+
+**Context:**
+While previous ADRs abstracted `IAsyncStorageAdapter`, the `OfflineQueueStore` still hard-coupled itself to `AsyncStorage` type in its configuration interface and constructor typing in `src/utils/offlineQueueStore.ts`. This leaked implementation details and blocked purely memory-based mocking without casting.
+
+**Decision:**
+Updated `OfflineQueueStore` to rely on the unified `AsyncStorage` interface correctly from `asyncStorage.ts`, completing the interface abstraction for the offline mutation storage layer and improving robustness.
+
+## Architectural Decision: FallbackStorageWrapper Quota Recovery Mechanics
+
+**Context:**
+`FallbackStorageWrapper` correctly emitted a quota exceeded event. However, consumers didn't have a reliable way to synchronously clear space before the wrapper attempted its retry, leading to premature promotion to memory storage even if space *could* be freed.
+
+**Decision:**
+Updated `FallbackStorageWrapper` to wait for synchronous listeners of `quotaExceededEvent` to finish executing before attempting a retry. Removed the redundant `CustomEvent` dispatch on `window`, routing all quota logic entirely through the `EventEmitter` to reduce DOM coupling. This ensures deterministic quota recovery.

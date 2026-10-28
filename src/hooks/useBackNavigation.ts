@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { safeAddEventListener, getSafeWindow } from "../utils/platform";
+import { safeAddEventListener } from "../utils/platform";
+import { useServices } from "../services/ServiceContext";
 
 /**
  * useBackNavigation Hook
@@ -17,6 +18,7 @@ export function useBackNavigation(
   onClose: () => void,
   drawerId: string
 ) {
+  const { platformService } = useServices();
   const isPoppedBySystemRef = useRef(false);
   const pushedRef = useRef(false);
   const onCloseRef = useRef(onClose);
@@ -39,7 +41,8 @@ export function useBackNavigation(
     const state = { [stateKey]: true, drawerId, timestamp: Date.now() };
 
     try {
-      getSafeWindow()?.history?.pushState(state, "");
+      const win = platformService.getWindow() as Window & { history?: History };
+      win?.history?.pushState(state, "");
     } catch {
       // Ignore security errors in sandboxed environments
     }
@@ -58,7 +61,7 @@ export function useBackNavigation(
       // If closed by UI action (X button, UI Back button, Esc) rather than popstate
       if (pushedRef.current && !isPoppedBySystemRef.current) {
         try {
-          const win = getSafeWindow();
+          const win = platformService.getWindow() as Window & { history?: History };
           if (win?.history?.state && win.history.state[stateKey]) {
             win.history.back();
           }
@@ -68,5 +71,5 @@ export function useBackNavigation(
       }
       pushedRef.current = false;
     };
-  }, [isOpen, drawerId]);
+  }, [isOpen, drawerId, platformService]);
 }

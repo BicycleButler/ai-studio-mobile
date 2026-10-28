@@ -1,0 +1,6 @@
+Architectural Improvements for Platform Services and Auth Abstraction
+
+Extracted `IPlatformService` (implemented by `BrowserPlatformService`) into the DI container via `ServiceContext` to remove hardcoded global DOM queries across UI components like `LibraryModal`, `UnifiedSettingsModal`, `JulesSessionDrawer`, and hooks like `useSpeechToText`, `useUIState`, and `useClipboardKeySniffer`. This deepens architectural Generality and Testability.
+Created `useGoogleAuth` hook to decouple `GoogleAuthCard` from prop-drilling authentication methods, adhering to Single Responsibility and cleaning up the component tree from `App.tsx` downwards.
+Fixed `OfflineQueueStore` to correctly depend on the unified `AsyncStorage` interface rather than redefining its own.
+Updated `FallbackStorageWrapper` quota event mechanics to ensure synchronous consumer logic can run properly.

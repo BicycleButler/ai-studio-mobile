@@ -1,10 +1,11 @@
-import { getSafeWindow } from "../utils/platform";
 import React from "react";
 import { WifiOff, Loader2, Check } from "lucide-react";
 import { ConflictResolutionModal } from "./ConflictResolutionModal";
 import { useOfflineSync } from "../hooks/useOfflineSync";
+import { useServices } from "../services/ServiceContext";
 
 export const OfflineIndicator: React.FC = () => {
+  const { platformService } = useServices();
   const {
     isOnline,
     reconnectState,
@@ -26,7 +27,7 @@ export const OfflineIndicator: React.FC = () => {
           <span>You are offline. {pendingQueueLength > 0 ? `${pendingQueueLength} changes queued. ` : ''}Working in read/cache mode.</span>
         </div>
         <button
-          onClick={() => getSafeWindow()!.location.reload()}
+          onClick={() => platformService.reloadWindow()}
           className="text-primary hover:text-primary/80 font-semibold px-2 py-1 -mr-2"
         >
           [Retry]
