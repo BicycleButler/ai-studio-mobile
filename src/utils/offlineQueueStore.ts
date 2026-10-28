@@ -3,11 +3,7 @@ import { Observable, IObservable } from "./observable";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
 import { ICrossTabNotifier, createCrossTabNotifier } from "./crossTabNotifier";
-
-export interface IAsyncStorageAdapter {
-  getItem<T>(key: string): Promise<T | undefined>;
-  setItem<T>(key: string, value: T): Promise<void>;
-}
+import { AsyncStorage } from "./asyncStorage";
 
 export interface IOfflineQueueStore {
   getObservable(): IObservable<OfflineMutation[]>;
@@ -24,7 +20,7 @@ export interface IOfflineQueueStore {
 
 export interface OfflineQueueStoreConfig {
   storageKey: string;
-  storageAdapter: IAsyncStorageAdapter;
+  storageAdapter: AsyncStorage;
   logger?: ILogger;
   createCrossTabNotifier?: (name: string) => ICrossTabNotifier;
   mutex?: IMutex;
@@ -40,7 +36,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   private cachedQueue: OfflineMutation[] = [];
   private notifier?: ICrossTabNotifier;
   private storageKey: string;
-  private storageAdapter: IAsyncStorageAdapter;
+  private storageAdapter: AsyncStorage;
   private logger: ILogger;
 
   constructor(config: OfflineQueueStoreConfig) {
