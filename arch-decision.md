@@ -1,3 +1,17 @@
+## Architectural Decision: Storage Serialization Abstraction
+
+**Context:**
+`StorageBase` and `StorageAdapter` previously relied on hardcoded `JSON.stringify` and `JSON.parse` logic within `core.ts` for all storage operations. This tight coupling violated the Open/Closed Principle and the Dependency Inversion Principle, making it impossible to support alternative data encodings (e.g., compressed formats, custom binary formats, or secure encrypted wrappers) without modifying the core storage utility functions.
+
+**Path 1: Extract an `ISerializer` Interface (Composition)**
+Define an `ISerializer` interface with `serialize` and `deserialize` methods. Implement a `JsonSerializer`. Inject this interface into `StorageBaseOptions`, which delegates it down to the `DefaultStorageAdapter` and the safe helper functions in `core.ts`.
+
+**Path 2: Callback Overrides**
+Add `serialize` and `deserialize` function properties directly to `StorageBaseOptions` instead of a formal interface.
+
+**Recommendation:**
+**Path 1 (Extract an `ISerializer` Interface)** was implemented. It strictly enforces the Dependency Inversion Principle, aligns with existing interface abstractions (like `ILogger` and `IStorageAdapter`), and deeply improves the Generality and Reusability of the storage engine by allowing any encoding mechanism to be swapped in seamlessly.
+
 ## Architectural Decision: Delay Strategy Configuration Abstraction
 
 **Context:**
