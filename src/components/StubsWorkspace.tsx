@@ -1,5 +1,5 @@
 import { getErrorMessage } from "../utils/errorHandling";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   GitBranch,
   Cpu,
@@ -42,7 +42,7 @@ type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal
 
 
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
-  const { julesClient, logger, clipboardService } = useServices();
+  const { julesClient, logger, clipboardService, platformService } = useServices();
     // Navigation & Sub-views
   const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
@@ -53,7 +53,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
 
   const showToast = React.useCallback((msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => {
+    platformService.setTimeout(() => {
       setToastMessage(null);
     }, 3500);
   }, []);
@@ -91,15 +91,15 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
 
   const { specs, activeSpecPath: selectedSpecId, loadSpecs, selectSpec, } = useStubsSpecs(showToast, loadGraph);
   const [copiedSpecId, setCopiedSpecId] = useState<string | null>(null);
-  const handleCopySpec = async (id: string, content: string) => {
+  const handleCopySpec = useCallback(async (id: string, content: string) => {
     try {
       await clipboardService.writeText(content);
       setCopiedSpecId(id);
-      setTimeout(() => setCopiedSpecId(null), 2000);
+      platformService.setTimeout(() => setCopiedSpecId(null), 2000);
     } catch {
       // Ignored
     }
-  };
+  }, [clipboardService, platformService]);
 
 
 

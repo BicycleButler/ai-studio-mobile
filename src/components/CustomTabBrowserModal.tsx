@@ -76,16 +76,18 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
     }
   };
 
+  const { platformService } = useServices();
+
   useEffect(() => {
     if (!isOpen) {
       return;
     }
     void checkClipboard();
-    const interval = setInterval(() => {
+    const interval = platformService.setInterval(() => {
       void checkClipboard();
     }, 2000);
-    return () => clearInterval(interval);
-  }, [isOpen, activeApiKey, activeService]);
+    return () => platformService.clearInterval(interval as unknown as number);
+  }, [isOpen, activeApiKey, activeService, platformService]);
 
   const handleOpenSystemBrowser = () => {
     getSafeWindow()?.open(targetUrl, "_blank", "noopener,noreferrer");
@@ -95,7 +97,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
     try {
       await clipboardService.writeText(targetUrl);
       setCopiedUrl(true);
-      setTimeout(() => setCopiedUrl(false), 2000);
+      platformService.setTimeout(() => setCopiedUrl(false), 2000);
     } catch {
       // Ignored
     }

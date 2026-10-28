@@ -1,4 +1,5 @@
 import { getSafeWindowSpeechSynthesis } from "../utils/platform";
+import { defaultPlatformService, IPlatformService } from "./platformService";
 /**
  * Sentence-Pipelined Speech Queue
  * Delivers ultra-low-latency voice playback for AI streaming responses:
@@ -17,6 +18,7 @@ export interface SentenceQueueOptions {
   speechSettings: SpeechSettings;
   speechVoicesService?: ISpeechVoicesService;
   getWindowSpeechSynthesis?: typeof getSafeWindowSpeechSynthesis;
+  platformService?: IPlatformService;
   onSentenceStart?: (sentence: string, index: number) => void;
   onSentenceEnd?: (sentence: string, index: number) => void;
   onAllSentencesCompleted?: () => void;
@@ -44,10 +46,12 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private options: SentenceQueueOptions;
   private getWindowSpeechSynthesis: typeof getSafeWindowSpeechSynthesis;
+  private platformService: IPlatformService;
 
   constructor(options: SentenceQueueOptions) {
     this.options = options;
     this.getWindowSpeechSynthesis = options.getWindowSpeechSynthesis || getSafeWindowSpeechSynthesis;
+    this.platformService = options.platformService || defaultPlatformService;
   }
 
   public updateSettings(settings: SpeechSettings): void {
@@ -197,18 +201,18 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
    */
   private startHeartbeat(): void {
     if (this.heartbeatTimer) return;
-    this.heartbeatTimer = setInterval(() => {
+    this.heartbeatTimer = this.platformService.setInterval(() => {
       const synth = this.getWindowSpeechSynthesis();
       if (synth && synth.speaking) {
         synth.pause();
         synth.resume();
       }
-    }, 4500);
+    }, 4500) as unknown as ReturnType<typeof setInterval>;
   }
 
   private stopHeartbeat(): void {
     if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
+      this.platformService.clearInterval(this.heartbeatTimer as unknown as number);
       this.heartbeatTimer = null;
     }
   }

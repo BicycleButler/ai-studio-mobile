@@ -25,6 +25,10 @@ export interface IPlatformService {
   getWindow(): Window | null;
   getNavigator(): Navigator | null;
   getLocalStorage(): Storage | null;
+  setTimeout(handler: TimerHandler, timeout?: number, ...args: any[]): number;
+  clearTimeout(id: number | undefined): void;
+  setInterval(handler: TimerHandler, timeout?: number, ...args: any[]): number;
+  clearInterval(id: number | undefined): void;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -110,6 +114,22 @@ export class BrowserPlatformService implements IPlatformService {
 
   public getLocalStorage(): Storage | null {
       return getSafeLocalStorage();
+  }
+
+  public setTimeout(handler: TimerHandler, timeout?: number, ...args: any[]): number {
+      return globalThis.setTimeout(handler, timeout, ...args);
+  }
+
+  public clearTimeout(id: number | undefined): void {
+      globalThis.clearTimeout(id);
+  }
+
+  public setInterval(handler: TimerHandler, timeout?: number, ...args: any[]): number {
+      return globalThis.setInterval(handler, timeout, ...args);
+  }
+
+  public clearInterval(id: number | undefined): void {
+      globalThis.clearInterval(id);
   }
 }
 

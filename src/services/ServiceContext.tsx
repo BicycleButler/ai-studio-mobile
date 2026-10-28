@@ -138,7 +138,8 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
 const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService({});
 
 const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
-    generalSettingsService: explicitlyInjectedGeneralSettingsService
+    generalSettingsService: explicitlyInjectedGeneralSettingsService,
+    platformService: defaultPlatformService
 });
 
 const explicitlyInjectedProjectService = new ProjectService({

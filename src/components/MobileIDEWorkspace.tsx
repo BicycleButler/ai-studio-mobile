@@ -51,7 +51,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   onSwitchToPrompt: _onSwitchToPrompt,
   onOpenParameters,
 }) => {
-  const { codeGeneratorService, geminiStreamService, logger, clipboardService, fileDownloadService } = useServices();
+  const { codeGeneratorService, geminiStreamService, logger, clipboardService, fileDownloadService, platformService } = useServices();
 
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [
@@ -140,7 +140,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   const handleCopyFile = async () => {
     await clipboardService.writeText(activeFile.content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    platformService.setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDownloadFile = async () => {
@@ -187,7 +187,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
     // If user has no API key, alert in console
     if (!hasApiKey && activeFile.id !== "system" && activeFile.id !== "config") {
-      setTimeout(() => {
+      platformService.setTimeout(() => {
         addConsoleLog(
           "stderr",
           "Error: GEMINI_API_KEY environment variable is not configured. Connect your key via Settings > Authentication to execute live queries."
@@ -286,7 +286,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     const nextText = text.substring(0, start) + insertion + text.substring(end);
     handleUpdateContent(nextText);
 
-    setTimeout(() => {
+    platformService.setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
         textareaRef.current.setSelectionRange(start + cursorOffset, start + cursorOffset);

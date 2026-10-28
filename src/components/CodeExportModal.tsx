@@ -20,7 +20,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
   const [selectedLang, setSelectedLang] = useState<CodeLangId>("kotlin");
   const [copied, setCopied] = useState(false);
 
-  const { codeGeneratorService, clipboardService } = useServices();
+  const { codeGeneratorService, clipboardService, platformService } = useServices();
 
   const generator = codeGeneratorService.getGenerator(selectedLang) || codeGeneratorService.getGenerator("kotlin");
   const code = generator?.generate(config, messages) || "";
@@ -28,7 +28,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
   const handleCopy = async () => {
     await clipboardService.writeText(code);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    platformService.setTimeout(() => setCopied(false), 2000);
   };
 
   const langs: { id: CodeLangId; label: string; icon: LucideIcon }[] = [

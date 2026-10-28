@@ -79,14 +79,14 @@ export function useClipboardKeySniffer({
       const doc = platformService.getDocument();
       if (doc?.visibilityState === "visible") {
         // Slight delay to allow Android OS clipboard bridge to sync upon app resume
-        setTimeout(() => {
+        platformService.setTimeout(() => {
           void inspectClipboard();
         }, 250);
       }
     };
 
     const handleFocus = () => {
-      setTimeout(() => {
+      platformService.setTimeout(() => {
         void inspectClipboard();
       }, 250);
     };

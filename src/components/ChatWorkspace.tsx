@@ -130,7 +130,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [isOptimizingImage, setIsOptimizingImage] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const { speechVoicesService, logger, clipboardService } = useServices();
+  const { speechVoicesService, logger, clipboardService, platformService } = useServices();
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBufferingAudio, setIsBufferingAudio] = useState(false);
@@ -510,7 +510,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       // Auto-expand into 100% text input interface if user spoke or has draft text
       if (inputText.trim()) {
         setIsInputFocused(true);
-        setTimeout(() => {
+        platformService.setTimeout(() => {
           textareaRef.current?.focus();
           const len = textareaRef.current?.value.length || 0;
           textareaRef.current?.setSelectionRange(len, len);
@@ -661,7 +661,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               sentenceQueueRef.current = null;
               if (isVoiceModeActiveRef.current) {
                 // Wait 350ms acoustic grace period to prevent microphone echo
-                setTimeout(() => {
+                platformService.setTimeout(() => {
                   if (isVoiceModeActiveRef.current) {
                     speechBaseTextRef.current = "";
                     clearTranscript();
@@ -701,7 +701,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         }
       } else if (isVoiceModeActive && !sentenceQueueRef.current && !isSpeaking && !isBufferingAudio) {
         // Recover to listening state if generation finished without speaking (e.g. error, code-only, or stopped)
-        setTimeout(() => {
+        platformService.setTimeout(() => {
           if (isVoiceModeActiveRef.current && !sentenceQueueRef.current && !isSpeaking) {
             speechBaseTextRef.current = "";
             clearTranscript();
@@ -713,7 +713,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
     } else if (!isGenerating && isVoiceModeActive && voiceState === "processing") {
       // Fallback recovery if voiceState is stuck on processing
-      setTimeout(() => {
+      platformService.setTimeout(() => {
         if (isVoiceModeActiveRef.current && !sentenceQueueRef.current && !isSpeaking) {
           speechBaseTextRef.current = "";
           clearTranscript();
@@ -771,7 +771,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       setIsSpeaking(false);
       if (isVoiceModeActiveRef.current) {
         // Acoustic echo safety: delay 350ms before opening mic
-        setTimeout(() => {
+        platformService.setTimeout(() => {
           if (isVoiceModeActiveRef.current) {
             speechBaseTextRef.current = "";
             clearTranscript();
@@ -790,7 +790,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       setIsSpeaking(false);
       setIsBufferingAudio(false);
       if (isVoiceModeActiveRef.current) {
-        setTimeout(() => {
+        platformService.setTimeout(() => {
           if (isVoiceModeActiveRef.current) {
             speechBaseTextRef.current = "";
             clearTranscript();
@@ -845,7 +845,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           setIsSpeaking(false);
           activeAudioRef.current = null;
           if (isVoiceModeActiveRef.current) {
-            setTimeout(() => {
+            platformService.setTimeout(() => {
               if (isVoiceModeActiveRef.current) {
                 speechBaseTextRef.current = "";
                 clearTranscript();
@@ -947,7 +947,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const handleCopy = async (id: string, text: string) => {
     await clipboardService.writeText(text);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    platformService.setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleStartNewChat = () => {
@@ -958,7 +958,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     } else {
       onClearMessages();
     }
-    setTimeout(() => {
+    platformService.setTimeout(() => {
       textareaRef.current?.focus();
     }, 100);
   };
@@ -1793,12 +1793,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     onChange={(e) => setInputText(e.target.value)}
                     onFocus={() => {
                       setIsInputFocused(true);
-                      setTimeout(() => {
+                      platformService.setTimeout(() => {
                         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
                       }, 120);
                     }}
                     onBlur={() => {
-                      setTimeout(() => {
+                      platformService.setTimeout(() => {
                         if (getSafeDocument()!.activeElement !== textareaRef.current) {
                           setIsInputFocused(false);
                         }
@@ -1944,14 +1944,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     tabIndex={0}
                     onClick={() => {
                       setIsInputFocused(true);
-                      setTimeout(() => {
+                      platformService.setTimeout(() => {
                         textareaRef.current?.focus();
                       }, 50);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         setIsInputFocused(true);
-                        setTimeout(() => {
+                        platformService.setTimeout(() => {
                           textareaRef.current?.focus();
                         }, 50);
                       }

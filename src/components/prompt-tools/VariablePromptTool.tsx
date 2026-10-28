@@ -48,7 +48,7 @@ const PRESETS: PresetItem[] = [
 ];
 
 export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsertText }) => {
-  const { clipboardService } = useServices();
+  const { clipboardService, platformService } = useServices();
   const [template, setTemplate] = useState<string>("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
@@ -88,14 +88,14 @@ export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsert
   const handleCopy = async () => {
     await clipboardService.writeText(resolvedPrompt);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    platformService.setTimeout(() => setCopied(false), 1800);
   };
 
   const handleInsert = () => {
     if (onInsertText) {
       onInsertText(resolvedPrompt);
       setInserted(true);
-      setTimeout(() => setInserted(false), 1800);
+      platformService.setTimeout(() => setInserted(false), 1800);
     }
   };
 

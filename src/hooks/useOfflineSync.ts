@@ -9,7 +9,7 @@ import { useServices } from "../services/ServiceContext";
 export type ReconnectState = "idle" | "reconnecting" | "success" | "conflict";
 
 export function useOfflineSync(customOfflineService?: IOfflineService) {
-  const { offlineService: contextOfflineService } = useServices();
+  const { offlineService: contextOfflineService, platformService } = useServices();
   const offlineService = customOfflineService || contextOfflineService;
   const { isOnline, wasOffline } = useNetworkStatus();
   const [reconnectState, setReconnectState] = useState<ReconnectState>("idle");
@@ -33,7 +33,7 @@ export function useOfflineSync(customOfflineService?: IOfflineService) {
       setReconnectState("conflict");
     } else {
       setReconnectState("success");
-      setTimeout(() => {
+      platformService.setTimeout(() => {
         setReconnectState((prev) => (prev === "success" ? "idle" : prev));
       }, 3000);
     }
