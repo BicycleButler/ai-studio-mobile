@@ -3,6 +3,7 @@ import { StorageEventNotifier } from './StorageEventNotifier';
 import { BroadcastChannelNotifier } from './BroadcastChannelNotifier';
 import { createCrossTabNotifier } from './CrossTabNotifierFactory';
 import { NoOpLogger } from '../logger';
+import { getSafeLocalStorage, getSafeWindow } from '../platform';
 
 describe('CrossTabNotifier', () => {
   let logger: NoOpLogger;
@@ -20,7 +21,7 @@ describe('CrossTabNotifier', () => {
 
     afterEach(() => {
       notifier.dispose();
-      window.localStorage.clear();
+      getSafeLocalStorage()?.clear();
     });
 
     it('should notify and trigger storage event handler', () => {
@@ -34,14 +35,14 @@ describe('CrossTabNotifier', () => {
         key: '_sync_notify_test_channel',
         newValue: payload
       });
-      window.dispatchEvent(event);
+      getSafeWindow()?.dispatchEvent(event);
 
       expect(handler).toHaveBeenCalledWith(message);
     });
 
     it('should write to localStorage on notify', () => {
         notifier.notify('TEST_MSG');
-        const val = window.localStorage.getItem('_sync_notify_test_channel');
+        const val = getSafeLocalStorage()?.getItem('_sync_notify_test_channel');
         expect(val).toBeDefined();
         const parsed = JSON.parse(val!);
         expect(parsed.message).toBe('TEST_MSG');
@@ -56,14 +57,19 @@ describe('CrossTabNotifier', () => {
       });
 
       it('should fallback to StorageEventNotifier if BroadcastChannel is missing', () => {
-          const originalBroadcastChannel = window.BroadcastChannel;
-          // @ts-ignore
-          delete window.BroadcastChannel;
+          const win = getSafeWindow();
+          const originalBroadcastChannel = win?.BroadcastChannel;
+          if (win) {
+              // @ts-ignore
+              delete win.BroadcastChannel;
+          }
 
           const notifier = createCrossTabNotifier('test', logger);
           expect(notifier instanceof StorageEventNotifier).toBe(true);
 
-          window.BroadcastChannel = originalBroadcastChannel;
+          if (win && originalBroadcastChannel) {
+              win.BroadcastChannel = originalBroadcastChannel;
+          }
       });
   });
 });

@@ -911,3 +911,17 @@ Implement an `updateCount` tracker inside `applyMutations` and `bulkDelete`. `it
 
 **Recommendation:**
 **Path 2 (Strict Mutation Counting)** was implemented. It fixes the semantic accuracy of the `singleUpdatedItem` resolution for batch operations while preserving the interface, ensuring downstream bugs are not triggered by false-positive singular resolves on multi-item operations.
+
+## Architectural Decision: Global DOM Variable Abstraction in Utilities
+
+**Context:**
+Files like `src/utils/crossTabNotifier/StorageEventNotifier.ts` and `src/utils/networkStatus.ts` accessed global variables like `window.localStorage` and `window.navigator.onLine` directly, bypassing the platform utilities established in `src/utils/platform.ts` (`getSafeWindow`, `getSafeNavigator`, etc.). This violated the core abstraction principles, tying utility code tightly to the DOM environment and making it fragile under SSR or test environments without comprehensive mocking.
+
+**Path 1: Standardize with Platform Utilities**
+Extend `src/utils/platform.ts` to export explicit getters like `getSafeLocalStorage()` and update all remaining utilities to exclusively use these safe wrappers instead of touching `window` or `document` directly.
+
+**Path 2: Inject as Dependencies**
+Pass `localStorage` and `navigator` via constructor injection to these utilities to decouple them entirely from global state.
+
+**Recommendation:**
+**Path 1 (Standardize with Platform Utilities)** was implemented. It aligns perfectly with the established `getSafe*` pattern in `platform.ts`, preventing massive refactoring of utility constructors while successfully abstracting the DOM access away from the application logic layer, significantly improving robustness in non-browser environments.
