@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { SpeechSettings, DeviceVoiceOption } from "../../services/speechVoices";
-import { getSafeWindowSpeechSynthesis } from "../../utils/platform";
 import { useServices } from "../../services/ServiceContext";
 
 export function useAudioSettings(initialSettings: SpeechSettings, onSave: (settings: SpeechSettings) => void) {
-  const { speechVoicesService, logger } = useServices();
+  const { speechVoicesService, logger, platformService } = useServices();
   const [currentSpeechSettings, setCurrentSpeechSettings] = useState<SpeechSettings>(initialSettings);
   const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
@@ -24,14 +23,14 @@ export function useAudioSettings(initialSettings: SpeechSettings, onSave: (setti
     };
 
     loadVoices();
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = platformService.getSpeechSynthesis();
     if (synth) {
       synth.onvoiceschanged = loadVoices;
     }
     return () => {
       if (synth) synth.onvoiceschanged = null;
     };
-  }, []);
+  }, [platformService, speechVoicesService]);
 
   const stopPreview = () => {
     if (previewAudioRef.current) {
@@ -39,7 +38,7 @@ export function useAudioSettings(initialSettings: SpeechSettings, onSave: (setti
       previewAudioRef.current.src = "";
       previewAudioRef.current = null;
     }
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = platformService.getSpeechSynthesis();
     if (synth && synth.speaking) {
       synth.cancel();
     }
@@ -73,7 +72,7 @@ export function useAudioSettings(initialSettings: SpeechSettings, onSave: (setti
         setIsPreviewLoading(false);
       }
     } else {
-      const synth = getSafeWindowSpeechSynthesis();
+      const synth = platformService.getSpeechSynthesis();
       if (synth) {
         const utterance = new SpeechSynthesisUtterance(samplePhrase);
         const rawVoices = synth.getVoices();

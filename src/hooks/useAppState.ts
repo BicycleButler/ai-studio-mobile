@@ -8,8 +8,7 @@ import { useUIState } from "./useUIState";
 import { useModelConfig } from "./useModelConfig";
 import { PromptType, ChatMessage, ChatSession } from "../types";
 
-import { fetchModels, isDeprecatedOrUnusableModel } from "../utils/modelCatalog";
-import { ModelInfo } from "../types";
+import { fetchModels } from "../utils/modelCatalog";
 
 export function useAppState() {
   const { chatHistoryService } = useServices();
@@ -73,28 +72,6 @@ export function useAppState() {
     setConfig(modelConfig.config);
   }, [modelConfig.config]);
 
-  const handleGoogleLogin = async (email?: string, name?: string) => {
-    const user = await googleAuthService.initiateGoogleLogin(email, name);
-    if (user) {
-      setGoogleUser(user);
-      const key = customApiKey || generalSettingsService.loadStoredApiKey();
-      fetchModels(apiClient, key, true)
-        .then((data) => {
-          if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-            const cleaned = data.models.filter((m: ModelInfo) => !isDeprecatedOrUnusableModel(m.id));
-            if (cleaned.length > 0) {
-              modelConfig.setModels(cleaned);
-            }
-          }
-        })
-        .catch(() => {});
-    }
-  };
-
-  const handleGoogleLogout = async () => {
-    await googleAuthService.logoutGoogleUser();
-    setGoogleUser(null);
-  };
 
   const handleSaveApiKey = (key: string) => {
     setCustomApiKey(key);
@@ -223,8 +200,6 @@ export function useAppState() {
     customApiKey,
     setCustomApiKey,
     hasApiKey,
-    handleGoogleLogin,
-    handleGoogleLogout,
     handleSaveApiKey,
     refreshServerAuth,
 

@@ -1,6 +1,6 @@
-import { isBrowserEnvironment, getSafeWindowSpeech, getSafeNavigatorLanguage, getSafeNavigator } from "../utils/platform";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { isBrowserEnvironment } from "../utils/platform";
 import { useServices } from "../services/ServiceContext";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 // Safe Web Speech API TypeScript definitions
 interface SpeechRecognitionResultItem {
@@ -77,7 +77,7 @@ export interface UseSpeechToTextReturn {
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeechToTextReturn {
-  const { logger } = useServices();
+  const { logger, platformService } = useServices();
   const [isListening, setIsListening] = useState(false);
   const [isAudioDetected, setIsAudioDetected] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -102,9 +102,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
   const getConstructor = useCallback((): SpeechRecognitionConstructor | undefined => {
     if (!isBrowserEnvironment()) return undefined;
-    const win = getSafeWindowSpeech();
+    const win = platformService.getWindow() as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } | null;
     return (win?.SpeechRecognition || win?.webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
-  }, []);
+  }, [platformService]);
 
   const isSupported = Boolean(getConstructor());
 
@@ -118,7 +118,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
       countdownIntervalRef.current = null;
     }
     setSilenceCountdownMs(null);
-  }, []);
+  }, [platformService]);
 
   const clearTranscript = useCallback(() => {
     clearSilenceTimer();
@@ -159,7 +159,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
       }
 
       // Pre-flight microphone permission check if supported
-      const nav = getSafeNavigator() as Navigator & { mediaDevices?: { getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream> } } | null;
+      const nav = platformService.getNavigator() as Navigator & { mediaDevices?: { getUserMedia?: (constraints: MediaStreamConstraints) => Promise<MediaStream> } } | null;
       if (nav && nav.mediaDevices && typeof nav.mediaDevices.getUserMedia === "function") {
         nav.mediaDevices.getUserMedia({ audio: true }).catch((permErr: unknown) => {
           logger.warn("[SpeechToText] Microphone pre-flight check notice:", permErr);
@@ -182,7 +182,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
         shouldKeepListeningRef.current = isContinuous;
 
         recognition.lang =
-          optionsRef.current.lang || getSafeNavigatorLanguage("en-US");
+          optionsRef.current.lang || platformService.getNavigator()?.language || "en-US";
         recognition.continuous = optionsRef.current.continuous ?? true;
         recognition.interimResults = optionsRef.current.interimResults ?? true;
 
@@ -319,7 +319,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
                   if (restartClass) {
                     const nextRec = new restartClass();
                     recognitionRef.current = nextRec;
-                    nextRec.lang = optionsRef.current.lang || getSafeNavigatorLanguage("en-US");
+                    nextRec.lang = optionsRef.current.lang || platformService.getNavigator()?.language || "en-US";
                     nextRec.continuous = optionsRef.current.continuous ?? true;
                     nextRec.interimResults = optionsRef.current.interimResults ?? true;
                     nextRec.onstart = () => setIsListening(true);

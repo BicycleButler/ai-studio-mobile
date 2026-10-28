@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   CheckCircle2,
   ExternalLink,
@@ -9,73 +9,43 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import { GoogleUser } from "../types";
+
 import { GoogleIcon } from "./GoogleIcon";
-import { useServices } from "../services/ServiceContext";
+import { useGoogleAuth } from "../hooks/useGoogleAuth";
 
-export interface GoogleAuthActionHandlers {
-  onLogin: (email?: string, name?: string) => Promise<void>;
-  onLogout: () => Promise<void>;
-}
-
-export interface GoogleAuthCardProps extends GoogleAuthActionHandlers {
-  user: GoogleUser | null;
+export interface GoogleAuthCardProps {
   liveModelsCount?: number;
   compact?: boolean;
 }
 
 export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
-  user,
-  onLogin,
-  onLogout,
   liveModelsCount = 55,
   compact = false,
 }) => {
-  const { logger } = useServices();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { user, login, logout, isLoading, error } = useGoogleAuth();
 
   const handleSignIn = async () => {
-    setIsLoading(true);
-    setError(null);
-
     try {
-      await onLogin();
-    } catch (err: unknown) {
-      logger.error("Sign in error:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to authenticate Google account. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
+      await login();
+    } catch {
+        // error is handled by hook
     }
   };
 
   const handleRefreshSync = async () => {
     if (!user) return;
-    setIsLoading(true);
-    setError(null);
-
     try {
-      await onLogin(user.email, user.name);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to refresh sync.");
-    } finally {
-      setIsLoading(false);
+      await login(user.email, user.name);
+    } catch {
+        // error is handled by hook
     }
   };
 
   const handleSignOut = async () => {
-    setIsLoading(true);
-    setError(null);
     try {
-      await onLogout();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to sign out.");
-    } finally {
-      setIsLoading(false);
+      await logout();
+    } catch {
+        // error is handled by hook
     }
   };
 

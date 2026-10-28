@@ -1,4 +1,5 @@
 import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsState";
+import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
 import { getSafeDocument, safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
@@ -23,7 +24,6 @@ import {
   DeviceFrameMode,
   SavedPrompt,
   ChatMessage,
-  GoogleUser,
   ProjectInfo,
 } from "../types";
 import { TunerBottomSheet } from "./TunerBottomSheet";
@@ -48,9 +48,6 @@ export interface AccountSettingsProps {
   onSaveJulesApiKey?: (key: string) => void;
   hasServerKey: boolean;
   onRefreshServerAuth?: () => void;
-  googleUser?: GoogleUser | null;
-  onGoogleLogin?: (email?: string, name?: string) => Promise<void>;
-  onGoogleLogout?: () => Promise<void>;
 }
 
 export interface ProjectSettingsProps {
@@ -114,9 +111,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onSaveJulesApiKey: _onSaveJulesApiKey,
   hasServerKey,
   onRefreshServerAuth,
-  googleUser = null,
-  onGoogleLogin,
-  onGoogleLogout,
   liveModelsCount = 55,
   onOpenCustomTabBrowser: _onOpenCustomTabBrowser,
   onOpenImportProject,
@@ -236,7 +230,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   // Audio state
 
 
-  const hasAnyAuth = Boolean(googleUser || customApiKey.trim() || hasServerKey);
+  const { user } = useGoogleAuth();
+  const hasAnyAuth = Boolean(user || customApiKey.trim() || hasServerKey);
   const isJulesConfigured = Boolean(julesApiKey.trim());
 
   return (
@@ -367,9 +362,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             <SettingsAccountTab
               customApiKey={customApiKey}
               hasServerKey={hasServerKey}
-              googleUser={googleUser}
-              onGoogleLogin={onGoogleLogin}
-              onGoogleLogout={onGoogleLogout}
               onRefreshServerAuth={onRefreshServerAuth}
               onOpenCustomTabBrowser={() => {}} // Replace if there's a real handler
               isVerifyingKey={false}

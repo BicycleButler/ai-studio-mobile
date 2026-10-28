@@ -1,4 +1,4 @@
-import { getSafeWindow } from "../utils/platform";
+import { useServices } from "../services/ServiceContext";
 import React from "react";
 import {
   ExternalLink,
@@ -17,16 +17,13 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
   onOpenApiKeyModal,
   isEmbedded = false,
 }) => {
+  const { platformService } = useServices();
   const openDesktopAiStudio = () => {
-    getSafeWindow()?.open("https://aistudio.google.com", "_blank", "noopener,noreferrer");
+    platformService.openUrl("https://aistudio.google.com", "_blank");
   };
 
   const openApiKeyPage = () => {
-    getSafeWindow()?.open(
-      "https://aistudio.google.com/app/apikey",
-      "_blank",
-      "noopener,noreferrer"
-    );
+    platformService.openUrl("https://aistudio.google.com/app/apikey", "_blank");
   };
 
   return (
