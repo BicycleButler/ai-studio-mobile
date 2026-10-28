@@ -16,7 +16,7 @@ describe('CrossTabNotifier', () => {
     let notifier: StorageEventNotifier;
 
     beforeEach(() => {
-      notifier = new StorageEventNotifier('test_channel', logger);
+      notifier = new StorageEventNotifier({ name: 'test_channel', logger });
     });
 
     afterEach(() => {
@@ -52,7 +52,7 @@ describe('CrossTabNotifier', () => {
   describe('CrossTabNotifierFactory', () => {
       it('should prefer BroadcastChannel if available', () => {
           // jsdom supports BroadcastChannel
-          const notifier = createCrossTabNotifier('test', logger);
+          const notifier = createCrossTabNotifier({ name: 'test', logger });
           expect(notifier instanceof BroadcastChannelNotifier).toBe(true);
       });
 
@@ -64,7 +64,7 @@ describe('CrossTabNotifier', () => {
               delete win.BroadcastChannel;
           }
 
-          const notifier = createCrossTabNotifier('test', logger);
+          const notifier = createCrossTabNotifier({ name: 'test', logger });
           expect(notifier instanceof StorageEventNotifier).toBe(true);
 
           if (win && originalBroadcastChannel) {
