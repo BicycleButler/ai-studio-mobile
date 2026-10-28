@@ -26,7 +26,7 @@ export function getStorageInstance(): Storage {
 
   try {
     if (isBrowserEnvironment()) {
-      const win = getSafeWindow() as unknown as WindowWithLocalStorage;
+      const win = (getSafeWindow() as unknown) as WindowWithLocalStorage;
       if (win && win.localStorage) {
         // Validation check to ensure localStorage is fully accessible and not throwing QuotaExceeded on boot (e.g., Safari Private Mode)
         const testKey = "__storage_test__";

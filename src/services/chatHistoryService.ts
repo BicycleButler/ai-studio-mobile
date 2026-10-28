@@ -122,8 +122,8 @@ export class ChatHistoryService implements IChatHistoryService {
           if (cleanSessions.length !== rawSessions.length) {
             collection.save(cleanSessions);
           }
-          if (typeof (rawCollection as unknown as { dispose?: () => void }).dispose === "function") {
-            (rawCollection as unknown as { dispose: () => void }).dispose();
+          if (typeof ((rawCollection as unknown) as { dispose?: () => void }).dispose === "function") {
+            ((rawCollection as unknown) as { dispose: () => void }).dispose();
           }
         });
       }

@@ -24,7 +24,7 @@ export class WindowSecurityService implements IWindowSecurityService {
   public shieldStore: Observable<ShieldState>;
   private generalSettingsService: GeneralSettingsService;
   private flagSecureEnabled: boolean;
-  private timerRef: ReturnType<typeof setTimeout> | null = null;
+  private timerRef: unknown = null;
   private sensitiveScreenRegistrations = new Set<string>();
   private getSafeDoc: typeof getSafeDocument;
   private addEventListener: typeof safeAddEventListener;
@@ -45,7 +45,7 @@ export class WindowSecurityService implements IWindowSecurityService {
 
   private clearScheduledTimer() {
     if (this.timerRef) {
-      this.platformService.clearTimeout(this.timerRef as unknown as number);
+      this.platformService.clearTimeout(this.timerRef);
       this.timerRef = null;
     }
   }
@@ -69,7 +69,7 @@ export class WindowSecurityService implements IWindowSecurityService {
       } else if (this.getSafeDoc()?.visibilityState === "visible") {
         this.timerRef = this.platformService.setTimeout(() => {
           this.updateShield(false);
-        }, 120) as unknown as ReturnType<typeof setTimeout>;
+        }, 120) ;
       }
     });
 
@@ -91,7 +91,7 @@ export class WindowSecurityService implements IWindowSecurityService {
       this.clearScheduledTimer();
       this.timerRef = this.platformService.setTimeout(() => {
         this.updateShield(false);
-      }, 120) as unknown as ReturnType<typeof setTimeout>;
+      }, 120) ;
     });
 
     // Subscribe to general settings to keep in sync

@@ -46,7 +46,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
     const handler = platformService.setTimeout(() => {
       setDebouncedQuery(query);
     }, 300);
-    return () => platformService.clearTimeout(handler as unknown as number);
+    return () => platformService.clearTimeout(handler);
   }, [query, platformService]);
 
   const filteredOptions = options.filter(

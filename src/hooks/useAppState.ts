@@ -129,7 +129,7 @@ export function useAppState() {
         activeProject?.id
       );
     }, 500);
-    return () => platformService.clearTimeout(timeout as unknown as number);
+    return () => platformService.clearTimeout(timeout);
   }, [promptType, config, chatSession.freeformText, chatSession.structuredExamples, chatSession.messages, promptTemplates.selectedTemplateIds, activeProject?.id, platformService]);
 
   // Chat Session Persistence Effect

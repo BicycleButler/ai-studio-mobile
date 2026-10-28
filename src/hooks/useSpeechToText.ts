@@ -86,8 +86,8 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
   const recognitionRef = useRef<ISpeechRecognitionInstance | null>(null);
   const shouldKeepListeningRef = useRef<boolean>(false);
-  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countdownIntervalRef = useRef<number | null>(null);
+  const silenceTimerRef = useRef<unknown>(null);
+  const countdownIntervalRef = useRef<unknown>(null);
   const activeTranscriptRef = useRef<string>("");
   const accumulatedAcrossRestartsRef = useRef<string>("");
   const callbackRef = useRef<((text: string, isFinal: boolean) => void) | undefined>(
@@ -110,7 +110,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
-      platformService.clearTimeout(silenceTimerRef.current as unknown as number);
+      platformService.clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
     if (countdownIntervalRef.current) {
@@ -272,7 +272,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
                   accumulatedAcrossRestartsRef.current = "";
                   optionsRef.current.onSilenceAutoSend?.(textToSend);
                 }
-              }, timeoutDelay) as unknown as ReturnType<typeof setTimeout>;
+              }, timeoutDelay) ;
             }
           }
         };
