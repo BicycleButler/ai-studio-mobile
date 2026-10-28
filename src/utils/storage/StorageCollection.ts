@@ -3,6 +3,7 @@ import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { IMutableCollection, ICollectionEngine, IStorageAdapter } from "./types";
 import { IEventEmitter } from "../eventEmitter";
 import { ILogger, defaultLogger } from "../logger";
+import { ISerializer } from "./serializer";
 
 export interface StorageCollectionOptions<T> {
   engine?: ICollectionEngine<T>;
@@ -16,6 +17,7 @@ export interface StorageCollectionOptions<T> {
   storageAdapter?: Storage;
   storageEventObservable?: IEventEmitter<StorageEvent>;
   logger?: ILogger;
+  serializer?: ISerializer;
 }
 
 export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCollection<T> {
@@ -61,6 +63,7 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
       onSave: options?.onSave,
       storageEventObservable: options?.storageEventObservable,
       logger: options?.logger,
+      serializer: options?.serializer,
     };
 
     super(key, baseOptions);

@@ -4,7 +4,9 @@ import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 
 import { ILogger, defaultLogger } from "../logger";
 import { EventEmitter } from "../eventEmitter";
+import { ISerializer, JsonSerializer } from "./serializer";
 export const globalStorageEventObservable = new EventEmitter<StorageEvent>();
+const defaultSerializer = new JsonSerializer();
 
 if (isBrowserEnvironment()) {
   const win = getSafeWindow();
@@ -92,10 +94,11 @@ export function safeParseStorageItem<T>(
   fallback: T,
   storage: Storage,
   isArray: boolean,
-  logger: ILogger = defaultLogger
+  logger: ILogger = defaultLogger,
+  serializer: ISerializer = defaultSerializer
 ): T {
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = serializer.deserialize(raw);
     if (isArray && !Array.isArray(parsed)) {
       logger.warn(`Type mismatch in storage for ${key}. Expected array, got ${typeof parsed}. Purging.`);
       storage.removeItem(key);
@@ -109,13 +112,13 @@ export function safeParseStorageItem<T>(
   }
 }
 
-export function safeGetStorage<T>(key: string, fallback: T, storageInstance?: Storage, logger: ILogger = defaultLogger): T {
+export function safeGetStorage<T>(key: string, fallback: T, storageInstance?: Storage, logger: ILogger = defaultLogger, serializer: ISerializer = defaultSerializer): T {
   try {
     const storage = storageInstance || getStorageInstance();
     const raw = storage.getItem(key);
     if (!raw) return fallback;
     const isArray = Array.isArray(fallback);
-    return safeParseStorageItem(key, raw, fallback, storage, isArray, logger);
+    return safeParseStorageItem(key, raw, fallback, storage, isArray, logger, serializer);
   } catch (err: unknown) {
     logger.warn(`Failed to read ${key} from storage:`, err);
     return fallback;
@@ -139,9 +142,9 @@ export function safeGetStorageKeys(prefix: string, storageInstance?: Storage, lo
   return keys;
 }
 
-export function safeSetStorage<T>(key: string, value: T, storageInstance?: Storage, logger: ILogger = defaultLogger): boolean {
+export function safeSetStorage<T>(key: string, value: T, storageInstance?: Storage, logger: ILogger = defaultLogger, serializer: ISerializer = defaultSerializer): boolean {
   try {
-    const serialized = JSON.stringify(value);
+    const serialized = serializer.serialize(value);
     return safeSetStorageString(key, serialized, storageInstance, logger);
   } catch (err: unknown) {
     logger.warn(`Failed to stringify ${key} for storage:`, err);
@@ -193,14 +196,14 @@ export function safeRemoveStorage(key: string, storageInstance?: Storage, logger
 }
 
 export class DefaultStorageAdapter<T> implements IStorageAdapter<T> {
-  constructor(private storageInstance?: Storage, private logger: ILogger = defaultLogger) {}
+  constructor(private storageInstance?: Storage, private logger: ILogger = defaultLogger, private serializer: ISerializer = defaultSerializer) {}
 
   get(key: string, fallback: T): T {
-    return safeGetStorage(key, fallback, this.storageInstance, this.logger);
+    return safeGetStorage(key, fallback, this.storageInstance, this.logger, this.serializer);
   }
 
   set(key: string, value: T): void {
-    safeSetStorage(key, value, this.storageInstance, this.logger);
+    safeSetStorage(key, value, this.storageInstance, this.logger, this.serializer);
   }
 
   remove(key: string): void {

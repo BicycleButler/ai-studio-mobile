@@ -4,6 +4,7 @@ import { Observable } from "../observable";
 import { ILogger, defaultLogger } from "../logger";
 import { deepFreeze } from "./helpers";
 import { IEventEmitter } from "../eventEmitter";
+import { ISerializer } from "./serializer";
 
 export interface StorageBaseOptions<T> {
   fallback: T;
@@ -15,6 +16,7 @@ export interface StorageBaseOptions<T> {
   onSave?: (items: T) => void;
   storageEventObservable?: IEventEmitter<StorageEvent>;
   logger?: ILogger;
+  serializer?: ISerializer;
 }
 
 export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
@@ -31,7 +33,7 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
     this.key = key;
     this.options = options;
     this.logger = options.logger || defaultLogger;
-    this.adapter = options.adapter || new DefaultStorageAdapter<T>(options.storageAdapter, this.logger);
+    this.adapter = options.adapter || new DefaultStorageAdapter<T>(options.storageAdapter, this.logger, this.options.serializer);
 
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 
