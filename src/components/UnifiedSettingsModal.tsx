@@ -2,7 +2,7 @@ import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsS
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
-import { getSafeDocument, safeAddEventListener, getSafeWindowSpeechSynthesis } from "../utils/platform";
+import { getSafeDocument, safeAddEventListener } from "../utils/platform";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -149,10 +149,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   };
   const handleSelectRate = (rate: number) => {
     onSaveSpeechSettings({ ...speechSettings, playbackRate: rate });
-  };
-  const stopPreview = () => {
-    const synth = getSafeWindowSpeechSynthesis();
-    if (synth) synth.cancel();
   };
 
 
@@ -346,7 +342,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         <SettingsSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          stopPreview={stopPreview}
           hasAnyAuth={hasAnyAuth}
         />
 

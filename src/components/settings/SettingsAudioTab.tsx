@@ -1,20 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import {
   Smartphone,
   Sparkles,
   Check,
-  Square,
-  Volume2,
   Radio,
-  Loader2,
 } from "lucide-react";
 import {
   GEMINI_VOICES,
   SpeechSettings,
   DeviceVoiceOption,
 } from "../../services/speechVoices";
-import { getSafeWindowSpeechSynthesis } from "../../utils/platform";
-import { useServices } from "../../services/ServiceContext";
 
 export interface SettingsAudioTabProps {
   currentSpeechSettings: SpeechSettings;
@@ -31,110 +26,11 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
   handleSelectDeviceVoice,
   handleSelectRate,
 }) => {
-  const { logger } = useServices();
-  const [deviceVoices, setDeviceVoices] = useState<DeviceVoiceOption[]>([]);
-  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const { speechVoicesService } = useServices();
+  const [deviceVoices] = React.useState<DeviceVoiceOption[]>([]);
 
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    setDeviceVoices(speechVoicesService.getAvailableDeviceVoices());
-  }, []);
 
-  const stopPreview = () => {
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current.currentTime = 0;
-    }
-    const synth = getSafeWindowSpeechSynthesis();
-    if (synth) {
-      synth.cancel();
-    }
-    setPreviewingVoiceId(null);
-    setIsPreviewLoading(false);
-  };
 
-  useEffect(() => {
-    return () => {
-      stopPreview();
-    };
-  }, []);
-
-  const handlePreviewVoice = async (
-    voiceId: string,
-    engine: "gemini" | "device"
-  ) => {
-    // If already playing this voice, stop it.
-    if (previewingVoiceId === voiceId) {
-      stopPreview();
-      return;
-    }
-
-    // Stop anything currently playing
-    stopPreview();
-    setPreviewingVoiceId(voiceId);
-
-    const testPhrase = "Hello, I am ready to assist you. How does my voice sound?";
-
-    if (engine === "gemini") {
-      setIsPreviewLoading(true);
-      try {
-        const audioResponse = await speechVoicesService.fetchTTSAudioUrl(testPhrase, voiceId);
-        const audioUrl = audioResponse?.audioUrl;
-        if (!audioUrl) throw new Error("Failed to load Gemini TTS preview.");
-
-        const audio = new Audio(audioUrl);
-        audio.playbackRate = currentSpeechSettings.playbackRate;
-        previewAudioRef.current = audio;
-
-        audio.onended = () => {
-          setPreviewingVoiceId(null);
-          setIsPreviewLoading(false);
-        };
-        audio.onerror = () => {
-          logger.error("Audio playback error");
-          setPreviewingVoiceId(null);
-          setIsPreviewLoading(false);
-        };
-
-        await audio.play();
-        setIsPreviewLoading(false);
-      } catch (err) {
-        logger.error("TTS Preview failed:", err);
-        setPreviewingVoiceId(null);
-        setIsPreviewLoading(false);
-      }
-    } else {
-      // Device Engine Playback
-      const synth = getSafeWindowSpeechSynthesis();
-      if (!synth) {
-        logger.warn("SpeechSynthesis not supported on this platform.");
-        setPreviewingVoiceId(null);
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(testPhrase);
-      const allVoices = synth.getVoices();
-      const selectedVoice = allVoices.find((v) => v.voiceURI === voiceId);
-
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-      utterance.rate = currentSpeechSettings.playbackRate;
-
-      utterance.onend = () => {
-        setPreviewingVoiceId(null);
-      };
-      utterance.onerror = (e) => {
-        logger.error("Device voice preview failed", e);
-        setPreviewingVoiceId(null);
-      };
-
-      synth.speak(utterance);
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -207,8 +103,6 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
           <div className="space-y-2">
             {GEMINI_VOICES.map((v) => {
               const isSelected = currentSpeechSettings.geminiVoice === v.id;
-              const isPlaying = previewingVoiceId === v.id;
-
               return (
                 <div
                   key={v.id}
@@ -246,36 +140,6 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreviewVoice(v.id, "gemini");
-                    }}
-                    className={`p-2 rounded-lg border text-xs font-medium shrink-0 flex items-center gap-1.5 transition-colors cursor-pointer ${
-                      isPlaying
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary"
-                    }`}
-                    title={`Audition ${v.name}`}
-                  >
-                    {isPlaying ? (
-                      <>
-                        <Square className="w-3 h-3 fill-current" />
-                        <span>Stop</span>
-                      </>
-                    ) : isPreviewLoading && previewingVoiceId === v.id ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                        <span>Loading</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 className="w-3.5 h-3.5 text-primary" />
-                        <span>Audition</span>
-                      </>
-                    )}
-                  </button>
                 </div>
               );
             })}
@@ -290,8 +154,6 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
             {deviceVoices.slice(0, 12).map((v) => {
               const isSelected =
                 currentSpeechSettings.deviceVoiceURI === v.voiceURI;
-              const isPlaying = previewingVoiceId === v.voiceURI;
-
               return (
                 <div
                   key={v.voiceURI}
@@ -320,20 +182,6 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreviewVoice(v.voiceURI, "device");
-                    }}
-                    className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground cursor-pointer"
-                  >
-                    {isPlaying ? (
-                      <Square className="w-3 h-3 fill-current" />
-                    ) : (
-                      <Volume2 className="w-3 h-3 text-primary" />
-                    )}
-                  </button>
 
 
                 </div>
