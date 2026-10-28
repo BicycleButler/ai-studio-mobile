@@ -179,7 +179,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     return () => removeKey();
   }, [isOpen, selectedSessionIds.size, isCreating, filteredSessions, onClose, clearSelection, toggleSelectAll]);
 
-  const getStatusBadge = (status: JulesTaskStatus) => {
+  const getStatusIndicator = (status: JulesTaskStatus) => {
     switch (status) {
       case "planning":
         return (
@@ -482,7 +482,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {getStatusBadge(session.status)}
+                        {getStatusIndicator(session.status)}
                         <button
                           type="button"
                           onClick={(e) => handleDelete(session.id, e)}
