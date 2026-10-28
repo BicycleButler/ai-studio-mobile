@@ -30,6 +30,11 @@ export type WindowWithVisualViewport = typeof window & { visualViewport?: Visual
 export type WindowWithBroadcastChannel = typeof window & { BroadcastChannel?: typeof BroadcastChannel };
 export type WindowWithNavigator = typeof window & { navigator?: Navigator };
 
+export function getSafeLocalStorage(): Storage | null {
+  const win = getSafeWindow() as WindowWithLocalStorage | null;
+  return win ? win.localStorage || null : null;
+}
+
 export function getSafeBroadcastChannel(name: string): BroadcastChannel | null {
   const win = getSafeWindow() as WindowWithBroadcastChannel | null;
   if (win && typeof win.BroadcastChannel !== "undefined") {

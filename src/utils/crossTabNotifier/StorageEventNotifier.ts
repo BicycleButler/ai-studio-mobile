@@ -1,5 +1,5 @@
 import { ICrossTabNotifier } from "./types";
-import { isBrowserEnvironment } from "../platform";
+import { isBrowserEnvironment, getSafeLocalStorage, safeAddEventListener } from "../platform";
 import { ILogger, defaultLogger } from "../logger";
 
 export class StorageEventNotifier implements ICrossTabNotifier {
@@ -7,6 +7,7 @@ export class StorageEventNotifier implements ICrossTabNotifier {
   private logger: ILogger;
   private handler: ((message: string) => void) | null = null;
   private boundListener: (e: StorageEvent) => void;
+  private removeListenerFn: (() => void) | null = null;
   private isListening = false;
 
   constructor(name: string, logger: ILogger = defaultLogger) {
@@ -29,10 +30,11 @@ export class StorageEventNotifier implements ICrossTabNotifier {
   }
 
   public notify(message: string): void {
-    if (isBrowserEnvironment() && window.localStorage) {
+    const localStorage = getSafeLocalStorage();
+    if (isBrowserEnvironment() && localStorage) {
       try {
         const payload = JSON.stringify({ message, timestamp: Date.now() });
-        window.localStorage.setItem(this.key, payload);
+        localStorage.setItem(this.key, payload);
         // We do NOT clear it immediately because that might fire a second storage event
         // with a null newValue that could confuse listeners if they aren't careful,
         // although we handle e.newValue above. It's safe to just overwrite it next time.
@@ -45,16 +47,17 @@ export class StorageEventNotifier implements ICrossTabNotifier {
   public onMessage(handler: (message: string) => void): void {
     this.handler = handler;
     if (isBrowserEnvironment() && !this.isListening) {
-      window.addEventListener("storage", this.boundListener);
+      this.removeListenerFn = safeAddEventListener("storage", this.boundListener);
       this.isListening = true;
     }
   }
 
   public dispose(): void {
-    if (isBrowserEnvironment() && this.isListening) {
-      window.removeEventListener("storage", this.boundListener);
-      this.isListening = false;
+    if (this.isListening && this.removeListenerFn) {
+      this.removeListenerFn();
     }
+    this.isListening = false;
+    this.removeListenerFn = null;
     this.handler = null;
   }
 }

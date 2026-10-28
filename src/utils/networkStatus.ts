@@ -1,4 +1,4 @@
-import { isBrowserEnvironment, getSafeWindow, safeAddEventListener } from "./platform";
+import { isBrowserEnvironment, getSafeNavigator, safeAddEventListener } from "./platform";
 import { Observable } from "./observable";
 
 export interface NetworkStatus {
@@ -18,9 +18,9 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
   constructor() {
     const initialIsOnline = (() => {
       if (isBrowserEnvironment()) {
-        const win = getSafeWindow();
-        if (win && typeof win.navigator.onLine === "boolean") {
-          return win.navigator.onLine;
+        const nav = getSafeNavigator();
+        if (nav && typeof nav.onLine === "boolean") {
+          return nav.onLine;
         }
       }
       return true;
@@ -54,9 +54,9 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
 
   isOnline(): boolean {
     if (isBrowserEnvironment()) {
-      const win = getSafeWindow();
-      if (win && typeof win.navigator.onLine === "boolean") {
-        return win.navigator.onLine;
+      const nav = getSafeNavigator();
+      if (nav && typeof nav.onLine === "boolean") {
+        return nav.onLine;
       }
     }
     return true; // Default to true if not in browser or missing navigator
