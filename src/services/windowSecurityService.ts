@@ -1,6 +1,7 @@
 import { getSafeDocument, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 import { Observable } from "../utils/observable";
 import { GeneralSettingsService } from "../utils/storage/general";
+import { defaultPlatformService, IPlatformService } from "./platformService";
 
 export interface ShieldState {
   isShieldActive: boolean;
@@ -28,12 +29,15 @@ export class WindowSecurityService implements IWindowSecurityService {
   private getSafeDoc: typeof getSafeDocument;
   private addEventListener: typeof safeAddEventListener;
   private addDocumentListener: typeof safeAddDocumentListener;
+  private platformService: IPlatformService;
 
-  constructor(config: WindowSecurityServiceConfig) {
+  constructor(config: WindowSecurityServiceConfig & { platformService?: IPlatformService }) {
     this.generalSettingsService = config.generalSettingsService;
     this.getSafeDoc = config.getSafeDoc || getSafeDocument;
     this.addEventListener = config.addEventListener || safeAddEventListener;
     this.addDocumentListener = config.addDocumentListener || safeAddDocumentListener;
+
+    this.platformService = config.platformService || defaultPlatformService;
     this.shieldStore = new Observable<ShieldState>({ isShieldActive: false });
     this.flagSecureEnabled = this.generalSettingsService.flagSecureObservable.getSnapshot() || false;
     this.initListeners();
@@ -41,7 +45,7 @@ export class WindowSecurityService implements IWindowSecurityService {
 
   private clearScheduledTimer() {
     if (this.timerRef) {
-      clearTimeout(this.timerRef);
+      this.platformService.clearTimeout(this.timerRef as unknown as number);
       this.timerRef = null;
     }
   }
@@ -63,9 +67,9 @@ export class WindowSecurityService implements IWindowSecurityService {
       if (this.getSafeDoc()?.visibilityState === "hidden") {
         this.updateShield(true);
       } else if (this.getSafeDoc()?.visibilityState === "visible") {
-        this.timerRef = setTimeout(() => {
+        this.timerRef = this.platformService.setTimeout(() => {
           this.updateShield(false);
-        }, 120);
+        }, 120) as unknown as ReturnType<typeof setTimeout>;
       }
     });
 
@@ -85,9 +89,9 @@ export class WindowSecurityService implements IWindowSecurityService {
           return;
       }
       this.clearScheduledTimer();
-      this.timerRef = setTimeout(() => {
+      this.timerRef = this.platformService.setTimeout(() => {
         this.updateShield(false);
-      }, 120);
+      }, 120) as unknown as ReturnType<typeof setTimeout>;
     });
 
     // Subscribe to general settings to keep in sync

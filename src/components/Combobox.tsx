@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader2, Search, X } from "lucide-react";
 import { safeAddEventListener } from "../utils/platform";
+import { useServices } from "../services/ServiceContext";
 
 export interface ComboboxOption {
   id: string;
@@ -38,13 +39,15 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const selectedOption = options.find((o) => o.id === value);
   const displayValue = isOpen ? query : selectedOption ? selectedOption.label : value;
 
+  const { platformService } = useServices();
+
   // Debounced search logic (ADR 0048 compliance)
   useEffect(() => {
-    const handler = setTimeout(() => {
+    const handler = platformService.setTimeout(() => {
       setDebouncedQuery(query);
     }, 300);
-    return () => clearTimeout(handler);
-  }, [query]);
+    return () => platformService.clearTimeout(handler as unknown as number);
+  }, [query, platformService]);
 
   const filteredOptions = options.filter(
     (o) =>

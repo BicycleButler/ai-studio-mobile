@@ -4,6 +4,7 @@ import { IApiClient } from "../utils/apiClient";
 import { isBrowserEnvironment, getSafeWindow, safeAddEventListener } from "../utils/platform";
 import { IAuthProvider } from "./authProvider";
 import { ILogger } from "../utils/logger";
+import { defaultPlatformService, IPlatformService } from "./platformService";
 
 export interface GoogleAuthServiceConfig {
   apiClient: IApiClient;
@@ -12,6 +13,7 @@ export interface GoogleAuthServiceConfig {
   isBrowserEnv?: () => boolean;
   getWindow?: typeof getSafeWindow;
   logger: ILogger;
+  platformService?: IPlatformService;
 }
 
 export interface IGoogleAuthService {
@@ -47,6 +49,7 @@ export class GoogleAuthService implements IGoogleAuthService {
   private isBrowserEnv: () => boolean;
   private getWindow: typeof getSafeWindow;
   private logger: ILogger;
+  private platformService: IPlatformService;
 
   constructor(config: GoogleAuthServiceConfig) {
     this.apiClient = config.apiClient;
@@ -58,6 +61,7 @@ export class GoogleAuthService implements IGoogleAuthService {
     );
     this.isBrowserEnv = config?.isBrowserEnv || isBrowserEnvironment;
     this.getWindow = config?.getWindow || getSafeWindow;
+    this.platformService = config?.platformService || defaultPlatformService;
   }
 
   public setAuthProvider(provider: IAuthProvider) {
@@ -250,7 +254,7 @@ export class GoogleAuthService implements IGoogleAuthService {
       const messageHandler = (event: MessageEvent) => {
         if (event.data && event.data.type === "OAUTH_AUTH_SUCCESS") {
           removeMessage();
-          clearInterval(pollTimer);
+          this.platformService.clearInterval(pollTimer as unknown as number);
           resolve({
             token: event.data.token,
             code: event.data.code,
@@ -260,13 +264,13 @@ export class GoogleAuthService implements IGoogleAuthService {
 
       const removeMessage = safeAddEventListener("message", messageHandler);
 
-      const pollTimer = setInterval(() => {
+      const pollTimer = this.platformService.setInterval(() => {
         if (popup.closed) {
-          clearInterval(pollTimer);
+          this.platformService.clearInterval(pollTimer as unknown as number);
           removeMessage();
           reject(new Error("Authentication popup closed before completing."));
         }
-      }, 800);
+      }, 800) as unknown as ReturnType<typeof setInterval>;
     });
   }
 }

@@ -21,6 +21,7 @@ import {
 } from "../utils/modelCatalog";
 import { safeAddEventListener } from "../utils/platform";
 import { Drawer } from "./ui/Drawer.tsx";
+import { useServices } from "../services/ServiceContext";
 
 export interface TunerActionHandlers {
   onClose?: () => void;
@@ -47,6 +48,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
   hasApiKey = false,
   onOpenAuth,
 }) => {
+  const { platformService } = useServices();
   const [activeCategory, setActiveCategory] = useState<string>("All");
 
   // Filter out any deprecated, legacy, or unusable non-chat models
@@ -558,7 +560,7 @@ export const TunerBottomSheet: React.FC<TunerBottomSheetProps> = ({
                 e.stopPropagation();
                 const el = e.currentTarget;
                 el.classList.add("rotate-180");
-                setTimeout(() => el.classList.remove("rotate-180"), 500);
+                platformService.setTimeout(() => el.classList.remove("rotate-180"), 500);
                 handleResetDefaults();
               }}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors transition-transform duration-500 cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-background group"

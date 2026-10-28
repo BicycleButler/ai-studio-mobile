@@ -5,7 +5,7 @@ import { useServices } from "../../services/ServiceContext";
 
 
 export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: () => void) {
-  const { stubsClient } = useServices();
+  const { stubsClient, platformService } = useServices();
   const [specs, setSpecs] = useState<StubsSidecarSpec[]>([]);
   const [activeSpecPath, setActiveSpecPath] = useState<string>("");
   const [specContent, setSpecContent] = useState<string>("");
@@ -47,7 +47,7 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
     try {
       await stubsClient.saveSpecContent(activeSpecPath, specContent);
       setSpecActionToast(`Saved ${activeSpecPath}`);
-      setTimeout(() => setSpecActionToast(null), 3000);
+      platformService.setTimeout(() => setSpecActionToast(null), 3000);
     } catch (err: unknown) {
       showToast(`Failed to save spec: ${getErrorMessage(err)}`);
     } finally {
@@ -61,7 +61,7 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
     try {
       const res = await stubsClient.materializeSpec(activeSpecPath);
       setSpecActionToast(res.message);
-      setTimeout(() => setSpecActionToast(null), 4000);
+      platformService.setTimeout(() => setSpecActionToast(null), 4000);
       showToast(res.message);
       await loadSpecs();
       if (onDataUpdated) {

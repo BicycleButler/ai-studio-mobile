@@ -87,7 +87,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
   const recognitionRef = useRef<ISpeechRecognitionInstance | null>(null);
   const shouldKeepListeningRef = useRef<boolean>(false);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
   const activeTranscriptRef = useRef<string>("");
   const accumulatedAcrossRestartsRef = useRef<string>("");
   const callbackRef = useRef<((text: string, isFinal: boolean) => void) | undefined>(
@@ -110,11 +110,11 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
+      platformService.clearTimeout(silenceTimerRef.current as unknown as number);
       silenceTimerRef.current = null;
     }
     if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
+      platformService.clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
     setSilenceCountdownMs(null);
@@ -253,17 +253,17 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
               // Start countdown timer for visible UI feedback
               setSilenceCountdownMs(timeoutDelay);
               const startTime = Date.now();
-              countdownIntervalRef.current = setInterval(() => {
+              countdownIntervalRef.current = platformService.setInterval(() => {
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, timeoutDelay - elapsed);
                 setSilenceCountdownMs(remaining);
                 if (remaining <= 0 && countdownIntervalRef.current) {
-                  clearInterval(countdownIntervalRef.current);
+                  platformService.clearInterval(countdownIntervalRef.current);
                   countdownIntervalRef.current = null;
                 }
               }, 50);
 
-              silenceTimerRef.current = setTimeout(() => {
+              silenceTimerRef.current = platformService.setTimeout(() => {
                 const textToSend = activeTranscriptRef.current.trim();
                 clearSilenceTimer();
                 if (textToSend.length > 0) {
@@ -272,7 +272,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
                   accumulatedAcrossRestartsRef.current = "";
                   optionsRef.current.onSilenceAutoSend?.(textToSend);
                 }
-              }, timeoutDelay);
+              }, timeoutDelay) as unknown as ReturnType<typeof setTimeout>;
             }
           }
         };
@@ -312,7 +312,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
             if (activeTranscriptRef.current) {
               accumulatedAcrossRestartsRef.current = activeTranscriptRef.current;
             }
-            setTimeout(() => {
+            platformService.setTimeout(() => {
               if (shouldKeepListeningRef.current && !recognitionRef.current) {
                 try {
                   const restartClass = getConstructor();

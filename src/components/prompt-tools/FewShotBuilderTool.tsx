@@ -64,7 +64,7 @@ const PRESETS: Array<{
 ];
 
 export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsertText }) => {
-  const { clipboardService } = useServices();
+  const { clipboardService, platformService } = useServices();
   const [examples, setExamples] = useState<StructuredExample[]>([]);
   const [testInput, setTestInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -113,7 +113,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
     const formatted = formatFewShotPrompt();
     await clipboardService.writeText(formatted);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    platformService.setTimeout(() => setCopied(false), 1800);
   };
 
   const handleInsert = () => {
@@ -121,7 +121,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
     if (onInsertText) {
       onInsertText(formatted);
       setInserted(true);
-      setTimeout(() => setInserted(false), 1800);
+      platformService.setTimeout(() => setInserted(false), 1800);
     }
   };
 
