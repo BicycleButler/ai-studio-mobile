@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ConsoleLogger, NoOpLogger } from './logger';
+import { DefaultLoggerFactory, NoOpLoggerFactory } from './logger';
 
-describe('ConsoleLogger', () => {
+describe('ConsoleLogger (via DefaultLoggerFactory)', () => {
     it('should delegate to console methods', () => {
-        const logger = new ConsoleLogger();
+        const logger = new DefaultLoggerFactory().createLogger();
 
         const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
         const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -27,9 +27,9 @@ describe('ConsoleLogger', () => {
     });
 });
 
-describe('NoOpLogger', () => {
+describe('NoOpLogger (via NoOpLoggerFactory)', () => {
     it('should not throw errors', () => {
-        const logger = new NoOpLogger();
+        const logger = new NoOpLoggerFactory().createLogger();
         expect(() => {
             logger.debug('debug');
             logger.info('info');

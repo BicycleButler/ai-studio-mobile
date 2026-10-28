@@ -30,4 +30,21 @@ export class NoOpLogger implements ILogger {
   public error(_message: string, ..._args: unknown[]): void {}
 }
 
-export const defaultLogger: ILogger = new ConsoleLogger(); // Keep for backward compatibility/global access if absolutely necessary, but prefer DI
+export interface ILoggerFactory {
+  createLogger(context?: string): ILogger;
+}
+
+export class DefaultLoggerFactory implements ILoggerFactory {
+  public createLogger(_context?: string): ILogger {
+    return new ConsoleLogger();
+  }
+}
+
+export class NoOpLoggerFactory implements ILoggerFactory {
+  public createLogger(_context?: string): ILogger {
+    return new NoOpLogger();
+  }
+}
+
+export const defaultLoggerFactory: ILoggerFactory = new DefaultLoggerFactory();
+export const defaultLogger: ILogger = defaultLoggerFactory.createLogger(); // Keep for backward compatibility/global access if absolutely necessary, but prefer DI
