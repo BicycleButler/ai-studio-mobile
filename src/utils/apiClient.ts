@@ -119,7 +119,7 @@ export class ApiClient implements IApiClient {
     }
 
     const text = await res.text();
-    return text as unknown as T;
+    return (text as unknown) as T;
   }
 
   public async fetchStream(

@@ -86,7 +86,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
     const interval = platformService.setInterval(() => {
       void checkClipboard();
     }, 2000);
-    return () => platformService.clearInterval(interval as unknown as number);
+    return () => platformService.clearInterval(interval);
   }, [isOpen, activeApiKey, activeService, platformService]);
 
   const handleOpenSystemBrowser = () => {

@@ -254,7 +254,7 @@ export class GoogleAuthService implements IGoogleAuthService {
       const messageHandler = (event: MessageEvent) => {
         if (event.data && event.data.type === "OAUTH_AUTH_SUCCESS") {
           removeMessage();
-          this.platformService.clearInterval(pollTimer as unknown as number);
+          this.platformService.clearInterval(pollTimer);
           resolve({
             token: event.data.token,
             code: event.data.code,
@@ -266,11 +266,11 @@ export class GoogleAuthService implements IGoogleAuthService {
 
       const pollTimer = this.platformService.setInterval(() => {
         if (popup.closed) {
-          this.platformService.clearInterval(pollTimer as unknown as number);
+          this.platformService.clearInterval(pollTimer);
           removeMessage();
           reject(new Error("Authentication popup closed before completing."));
         }
-      }, 800) as unknown as ReturnType<typeof setInterval>;
+      }, 800) ;
     });
   }
 }

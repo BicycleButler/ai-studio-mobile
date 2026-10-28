@@ -41,7 +41,7 @@ export class StorageRegistry<TStore> implements IStorageRegistry<TStore> {
     if (this.disposer) {
       this.disposer(store);
     } else if (store && typeof (store as { dispose?: () => void }).dispose === 'function') {
-      (store as unknown as { dispose: () => void }).dispose();
+      ((store as unknown) as { dispose: () => void }).dispose();
     }
   }
 

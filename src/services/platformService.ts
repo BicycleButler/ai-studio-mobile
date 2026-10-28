@@ -25,10 +25,10 @@ export interface IPlatformService {
   getWindow(): Window | null;
   getNavigator(): Navigator | null;
   getLocalStorage(): Storage | null;
-  setTimeout(handler: TimerHandler, timeout?: number, ...args: unknown[]): number;
-  clearTimeout(id: number | undefined): void;
-  setInterval(handler: TimerHandler, timeout?: number, ...args: unknown[]): number;
-  clearInterval(id: number | undefined): void;
+  setTimeout(handler: TimerHandler, timeout?: number, ...args: unknown[]): unknown;
+  clearTimeout(id: unknown): void;
+  setInterval(handler: TimerHandler, timeout?: number, ...args: unknown[]): unknown;
+  clearInterval(id: unknown): void;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -116,20 +116,20 @@ export class BrowserPlatformService implements IPlatformService {
       return getSafeLocalStorage();
   }
 
-  public setTimeout(handler: TimerHandler, timeout?: number, ...args: unknown[]): number {
-      return globalThis.setTimeout(handler, timeout, ...args);
+  public setTimeout(handler: TimerHandler, timeout?: number, ...args: unknown[]): unknown {
+      return globalThis.setTimeout(handler, timeout, ...args) as unknown;
   }
 
-  public clearTimeout(id: number | undefined): void {
-      globalThis.clearTimeout(id);
+  public clearTimeout(id: unknown): void {
+      globalThis.clearTimeout(id as number | undefined);
   }
 
-  public setInterval(handler: TimerHandler, timeout?: number, ...args: unknown[]): number {
-      return globalThis.setInterval(handler, timeout, ...args);
+  public setInterval(handler: TimerHandler, timeout?: number, ...args: unknown[]): unknown {
+      return globalThis.setInterval(handler, timeout, ...args) as unknown;
   }
 
-  public clearInterval(id: number | undefined): void {
-      globalThis.clearInterval(id);
+  public clearInterval(id: unknown): void {
+      globalThis.clearInterval(id as number | undefined);
   }
 }
 

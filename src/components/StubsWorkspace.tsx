@@ -347,7 +347,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             <StubsDiagramTab
               diagramHtml={renderedSvg}
               diagramGroupBy={diagramGroupBy}
-              onSetDiagramGroupBy={setDiagramGroupBy as unknown as (mode: "type" | "domain" | "layer" | "none" | "folder") => void}
+              onSetDiagramGroupBy={setDiagramGroupBy as (mode: "type" | "domain" | "layer" | "none" | "folder") => void}
               isLoading={isLoadingDiagram}
               error={null}
             />
@@ -390,7 +390,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
         {activeTab === "terminal" && (
             <StubsTerminalTab
               terminalLogs={terminalLogs}
-              onExecuteCommand={runCommand as unknown as (cmd: string) => void}
+              onExecuteCommand={runCommand as (cmd: string) => void}
               onClearTerminal={clearLogs}
             />
         )}

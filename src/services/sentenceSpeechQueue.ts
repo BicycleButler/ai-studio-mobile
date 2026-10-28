@@ -43,7 +43,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
   private pendingUtterances: SpeechSynthesisUtterance[] = [];
   private isSpeaking = false;
   private isFinalized = false;
-  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private heartbeatTimer: unknown = null;
   private options: SentenceQueueOptions;
   private getWindowSpeechSynthesis: typeof getSafeWindowSpeechSynthesis;
   private platformService: IPlatformService;
@@ -207,12 +207,12 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
         synth.pause();
         synth.resume();
       }
-    }, 4500) as unknown as ReturnType<typeof setInterval>;
+    }, 4500) ;
   }
 
   private stopHeartbeat(): void {
     if (this.heartbeatTimer) {
-      this.platformService.clearInterval(this.heartbeatTimer as unknown as number);
+      this.platformService.clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
   }
