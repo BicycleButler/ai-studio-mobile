@@ -10,6 +10,7 @@ import {
   SpeechSettings,
   DeviceVoiceOption,
 } from "../../services/speechVoices";
+import { useServices } from "../../services/ServiceContext";
 
 export interface SettingsAudioTabProps {
   currentSpeechSettings: SpeechSettings;
@@ -26,7 +27,13 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
   handleSelectDeviceVoice,
   handleSelectRate,
 }) => {
-  const [deviceVoices] = React.useState<DeviceVoiceOption[]>([]);
+  const { speechVoicesService } = useServices();
+  const [deviceVoices, setDeviceVoices] = React.useState<DeviceVoiceOption[]>([]);
+
+  React.useEffect(() => {
+    const voices = speechVoicesService.getAvailableDeviceVoices();
+    setDeviceVoices(voices);
+  }, [speechVoicesService]);
 
 
 
