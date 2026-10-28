@@ -62,7 +62,7 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
       }
 
       const delay = this.delayStrategy.getNextDelayMs(attempt + 1, lastError);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(resolve => globalThis.setTimeout(resolve, delay));
     }
 
     if (lastResponse) return lastResponse;

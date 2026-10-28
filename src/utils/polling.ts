@@ -55,17 +55,17 @@ export function startPolling<T>(
 
     if (!stopped) {
       const delay = strategy.getNextDelayMs(attempt, lastError);
-      timer = setTimeout(runPoll, delay);
+      timer = globalThis.setTimeout(runPoll, delay);
     }
   };
 
-  timer = setTimeout(runPoll, 0); // start immediately
+  timer = globalThis.setTimeout(runPoll, 0); // start immediately
 
   return {
     stop: () => {
       stopped = true;
       if (timer !== undefined) {
-        clearTimeout(timer);
+        globalThis.clearTimeout(timer);
       }
       abortController.abort();
     },

@@ -25,7 +25,7 @@ export class Mutex implements IMutex {
     const wrappedRelease = () => {
       if (isReleased) return;
       isReleased = true;
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) globalThis.clearTimeout(timeoutId);
       release();
     };
 
@@ -36,7 +36,7 @@ export class Mutex implements IMutex {
     await previousQueue;
 
     if (timeoutMs !== undefined) {
-      timeoutId = setTimeout(() => {
+      timeoutId = globalThis.setTimeout(() => {
         if (!isReleased) {
            this.logger.warn(`Mutex lock timed out after ${timeoutMs}ms`);
            wrappedRelease();
