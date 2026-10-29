@@ -120,11 +120,19 @@ export class ThemeService implements IThemeService {
     this.themeObservable.notify(state);
   }
 
+  private cachedThemeState: ThemeState = { mode: "system", resolvedTheme: "dark" };
+
   public getThemeState(): ThemeState {
-    return {
-      mode: this.currentMode,
-      resolvedTheme: this.currentResolved,
-    };
+    if (
+      this.cachedThemeState.mode !== this.currentMode ||
+      this.cachedThemeState.resolvedTheme !== this.currentResolved
+    ) {
+      this.cachedThemeState = {
+        mode: this.currentMode,
+        resolvedTheme: this.currentResolved,
+      };
+    }
+    return this.cachedThemeState;
   }
 
   public setThemeMode(newMode: ThemeMode): void {
