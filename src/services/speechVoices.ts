@@ -8,7 +8,7 @@ import { getSafeWindowSpeechSynthesis, getSafeNavigatorLanguage } from "../utils
  * 2. Enhanced On-Device System Voices (with intelligent Natural/Neural voice prioritization)
  */
 
-import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
+import { STORAGE_KEYS, defaultStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 
 export interface GeminiVoiceOption {
@@ -124,7 +124,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
     this.getNavigatorLanguage = config?.getNavigatorLanguage || getSafeNavigatorLanguage;
     this.authService = config.authService;
     this.apiClient = config.apiClient;
-    this.speechSettingsSingleton = config?.speechSettingsSingleton || new StorageSingleton<SpeechSettings>(
+    this.speechSettingsSingleton = config?.speechSettingsSingleton || defaultStorageFactory.createSingleton<SpeechSettings>(
       STORAGE_KEYS.SPEECH_SETTINGS,
       DEFAULT_SPEECH_SETTINGS,
       {

@@ -32,7 +32,15 @@ export interface ServerJulesClientConfig {
   logger: ILogger;
 }
 
-export class ServerJulesClient {
+export interface IServerJulesClient {
+  verifyKey(apiKey: string): Promise<{ valid: boolean; status?: string; message?: string; data?: unknown }>;
+  fetchRepositories(apiKey: string): Promise<Array<Record<string, unknown>>>;
+  dispatchTask(apiKey: string, repoUrl: string, branch: string, instructions: string, autoApprove: boolean): Promise<ServerJulesTask>;
+  pollTask(apiKey: string, taskId: string): Promise<ServerJulesTask>;
+  approveTask(apiKey: string, taskId: string, approved: boolean): Promise<ServerJulesTask>;
+}
+
+export class ServerJulesClient implements IServerJulesClient {
   private apiClient: IApiClient;
   private logger: ILogger;
 

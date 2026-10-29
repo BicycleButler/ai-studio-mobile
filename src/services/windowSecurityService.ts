@@ -1,5 +1,5 @@
 import { getSafeDocument, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
-import { Observable } from "../utils/observable";
+import { Observable, IObservable } from "../utils/observable";
 import { GeneralSettingsService } from "../utils/storage/general";
 import { defaultPlatformService, IPlatformService } from "./platformService";
 
@@ -15,13 +15,13 @@ export interface WindowSecurityServiceConfig {
 }
 
 export interface IWindowSecurityService {
-  shieldStore: Observable<ShieldState>;
+  shieldStore: IObservable<ShieldState>;
   registerScreen(id: string, isSensitive: boolean): void;
   unregisterScreen(id: string): void;
 }
 
 export class WindowSecurityService implements IWindowSecurityService {
-  public shieldStore: Observable<ShieldState>;
+  public shieldStore: IObservable<ShieldState>;
   private generalSettingsService: GeneralSettingsService;
   private flagSecureEnabled: boolean;
   private timerRef: unknown = null;

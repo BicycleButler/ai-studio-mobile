@@ -1,5 +1,6 @@
 import { GoogleUser } from "../types";
-import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
+import { STORAGE_KEYS, defaultStorageFactory } from "../utils/storage";
+import { IMutableSingleton } from "../utils/storage/types";
 import { IApiClient } from "../utils/apiClient";
 import { isBrowserEnvironment, getSafeWindow, safeAddEventListener } from "../utils/platform";
 import { IAuthProvider } from "./authProvider";
@@ -9,7 +10,7 @@ import { defaultPlatformService, IPlatformService } from "./platformService";
 export interface GoogleAuthServiceConfig {
   apiClient: IApiClient;
   authProvider?: IAuthProvider | null;
-  storageSingleton?: StorageSingleton<GoogleUser | null>;
+  storageSingleton?: IMutableSingleton<GoogleUser | null>;
   isBrowserEnv?: () => boolean;
   getWindow?: typeof getSafeWindow;
   logger: ILogger;
@@ -45,7 +46,7 @@ export class GoogleAuthService implements IGoogleAuthService {
   private isSigningIn = false;
   private currentAuthProvider: IAuthProvider | null = null;
   private apiClient: IApiClient;
-  private googleUserSingleton: StorageSingleton<GoogleUser | null>;
+  private googleUserSingleton: IMutableSingleton<GoogleUser | null>;
   private isBrowserEnv: () => boolean;
   private getWindow: typeof getSafeWindow;
   private logger: ILogger;
@@ -55,7 +56,7 @@ export class GoogleAuthService implements IGoogleAuthService {
     this.apiClient = config.apiClient;
     this.currentAuthProvider = config?.authProvider || null;
     this.logger = config.logger;
-    this.googleUserSingleton = config?.storageSingleton || new StorageSingleton<GoogleUser | null>(
+    this.googleUserSingleton = config?.storageSingleton || defaultStorageFactory.createSingleton<GoogleUser | null>(
       STORAGE_KEYS.GOOGLE_USER,
       null
     );

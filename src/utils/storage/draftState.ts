@@ -1,7 +1,7 @@
 import { PromptConfig, PromptType, StructuredExample, ChatMessage } from "../../types";
 import { DEFAULT_CONFIG } from "../../data/templates";
-import { StorageSingleton } from "./StorageSingleton";
-import { StorageRegistry, IStorageRegistry } from "./StorageRegistry";
+import { defaultStorageFactory } from "./StorageFactory";
+import { IStorageRegistry } from "./StorageRegistry";
 import { IMutableSingleton } from "./types";
 import { STORAGE_KEYS } from "./constants";
 import { cleanMockData, getNestedValue } from "./helpers";
@@ -35,8 +35,8 @@ export class DraftStateService implements IDraftStateService {
 
   constructor(config: DraftStateServiceConfig) {
     this.logger = config?.logger || defaultLogger;
-    this.draftRegistry = config?.draftRegistry || new StorageRegistry<IMutableSingleton<DraftState | null>>((key) => {
-      return new StorageSingleton<DraftState | null>(key, null);
+    this.draftRegistry = config?.draftRegistry || defaultStorageFactory.createRegistry<IMutableSingleton<DraftState | null>>((key) => {
+      return defaultStorageFactory.createSingleton<DraftState | null>(key, null);
     });
   }
 

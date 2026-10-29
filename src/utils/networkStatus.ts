@@ -1,5 +1,5 @@
 import { isBrowserEnvironment, getSafeNavigator, safeAddEventListener } from "./platform";
-import { Observable } from "./observable";
+import { Observable, IObservable } from "./observable";
 
 export interface NetworkStatus {
   isOnline: boolean;
@@ -8,11 +8,11 @@ export interface NetworkStatus {
 
 export interface INetworkStatusProvider {
   isOnline(): boolean;
-  getObservable(): Observable<NetworkStatus>;
+  getObservable(): IObservable<NetworkStatus>;
 }
 
 export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
-  private statusObservable: Observable<NetworkStatus>;
+  private statusObservable: IObservable<NetworkStatus>;
   private isInitialized = false;
 
   constructor() {
@@ -32,7 +32,7 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
     });
   }
 
-  public getObservable(): Observable<NetworkStatus> {
+  public getObservable(): IObservable<NetworkStatus> {
     this.initListeners();
     return this.statusObservable;
   }
