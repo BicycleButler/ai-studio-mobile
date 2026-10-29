@@ -4,7 +4,7 @@ import { getSafeDocument, isBrowserEnvironment, getSafeWindowMatchMedia, safeAdd
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
  */
 
-import { STORAGE_KEYS, StorageSingleton } from "../utils/storage";
+import { STORAGE_KEYS, defaultStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 import { Observable, IObservable } from "../utils/observable";
 
@@ -57,7 +57,7 @@ export class ThemeService implements IThemeService {
     this.addMatchMediaListener = config?.addMatchMediaListener || safeAddMatchMediaListener;
     this.getSafeDoc = config?.getSafeDoc || getSafeDocument;
     this.themeObservable = new Observable<ThemeState>({ mode: "system", resolvedTheme: "dark" });
-    this.themeModeSingleton = config?.themeModeSingleton || new StorageSingleton<ThemeMode>(
+    this.themeModeSingleton = config?.themeModeSingleton || defaultStorageFactory.createSingleton<ThemeMode>(
       STORAGE_KEYS.THEME_MODE,
       "system",
       {

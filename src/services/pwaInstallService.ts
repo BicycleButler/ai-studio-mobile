@@ -1,5 +1,5 @@
 import { isBrowserEnvironment, getPlatformCapabilities, safeAddEventListener } from "../utils/platform";
-import { Observable } from "../utils/observable";
+import { Observable, IObservable } from "../utils/observable";
 
 export interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -24,12 +24,12 @@ export interface PwaInstallServiceConfig {
 }
 
 export interface IPwaInstallService {
-  stateObservable: Observable<PWAInstallState>;
+  stateObservable: IObservable<PWAInstallState>;
   initListeners(): void;
 }
 
 export class PwaInstallService implements IPwaInstallService {
-  public stateObservable: Observable<PWAInstallState>;
+  public stateObservable: IObservable<PWAInstallState>;
   private isInitialized = false;
   private isBrowserEnv: typeof isBrowserEnvironment;
   private getPlatformCaps: typeof getPlatformCapabilities;

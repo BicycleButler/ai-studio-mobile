@@ -1,6 +1,6 @@
 import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorageKeys, STORAGE_KEYS, StorageCollection, StorageRegistry, globalStorageQuotaObservable, IStorageRegistry } from "../utils/storage";
+import { safeGetStorageKeys, STORAGE_KEYS, globalStorageQuotaObservable, IStorageRegistry, defaultStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, defaultLogger } from "../utils/logger";
 import { isMockSession } from "../utils/mockDefinitions";
@@ -39,8 +39,8 @@ export class ChatHistoryService implements IChatHistoryService {
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
       isBrowserEnv: config?.isBrowserEnv || isBrowserEnvironment,
-      collectionRegistry: config?.collectionRegistry || new StorageRegistry<IMutableCollection<ChatSession>>((key) => {
-        return new StorageCollection<ChatSession>(key, {
+      collectionRegistry: config?.collectionRegistry || defaultStorageFactory.createRegistry<IMutableCollection<ChatSession>>((key) => {
+        return defaultStorageFactory.createCollection<ChatSession>(key, {
           keyExtractor: (item) => String(item.id || ""),
           validate: (s) => !this.isMockChatSession(s as Partial<ChatSession>),
           maxItems: 100,

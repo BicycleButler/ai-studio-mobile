@@ -1,4 +1,4 @@
-import { Observable } from "./observable";
+import { Observable, IObservable } from "./observable";
 
 export type SelectionState = 'none' | 'some' | 'all';
 
@@ -7,7 +7,7 @@ export interface BatchSelectionState {
   lastSelectedId: string | null;
 }
 
-export interface IBatchSelectionManager {
+export interface IBatchSelectionManager extends IObservable<BatchSelectionState> {
   readonly selectedIds: Set<string>;
   readonly lastSelectedId: string | null;
   clearSelection(): void;

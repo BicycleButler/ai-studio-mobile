@@ -1,6 +1,6 @@
 import { MessageAttachment } from "../types";
 import { generateUniqueId } from "./idGenerator";
-import { getSafeDocument } from "./platform";
+import { IPlatformService, defaultPlatformService } from "../services/platformService";
 
 export interface CompressionOptions {
   maxDimension?: number;
@@ -30,18 +30,18 @@ export interface IImageCompressionStrategy {
 }
 
 export interface CanvasImageCompressionStrategyConfig {
-  getSafeDoc?: typeof getSafeDocument;
+  platformService?: IPlatformService;
 }
 
 export class CanvasImageCompressionStrategy implements IImageCompressionStrategy {
-  private getSafeDoc: typeof getSafeDocument;
+  private platformService: IPlatformService;
 
   constructor(config?: CanvasImageCompressionStrategyConfig) {
-    this.getSafeDoc = config?.getSafeDoc || getSafeDocument;
+    this.platformService = config?.platformService || defaultPlatformService;
   }
   private isWebPSupported(): boolean {
-    if (!this.getSafeDoc()) return false;
-    const canvas = this.getSafeDoc()!.createElement("canvas");
+    if (!this.platformService.getDocument()) return false;
+    const canvas = this.platformService.getDocument()!.createElement("canvas");
     if (!canvas.toDataURL) return false;
     return canvas.toDataURL("image/webp").indexOf("data:image/webp") === 0;
   }
@@ -58,7 +58,7 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
           try {
             const { width, height } = calculateProportionalDimensions(img.width, img.height, maxDimension);
 
-            const canvas = this.getSafeDoc()!.createElement("canvas");
+            const canvas = this.platformService.getDocument()!.createElement("canvas");
             canvas.width = width;
             canvas.height = height;
 

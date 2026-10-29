@@ -1,12 +1,12 @@
 
-import { StorageSingleton } from "./StorageSingleton";
+import { defaultStorageFactory } from "./StorageFactory";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeSetStorageString } from "./core";
 import { IMutableSingleton } from "./types";
-import { Observable } from "../observable";
+import { Observable, IObservable } from "../observable";
 
 export interface IGeneralSettingsService {
-  flagSecureObservable: Observable<boolean>;
+  flagSecureObservable: IObservable<boolean>;
   loadStoredApiKey(): string;
   saveStoredApiKey(key: string): void;
   isFlagSecureEnabled(): boolean;
@@ -21,10 +21,10 @@ export interface GeneralSettingsServiceConfig {
 export class GeneralSettingsService implements IGeneralSettingsService {
   private apiKeySingleton: IMutableSingleton<string>;
   private flagSecureSingleton: IMutableSingleton<boolean>;
-  public flagSecureObservable: Observable<boolean>;
+  public flagSecureObservable: IObservable<boolean>;
 
   constructor(config: GeneralSettingsServiceConfig) {
-    this.apiKeySingleton = config?.apiKeySingleton || new StorageSingleton<string>(
+    this.apiKeySingleton = config?.apiKeySingleton || defaultStorageFactory.createSingleton<string>(
       STORAGE_KEYS.API_KEY,
       "",
       {
@@ -37,7 +37,7 @@ export class GeneralSettingsService implements IGeneralSettingsService {
       }
     );
 
-    this.flagSecureSingleton = config?.flagSecureSingleton || new StorageSingleton<boolean>(
+    this.flagSecureSingleton = config?.flagSecureSingleton || defaultStorageFactory.createSingleton<boolean>(
       STORAGE_KEYS.FLAG_SECURE_ENABLED,
       true
     );
