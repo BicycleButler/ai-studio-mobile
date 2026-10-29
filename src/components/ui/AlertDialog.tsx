@@ -1,6 +1,6 @@
-import { getSafeWindow } from "../../utils/platform";
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useGlobalKeydown } from '../../hooks/useGlobalKeydown';
 
 export interface AlertDialogProps {
   isOpen: boolean;
@@ -38,21 +38,13 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
     }
   }, [isOpen]);
 
-  // Trap focus (simple implementation, ideally use a library like focus-trap or Radix)
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (onClose) {
-            onClose();
-        } else {
-            onCancel();
-        }
-      }
-    };
-    getSafeWindow()!.addEventListener('keydown', handleKeyDown);
-    return () => getSafeWindow()!.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onCancel, onClose]);
+  useGlobalKeydown('Escape', () => {
+    if (onClose) {
+      onClose();
+    } else {
+      onCancel();
+    }
+  }, { isActive: isOpen, ignoreIfInputFocused: false });
 
   return (
     <AnimatePresence>

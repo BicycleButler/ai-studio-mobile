@@ -356,7 +356,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
         clearSilenceTimer();
       }
     },
-    [clearSilenceTimer, getConstructor, stopListening]
+    [clearSilenceTimer, stopListening]
   );
 
   const toggleListening = useCallback(

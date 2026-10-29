@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useBackNavigation } from "../../hooks/useBackNavigation";
-import { safeAddEventListener } from "../../utils/platform";
+import { useGlobalKeydown } from "../../hooks/useGlobalKeydown";
 
 interface DrawerProps {
   isOpen: boolean;
@@ -28,19 +28,9 @@ export const Drawer: React.FC<DrawerProps> = ({
   // Enable device/browser back navigation to dismiss drawer smoothly
   useBackNavigation(isOpen, onClose, drawerId);
 
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    const removeKey = safeAddEventListener("keydown", handleKeyDown);
-    return () => removeKey();
-  }, [isOpen, onClose]);
+  useGlobalKeydown('Escape', () => {
+    onClose();
+  }, { isActive: isOpen, ignoreIfInputFocused: false });
 
   return (
     <AnimatePresence>
