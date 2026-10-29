@@ -987,3 +987,17 @@ Updated `OfflineQueueStore` to rely on the unified `AsyncStorage` interface corr
 
 **Decision:**
 Updated `FallbackStorageWrapper` to wait for synchronous listeners of `quotaExceededEvent` to finish executing before attempting a retry. Removed the redundant `CustomEvent` dispatch on `window`, routing all quota logic entirely through the `EventEmitter` to reduce DOM coupling. This ensures deterministic quota recovery.
+
+## Architectural Decision: React Hooks Dependency Injection
+
+**Context:**
+Custom React hooks (`useBatchSelection`, `useSpeechToText`) previously directly instantiated concrete domain classes and Web APIs (e.g., `new BatchSelectionManager()`, `new SpeechRecognitionClass()`). This violated the Dependency Inversion Principle within the presentation layer, making it difficult to inject mocks for unit testing hooks or to swap out underlying implementations (like providing a custom batch selection state machine) without modifying the hook itself.
+
+**Path 1: Injected Factory Functions / Interfaces**
+Update the hooks' configuration options to accept factory functions or explicit interfaces (e.g., `managerFactory?: () => IBatchSelectionManager`, `speechRecognitionFactory?: ISpeechRecognitionFactory`). The hook invokes the factory if provided, otherwise falling back to the concrete default instantiation.
+
+**Path 2: React Context Injection for everything**
+Move all such instantiations into the `ServiceContext` and expose them via getters.
+
+**Recommendation:**
+**Path 1 (Injected Factory Functions / Interfaces)** was implemented. This allows for highly cohesive hooks that manage their own default state while remaining entirely open for extension and mock injection during testing, without unnecessarily polluting the global `ServiceContext` with ephemeral instance factories.

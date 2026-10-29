@@ -6,10 +6,11 @@ export interface UseBatchSelectionProps<T> {
   items: T[];
   getItemId: (item: T) => string;
   clearOnDependencies?: unknown[];
+  managerFactory?: () => IBatchSelectionManager;
 }
 
-export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [] }: UseBatchSelectionProps<T>) {
-  const [manager] = React.useState<IBatchSelectionManager>(() => new BatchSelectionManager());
+export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [], managerFactory }: UseBatchSelectionProps<T>) {
+  const [manager] = React.useState<IBatchSelectionManager>(() => managerFactory ? managerFactory() : new BatchSelectionManager());
 
   const state = useStore(manager);
 
