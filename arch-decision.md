@@ -1023,3 +1023,11 @@ Extract all domain-specific interaction with `jules.googleapis.com` into a dedic
 
 **Decision:**
 Extracted the duplicated UI elements into a shared `PromptToolActionDock` component. Both tools now compose this component, passing down their respective `resolvedPrompt`/`formatFewShotPrompt()` strings and event handlers. This improves Maintainability and Reusability, ensuring all prompt tools share a consistent preview and action surface.
+
+## Architectural Decision: Console Logger Strict Usage and Cleanup
+
+**Context:**
+While the `ILogger` abstraction and DI mechanism effectively decouples business logic from standard `console` objects, various UI components (`MobileIDEWorkspace`) and generic output templates (`TypeScriptGenerator`) implicitly execute native `console.log()` calls as part of string formatting strings for mocked developer output inside an IDE UI, which was not the intention to replace by the logger.
+
+**Decision:**
+Preserve `console.log()` within hardcoded string templates intended to generate code for external IDE execution or visualization as a standard, since those evaluate as raw strings and not live application state, thus adhering strictly to the intention of the DI logger implementation.
