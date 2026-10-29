@@ -1001,3 +1001,17 @@ Move all such instantiations into the `ServiceContext` and expose them via gette
 
 **Recommendation:**
 **Path 1 (Injected Factory Functions / Interfaces)** was implemented. This allows for highly cohesive hooks that manage their own default state while remaining entirely open for extension and mock injection during testing, without unnecessarily polluting the global `ServiceContext` with ephemeral instance factories.
+
+## Architectural Decision: Server Jules API Integration Abstraction
+
+**Context:**
+The Express server (`server.ts`) previously handled external Jules API calls (e.g., fetching repositories, dispatching tasks, polling, approving) by embedding raw `fetch` statements directly within its route handlers. It manually parsed JSON, checked status codes, and implemented ad-hoc timeouts via `AbortController`. This violated the Single Responsibility Principle, tightly coupled the Express routing layer to external network orchestration, and missed out on the standardized error handling (`BaseApiError`) and retry mechanisms built into the existing `ApiClient`.
+
+**Path 1: Refactor Routes to consume an injected `IApiClient`**
+Instantiate a server-scoped `ApiClient` in `server.ts`. Update the Express route handlers to replace raw `fetch` calls with `apiClient.fetch()`. This eliminates the ad-hoc `AbortController` timeouts and manual JSON parsing from the routes, leveraging the existing network layer abstractions for retries and error processing. However, the route handlers themselves still encode the domain-specific endpoint URLs and request body structures.
+
+**Path 2: Extract a Dedicated `ServerJulesClient` (Service Layer)**
+Extract all domain-specific interaction with `jules.googleapis.com` into a dedicated service class (`server/julesClient.ts`), similar to how `stubsService.ts` handles Stubs logic. This `ServerJulesClient` will be constructed with an injected `IApiClient` and `ILogger`. The route handlers in `server.ts` simply call domain methods like `serverJulesClient.dispatchTask(repo, instructions)` and return the result.
+
+**Recommendation:**
+**Path 2 (Extract a Dedicated `ServerJulesClient`)** was implemented. This perfectly mirrors the frontend architecture (which separates UI/Routing from Domain Services like `JulesClient`), enforces strict Dependency Inversion by isolating external API communication into a testable class, and immediately upgrades the server's network requests to use the robust `ApiClient` features (like exponential backoff). It significantly improves the abstraction, robustness, and reusability of the backend.

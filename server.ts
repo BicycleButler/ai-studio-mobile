@@ -28,11 +28,16 @@ import {
   stubsEvents,
 } from "./server/stubsService";
 import { getGenAIClient } from "./server/utils/genai";
+import { ServerJulesClient, ServerJulesTask } from "./server/julesClient";
+import { ApiClient, BaseApiError } from "./src/utils/apiClient";
 import { getErrorMessage } from "./src/utils/errorHandling";
 
 dotenv.config();
 
 const app = express();
+
+const serverApiClient = new ApiClient();
+const serverJulesClient = new ServerJulesClient({ apiClient: serverApiClient, logger: defaultLogger });
 
 const JULES_SESSIONS_FILE = path.join(process.cwd(), ".stubs", "jules_sessions.json");
 
@@ -820,32 +825,6 @@ app.post("/api/jules/sessions", (req: Request, res: Response): void => {
   res.json({ success: true });
 });
 
-interface ServerJulesTask {
-  id: string;
-  repository: string;
-  branch: string;
-  prompt: string;
-  status: "queued" | "analyzing" | "planning" | "awaiting_approval" | "executing" | "completed" | "failed";
-  plan: string[];
-  steps: Array<{
-    id: string;
-    title: string;
-    detail?: string;
-    status: "pending" | "running" | "completed" | "failed";
-    timestamp: number;
-  }>;
-  pullRequest?: {
-    number: number;
-    title: string;
-    url: string;
-    branch: string;
-    state: "open" | "merged" | "closed";
-  };
-  createdAt: number;
-  updatedAt: number;
-  error?: string;
-}
-
 const activeJulesTasks = new Map<string, ServerJulesTask>();
 
 function extractJulesKey(req: Request): string | undefined {
@@ -873,86 +852,14 @@ app.post("/api/jules/auth/verify", async (req: Request, res: Response): Promise<
   }
 
   try {
-    // Ping Google Jules API with x-goog-api-key header
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    let julesRes: globalThis.Response | null = null;
-    try {
-      julesRes = await fetch("https://jules.googleapis.com/v1alpha/repositories", {
-        method: "GET",
-        headers: {
-          "x-goog-api-key": apiKey,
-          "Content-Type": "application/json",
-          "User-Agent": "AIStudio-Mobile-JulesGateway/1.0",
-        },
-        signal: controller.signal,
-      });
-    } catch {
-      // If jules.googleapis.com is unreachable or network times out, attempt fallback endpoint
-      try {
-        julesRes = await fetch("https://jules.google.com/api/v1/user", {
-          method: "GET",
-          headers: {
-            "x-goog-api-key": apiKey,
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-        });
-      } catch {
-        // network error handled below
-      }
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (julesRes) {
-      if (julesRes.ok || julesRes.status === 200) {
-        const data = await julesRes.json().catch(() => ({}));
-        res.json({
-          valid: true,
-          status: "connected",
-          data,
-        });
-        return;
-      }
-
-      if (julesRes.status === 401 || julesRes.status === 403) {
-        res.status(401).json({
-          valid: false,
-          error: "Invalid or unauthorized Jules API key. Please check your credentials at jules.google.com/settings.",
-        });
-        return;
-      }
-
-      // If non-200 but authenticated (e.g. 404 on specific alpha endpoint), key format was received
-      const errText = await julesRes.text().catch(() => "");
-      res.status(julesRes.status).json({
-        valid: false,
-        error: `Jules API responded with status ${julesRes.status}: ${errText.slice(0, 150)}`,
-      });
-      return;
-    }
-
-    // If Google API endpoint is currently undergoing rollout or blocked by container egress,
-    // validate key structure strictly
-    if (apiKey.startsWith("AIza") || apiKey.startsWith("jules_") || apiKey.startsWith("AQ.")) {
-      res.json({
-        valid: true,
-        status: "key_validated",
-        message: "Jules API key format verified.",
-      });
-      return;
-    }
-
-    res.status(400).json({
-      valid: false,
-      error: "Unable to verify Jules API key. Please ensure it was generated from jules.google.com/settings.",
-    });
+    const result = await serverJulesClient.verifyKey(apiKey);
+    res.json(result);
   } catch (err: unknown) {
-    res.status(500).json({
+    const errorMsg = getErrorMessage(err);
+    const status = errorMsg.includes("Invalid or unauthorized") ? 401 : 500;
+    res.status(status).json({
       valid: false,
-      error: getErrorMessage(err),
+      error: errorMsg,
     });
   }
 });
@@ -970,32 +877,16 @@ app.get("/api/jules/repos", async (req: Request, res: Response): Promise<void> =
   }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const repositories = await serverJulesClient.fetchRepositories(apiKey);
 
-    const julesRes = await fetch("https://jules.googleapis.com/v1alpha/repositories", {
-      headers: {
-        "x-goog-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      signal: controller.signal,
-    }).catch(() => null);
-
-    clearTimeout(timeout);
-
-    if (julesRes && julesRes.ok) {
-      const data = (await julesRes.json()) as { repositories?: Array<Record<string, unknown>> };
+    if (repositories.length > 0) {
+      res.json({ repositories });
+    } else {
       res.json({
-        repositories: data.repositories || [],
+        repositories: [],
+        notice: "No repositories discovered. Visit https://jules.google.com to grant GitHub repo access to Jules.",
       });
-      return;
     }
-
-    // Default return empty array if no repos granted yet on jules.google.com
-    res.json({
-      repositories: [],
-      notice: "No repositories discovered. Visit https://jules.google.com to grant GitHub repo access to Jules.",
-    });
   } catch (err: unknown) {
     res.status(500).json({
       error: getErrorMessage(err),
@@ -1024,43 +915,18 @@ app.post("/api/jules/tasks", async (req: Request, res: Response): Promise<void> 
   }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const task = await serverJulesClient.dispatchTask(apiKey, repository, branch, prompt, autoApprove);
 
-    const julesRes = await fetch("https://jules.googleapis.com/v1alpha/tasks", {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        repository,
-        baseBranch: branch,
-        instruction: prompt,
-        autoApprove,
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (julesRes.ok) {
-      const data = (await julesRes.json()) as { task?: ServerJulesTask } & ServerJulesTask;
-      const returnedTask = data.task || data;
-      if (returnedTask && returnedTask.id) {
-        activeJulesTasks.set(returnedTask.id, returnedTask);
-      }
-      res.status(201).json({ task: returnedTask });
-      return;
+    if (task && task.id) {
+      activeJulesTasks.set(task.id, task);
     }
 
-    const errData = (await julesRes.json().catch(() => ({}))) as { error?: { message?: string } | string };
-    const errMsg = typeof errData.error === "object" ? errData.error.message : errData.error;
-    res.status(julesRes.status).json({
-      error: errMsg || `Jules API rejected task dispatch (${julesRes.status})`,
-    });
+    res.status(201).json({ task });
   } catch (err: unknown) {
-    res.status(500).json({
-      error: getErrorMessage(err),
+    const errorMsg = getErrorMessage(err);
+    const status = err instanceof BaseApiError ? err.statusCode : 500;
+    res.status(status).json({
+      error: errorMsg,
     });
   }
 });
@@ -1085,50 +951,23 @@ app.get("/api/jules/tasks/:id", async (req: Request, res: Response): Promise<voi
   }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const task = await serverJulesClient.pollTask(apiKey, taskId);
 
-    const julesRes = await fetch(
-      `https://jules.googleapis.com/v1alpha/tasks/${encodeURIComponent(taskId)}`,
-      {
-        headers: {
-          "x-goog-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        signal: controller.signal,
-      }
-    );
-    clearTimeout(timeout);
-
-    if (julesRes.ok) {
-      const data = (await julesRes.json()) as { task?: ServerJulesTask } & ServerJulesTask;
-      const returnedTask = data.task || data;
-      if (returnedTask && returnedTask.id) {
-        activeJulesTasks.set(returnedTask.id, returnedTask);
-      }
-      res.json({ task: returnedTask });
-      return;
+    if (task && task.id) {
+      activeJulesTasks.set(task.id, task);
     }
 
-    const localTask = activeJulesTasks.get(taskId);
-    if (localTask) {
-      res.json({ task: localTask });
-      return;
-    }
-
-    const errData = (await julesRes.json().catch(() => ({}))) as { error?: { message?: string } | string };
-    const errMsg = typeof errData.error === "object" ? errData.error.message : errData.error;
-    res.status(julesRes.status).json({
-      error: errMsg || `Jules task '${taskId}' not found (${julesRes.status})`,
-    });
+    res.json({ task });
   } catch (err: unknown) {
     const localTask = activeJulesTasks.get(taskId);
     if (localTask) {
       res.json({ task: localTask });
       return;
     }
-    res.status(500).json({
-      error: getErrorMessage(err),
+
+    const errorMsg = getErrorMessage(err);
+    res.status(errorMsg.includes("not found") || errorMsg.includes("404") ? 404 : 500).json({
+      error: errorMsg || `Jules task '${taskId}' not found`,
     });
   }
 });
@@ -1150,44 +989,19 @@ app.post("/api/jules/tasks/:id/approve", async (req: Request, res: Response): Pr
   const { approved = true } = req.body || {};
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const task = await serverJulesClient.approveTask(apiKey, taskId, approved);
 
-    const julesRes = await fetch(
-      `https://jules.googleapis.com/v1alpha/tasks/${encodeURIComponent(taskId)}:approve`,
-      {
-        method: "POST",
-        headers: {
-          "x-goog-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ approved }),
-        signal: controller.signal,
-      }
-    );
-    clearTimeout(timeout);
-
-    if (julesRes.ok) {
-      const data = (await julesRes.json()) as { task?: ServerJulesTask } & ServerJulesTask;
-      const returnedTask = data.task || data;
-      if (returnedTask && returnedTask.id) {
-        activeJulesTasks.set(returnedTask.id, returnedTask);
-      }
-      res.json({
-        task: returnedTask,
-        message: "Plan approved via Jules API.",
-      });
-      return;
+    if (task && task.id) {
+      activeJulesTasks.set(task.id, task);
     }
 
-    const errData = (await julesRes.json().catch(() => ({}))) as { error?: { message?: string } | string };
-    const errMsg = typeof errData.error === "object" ? errData.error.message : errData.error;
-    res.status(julesRes.status).json({
-      error: errMsg || `Failed to approve plan with Jules API (${julesRes.status})`,
+    res.json({
+      task,
+      message: "Plan approved via Jules API.",
     });
   } catch (err: unknown) {
     res.status(500).json({
-      error: getErrorMessage(err),
+      error: getErrorMessage(err) || "Failed to approve plan with Jules API",
     });
   }
 });
