@@ -47,7 +47,9 @@ interface ISpeechRecognitionInstance {
 
 type SpeechRecognitionConstructor = new () => ISpeechRecognitionInstance;
 
-
+export interface ISpeechRecognitionFactory {
+  create(): ISpeechRecognitionInstance | undefined;
+}
 
 export interface UseSpeechToTextOptions {
   lang?: string;
@@ -60,6 +62,7 @@ export interface UseSpeechToTextOptions {
   onTranscript?: (text: string, isFinal: boolean) => void;
   onSilenceAutoSend?: (finalTranscript: string) => void;
   onError?: (err: string) => void;
+  speechRecognitionFactory?: ISpeechRecognitionFactory;
 }
 
 export interface UseSpeechToTextReturn {
@@ -100,13 +103,17 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
     callbackRef.current = options.onTranscript;
   }, [options]);
 
-  const getConstructor = useCallback((): SpeechRecognitionConstructor | undefined => {
+  const createRecognitionInstance = useCallback((): ISpeechRecognitionInstance | undefined => {
+    if (optionsRef.current.speechRecognitionFactory) {
+      return optionsRef.current.speechRecognitionFactory.create();
+    }
     if (!isBrowserEnvironment()) return undefined;
     const win = platformService.getWindow() as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } | null;
-    return (win?.SpeechRecognition || win?.webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
+    const Constructor = (win?.SpeechRecognition || win?.webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
+    return Constructor ? new Constructor() : undefined;
   }, [platformService]);
 
-  const isSupported = Boolean(getConstructor());
+  const isSupported = Boolean(createRecognitionInstance());
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -151,9 +158,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
       accumulatedAcrossRestartsRef.current = "";
       setTranscript("");
 
-      const SpeechRecognitionClass = getConstructor();
+      const recognition = createRecognitionInstance();
 
-      if (!SpeechRecognitionClass) {
+      if (!recognition) {
         setError("Web Speech API is not supported in this browser.");
         return;
       }
@@ -176,7 +183,6 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
           recognitionRef.current = null;
         }
 
-        const recognition = new SpeechRecognitionClass();
         recognitionRef.current = recognition;
         const isContinuous = forceContinuous !== undefined ? forceContinuous : Boolean(optionsRef.current.continuousListening);
         shouldKeepListeningRef.current = isContinuous;
@@ -315,9 +321,8 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
             platformService.setTimeout(() => {
               if (shouldKeepListeningRef.current && !recognitionRef.current) {
                 try {
-                  const restartClass = getConstructor();
-                  if (restartClass) {
-                    const nextRec = new restartClass();
+                  const nextRec = createRecognitionInstance();
+                  if (nextRec) {
                     recognitionRef.current = nextRec;
                     nextRec.lang = optionsRef.current.lang || platformService.getNavigator()?.language || "en-US";
                     nextRec.continuous = optionsRef.current.continuous ?? true;
