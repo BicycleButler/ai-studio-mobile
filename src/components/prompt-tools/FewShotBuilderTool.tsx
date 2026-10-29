@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Copy, Check, Sparkles, Send, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Sparkles, RotateCcw } from "lucide-react";
+import { PromptToolActionDock } from "./PromptToolActionDock";
 import { StructuredExample } from "../../types";
 import { generateUniqueId } from "../../utils/idGenerator";
 import { useServices } from "../../services/ServiceContext";
@@ -255,35 +256,13 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
       </div>
 
       {/* Live Formatted Preview & Action Dock */}
-      <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-foreground">Formatted Prompt Preview</span>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="px-2.5 py-1 rounded-lg bg-background hover:bg-muted text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? "Copied" : "Copy"}</span>
-            </button>
-            {onInsertText && (
-              <button
-                type="button"
-                onClick={handleInsert}
-                className="px-3 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
-              >
-                {inserted ? <Check className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
-                <span>{inserted ? "Inserted" : "Insert into Chat"}</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        <pre className="p-2.5 rounded-lg bg-background/80 border border-border/80 text-[11px] font-mono text-foreground whitespace-pre-wrap max-h-44 overflow-y-auto leading-relaxed">
-          {formatFewShotPrompt()}
-        </pre>
-      </div>
+      <PromptToolActionDock
+        onCopy={handleCopy}
+        hasCopied={copied}
+        onInsert={onInsertText ? handleInsert : undefined}
+        hasInserted={inserted}
+        previewContent={formatFewShotPrompt()}
+      />
     </div>
   );
 };
