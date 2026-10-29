@@ -25,7 +25,7 @@ describe('GeneralSettingsService', () => {
   });
 
   it('loads API key', () => {
-    vi.mocked(mockApiKeySingleton.load).mockReturnValue('my-secret-key');
+    (mockApiKeySingleton.load as import("vitest").Mock).mockReturnValue('my-secret-key');
     const service = new GeneralSettingsService({
       apiKeySingleton: mockApiKeySingleton,
       flagSecureSingleton: mockFlagSecureSingleton,
@@ -53,7 +53,7 @@ describe('GeneralSettingsService', () => {
   });
 
   it('loads flag secure enabled', () => {
-    vi.mocked(mockFlagSecureSingleton.load).mockReturnValue(false);
+    (mockFlagSecureSingleton.load as import("vitest").Mock).mockReturnValue(false);
     const service = new GeneralSettingsService({
       apiKeySingleton: mockApiKeySingleton,
       flagSecureSingleton: mockFlagSecureSingleton,

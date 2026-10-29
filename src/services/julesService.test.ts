@@ -31,7 +31,7 @@ describe("julesService", () => {
     });
 
     it("should call apiClient.fetch and return true on success", async () => {
-      vi.mocked(defaultClient.fetch).mockResolvedValueOnce({ valid: true });
+      (defaultClient.fetch as import("vitest").Mock).mockResolvedValueOnce({ valid: true });
       const result = await defaultJulesClient.verifyApiKey("valid-key");
       expect(result.valid).toBe(true);
       expect(defaultClient.fetch).toHaveBeenCalledWith(
@@ -42,7 +42,7 @@ describe("julesService", () => {
     });
 
     it("should handle apiClient.fetch failure gracefully", async () => {
-      vi.mocked(defaultClient.fetch).mockRejectedValueOnce(new Error("Network Error"));
+      (defaultClient.fetch as import("vitest").Mock).mockRejectedValueOnce(new Error("Network Error"));
       const result = await defaultJulesClient.verifyApiKey("invalid-key");
       expect(result.valid).toBe(false);
       expect(result.error).toBe("Network Error");
@@ -51,7 +51,7 @@ describe("julesService", () => {
 
   describe("fetchJulesRepositories", () => {
     it("should return mapped repositories on success", async () => {
-      vi.mocked(defaultClient.fetch).mockResolvedValueOnce({
+      (defaultClient.fetch as import("vitest").Mock).mockResolvedValueOnce({
         repositories: [{ fullName: "owner/repo", defaultBranch: "dev" }]
       });
       const repos = await defaultJulesClient.fetchRepositories();
@@ -65,7 +65,7 @@ describe("julesService", () => {
     });
 
     it("should return empty array on failure", async () => {
-      vi.mocked(defaultClient.fetch).mockRejectedValueOnce(new Error("Network Error"));
+      (defaultClient.fetch as import("vitest").Mock).mockRejectedValueOnce(new Error("Network Error"));
       const repos = await defaultJulesClient.fetchRepositories();
       expect(repos.length).toBe(0);
     });
@@ -73,7 +73,7 @@ describe("julesService", () => {
 
   describe("createJulesTask", () => {
     it("should call apiClient.fetch with correct params", async () => {
-      vi.mocked(defaultClient.fetch).mockResolvedValueOnce({
+      (defaultClient.fetch as import("vitest").Mock).mockResolvedValueOnce({
         task: { id: "task-123", status: "queued" }
       });
       const result = await defaultJulesClient.createTask({ repository: "owner/repo", branch: "main", prompt: "Fix bug" });
