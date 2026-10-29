@@ -49,7 +49,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-80 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
           <motion.div
             role="alertdialog"
             aria-modal="true"

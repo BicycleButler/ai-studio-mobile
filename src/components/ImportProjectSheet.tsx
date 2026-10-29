@@ -192,7 +192,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.26, ease: "easeOut" }}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-70 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               void handleDismiss();

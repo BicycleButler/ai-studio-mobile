@@ -44,13 +44,13 @@ export const Drawer: React.FC<DrawerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }} // adjusted duration for general use
-            className="fixed inset-0 z-50 bg-black/40"
+            className="fixed inset-0 z-[60] bg-black/40"
             onClick={onClose}
             aria-hidden="true"
           />
 
           {/* Drawer Container */}
-          <div className={`fixed inset-0 z-60 pointer-events-none flex ${position === 'bottom' ? 'items-end justify-center' : position === 'right' ? 'justify-end' : 'justify-center items-center'}`}>
+          <div className={`fixed inset-0 z-70 pointer-events-none flex ${position === 'bottom' ? 'items-end justify-center' : position === 'right' ? 'justify-end' : 'justify-center items-center'}`}>
             <motion.div
               key={`${drawerId}-content`}
               id={drawerId}

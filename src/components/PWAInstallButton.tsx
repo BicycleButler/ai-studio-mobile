@@ -144,7 +144,7 @@ const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose })
   return (
     <div
       id="pwa-install-guide-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-80 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

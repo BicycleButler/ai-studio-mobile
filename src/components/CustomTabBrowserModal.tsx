@@ -120,7 +120,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.27, ease: "easeOut" }}
-          className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-80 flex flex-col bg-black/80 backdrop-blur-sm"
         >
           <motion.div
             key="custom-tab-browser-dialog"
