@@ -28,7 +28,7 @@ describe('ProjectService', () => {
 
   it('loads stored projects', () => {
     const projects = [{ id: 'proj1', name: 'Proj 1' } as ProjectInfo];
-    vi.mocked(mockActiveItemManager.getItems).mockReturnValue(projects);
+    (mockActiveItemManager.getItems as import("vitest").Mock).mockReturnValue(projects);
     const service = new ProjectService({
       generalSettingsService: mockGeneralSettingsService,
       projectsManager: mockActiveItemManager
@@ -53,7 +53,7 @@ describe('ProjectService', () => {
       projectsManager: mockActiveItemManager
     });
 
-    vi.mocked(mockActiveItemManager.getActiveId).mockReturnValue('proj1');
+    (mockActiveItemManager.getActiveId as import("vitest").Mock).mockReturnValue('proj1');
     expect(service.getActiveProjectId()).toBe('proj1');
 
     service.setActiveProjectId('proj2');
