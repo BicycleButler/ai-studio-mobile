@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @theme {
+  --z-60: 60;
+  --z-70: 70;
+  --z-80: 80;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface-frame: var(--surface-frame);

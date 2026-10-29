@@ -39,7 +39,7 @@ export const Dialog: React.FC<DialogProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <motion.div
             role="dialog"
             aria-modal="true"

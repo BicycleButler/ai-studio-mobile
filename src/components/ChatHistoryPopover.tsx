@@ -46,7 +46,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
       id="chat-window-history-popover"
       role="dialog"
       aria-label={isJulesMode ? "New task and history menu" : "New chat and history menu"}
-      className="absolute end-0 top-full mt-2 z-50 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover/98 border border-border shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
+      className="absolute end-0 top-full mt-2 z-40 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover/98 border border-border shadow-2xl overflow-hidden backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
     >
       {/* Arrow Indicator pointing up to Plus button */}
       <div className="absolute -top-1.5 end-3 w-3 h-3 rotate-45 bg-popover border-t border-s border-border pointer-events-none" />
