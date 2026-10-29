@@ -28,6 +28,7 @@ import { getSafeDocument, safeAddEventListener } from "../utils/platform";
 import { Combobox } from "./Combobox";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import { Drawer } from "./ui/Drawer";
+import { useStore } from "../hooks/useStore";
 
 interface JulesSessionDrawerProps {
   isOpen: boolean;
@@ -49,7 +50,10 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   onOpenApiKeyModal,
 }) => {
   const { julesStorageService, julesClient } = useServices();
-  const [sessions, setSessions] = useState<JulesSession[]>([]);
+
+  const julesStore = useStore(julesStorageService.julesSessionsManager);
+  const sessions = julesStore.items;
+
   const [repositories, setRepositories] = useState<JulesRepository[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
 
@@ -72,11 +76,6 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const [customRepo, setCustomRepo] = useState("");
   const [branch, setBranch] = useState("main");
   const [initialTaskTitle, setInitialTaskTitle] = useState("");
-
-  const refreshSessions = () => {
-    const list = julesStorageService.getStoredJulesSessions();
-    setSessions(list);
-  };
 
   const filteredSessions = searchQuery
     ? sessions.filter((s) =>
@@ -101,12 +100,10 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   const handleBulkDelete = () => {
     const ids = Array.from(selectedSessionIds);
     onBulkDeleteSessions(ids);
-    refreshSessions();
   };
 
   useEffect(() => {
     if (isOpen) {
-      refreshSessions();
       const { julesStorageService } = useServices();
       const key = julesStorageService.loadStoredJulesApiKey();
       setHasApiKey(Boolean(key));
@@ -138,7 +135,6 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
       initialTaskTitle.trim() || undefined
     );
 
-    refreshSessions();
     setIsCreating(false);
     setSelectedRepo("");
     setCustomRepo("");
@@ -151,7 +147,6 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     e.stopPropagation();
     julesStorageService.deleteJulesSession(id);
     removeFromSelection(id);
-    refreshSessions();
   };
 
   // Keyboard shortcuts (Cmd/Ctrl+A to select all, Esc to clear selection)
