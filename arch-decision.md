@@ -1015,3 +1015,11 @@ Extract all domain-specific interaction with `jules.googleapis.com` into a dedic
 
 **Recommendation:**
 **Path 2 (Extract a Dedicated `ServerJulesClient`)** was implemented. This perfectly mirrors the frontend architecture (which separates UI/Routing from Domain Services like `JulesClient`), enforces strict Dependency Inversion by isolating external API communication into a testable class, and immediately upgrades the server's network requests to use the robust `ApiClient` features (like exponential backoff). It significantly improves the abstraction, robustness, and reusability of the backend.
+
+## Architectural Decision: Prompt Tool Action Dock Abstraction
+
+**Context:**
+`FewShotBuilderTool` and `VariablePromptTool` both duplicated the UI boilerplate for rendering the live preview, copy-to-clipboard button, and insert-into-chat button at the bottom of their respective views. This violated the DRY principle and risked inconsistent UI/UX behaviors between prompt tools.
+
+**Decision:**
+Extracted the duplicated UI elements into a shared `PromptToolActionDock` component. Both tools now compose this component, passing down their respective `resolvedPrompt`/`formatFewShotPrompt()` strings and event handlers. This improves Maintainability and Reusability, ensuring all prompt tools share a consistent preview and action surface.
