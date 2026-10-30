@@ -82,7 +82,7 @@ export interface WorkspaceRouterProps {
   chatProps: Omit<ChatWorkspaceProps, keyof SharedWorkspaceProps>;
   ideProps: Omit<IDEWorkspaceProps, keyof SharedWorkspaceProps>;
   julesProps: Omit<JulesWorkspaceProps, keyof SharedWorkspaceProps>;
-  stubsProps?: StubsWorkspaceProps;
+  stubsProps?: Omit<StubsWorkspaceProps, keyof SharedWorkspaceProps>;
 }
 
 export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
@@ -105,7 +105,7 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
         <ChatWorkspace isJulesMode={true} {...sharedProps} {...julesProps} />
       )}
       {promptType === "stubs" && (
-        <StubsWorkspace {...stubsProps} />
+        <StubsWorkspace {...(stubsProps as StubsWorkspaceProps)} {...sharedProps} />
       )}
     </main>
   );

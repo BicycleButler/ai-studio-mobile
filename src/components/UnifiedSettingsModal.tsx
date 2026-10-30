@@ -26,7 +26,7 @@ import {
   ChatMessage,
   ProjectInfo,
 } from "../types";
-import { TunerBottomSheet } from "./TunerBottomSheet";
+import { TunerConfigPanel } from "./tuner/TunerConfigPanel";
 import {
     SpeechSettings,
   } from "../services/speechVoices";
@@ -416,7 +416,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           {activeTab === "model" && (
             <div className="space-y-4">
               {config && onChangeConfig ? (
-                <TunerBottomSheet
+                <TunerConfigPanel
                   config={config}
                   onChangeConfig={onChangeConfig}
                   models={models || []}
