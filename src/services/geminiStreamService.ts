@@ -1,6 +1,6 @@
 import { GenerateRequestBody } from "../types";
 import { IApiClient, BaseApiError, isAbortError } from "../utils/apiClient";
-import { SSEStreamParser } from "../utils/sseParser";
+import { SSEStreamParser, ISSEStreamParser, SSEEventCallback } from "../utils/sseParser";
 import { ILogger } from "../utils/logger";
 
 
@@ -99,15 +99,18 @@ export interface IGeminiStreamService {
 export interface GeminiStreamServiceConfig {
   apiClient: IApiClient;
   logger: ILogger;
+  createSSEStreamParser?: (onEvent: SSEEventCallback) => ISSEStreamParser;
 }
 
 export class GeminiStreamService implements IGeminiStreamService {
   private apiClient: IApiClient;
   private logger: ILogger;
+  private createSSEStreamParser: (onEvent: SSEEventCallback) => ISSEStreamParser;
 
   constructor(config: GeminiStreamServiceConfig) {
     this.apiClient = config.apiClient;
     this.logger = config.logger;
+    this.createSSEStreamParser = config.createSSEStreamParser || ((onEvent) => new SSEStreamParser(onEvent));
   }
 
   public sanitizeLogMessage(message: string): string {
@@ -248,7 +251,7 @@ export class GeminiStreamService implements IGeminiStreamService {
       }
     };
 
-    const sseParser = new SSEStreamParser((eventName, dataStr) => {
+    const sseParser = this.createSSEStreamParser((eventName, dataStr) => {
       handleData(dataStr);
     });
 

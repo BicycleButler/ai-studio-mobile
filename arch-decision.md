@@ -1068,3 +1068,11 @@ Modify `runCliCommand` in `server/stubsService.ts` to asynchronously check if `C
 
 **Recommendation:**
 **Path 2 (Graceful Error Handling)** is the recommended path. It enhances Robustness by preventing unhandled exceptions and process crashes when a dependency is missing. It adheres to best practices by verifying file existence before execution, rather than committing generated `dist/` artifacts to source control.
+
+## Architectural Decision: Extracting SentenceSpeechQueue and SSEStreamParser Instantiations
+
+**Context:**
+Even though `ISentenceSpeechQueue` and `ISSEStreamParser` were previously extracted, `ChatWorkspace` and `GeminiStreamService` were still directly instantiating the concrete classes (`new SentenceSpeechQueue`, `new SSEStreamParser`). This tightly coupled these components to the concrete implementations, violating the Dependency Inversion Principle and preventing pure mock injection during testing.
+
+**Decision:**
+Abstracted their instantiations by introducing `createSentenceSpeechQueue` and `createSSEStreamParser` factory methods into the `ServiceContext` and component configuration interfaces respectively. Components and services now invoke these factories to obtain implementations, strictly enforcing abstraction boundaries and enabling full testability without global mock overrides.
