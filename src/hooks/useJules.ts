@@ -117,7 +117,7 @@ export function useJules() {
       setIsJulesExecuting(true);
 
       try {
-        const dispatchedTask = await julesClient.dispatchTask(julesApiKey, {
+        const dispatchedTask = await julesClient.dispatchTask({
           repository: currentSession.repository,
           branch: currentSession.branch,
           prompt: text,
@@ -151,7 +151,6 @@ export function useJules() {
         }
 
         julesPollingRef.current = julesClient.subscribeToTask(
-          julesApiKey,
           dispatchedTask.id,
           (taskUpdate: JulesTaskPayload) => {
             const latestSession = julesSessionsManager.getActiveItem();
@@ -224,14 +223,14 @@ export function useJules() {
       }
       return true;
     },
-    [activeJulesSession, julesApiKey]
+    [activeJulesSession]
   );
 
   const handleApproveJulesPlan = useCallback(
     async (taskId: string) => {
       setIsApprovingJulesPlan(true);
       try {
-        await julesClient.approvePlan(taskId, true, julesApiKey);
+        await julesClient.approvePlan(taskId, true);
         const latestSession = julesSessionsManager.getActiveItem();
         if (latestSession) {
            const approvedMessages = (latestSession.messages || []).map(m =>
@@ -272,13 +271,13 @@ export function useJules() {
         setIsApprovingJulesPlan(false);
       }
     },
-    [julesApiKey]
+    []
   );
 
   const handleRejectJulesPlan = useCallback(
     async (taskId: string) => {
       try {
-        await julesClient.approvePlan(taskId, false, julesApiKey);
+        await julesClient.approvePlan(taskId, false);
         const latestSession = julesSessionsManager.getActiveItem();
         if (latestSession) {
            const rejectedMessages = (latestSession.messages || []).map(m =>
@@ -305,7 +304,7 @@ export function useJules() {
         logger.error("Failed to reject plan:", err);
       }
     },
-    [julesApiKey]
+    []
   );
 
   const handleSelectSession = useCallback((sess: Partial<JulesSession>) => {

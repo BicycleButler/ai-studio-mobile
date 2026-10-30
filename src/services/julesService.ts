@@ -54,20 +54,20 @@ export interface IJulesClient {
   fetchRepositories(apiKeyOverride?: string): Promise<JulesRepository[]>;
   createTask(params: CreateJulesTaskParams): Promise<{ task: JulesTaskPayload | null; error?: string }>;
   dispatchTask(
-    apiKey: string,
     params: {
       repository: string;
       prompt: string;
       branch?: string;
       autoApprove?: boolean;
+      apiKey?: string;
     }
   ): Promise<JulesTaskPayload>;
   subscribeToTask(
-    apiKey: string,
     taskId: string,
     onUpdate: (task: JulesTaskPayload) => void,
     onError?: (error: unknown) => void,
-    intervalMs?: number
+    intervalMs?: number,
+    apiKeyOverride?: string
   ): { stop: () => void };
   fetchTask(taskId: string, apiKeyOverride?: string): Promise<{ task: JulesTaskPayload | null; error?: string }>;
   approvePlan(taskId: string, approved?: boolean, apiKeyOverride?: string): Promise<{ task: JulesTaskPayload | null; error?: string }>;
@@ -180,12 +180,12 @@ export class JulesClient implements IJulesClient {
   }
 
   public async dispatchTask(
-    apiKey: string,
     params: {
       repository: string;
       prompt: string;
       branch?: string;
       autoApprove?: boolean;
+      apiKey?: string;
     }
   ): Promise<JulesTaskPayload> {
     const result = await this.createTask({
@@ -193,7 +193,7 @@ export class JulesClient implements IJulesClient {
       prompt: params.prompt,
       branch: params.branch || "main",
       autoApprove: params.autoApprove,
-      apiKey,
+      apiKey: params.apiKey,
     });
     if (result.error || !result.task) {
       throw new Error(result.error || "Failed to create Jules task");
@@ -202,12 +202,13 @@ export class JulesClient implements IJulesClient {
   }
 
   public subscribeToTask(
-    apiKey: string,
     taskId: string,
     onUpdate: (task: JulesTaskPayload) => void,
     onError?: (error: unknown) => void,
-    intervalMs: number = 2500
+    intervalMs: number = 2500,
+    apiKeyOverride?: string
   ): { stop: () => void } {
+    const key = this.resolveApiKey(apiKeyOverride);
     const fetcherFn = this.config.apiClient.fetch.bind(this.config.apiClient);
     const pollingFn = this.config.startPolling || startPolling;
 
@@ -216,7 +217,7 @@ export class JulesClient implements IJulesClient {
         fetcherFn<{ task: JulesTaskPayload }>(
           `/api/jules/tasks/${encodeURIComponent(taskId)}`,
           {
-            headers: { "x-jules-api-key": apiKey || "" },
+            headers: { "x-jules-api-key": key || "" },
             signal,
           },
           "Failed to poll task"
