@@ -1,4 +1,3 @@
-import { defaultPlatformService } from "../services/platformService";
 import { useState, useEffect } from "react";
 import { usePromptTemplates } from "./usePromptTemplates";
 
@@ -12,11 +11,21 @@ import { PromptType, ChatMessage, ChatSession } from "../types";
 import { fetchModels } from "../utils/modelCatalog";
 
 export function useAppState() {
-  const { chatHistoryService } = useServices();
+  // External Services
+  const {
+    chatHistoryService,
+    googleAuthService,
+    authService,
+    promptTemplateService,
+    generalSettingsService,
+    apiClient,
+    draftStateService,
+    platformService
+  } = useServices();
+
   // Load initial app draft safely before deriving other states
   const initialActiveProjectId = (() => {
     try {
-      const platformService = defaultPlatformService;
       const localStorage = platformService.getLocalStorage();
       const stored = localStorage?.getItem("aistudio_active_project_id");
       return stored ? JSON.parse(stored) : null;
@@ -24,8 +33,6 @@ export function useAppState() {
       return null;
     }
   })();
-  // External Services
-  const { googleAuthService, authService, promptTemplateService, generalSettingsService, apiClient, draftStateService } = useServices();
 
   const initialDraft = draftStateService.loadDraftState(initialActiveProjectId);
 
@@ -111,8 +118,6 @@ export function useAppState() {
       setConfig((prev) => ({ ...prev, model: session.model! }));
     }
   };
-
-  const { platformService } = useServices();
 
   // Draft Save Effect
   useEffect(() => {

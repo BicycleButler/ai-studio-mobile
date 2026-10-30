@@ -182,4 +182,6 @@ export class KeyVerificationService implements IKeyVerificationService {
 }
 
 import { BrowserClipboardService } from "./clipboardService";
-export const defaultKeyVerificationService = new KeyVerificationService({ apiClient: defaultClient, logger: defaultLogger, clipboardService: new BrowserClipboardService(defaultLogger) });
+import { defaultPlatformService } from "./platformService";
+
+export const defaultKeyVerificationService = new KeyVerificationService({ apiClient: defaultClient, logger: defaultLogger, clipboardService: new BrowserClipboardService(defaultLogger, defaultPlatformService) });

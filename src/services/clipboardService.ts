@@ -1,5 +1,5 @@
 import { ILogger } from "../utils/logger";
-import { defaultPlatformService } from "./platformService";
+import { IPlatformService } from "./platformService";
 
 export interface IClipboardService {
   writeText(text: string): Promise<boolean>;
@@ -7,7 +7,7 @@ export interface IClipboardService {
 }
 
 export class BrowserClipboardService implements IClipboardService {
-  constructor(private logger: ILogger, private getClipboard = () => defaultPlatformService.getNavigator()?.clipboard || null) {}
+  constructor(private logger: ILogger, private platformService: IPlatformService, private getClipboard = () => platformService.getNavigator()?.clipboard || null) {}
 
   public async readText(): Promise<string> {
     try {

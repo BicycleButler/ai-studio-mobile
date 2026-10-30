@@ -1,4 +1,5 @@
 import { ILogger } from "../logger";
+import { IPlatformService } from "../../services/platformService";
 import { getSafeBroadcastChannel, getSafeLocalStorage, isBrowserEnvironment, safeAddEventListener } from "../platform";
 
 export interface ICrossTabNotifier {
@@ -10,6 +11,7 @@ export interface ICrossTabNotifier {
 export interface CrossTabNotifierConfig {
   name: string;
   logger?: ILogger;
+  platformService?: IPlatformService;
   getBroadcastChannel?: typeof getSafeBroadcastChannel;
   getLocalStorage?: typeof getSafeLocalStorage;
   isBrowserEnv?: typeof isBrowserEnvironment;

@@ -7,7 +7,10 @@ describe('BrowserClipboardService', () => {
         const mockWriteText = vi.fn().mockResolvedValue(undefined);
         const mockClipboard = { writeText: mockWriteText } as unknown as Clipboard;
 
-        const service = new BrowserClipboardService(new NoOpLogger(), () => mockClipboard);
+        const mockPlatformService: any = {
+            getNavigator: () => ({ clipboard: mockClipboard }),
+        };
+        const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);
         const result = await service.writeText('test text');
 
         expect(result).toBe(true);
@@ -18,14 +21,20 @@ describe('BrowserClipboardService', () => {
         const mockWriteText = vi.fn().mockRejectedValue(new Error('clipboard error'));
         const mockClipboard = { writeText: mockWriteText } as unknown as Clipboard;
 
-        const service = new BrowserClipboardService(new NoOpLogger(), () => mockClipboard);
+        const mockPlatformService: any = {
+            getNavigator: () => ({ clipboard: mockClipboard }),
+        };
+        const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);
         const result = await service.writeText('test text');
 
         expect(result).toBe(false);
     });
 
     it('should return false if clipboard is not available', async () => {
-        const service = new BrowserClipboardService(new NoOpLogger(), () => null);
+        const mockPlatformService: any = {
+            getNavigator: () => ({ clipboard: null }),
+        };
+        const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);
         const result = await service.writeText('test text');
 
         expect(result).toBe(false);
