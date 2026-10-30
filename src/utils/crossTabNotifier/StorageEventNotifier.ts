@@ -1,13 +1,11 @@
 import { ICrossTabNotifier } from "./types";
-import { isBrowserEnvironment, getSafeLocalStorage, safeAddEventListener } from "../platform";
 import { ILogger, defaultLogger } from "../logger";
+import { IPlatformService, defaultPlatformService } from "../../services/platformService";
 
 export interface StorageEventNotifierConfig {
   name: string;
   logger?: ILogger;
-  getLocalStorage?: typeof getSafeLocalStorage;
-  isBrowserEnv?: typeof isBrowserEnvironment;
-  addEventListener?: typeof safeAddEventListener;
+  platformService?: IPlatformService;
 }
 
 export class StorageEventNotifier implements ICrossTabNotifier {
@@ -18,16 +16,12 @@ export class StorageEventNotifier implements ICrossTabNotifier {
   private removeListenerFn: (() => void) | null = null;
   private isListening = false;
 
-  private getLocalStorage: typeof getSafeLocalStorage;
-  private isBrowserEnv: typeof isBrowserEnvironment;
-  private addEventListener: typeof safeAddEventListener;
+  private platformService: IPlatformService;
 
   constructor(config: StorageEventNotifierConfig) {
     this.key = `_sync_notify_${config.name}`;
     this.logger = config.logger || defaultLogger;
-    this.getLocalStorage = config.getLocalStorage || getSafeLocalStorage;
-    this.isBrowserEnv = config.isBrowserEnv || isBrowserEnvironment;
-    this.addEventListener = config.addEventListener || safeAddEventListener;
+    this.platformService = config.platformService || defaultPlatformService;
     this.boundListener = this.handleStorageEvent.bind(this);
   }
 
@@ -45,8 +39,8 @@ export class StorageEventNotifier implements ICrossTabNotifier {
   }
 
   public notify(message: string): void {
-    const localStorage = this.getLocalStorage();
-    if (this.isBrowserEnv() && localStorage) {
+    const localStorage = this.platformService.getLocalStorage();
+    if (this.platformService.isBrowserEnv() && localStorage) {
       try {
         const payload = JSON.stringify({ message, timestamp: Date.now() });
         localStorage.setItem(this.key, payload);
@@ -61,8 +55,8 @@ export class StorageEventNotifier implements ICrossTabNotifier {
 
   public onMessage(handler: (message: string) => void): void {
     this.handler = handler;
-    if (this.isBrowserEnv() && !this.isListening) {
-      this.removeListenerFn = this.addEventListener("storage", this.boundListener);
+    if (this.platformService.isBrowserEnv() && !this.isListening) {
+      this.removeListenerFn = this.platformService.addEventListener("storage", this.boundListener as EventListener);
       this.isListening = true;
     }
   }

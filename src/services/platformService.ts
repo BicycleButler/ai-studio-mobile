@@ -6,7 +6,12 @@ import {
   getSafeWindowMatchMedia,
   getSafeWindowVisualViewport,
   getSafeLocalStorage,
-  isBrowserEnvironment
+  isBrowserEnvironment,
+  getPlatformCapabilities,
+  PlatformCapabilities,
+  safeAddEventListener,
+  safeAddDocumentListener,
+  getSafeBroadcastChannel
 } from "../utils/platform";
 import { ILogger, defaultLogger } from "../utils/logger";
 
@@ -29,6 +34,11 @@ export interface IPlatformService {
   clearTimeout(id: unknown): void;
   setInterval(handler: TimerHandler, timeout?: number, ...args: unknown[]): unknown;
   clearInterval(id: unknown): void;
+  isBrowserEnv(): boolean;
+  getPlatformCaps(): PlatformCapabilities;
+  addEventListener<K extends keyof WindowEventMap>(type: K, listener: (this: Window, ev: WindowEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void;
+  addDocumentListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void;
+  getBroadcastChannel(name: string): BroadcastChannel | null;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -130,6 +140,26 @@ export class BrowserPlatformService implements IPlatformService {
 
   public clearInterval(id: unknown): void {
       globalThis.clearInterval(id as number | undefined);
+  }
+
+  public isBrowserEnv(): boolean {
+    return isBrowserEnvironment();
+  }
+
+  public getPlatformCaps(): PlatformCapabilities {
+    return getPlatformCapabilities();
+  }
+
+  public addEventListener<K extends keyof WindowEventMap>(type: K, listener: (this: Window, ev: WindowEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void {
+    return safeAddEventListener(type, listener, options);
+  }
+
+  public addDocumentListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void {
+    return safeAddDocumentListener(type, listener, options);
+  }
+
+  public getBroadcastChannel(name: string): BroadcastChannel | null {
+    return getSafeBroadcastChannel(name);
   }
 }
 

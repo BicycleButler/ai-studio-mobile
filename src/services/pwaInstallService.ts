@@ -1,5 +1,5 @@
-import { isBrowserEnvironment, getPlatformCapabilities, safeAddEventListener } from "../utils/platform";
 import { Observable, IObservable } from "../utils/observable";
+import { IPlatformService, defaultPlatformService } from "./platformService";
 
 export interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -18,9 +18,7 @@ export interface PWAInstallState {
 }
 
 export interface PwaInstallServiceConfig {
-    isBrowserEnv?: typeof isBrowserEnvironment;
-    getPlatformCaps?: typeof getPlatformCapabilities;
-    addEventListener?: typeof safeAddEventListener;
+    platformService?: IPlatformService;
 }
 
 export interface IPwaInstallService {
@@ -31,16 +29,12 @@ export interface IPwaInstallService {
 export class PwaInstallService implements IPwaInstallService {
   public stateObservable: IObservable<PWAInstallState>;
   private isInitialized = false;
-  private isBrowserEnv: typeof isBrowserEnvironment;
-  private getPlatformCaps: typeof getPlatformCapabilities;
-  private addEventListener: typeof safeAddEventListener;
+  private platformService: IPlatformService;
 
   constructor(config?: PwaInstallServiceConfig) {
-    this.isBrowserEnv = config?.isBrowserEnv || isBrowserEnvironment;
-    this.getPlatformCaps = config?.getPlatformCaps || getPlatformCapabilities;
-    this.addEventListener = config?.addEventListener || safeAddEventListener;
+    this.platformService = config?.platformService || defaultPlatformService;
 
-    const caps = this.getPlatformCaps();
+    const caps = this.platformService.getPlatformCaps();
     this.stateObservable = new Observable<PWAInstallState>({
       deferredPrompt: null,
       isInstalled: caps.isNative || caps.isPWA,
@@ -50,10 +44,10 @@ export class PwaInstallService implements IPwaInstallService {
   }
 
   public initListeners() {
-    if (!this.isBrowserEnv() || this.isInitialized) return;
+    if (!this.platformService.isBrowserEnv() || this.isInitialized) return;
     this.isInitialized = true;
 
-    const currentCaps = this.getPlatformCaps();
+    const currentCaps = this.platformService.getPlatformCaps();
     const currentState = this.stateObservable.getSnapshot()!;
 
     this.stateObservable.notify({
@@ -63,13 +57,13 @@ export class PwaInstallService implements IPwaInstallService {
       isIOS: currentCaps.isIOS,
     });
 
-    this.addEventListener("beforeinstallprompt" as keyof WindowEventMap, ((e: Event) => {
+    this.platformService.addEventListener("beforeinstallprompt" as keyof WindowEventMap, ((e: Event) => {
       e.preventDefault();
       const current = this.stateObservable.getSnapshot()!;
       this.stateObservable.notify({ ...current, deferredPrompt: e as BeforeInstallPromptEvent });
     }) as EventListener);
 
-    this.addEventListener("appinstalled" as keyof WindowEventMap, (() => {
+    this.platformService.addEventListener("appinstalled" as keyof WindowEventMap, (() => {
       const current = this.stateObservable.getSnapshot()!;
       this.stateObservable.notify({ ...current, isInstalled: true, deferredPrompt: null });
     }) as EventListener);

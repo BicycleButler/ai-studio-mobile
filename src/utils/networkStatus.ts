@@ -1,5 +1,5 @@
-import { isBrowserEnvironment, getSafeNavigator, safeAddEventListener } from "./platform";
 import { Observable, IObservable } from "./observable";
+import { IPlatformService, defaultPlatformService } from "../services/platformService";
 
 export interface NetworkStatus {
   isOnline: boolean;
@@ -14,11 +14,14 @@ export interface INetworkStatusProvider {
 export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
   private statusObservable: IObservable<NetworkStatus>;
   private isInitialized = false;
+  private platformService: IPlatformService;
 
-  constructor() {
+  constructor(platformService?: IPlatformService) {
+    this.platformService = platformService || defaultPlatformService;
+
     const initialIsOnline = (() => {
-      if (isBrowserEnvironment()) {
-        const nav = getSafeNavigator();
+      if (this.platformService.isBrowserEnv()) {
+        const nav = this.platformService.getNavigator();
         if (nav && typeof nav.onLine === "boolean") {
           return nav.onLine;
         }
@@ -38,23 +41,23 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
   }
 
   private initListeners() {
-    if (!isBrowserEnvironment() || this.isInitialized) return;
+    if (!this.platformService.isBrowserEnv() || this.isInitialized) return;
     this.isInitialized = true;
 
-    safeAddEventListener("online", () => {
+    this.platformService.addEventListener("online", () => {
       const current = this.statusObservable.getSnapshot()!;
       this.statusObservable.notify({ ...current, isOnline: true });
     });
 
-    safeAddEventListener("offline", () => {
+    this.platformService.addEventListener("offline", () => {
       const current = this.statusObservable.getSnapshot()!;
       this.statusObservable.notify({ ...current, isOnline: false, wasOffline: true });
     });
   }
 
   isOnline(): boolean {
-    if (isBrowserEnvironment()) {
-      const nav = getSafeNavigator();
+    if (this.platformService.isBrowserEnv()) {
+      const nav = this.platformService.getNavigator();
       if (nav && typeof nav.onLine === "boolean") {
         return nav.onLine;
       }
