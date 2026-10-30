@@ -1,12 +1,14 @@
 import { IReadableStore } from "../observable";
 import { ComputedStore } from "../computedStore";
 import { IMutableCollection, IMutableSingleton } from "./types";
+import { ISelectionStrategy, FirstItemSelectionStrategy, NoImplicitSelectionStrategy } from "./selectionStrategy";
 
 export interface ActiveItemManagerOptions<T> {
   collection: IMutableCollection<T>;
   activeIdSingleton: IMutableSingleton<string | null>;
   getId: (item: T) => string;
-  allowImplicitSelection?: boolean;
+  allowImplicitSelection?: boolean; // Deprecated, use implicitSelectionStrategy
+  implicitSelectionStrategy?: ISelectionStrategy<T>;
 }
 
 export interface ActiveItemManagerState<T> {
@@ -29,10 +31,18 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   public collection: IMutableCollection<T>;
   public activeIdSingleton: IMutableSingleton<string | null>;
   private getId: (item: T) => string;
-  private allowImplicitSelection: boolean;
+  private implicitSelectionStrategy: ISelectionStrategy<T>;
 
   constructor(options: ActiveItemManagerOptions<T>) {
-    const allowImplicitSelection = options.allowImplicitSelection ?? true;
+    let implicitSelectionStrategy = options.implicitSelectionStrategy;
+
+    if (!implicitSelectionStrategy) {
+        if (options.allowImplicitSelection === false) {
+             implicitSelectionStrategy = new NoImplicitSelectionStrategy<T>();
+        } else {
+             implicitSelectionStrategy = new FirstItemSelectionStrategy<T>();
+        }
+    }
 
     super([options.collection, options.activeIdSingleton], () => {
       const items = options.collection.load() || [];
@@ -46,10 +56,10 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
           const match = items.find((p) => options.getId(p) === activeId);
           if (match) activeItem = match;
           else {
-              activeItem = allowImplicitSelection ? items[0] : null;
+              activeItem = implicitSelectionStrategy.selectImplicitItem(items, options.getId);
           }
         } else {
-          activeItem = allowImplicitSelection ? items[0] : null;
+          activeItem = implicitSelectionStrategy.selectImplicitItem(items, options.getId);
         }
       }
 
@@ -61,12 +71,8 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
     this.collection = options.collection;
     this.activeIdSingleton = options.activeIdSingleton;
     this.getId = options.getId;
-    this.allowImplicitSelection = allowImplicitSelection;
-
+    this.implicitSelectionStrategy = implicitSelectionStrategy;
   }
-
-
-
 
   public getSnapshot(): ActiveItemManagerState<T> {
     // Because ComputedStore may defer state re-computation via a microtask for batching,

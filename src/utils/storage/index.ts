@@ -15,6 +15,7 @@ import { StorageSingleton } from "./StorageSingleton";
 export * from "./StorageRegistry";
 export { StorageCollection, StorageSingleton, MapCollection };
 export * from "./ActiveItemManager";
+export * from "./selectionStrategy";
 export * from "./ActiveItemManagerFactory";
 export * from "./StorageBase";
 export * from "./syncAdapter";
