@@ -26,6 +26,14 @@ Add a `withBaseDelay(delay: number): IDelayStrategy` method to the `IDelayStrate
 **Recommendation:**
 **Path 1 (Strict Injection)** is the recommended path. It removes conflicting sources of truth (`RetryConfig` vs `IDelayStrategy` constructor) and ensures the orchestrator purely delegates to the injected strategy without needing to understand its configuration semantics.
 
+## Architectural Decision: TunerBottomSheet Component Abstraction
+
+**Context:**
+`TunerBottomSheet` was rendering identical, complex configuration panels inline within an `if (isModal)` block for the Drawer view, and a separate block for the embedded view (inside `UnifiedSettingsModal`). This violated the DRY principle, made the component overly long (>600 lines), and tangled the Drawer container logic with the deeply nested configuration form.
+
+**Decision:**
+Extracted the entire `bodyFields` logic and form state into a dedicated `TunerConfigPanel` component. `TunerBottomSheet` now acts purely as the Drawer container (for the standalone workspace view), while `TunerConfigPanel` is composed inside both `TunerBottomSheet` and `UnifiedSettingsModal`. This adheres to the Single Responsibility Principle, greatly improves Reusability, and significantly cleans up the main modal files.
+
 ## Architectural Decision: Storage Abstraction
 
 **Context:**
@@ -301,6 +309,22 @@ Remove `StubsClient` entirely and change every standalone function to explicitly
 
 **Recommendation:**
 **Path 1 (Instance Methods on StubsClient)** was implemented. This solidifies `StubsClient` as a robust, fully-encapsulated class handling Stubs API orchestration, matching the established pattern for `JulesClient`. It completely preserves the existing React component API (via wrapper proxies) while resolving the tight module-level variable coupling. It greatly enhances Reusability and Generality, and makes writing unit tests trivial.
+
+## Architectural Decision: TunerBottomSheet Component Abstraction
+
+**Context:**
+`TunerBottomSheet` was rendering identical, complex configuration panels inline within an `if (isModal)` block for the Drawer view, and a separate block for the embedded view (inside `UnifiedSettingsModal`). This violated the DRY principle, made the component overly long (>600 lines), and tangled the Drawer container logic with the deeply nested configuration form.
+
+**Decision:**
+Extracted the entire `bodyFields` logic and form state into a dedicated `TunerConfigPanel` component. `TunerBottomSheet` now acts purely as the Drawer container (for the standalone workspace view), while `TunerConfigPanel` is composed inside both `TunerBottomSheet` and `UnifiedSettingsModal`. This adheres to the Single Responsibility Principle, greatly improves Reusability, and significantly cleans up the main modal files.
+
+## Architectural Decision: StubsWorkspaceProps Abstraction
+
+**Context:**
+`StubsWorkspace` did not inherit `SharedWorkspaceProps` like the other workspaces (`ChatWorkspace`, `MobileIDEWorkspace`, `JulesWorkspace`) in the `WorkspaceRouter`. This inconsistency forced the router to handle `StubsWorkspace` uniquely, passing empty or incomplete props instead of the full shared configuration, and limiting the Stubs feature's ability to access standard context like `hasApiKey` or `config`.
+
+**Decision:**
+Updated `StubsWorkspaceProps` to extend `Partial<SharedWorkspaceProps>` and modified `WorkspaceRouter` to inject `...sharedProps` into `StubsWorkspace` using the same `Omit<..., keyof SharedWorkspaceProps>` pattern as the other workspaces. This enhances Generality and Abstraction by strictly unifying the workspace component contracts.
 
 ## Architectural Decision: SettingsSidebar Active Tab Routing Abstraction
 

@@ -33,7 +33,9 @@ import { useStubsData } from "../hooks/stubs/useStubsData";
 import { useStubsSpecs } from "../hooks/stubs/useStubsSpecs";
 import { useServices } from "../services/ServiceContext";
 
-export interface StubsWorkspaceProps {
+import { SharedWorkspaceProps } from "./WorkspaceRouter";
+
+export interface StubsWorkspaceProps extends Partial<SharedWorkspaceProps> {
   onOpenBottomNav?: () => void;
   onOpenParameters?: () => void;
 }
