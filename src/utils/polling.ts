@@ -1,4 +1,5 @@
 import { IDelayStrategy, FixedIntervalDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
+import { IPlatformService, defaultPlatformService } from "../services/platformService";
 
 export interface IPollingStrategy extends IDelayStrategy {}
 
@@ -11,17 +12,18 @@ export interface PollingOptions<T> {
   onUpdate: (data: T) => void;
   onError?: (error: unknown) => void;
   isComplete?: (data: T) => boolean;
+  platformService?: IPlatformService;
 }
 
 export function startPolling<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
   options: PollingOptions<T>
 ): { stop: () => void } {
-  const { strategy, onUpdate, onError, isComplete } = options;
+  const { strategy, onUpdate, onError, isComplete, platformService = defaultPlatformService } = options;
 
   let stopped = false;
   let abortController = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timer: unknown | undefined;
   let attempt = 0;
   let lastError: unknown = undefined;
 
@@ -55,17 +57,17 @@ export function startPolling<T>(
 
     if (!stopped) {
       const delay = strategy.getNextDelayMs(attempt, lastError);
-      timer = globalThis.setTimeout(runPoll, delay);
+      timer = platformService.setTimeout(runPoll, delay);
     }
   };
 
-  timer = globalThis.setTimeout(runPoll, 0); // start immediately
+  timer = platformService.setTimeout(runPoll, 0); // start immediately
 
   return {
     stop: () => {
       stopped = true;
       if (timer !== undefined) {
-        globalThis.clearTimeout(timer);
+        platformService.clearTimeout(timer);
       }
       abortController.abort();
     },

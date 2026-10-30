@@ -1,4 +1,5 @@
 import { ILogger, defaultLogger } from "./logger";
+import { IPlatformService, defaultPlatformService } from "../services/platformService";
 
 export interface IMutex {
   acquire(timeoutMs?: number): Promise<() => void>;
@@ -8,9 +9,11 @@ export interface IMutex {
 export class Mutex implements IMutex {
   private queue: Promise<void> = Promise.resolve();
   private logger: ILogger;
+  private platformService: IPlatformService;
 
-  constructor(logger: ILogger = defaultLogger) {
+  constructor(logger: ILogger = defaultLogger, platformService: IPlatformService = defaultPlatformService) {
     this.logger = logger;
+    this.platformService = platformService;
   }
 
   public async acquire(timeoutMs?: number): Promise<() => void> {
@@ -19,13 +22,13 @@ export class Mutex implements IMutex {
       release = resolve;
     });
 
-    let timeoutId: NodeJS.Timeout | undefined;
+    let timeoutId: unknown | undefined;
     let isReleased = false;
 
     const wrappedRelease = () => {
       if (isReleased) return;
       isReleased = true;
-      if (timeoutId) globalThis.clearTimeout(timeoutId);
+      if (timeoutId) this.platformService.clearTimeout(timeoutId);
       release();
     };
 
@@ -36,7 +39,7 @@ export class Mutex implements IMutex {
     await previousQueue;
 
     if (timeoutMs !== undefined) {
-      timeoutId = globalThis.setTimeout(() => {
+      timeoutId = this.platformService.setTimeout(() => {
         if (!isReleased) {
            this.logger.warn(`Mutex lock timed out after ${timeoutMs}ms`);
            wrappedRelease();

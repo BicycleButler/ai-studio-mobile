@@ -1,5 +1,6 @@
 import { RETRYABLE_STATUS_CODES, BaseApiError, isAbortError } from "./apiClientErrors";
 import { IDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
+import { IPlatformService, defaultPlatformService } from "../services/platformService";
 
 export interface RetryConfig {
   retryableStatusCodes?: Set<number>;
@@ -18,11 +19,13 @@ export interface IRetryStrategy {
 
 export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
   private delayStrategy: IDelayStrategy;
+  private platformService: IPlatformService;
 
-  constructor(delayStrategy?: IDelayStrategy) {
+  constructor(delayStrategy?: IDelayStrategy, platformService: IPlatformService = defaultPlatformService) {
     // By default, start with baseDelayMs, max limit isn't strictly needed for small retry counts
     // but the strategy takes base, max, multiplier.
     this.delayStrategy = delayStrategy || new ExponentialBackoffDelayStrategy(1000, 10000, 2, 500);
+    this.platformService = platformService;
   }
 
   async execute(
@@ -62,7 +65,7 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
       }
 
       const delay = this.delayStrategy.getNextDelayMs(attempt + 1, lastError);
-      await new Promise(resolve => globalThis.setTimeout(resolve, delay));
+      await new Promise(resolve => this.platformService.setTimeout(resolve as TimerHandler, delay));
     }
 
     if (lastResponse) return lastResponse;
