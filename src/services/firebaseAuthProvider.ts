@@ -10,9 +10,9 @@ import {
   Auth
 } from "firebase/auth";
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { isBrowserEnvironment } from "../utils/platform";
 import firebaseConfig from "../../firebase-applet-config.json";
 import { ILogger, defaultLogger } from "../utils/logger";
+import { defaultPlatformService } from "./platformService";
 
 export class FirebaseAuthProvider implements IAuthProvider {
   private firebaseAppInstance: FirebaseApp | null = null;
@@ -28,7 +28,7 @@ export class FirebaseAuthProvider implements IAuthProvider {
     if (this.firebaseAuthInstance) return this.firebaseAuthInstance;
 
     try {
-      if (!isBrowserEnvironment()) {
+      if (!defaultPlatformService.isBrowserEnv()) {
         return null;
       }
 

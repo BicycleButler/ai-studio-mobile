@@ -1,8 +1,8 @@
-import { isBrowserEnvironment } from "../utils/platform";
 import { ChatMessage, ChatSession } from "../types";
 import { safeGetStorageKeys, STORAGE_KEYS, globalStorageQuotaObservable, IStorageRegistry, defaultStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, defaultLogger } from "../utils/logger";
+import { defaultPlatformService } from "./platformService";
 import { isMockSession } from "../utils/mockDefinitions";
 
 export interface IChatHistoryService {
@@ -25,7 +25,7 @@ export interface ChatHistoryServiceConfig {
   storageKeys?: typeof STORAGE_KEYS;
   logger: ILogger;
   collectionRegistry?: IStorageRegistry<IMutableCollection<ChatSession>>;
-  isBrowserEnv?: typeof isBrowserEnvironment;
+  isBrowserEnv?: () => boolean;
 }
 
 export class ChatHistoryService implements IChatHistoryService {
@@ -38,7 +38,7 @@ export class ChatHistoryService implements IChatHistoryService {
       quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
-      isBrowserEnv: config?.isBrowserEnv || isBrowserEnvironment,
+      isBrowserEnv: config?.isBrowserEnv || (() => defaultPlatformService.isBrowserEnv()),
       collectionRegistry: config?.collectionRegistry || defaultStorageFactory.createRegistry<IMutableCollection<ChatSession>>((key) => {
         return defaultStorageFactory.createCollection<ChatSession>(key, {
           keyExtractor: (item) => String(item.id || ""),

@@ -1,12 +1,12 @@
-import { getSafeDocument } from "../utils/platform";
 import { ILogger } from "../utils/logger";
+import { defaultPlatformService } from "./platformService";
 
 export interface IFileDownloadService {
   downloadText(filename: string, content: string): Promise<boolean>;
 }
 
 export class BrowserFileDownloadService implements IFileDownloadService {
-  constructor(private logger: ILogger, private getDoc = getSafeDocument) {}
+  constructor(private logger: ILogger, private getDoc = () => defaultPlatformService.getDocument()) {}
 
   public async downloadText(filename: string, content: string): Promise<boolean> {
     try {

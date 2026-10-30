@@ -1,6 +1,5 @@
 import { IApiClient, defaultClient } from "../utils/apiClient";
 import { IAuthService, defaultAuthService } from "./auth";
-import { getSafeNavigatorLanguage } from "../utils/platform";
 /**
  * Voice definitions and speech playback engine
  * Supports:
@@ -109,7 +108,7 @@ export interface SpeechVoicesServiceConfig {
   apiClient: IApiClient;
   speechSettingsSingleton?: IMutableSingleton<SpeechSettings>;
 
-  getNavigatorLanguage?: typeof getSafeNavigatorLanguage;
+  getNavigatorLanguage?: () => string;
 }
 
 import { IPlatformService, defaultPlatformService } from "./platformService";
@@ -117,14 +116,14 @@ export class SpeechVoicesService implements ISpeechVoicesService {
   private platformService: IPlatformService;
   private speechSettingsSingleton: IMutableSingleton<SpeechSettings>;
 
-  private getNavigatorLanguage: typeof getSafeNavigatorLanguage;
+  private getNavigatorLanguage: () => string;
   private authService: IAuthService;
   private apiClient: IApiClient;
 
   constructor(config: SpeechVoicesServiceConfig, platformService?: IPlatformService) {
     this.platformService = platformService || defaultPlatformService;
 
-    this.getNavigatorLanguage = config?.getNavigatorLanguage || getSafeNavigatorLanguage;
+    this.getNavigatorLanguage = config?.getNavigatorLanguage || (() => this.platformService.getNavigator()?.language || "en-US");
     this.authService = config.authService;
     this.apiClient = config.apiClient;
     this.speechSettingsSingleton = config?.speechSettingsSingleton || defaultStorageFactory.createSingleton<SpeechSettings>(
@@ -210,7 +209,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
       };
     });
 
-    const userLangPrefix = this.getNavigatorLanguage("en").slice(0, 2).toLowerCase();
+    const userLangPrefix = this.getNavigatorLanguage().slice(0, 2).toLowerCase();
 
     return options.sort((a, b) => {
       if (a.isNatural !== b.isNatural) {
@@ -239,7 +238,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
       if (matched) return matched;
     }
 
-    const userLang = this.getNavigatorLanguage("en").toLowerCase();
+    const userLang = this.getNavigatorLanguage().toLowerCase();
     const userLangPrefix = userLang.slice(0, 2);
 
     const naturalExactLang = voices.find((v) => this.isNaturalVoiceName(v.name) && v.lang.toLowerCase() === userLang);

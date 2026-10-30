@@ -1,4 +1,3 @@
-import { isBrowserEnvironment } from "../utils/platform";
 import { useServices } from "../services/ServiceContext";
 import { useState, useRef, useEffect, useCallback } from "react";
 
@@ -107,7 +106,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
     if (optionsRef.current.speechRecognitionFactory) {
       return optionsRef.current.speechRecognitionFactory.create();
     }
-    if (!isBrowserEnvironment()) return undefined;
+    if (!platformService.isBrowserEnv()) return undefined;
     const win = platformService.getWindow() as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } | null;
     const Constructor = (win?.SpeechRecognition || win?.webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
     return Constructor ? new Constructor() : undefined;
