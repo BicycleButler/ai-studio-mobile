@@ -534,10 +534,16 @@ export async function materializeSpec(relPath: string): Promise<{ targetFile: st
 /**
  * Runs a CLI command via child process, streaming lines to SSE subscribers
  */
-export function runCliCommand(
+export async function runCliCommand(
   command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
   args: string[] = []
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  try {
+    await fs.promises.access(CLI_PATH, fs.constants.F_OK);
+  } catch {
+    throw new Error(`Stubs CLI not found at ${CLI_PATH}. Please build the agent skills first.`);
+  }
+
   return defaultProcessRunner.runCommand(
     CLI_PATH,
     [command, ...args],
