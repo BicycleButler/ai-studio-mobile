@@ -2,7 +2,7 @@ import { GoogleUser } from "../types";
 import { STORAGE_KEYS, defaultStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 import { IApiClient } from "../utils/apiClient";
-import { isBrowserEnvironment, getSafeWindow, safeAddEventListener } from "../utils/platform";
+
 import { IAuthProvider } from "./authProvider";
 import { ILogger } from "../utils/logger";
 import { defaultPlatformService, IPlatformService } from "./platformService";
@@ -12,7 +12,7 @@ export interface GoogleAuthServiceConfig {
   authProvider?: IAuthProvider | null;
   storageSingleton?: IMutableSingleton<GoogleUser | null>;
   isBrowserEnv?: () => boolean;
-  getWindow?: typeof getSafeWindow;
+
   logger: ILogger;
   platformService?: IPlatformService;
 }
@@ -48,7 +48,7 @@ export class GoogleAuthService implements IGoogleAuthService {
   private apiClient: IApiClient;
   private googleUserSingleton: IMutableSingleton<GoogleUser | null>;
   private isBrowserEnv: () => boolean;
-  private getWindow: typeof getSafeWindow;
+
   private logger: ILogger;
   private platformService: IPlatformService;
 
@@ -60,8 +60,8 @@ export class GoogleAuthService implements IGoogleAuthService {
       STORAGE_KEYS.GOOGLE_USER,
       null
     );
-    this.isBrowserEnv = config?.isBrowserEnv || isBrowserEnvironment;
-    this.getWindow = config?.getWindow || getSafeWindow;
+    this.isBrowserEnv = config?.isBrowserEnv || (() => this.platformService.isBrowserEnv());
+
     this.platformService = config?.platformService || defaultPlatformService;
   }
 
@@ -80,7 +80,7 @@ export class GoogleAuthService implements IGoogleAuthService {
   public saveStoredGoogleUser(user: GoogleUser | null): void {
     this.googleUserSingleton.save(user);
     if (this.isBrowserEnv()) {
-      this.getWindow()?.dispatchEvent(
+      this.platformService.getWindow()?.dispatchEvent(
         new CustomEvent("google_user_changed", { detail: user })
       );
     }
@@ -237,7 +237,7 @@ export class GoogleAuthService implements IGoogleAuthService {
     return new Promise((resolve, reject) => {
       const width = 540;
       const height = 650;
-      const win = this.getWindow();
+      const win = this.platformService.getWindow();
       const left = win ? win.screenX + (win.outerWidth - width) / 2 : 0;
       const top = win ? win.screenY + (win.outerHeight - height) / 2 : 0;
 
@@ -263,7 +263,7 @@ export class GoogleAuthService implements IGoogleAuthService {
         }
       };
 
-      const removeMessage = safeAddEventListener("message", messageHandler);
+      const removeMessage = this.platformService.addEventListener("message", messageHandler);
 
       const pollTimer = this.platformService.setInterval(() => {
         if (popup.closed) {

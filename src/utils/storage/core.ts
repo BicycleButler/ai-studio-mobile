@@ -1,5 +1,6 @@
 import { IStorageAdapter } from "./types";
-import { isBrowserEnvironment, getSafeWindow, WindowWithLocalStorage } from "../platform";
+import { defaultPlatformService } from "../../services/platformService";
+import { WindowWithLocalStorage } from "../platform";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 
 import { ILogger, defaultLogger } from "../logger";
@@ -8,8 +9,8 @@ import { ISerializer, JsonSerializer } from "./serializer";
 export const globalStorageEventObservable = new EventEmitter<StorageEvent>();
 const defaultSerializer = new JsonSerializer();
 
-if (isBrowserEnvironment()) {
-  const win = getSafeWindow();
+if (defaultPlatformService.isBrowserEnv()) {
+  const win = defaultPlatformService.getWindow();
   if (win) {
     win.addEventListener("storage", (e) => {
       globalStorageEventObservable.emit(e);
@@ -25,8 +26,8 @@ export function getStorageInstance(): Storage {
   if (_storageInstance) return _storageInstance;
 
   try {
-    if (isBrowserEnvironment()) {
-      const win = (getSafeWindow() as unknown) as WindowWithLocalStorage;
+    if (defaultPlatformService.isBrowserEnv()) {
+      const win = (defaultPlatformService.getWindow() as unknown) as WindowWithLocalStorage;
       if (win && win.localStorage) {
         // Validation check to ensure localStorage is fully accessible and not throwing QuotaExceeded on boot (e.g., Safari Private Mode)
         const testKey = "__storage_test__";

@@ -1,5 +1,5 @@
 import { MemoryStorage } from "./core";
-import { getSafeWindow } from "../platform";
+import { IPlatformService, defaultPlatformService } from "../../services/platformService";
 import { EventEmitter } from "../eventEmitter";
 import { ILogger, defaultLogger } from "../logger";
 
@@ -9,8 +9,10 @@ export class FallbackStorageWrapper implements Storage {
   public quotaExceededEvent = new EventEmitter<void>();
 
   private logger: ILogger;
+  private platformService: IPlatformService;
 
-  constructor(primaryStorage: Storage, logger: ILogger = defaultLogger) {
+  constructor(primaryStorage: Storage, logger: ILogger = defaultLogger, platformService: IPlatformService = defaultPlatformService) {
+    this.platformService = platformService;
     this.logger = logger;
     this.activeStorage = primaryStorage;
   }
@@ -54,7 +56,7 @@ export class FallbackStorageWrapper implements Storage {
     } catch (e) {
       if (e && typeof e === "object" && "name" in e && (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED")) {
         this.logger.warn(`Storage quota exceeded when writing ${key}. Attempting emergency purge...`);
-        const win = getSafeWindow();
+        const win = this.platformService.getWindow();
         if (win) {
           try {
              this.quotaExceededEvent.emit();

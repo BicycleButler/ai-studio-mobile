@@ -1,4 +1,4 @@
-import { getSafeWindowSpeechSynthesis } from "../utils/platform";
+
 import { defaultPlatformService, IPlatformService } from "./platformService";
 /**
  * Sentence-Pipelined Speech Queue
@@ -17,7 +17,7 @@ import { defaultSpeechVoicesService } from "./speechVoices"; // Default fallback
 export interface SentenceQueueOptions {
   speechSettings: SpeechSettings;
   speechVoicesService?: ISpeechVoicesService;
-  getWindowSpeechSynthesis?: typeof getSafeWindowSpeechSynthesis;
+
   platformService?: IPlatformService;
   onSentenceStart?: (sentence: string, index: number) => void;
   onSentenceEnd?: (sentence: string, index: number) => void;
@@ -45,12 +45,12 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
   private isFinalized = false;
   private heartbeatTimer: unknown = null;
   private options: SentenceQueueOptions;
-  private getWindowSpeechSynthesis: typeof getSafeWindowSpeechSynthesis;
+
   private platformService: IPlatformService;
 
   constructor(options: SentenceQueueOptions) {
     this.options = options;
-    this.getWindowSpeechSynthesis = options.getWindowSpeechSynthesis || getSafeWindowSpeechSynthesis;
+
     this.platformService = options.platformService || defaultPlatformService;
   }
 
@@ -63,7 +63,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
    * Splits at sentence boundaries and immediately dispatches completed sentences to speech synthesis.
    */
   public feed(fullStreamedText: string, isStreaming = true): void {
-    const synth = this.getWindowSpeechSynthesis();
+    const synth = this.platformService.getSpeechSynthesis();
     if (!synth) {
       return;
     }
@@ -127,7 +127,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
    * Prepares and enqueues a clean sentence utterance
    */
   private enqueueSentence(rawSentence: string): void {
-    const synth = this.getWindowSpeechSynthesis();
+    const synth = this.platformService.getSpeechSynthesis();
     if (!synth) return;
 
     const spokenText = extractSpokenText(rawSentence, false).trim();
@@ -202,7 +202,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
   private startHeartbeat(): void {
     if (this.heartbeatTimer) return;
     this.heartbeatTimer = this.platformService.setInterval(() => {
-      const synth = this.getWindowSpeechSynthesis();
+      const synth = this.platformService.getSpeechSynthesis();
       if (synth && synth.speaking) {
         synth.pause();
         synth.resume();
@@ -226,7 +226,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
     this.isSpeaking = false;
     this.isFinalized = true;
 
-    const synth = this.getWindowSpeechSynthesis();
+    const synth = this.platformService.getSpeechSynthesis();
     if (synth) {
       try {
         synth.cancel();
@@ -239,7 +239,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
   }
 
   public getIsSpeaking(): boolean {
-    return this.isSpeaking || Boolean(this.getWindowSpeechSynthesis()?.speaking);
+    return this.isSpeaking || Boolean(this.platformService.getSpeechSynthesis()?.speaking);
   }
 
   public getQueueLength(): number {

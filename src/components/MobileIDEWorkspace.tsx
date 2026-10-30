@@ -1,4 +1,3 @@
-import { getSafeWindow } from "../utils/platform";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
@@ -170,7 +169,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     setIsRunning(true);
     // On small screens, open the drawer; on desktop split view
     setIsConsoleDrawerOpen(true);
-    const win = getSafeWindow();
+    const win = platformService.getWindow();
     if (win && win.innerWidth >= 640 && activeView === "editor") {
       setActiveView("split");
     }

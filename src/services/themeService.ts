@@ -1,4 +1,6 @@
-import { getSafeDocument, isBrowserEnvironment, getSafeWindowMatchMedia, safeAddMatchMediaListener } from "../utils/platform";
+import { safeAddMatchMediaListener } from "../utils/platform";
+import { defaultPlatformService, IPlatformService } from "./platformService";
+
 /**
  * Theme Service for Google AI Studio Mobile
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
@@ -34,12 +36,13 @@ export interface IThemeService {
 export interface ThemeServiceConfig {
   themeModeSingleton?: IMutableSingleton<ThemeMode>;
   isBrowserEnv?: () => boolean;
-  getWindowMatchMedia?: typeof getSafeWindowMatchMedia;
-  addMatchMediaListener?: typeof safeAddMatchMediaListener;
-  getSafeDoc?: typeof getSafeDocument;
+  addMatchMediaListener?: (mql: MediaQueryList, listener: (ev: MediaQueryListEvent) => void) => () => void;
+  getSafeDoc?: () => Document | null;
+  platformService?: IPlatformService;
 }
 
 export class ThemeService implements IThemeService {
+  private platformService: IPlatformService;
   private themeObservable: IObservable<ThemeState>;
   private themeModeSingleton: IMutableSingleton<ThemeMode>;
   private currentMode: ThemeMode = "system";
@@ -47,15 +50,16 @@ export class ThemeService implements IThemeService {
   private initialized = false;
   private mediaQueryList: MediaQueryList | null = null;
   private isBrowserEnv: () => boolean;
-  private getWindowMatchMedia: typeof getSafeWindowMatchMedia;
+
   private addMatchMediaListener: typeof safeAddMatchMediaListener;
-  private getSafeDoc: typeof getSafeDocument;
+  private getSafeDoc: () => Document | null;
 
   constructor(config?: ThemeServiceConfig) {
-    this.isBrowserEnv = config?.isBrowserEnv || isBrowserEnvironment;
-    this.getWindowMatchMedia = config?.getWindowMatchMedia || getSafeWindowMatchMedia;
+    this.platformService = config?.platformService || defaultPlatformService;
+    this.isBrowserEnv = config?.isBrowserEnv || (() => this.platformService.isBrowserEnv());
+
     this.addMatchMediaListener = config?.addMatchMediaListener || safeAddMatchMediaListener;
-    this.getSafeDoc = config?.getSafeDoc || getSafeDocument;
+    this.getSafeDoc = config?.getSafeDoc || (() => this.platformService.getDocument());
     this.themeObservable = new Observable<ThemeState>({ mode: "system", resolvedTheme: "dark" });
     this.themeModeSingleton = config?.themeModeSingleton || defaultStorageFactory.createSingleton<ThemeMode>(
       STORAGE_KEYS.THEME_MODE,
@@ -70,9 +74,8 @@ export class ThemeService implements IThemeService {
     if (!this.isBrowserEnv()) {
       return "dark"; // Default fallback
     }
-    const win = this.getWindowMatchMedia();
-    if (!win || !win.matchMedia) return "dark";
-    return win.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        if (!matchMedia) return "dark";
+    return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
 
   public loadStoredThemeMode(): ThemeMode {
@@ -165,9 +168,9 @@ export class ThemeService implements IThemeService {
       this.currentResolved = this.resolveTheme(this.currentMode);
       this.applyThemeToDOM(this.currentResolved);
 
-      const win = this.getWindowMatchMedia();
-      if (win && win.matchMedia) {
-        this.mediaQueryList = win.matchMedia("(prefers-color-scheme: dark)");
+
+      if (matchMedia) {
+        this.mediaQueryList = matchMedia("(prefers-color-scheme: dark)");
       }
     }
 
