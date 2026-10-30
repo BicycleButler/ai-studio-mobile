@@ -19,6 +19,7 @@ export * from "./selectionStrategy";
 export * from "./ActiveItemManagerFactory";
 export * from "./StorageBase";
 export * from "./syncAdapter";
+export * from "./syncAdapterFormData";
 export * from "./offlineRetryStrategy";
 
 export * from "./StorageFactory";

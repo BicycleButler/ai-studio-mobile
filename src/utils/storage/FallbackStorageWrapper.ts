@@ -56,18 +56,14 @@ export class FallbackStorageWrapper implements Storage {
     } catch (e) {
       if (e && typeof e === "object" && "name" in e && (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED")) {
         this.logger.warn(`Storage quota exceeded when writing ${key}. Attempting emergency purge...`);
-        const win = this.platformService.getWindow();
-        if (win) {
-          try {
-             this.quotaExceededEvent.emit();
-             // win.dispatchEvent(new CustomEvent("storage_quota_exceeded")); // Redundant, handled by quotaExceededEvent
-             // Retry write after synchronous event dispatch which may have cleared space
-             this.activeStorage.setItem(key, value);
-             this.logger.info(`Successfully recovered storage quota for write to ${key}`);
-             return;
-          } catch (retryError) {
-             this.logger.warn(`Retry failed after emergency purge for ${key}:`, retryError);
-          }
+        try {
+           this.quotaExceededEvent.emit(); // Synchronous event dispatch for listeners to clear space
+           // Retry write after synchronous event dispatch which may have cleared space
+           this.activeStorage.setItem(key, value);
+           this.logger.info(`Successfully recovered storage quota for write to ${key}`);
+           return;
+        } catch (retryError) {
+           this.logger.warn(`Retry failed after emergency purge for ${key}:`, retryError);
         }
       } else {
         this.logger.warn(`Failed to stringify/write ${key} to storage:`, e);

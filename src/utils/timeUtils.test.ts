@@ -3,14 +3,15 @@ import { formatRelativeTime } from './timeUtils';
 
 describe('timeUtils', () => {
   const MOCK_NOW = new Date('2024-01-10T12:00:00Z').getTime();
+  const RealDate = Date;
 
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(MOCK_NOW);
+    // Basic mock of Date.now()
+    global.Date.now = vi.fn(() => MOCK_NOW);
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    global.Date = RealDate;
   });
 
   it('should return empty string for 0 timestamp', () => {
