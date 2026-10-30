@@ -1031,3 +1031,16 @@ While the `ILogger` abstraction and DI mechanism effectively decouples business 
 
 **Decision:**
 Preserve `console.log()` within hardcoded string templates intended to generate code for external IDE execution or visualization as a standard, since those evaluate as raw strings and not live application state, thus adhering strictly to the intention of the DI logger implementation.
+## Architectural Decision: Stubs CLI Missing Graceful Handling
+
+**Context:**
+The Express server (`server/stubsService.ts`) attempts to spawn a child process for the Stubs CLI located at `.agents/skills/stubs/dist/cli.cjs`. However, this CLI bundle may not exist in all environments (e.g., fresh checkouts, CI without the sub-skill built). When `runCliCommand` is called, it would crash or fail ungracefully if the file does not exist, violating the Robustness principle. Furthermore, `package.json` contains a `stubs` script pointing to this missing file, causing `npm run stubs` to fail.
+
+**Path 1: Dummy CLI Script Creation**
+Create a dummy `.agents/skills/stubs/dist/cli.cjs` script in the repository that outputs a helpful message. This ensures the command always exists, but requires committing an artifact to a `dist/` folder which is typically ignored or generated.
+
+**Path 2: Graceful Error Handling in `runCliCommand`**
+Modify `runCliCommand` in `server/stubsService.ts` to asynchronously check if `CLI_PATH` exists using `fs.promises.access` before attempting to spawn the child process. If it doesn't exist, gracefully reject with a descriptive error message indicating the Stubs CLI is missing or not built. Also, modify the `stubs` script in `package.json` to handle the missing file gracefully or inform the user to build the agent skills first.
+
+**Recommendation:**
+**Path 2 (Graceful Error Handling)** is the recommended path. It enhances Robustness by preventing unhandled exceptions and process crashes when a dependency is missing. It adheres to best practices by verifying file existence before execution, rather than committing generated `dist/` artifacts to source control.
