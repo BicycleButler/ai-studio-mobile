@@ -23,6 +23,7 @@ import { DraftStateService, IDraftStateService } from "../utils/storage/draftSta
 import { JulesStorageService, IJulesStorageService } from "../utils/storage/jules";
 import { IJulesClient, JulesClient } from "./julesService";
 import { SpeechVoicesService, ISpeechVoicesService } from "./speechVoices";
+import { ISentenceSpeechQueue, SentenceSpeechQueue, SentenceQueueOptions } from "./sentenceSpeechQueue";
 import { GeminiStreamService, IGeminiStreamService } from "./geminiStreamService";
 import { KeyVerificationService, IKeyVerificationService } from "./keyVerification";
 import { StubsClient, IStubsClient } from "./stubsService";
@@ -49,6 +50,7 @@ export interface IServices {
   julesStorageService: IJulesStorageService;
   julesClient: IJulesClient;
   speechVoicesService: ISpeechVoicesService;
+  createSentenceSpeechQueue: (options: SentenceQueueOptions) => ISentenceSpeechQueue;
   geminiStreamService: IGeminiStreamService;
   keyVerificationService: IKeyVerificationService;
   stubsClient: IStubsClient;
@@ -182,6 +184,7 @@ const defaultServices: IServices = {
   julesStorageService: explicitlyInjectedJulesStorageService,
   julesClient: explicitlyInjectedJulesClient,
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
+  createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
   geminiStreamService: explicitlyInjectedGeminiStreamService,
   keyVerificationService: explicitlyInjectedKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,

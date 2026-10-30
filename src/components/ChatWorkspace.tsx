@@ -36,7 +36,7 @@ import { extractSpokenText } from "../utils/speechExtractor";
 import {
   SpeechSettings,
 } from "../services/speechVoices";
-import { SentenceSpeechQueue, ISentenceSpeechQueue } from "../services/sentenceSpeechQueue";
+import { ISentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { useStore } from "../hooks/useStore";
@@ -128,7 +128,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [isOptimizingImage, setIsOptimizingImage] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const { speechVoicesService, logger, clipboardService, platformService } = useServices();
+  const { speechVoicesService, logger, clipboardService, platformService, createSentenceSpeechQueue } = useServices();
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBufferingAudio, setIsBufferingAudio] = useState(false);
@@ -649,7 +649,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
       if (shouldStreamSpeech) {
         if (!sentenceQueueRef.current) {
-          sentenceQueueRef.current = new SentenceSpeechQueue({
+          sentenceQueueRef.current = createSentenceSpeechQueue({
             speechSettings,
             speechVoicesService,
             onSentenceStart: () => {
