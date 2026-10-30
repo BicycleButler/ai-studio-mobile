@@ -1,23 +1,24 @@
 import { ICrossTabNotifier } from "./types";
-import { getSafeBroadcastChannel } from "../platform";
 import { ILogger, defaultLogger } from "../logger";
+import { IPlatformService, defaultPlatformService } from "../../services/platformService";
 
 export interface BroadcastChannelNotifierConfig {
   name: string;
   logger?: ILogger;
-  getBroadcastChannel?: typeof getSafeBroadcastChannel;
+  platformService?: IPlatformService;
 }
 
 export class BroadcastChannelNotifier implements ICrossTabNotifier {
   private channel: BroadcastChannel | null = null;
   private logger: ILogger;
+  private platformService: IPlatformService;
 
   constructor(config: BroadcastChannelNotifierConfig) {
     this.logger = config.logger || defaultLogger;
-    const getBroadcastChannel = config.getBroadcastChannel || getSafeBroadcastChannel;
+    this.platformService = config.platformService || defaultPlatformService;
 
     try {
-      this.channel = getBroadcastChannel(config.name);
+      this.channel = this.platformService.getBroadcastChannel(config.name);
     } catch (e) {
       this.logger.warn(`BroadcastChannelNotifier failed to initialize for ${config.name}`, e);
     }

@@ -1,4 +1,3 @@
-import { getSafeDocument, safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
 import { Observable, IObservable } from "../utils/observable";
 import { GeneralSettingsService } from "../utils/storage/general";
 import { defaultPlatformService, IPlatformService } from "./platformService";
@@ -9,9 +8,7 @@ export interface ShieldState {
 
 export interface WindowSecurityServiceConfig {
     generalSettingsService: GeneralSettingsService;
-    getSafeDoc?: typeof getSafeDocument;
-    addEventListener?: typeof safeAddEventListener;
-    addDocumentListener?: typeof safeAddDocumentListener;
+    platformService?: IPlatformService;
 }
 
 export interface IWindowSecurityService {
@@ -26,18 +23,12 @@ export class WindowSecurityService implements IWindowSecurityService {
   private flagSecureEnabled: boolean;
   private timerRef: unknown = null;
   private sensitiveScreenRegistrations = new Set<string>();
-  private getSafeDoc: typeof getSafeDocument;
-  private addEventListener: typeof safeAddEventListener;
-  private addDocumentListener: typeof safeAddDocumentListener;
   private platformService: IPlatformService;
 
-  constructor(config: WindowSecurityServiceConfig & { platformService?: IPlatformService }) {
+  constructor(config: WindowSecurityServiceConfig) {
     this.generalSettingsService = config.generalSettingsService;
-    this.getSafeDoc = config.getSafeDoc || getSafeDocument;
-    this.addEventListener = config.addEventListener || safeAddEventListener;
-    this.addDocumentListener = config.addDocumentListener || safeAddDocumentListener;
-
     this.platformService = config.platformService || defaultPlatformService;
+
     this.shieldStore = new Observable<ShieldState>({ isShieldActive: false });
     this.flagSecureEnabled = this.generalSettingsService.flagSecureObservable.getSnapshot() || false;
     this.initListeners();
@@ -58,22 +49,22 @@ export class WindowSecurityService implements IWindowSecurityService {
   }
 
   private initListeners() {
-    this.addDocumentListener("visibilitychange", () => {
+    this.platformService.addDocumentListener("visibilitychange", () => {
       if (!this.flagSecureEnabled) {
           this.updateShield(false);
           return;
       }
       this.clearScheduledTimer();
-      if (this.getSafeDoc()?.visibilityState === "hidden") {
+      if (this.platformService.getDocument()?.visibilityState === "hidden") {
         this.updateShield(true);
-      } else if (this.getSafeDoc()?.visibilityState === "visible") {
+      } else if (this.platformService.getDocument()?.visibilityState === "visible") {
         this.timerRef = this.platformService.setTimeout(() => {
           this.updateShield(false);
         }, 120) ;
       }
     });
 
-    this.addEventListener("blur", () => {
+    this.platformService.addEventListener("blur", () => {
       if (!this.flagSecureEnabled) {
           this.updateShield(false);
           return;
@@ -83,7 +74,7 @@ export class WindowSecurityService implements IWindowSecurityService {
       }
     });
 
-    this.addEventListener("focus", () => {
+    this.platformService.addEventListener("focus", () => {
       if (!this.flagSecureEnabled) {
           this.updateShield(false);
           return;
@@ -108,7 +99,7 @@ export class WindowSecurityService implements IWindowSecurityService {
          this.updateShield(false);
      } else if (flagChanged) {
         // Evaluate immediately if we just turned on flag secure
-        if (this.getSafeDoc()?.visibilityState === "hidden") {
+        if (this.platformService.getDocument()?.visibilityState === "hidden") {
              this.updateShield(true);
         }
      }
