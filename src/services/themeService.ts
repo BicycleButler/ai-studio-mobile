@@ -37,7 +37,7 @@ export interface ThemeServiceConfig {
   themeModeSingleton?: IMutableSingleton<ThemeMode>;
   isBrowserEnv?: () => boolean;
   addMatchMediaListener?: (mql: MediaQueryList, listener: (ev: MediaQueryListEvent) => void) => () => void;
-  getSafeDoc?: () => Document | null;
+
   platformService?: IPlatformService;
 }
 
@@ -52,15 +52,14 @@ export class ThemeService implements IThemeService {
   private isBrowserEnv: () => boolean;
 
   private addMatchMediaListener: typeof safeAddMatchMediaListener;
-  private getSafeDoc: () => Document | null;
+
 
   constructor(config?: ThemeServiceConfig) {
     this.platformService = config?.platformService || defaultPlatformService;
     this.isBrowserEnv = config?.isBrowserEnv || (() => this.platformService.isBrowserEnv());
 
     this.addMatchMediaListener = config?.addMatchMediaListener || safeAddMatchMediaListener;
-    this.getSafeDoc = config?.getSafeDoc || (() => this.platformService.getDocument());
-    this.themeObservable = new Observable<ThemeState>({ mode: "system", resolvedTheme: "dark" });
+        this.themeObservable = new Observable<ThemeState>({ mode: "system", resolvedTheme: "dark" });
     this.themeModeSingleton = config?.themeModeSingleton || defaultStorageFactory.createSingleton<ThemeMode>(
       STORAGE_KEYS.THEME_MODE,
       "system",
@@ -96,7 +95,7 @@ export class ThemeService implements IThemeService {
   public applyThemeToDOM(resolved: ResolvedTheme): void {
     if (!this.isBrowserEnv()) return;
 
-    const root = this.getSafeDoc()?.documentElement;
+    const root = this.platformService.getDocument()?.documentElement;
     if (!root) return;
     root.setAttribute("data-theme", resolved);
     if (resolved === "dark") {
@@ -106,7 +105,7 @@ export class ThemeService implements IThemeService {
     }
 
     // Update theme-color meta tag if available
-    const metaThemeColor = this.getSafeDoc()?.querySelector('meta[name="theme-color"]');
+    const metaThemeColor = this.platformService.getDocument()?.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       const computedBg = getComputedStyle(root).getPropertyValue("--background").trim();
       if (computedBg) {
