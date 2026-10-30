@@ -191,4 +191,3 @@ export class ThemeService implements IThemeService {
   }
 }
 
-export const defaultThemeService = new ThemeService();

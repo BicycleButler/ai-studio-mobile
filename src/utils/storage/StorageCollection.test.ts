@@ -1,20 +1,20 @@
 import { describe, it, expect } from 'vitest';
-import { StorageCollection } from './StorageCollection';
+import { defaultStorageFactory } from './StorageFactory';
 
 describe('StorageCollection', () => {
   it('should initialize and return correctly', () => {
-    const collection = new StorageCollection<{ id: string }>('test_col');
+    const collection = defaultStorageFactory.createCollection<{ id: string }>('test_col');
     expect(collection.load()).toEqual([]);
   });
 
   it('should apply maxItems logic', () => {
-    const collection = new StorageCollection<{ id: string }>('test_col', { maxItems: 2 });
+    const collection = defaultStorageFactory.createCollection<{ id: string }>('test_col', { maxItems: 2 });
     collection.save([{ id: '1' }, { id: '2' }, { id: '3' }]);
     expect(collection.load()).toEqual([{ id: '1' }, { id: '2' }]);
   });
 
   it('should validate and transformOut items', () => {
-    const collection = new StorageCollection<{ id: string, val?: number }>('test_col', {
+    const collection = defaultStorageFactory.createCollection<{ id: string, val?: number }>('test_col', {
         validate: (i) => ((i as {val?: number}).val || 0) > 0,
         transformOut: (i) => ({ ...i, val: (i.val || 0) * 2 })
     });
@@ -26,7 +26,7 @@ describe('StorageCollection', () => {
   });
 
   it('should bulkUpsert items correctly', () => {
-    const collection = new StorageCollection<{ id: string }>('test_col');
+    const collection = defaultStorageFactory.createCollection<{ id: string }>('test_col');
     collection.save([{ id: '1' }]);
     collection.bulkUpsert([{ id: '2' }, { id: '1' }]);
     expect(collection.load()).toEqual([{ id: '1' }, { id: '2' }]);

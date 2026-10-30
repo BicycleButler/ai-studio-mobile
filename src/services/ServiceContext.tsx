@@ -1,21 +1,21 @@
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 import React, { createContext, useContext, ReactNode } from "react";
 
-import { IApiClient, defaultClient } from "../utils/apiClient";
+import { IApiClient, ApiClient } from "../utils/apiClient";
 import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
 import { defaultLogger, ILogger } from "../utils/logger";
 
-import { IThemeService, defaultThemeService } from "./themeService";
+import { IThemeService, ThemeService } from "./themeService";
 import { IPromptTemplateService, PromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
 import { IAuthService, AuthService } from "./auth";
 import { IGoogleAuthService, GoogleAuthService } from "./googleAuth";
 import { IOfflineService } from "../utils/offlineService";
-import { defaultOfflineService } from "../utils/offlineService";
-import { INetworkStatusProvider } from "../utils/networkStatus";
-import { defaultNetworkStatusProvider } from "../utils/networkStatus";
+import { OfflineService } from "../utils/offlineService";
+import { INetworkStatusProvider, BrowserNetworkStatusProvider } from "../utils/networkStatus";
 import { DefaultOfflineRetryStrategy } from "../utils/storage/offlineRetryStrategy";
-import { defaultChatHistoryService, IChatHistoryService } from "./chatHistoryService";
+import { IChatHistoryService, ChatHistoryService } from "./chatHistoryService";
 import { ProjectService, IProjectService } from "../utils/storage/projects";
 import { SavedPromptsService, ISavedPromptsService } from "../utils/storage/prompts";
 import { GeneralSettingsService, IGeneralSettingsService } from "../utils/storage/general";
@@ -28,12 +28,11 @@ import { KeyVerificationService, IKeyVerificationService } from "./keyVerificati
 import { StubsClient, IStubsClient } from "./stubsService";
 import { CodeGeneratorService, ICodeGeneratorService } from "./codeGeneratorService";
 import { PythonGenerator, TypeScriptGenerator, KotlinGenerator, CurlGenerator } from "./codeGenerators";
-import { IPwaInstallService, defaultPwaInstallService } from "./pwaInstallService";
+import { IPwaInstallService, PwaInstallService } from "./pwaInstallService";
 import { IWindowSecurityService, WindowSecurityService } from "./windowSecurityService";
-import { IImageCompressor, defaultImageCompressor } from "../utils/imageCompressor";
+import { IImageCompressor, ImageCompressor, CanvasImageCompressionStrategy } from "../utils/imageCompressor";
 import { IClipboardService, BrowserClipboardService } from "./clipboardService";
 import { IFileDownloadService, BrowserFileDownloadService } from "./fileDownloadService";
-import { IPlatformService, defaultPlatformService } from "./platformService";
 
 export interface IServices {
   themeService: IThemeService;
@@ -66,8 +65,8 @@ export interface IServices {
 }
 
 
-const explicitlyInjectedApiClient = defaultClient;
-const explicitlyInjectedOfflineService = defaultOfflineService;
+const explicitlyInjectedApiClient = new ApiClient();
+const explicitlyInjectedOfflineService = new OfflineService({ queueStore: new (require('../utils/offlineQueueStore').OfflineQueueStore)({ storageKey: 'ai_studio_offline_mutations', storageAdapter: new (require('../utils/asyncStorage').IDBStorage)('ai_studio_db', 'offline_queue'), logger: defaultLogger }) });
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
   explicitlyInjectedOfflineService,
@@ -116,7 +115,7 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
-    networkStatusProvider: defaultNetworkStatusProvider,
+    networkStatusProvider: new BrowserNetworkStatusProvider(),
     retryStrategy: new DefaultOfflineRetryStrategy(),
     logger: defaultLogger,
     endpoint: "/api/jules/sessions"
@@ -128,7 +127,7 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
-    networkStatusProvider: defaultNetworkStatusProvider,
+    networkStatusProvider: new BrowserNetworkStatusProvider(),
     retryStrategy: new DefaultOfflineRetryStrategy(),
     logger: defaultLogger,
     endpoint: "/api/prompts"
@@ -139,7 +138,7 @@ const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService({});
 
 const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
     generalSettingsService: explicitlyInjectedGeneralSettingsService,
-    platformService: defaultPlatformService
+    platformService: new BrowserPlatformService()
 });
 
 const explicitlyInjectedProjectService = new ProjectService({
@@ -148,7 +147,7 @@ const explicitlyInjectedProjectService = new ProjectService({
 
 const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger });
 
-const explicitlyInjectedImageCompressor = defaultImageCompressor;
+const explicitlyInjectedImageCompressor = new ImageCompressor(new CanvasImageCompressionStrategy());
 
 const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
   builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
@@ -167,15 +166,15 @@ const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLo
 const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(defaultLogger);
 
 const defaultServices: IServices = {
-  themeService: defaultThemeService,
+  themeService: new ThemeService(),
   promptTemplateService: explicitlyInjectedPromptTemplateService,
   authService: explicitlyInjectedAuthService,
   googleAuthService: explicitlyInjectedGoogleAuthService,
   offlineService: explicitlyInjectedOfflineService,
   apiClient: explicitlyInjectedApiClient,
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
-  networkStatusProvider: defaultNetworkStatusProvider,
-  chatHistoryService: defaultChatHistoryService,
+  networkStatusProvider: new BrowserNetworkStatusProvider(),
+  chatHistoryService: new ChatHistoryService({ logger: defaultLogger }),
   projectService: explicitlyInjectedProjectService,
   savedPromptsService: explicitlyInjectedSavedPromptsService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
@@ -187,13 +186,13 @@ const defaultServices: IServices = {
   keyVerificationService: explicitlyInjectedKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,
   codeGeneratorService: explicitlyInjectedCodeGeneratorService,
-  pwaInstallService: defaultPwaInstallService,
+  pwaInstallService: new PwaInstallService({ platformService: new BrowserPlatformService() }),
   windowSecurityService: explicitlyInjectedWindowSecurityService,
   logger: defaultLogger,
   imageCompressor: explicitlyInjectedImageCompressor,
   clipboardService: explicitlyInjectedClipboardService,
   fileDownloadService: explicitlyInjectedFileDownloadService,
-  platformService: defaultPlatformService,
+  platformService: new BrowserPlatformService(),
 };
 
 

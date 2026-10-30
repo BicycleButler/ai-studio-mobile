@@ -208,4 +208,3 @@ export class ChatHistoryService implements IChatHistoryService {
   }
 }
 
-export const defaultChatHistoryService = new ChatHistoryService({ logger: defaultLogger });
