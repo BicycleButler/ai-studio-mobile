@@ -1,24 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { StorageSingleton } from './StorageSingleton';
+import { defaultStorageFactory } from './StorageFactory';
 import { MemoryStorage } from './core';
 
 describe('StorageSingleton', () => {
   it('should initialize and return correctly with fallback', () => {
     const memory = new MemoryStorage();
-    const singleton = new StorageSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, { storageAdapter: memory });
+    const singleton = defaultStorageFactory.createSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, { storageAdapter: memory });
     expect(singleton.load()).toEqual({ data: 'fallback' });
   });
 
   it('should save and load correctly', () => {
     const memory = new MemoryStorage();
-    const singleton = new StorageSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, { storageAdapter: memory });
+    const singleton = defaultStorageFactory.createSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, { storageAdapter: memory });
     singleton.save({ data: 'saved' });
     expect(singleton.load()).toEqual({ data: 'saved' });
   });
 
   it('should transform data correctly', () => {
     const memory = new MemoryStorage();
-    const singleton = new StorageSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, {
+    const singleton = defaultStorageFactory.createSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, {
       storageAdapter: memory,
       transformIn: (i) => ({ data: i.data + '_in' }),
       transformOut: (i) => ({ data: i.data + '_out' })
@@ -32,7 +32,7 @@ describe('StorageSingleton', () => {
 
   it('should fallback on validation failure', () => {
     const memory = new MemoryStorage();
-    const singleton = new StorageSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, {
+    const singleton = defaultStorageFactory.createSingleton<{ data: string }>('test_singleton', { data: 'fallback' }, {
       storageAdapter: memory,
       validate: (i: unknown) => (i as {data?: string})?.data === 'valid'
     });

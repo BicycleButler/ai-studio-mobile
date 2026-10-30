@@ -128,9 +128,4 @@ export class OfflineService implements IOfflineService {
   }
 }
 
-export const defaultOfflineService = new OfflineService({
-  storageAdapter: new FallbackAsyncStorage([
-    new IndexedDbAsyncStorage(),
-    new MemoryAsyncStorage()
-  ])
-});
+export const defaultOfflineService = new OfflineService({ storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()]) });
