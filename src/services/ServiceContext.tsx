@@ -52,6 +52,7 @@ export interface IServices {
   julesClient: IJulesClient;
   speechVoicesService: ISpeechVoicesService;
   createSentenceSpeechQueue: (options: SentenceQueueOptions) => ISentenceSpeechQueue;
+  createSSEStreamParser: (onEvent: import("../utils/sseParser").SSEEventCallback) => import("../utils/sseParser").ISSEStreamParser;
   geminiStreamService: IGeminiStreamService;
   keyVerificationService: IKeyVerificationService;
   stubsClient: IStubsClient;
@@ -186,6 +187,7 @@ const defaultServices: IServices = {
   julesClient: explicitlyInjectedJulesClient,
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
   createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
+  createSSEStreamParser: (onEvent) => new (require("../utils/sseParser")).SSEStreamParser(onEvent),
   geminiStreamService: explicitlyInjectedGeminiStreamService,
   keyVerificationService: explicitlyInjectedKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,
