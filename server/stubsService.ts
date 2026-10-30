@@ -1,8 +1,8 @@
 import { defaultLogger } from "../src/utils/logger";
 import path from "node:path";
 import fs from "node:fs";
-import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { defaultProcessRunner } from "./utils/processRunner";
 import { DatabaseSync } from "node:sqlite";
 import {
   StubsNode,
@@ -538,72 +538,10 @@ export function runCliCommand(
   command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
   args: string[] = []
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    fs.promises.access(CLI_PATH).then(() => {
-      const fullArgs = [CLI_PATH, command, ...args];
-      stubsEvents.emit("log", {
-        type: "start",
-        text: `\x1b[36m$ stubs ${command} ${args.join(" ")}\x1b[0m`,
-        timestamp: Date.now(),
-      });
-
-      const child = spawn("node", fullArgs, {
-        cwd: CWD,
-        env: { ...process.env, FORCE_COLOR: "1" },
-      });
-
-      let stdout = "";
-      let stderr = "";
-
-      child.stdout.on("data", (chunk: Buffer) => {
-        const text = chunk.toString();
-        stdout += text;
-        stubsEvents.emit("log", {
-          type: "stdout",
-          text,
-          timestamp: Date.now(),
-        });
-      });
-
-      child.stderr.on("data", (chunk: Buffer) => {
-        const text = chunk.toString();
-        stderr += text;
-        stubsEvents.emit("log", {
-          type: "stderr",
-          text,
-          timestamp: Date.now(),
-        });
-      });
-
-      child.on("close", (code) => {
-        stubsEvents.emit("log", {
-          type: "exit",
-          text: `[Process exited with code ${code}]`,
-          code,
-          timestamp: Date.now(),
-        });
-        resolve({
-          exitCode: code ?? 0,
-          stdout,
-          stderr,
-        });
-      });
-
-      child.on("error", (err) => {
-        stubsEvents.emit("log", {
-          type: "error",
-          text: `[Execution error: ${err.message}]`,
-          timestamp: Date.now(),
-        });
-        reject(err);
-      });
-    }).catch(() => {
-      stubsEvents.emit("log", {
-        type: "error",
-        text: `[Execution error: Stubs CLI bundle not found at ${CLI_PATH}]`,
-        timestamp: Date.now(),
-      });
-      return reject(new Error(`Stubs CLI bundle not found at ${CLI_PATH}. Please build the agent skills or provide the CLI bundle.`));
-    });
-  });
+  return defaultProcessRunner.runCommand(
+    CLI_PATH,
+    [command, ...args],
+    { cwd: CWD },
+    stubsEvents
+  );
 }
