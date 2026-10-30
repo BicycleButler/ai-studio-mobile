@@ -6,6 +6,7 @@ import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
 import { defaultLogger, ILogger } from "../utils/logger";
+import { defaultPlatformService } from "./platformService";
 
 import { IThemeService, ThemeService } from "./themeService";
 import { IPromptTemplateService, PromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
@@ -164,7 +165,7 @@ const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
   ]
 });
 
-const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLogger);
+const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLogger, defaultPlatformService);
 const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(defaultLogger);
 
 const defaultServices: IServices = {
