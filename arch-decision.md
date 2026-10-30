@@ -426,7 +426,7 @@ Refactor the adapter's constructor to accept a `NetworkStorageSyncAdapterConfig`
 Make `NetworkStorageSyncAdapter` an abstract class with an abstract `buildRequest` method and implement subclasses like `JsonStorageSyncAdapter` and `FormDataStorageSyncAdapter`. (Drawback: Adds class bloat and doesn't accommodate custom headers easily).
 
 **Recommendation:**
-**Path 1 (Request Builder Injection)** was implemented. It strictly decouples the adapter from the DOM fetch API payload structure, preserves all backward compatibility for existing domain services, and improves the Generality of the sync engine, allowing any payload transformation.
+**Path 1 (Request Builder Injection)** was implemented. It strictly decouples the adapter from the DOM fetch API payload structure, preserves all backward compatibility for existing domain services, and improves the Generality of the sync engine, allowing any payload transformation. A new `FormDataSyncTransport` class was added to abstract out multi-part serialization, fulfilling the goal of isolating serialization logic entirely.
 
 ## Architectural Decision: Gemini Stream Service Singleton Encapsulation
 

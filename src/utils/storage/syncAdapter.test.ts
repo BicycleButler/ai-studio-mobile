@@ -49,6 +49,9 @@ describe('NetworkStorageSyncAdapter', () => {
             },
             body: JSON.stringify(item),
         });
+
+        await Promise.resolve();
+
         expect(mockOfflineService.enqueueOfflineMutation).not.toHaveBeenCalled();
     });
 
@@ -65,6 +68,8 @@ describe('NetworkStorageSyncAdapter', () => {
         mockOfflineService.enqueueOfflineMutation.mockResolvedValueOnce(undefined);
 
         adapter.syncItem(item, 'test_mutation');
+
+        await Promise.resolve();
 
         expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).not.toHaveBeenCalled();
@@ -89,7 +94,7 @@ describe('NetworkStorageSyncAdapter', () => {
         expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).toHaveBeenCalled();
 
-        // Wait for the catch block to execute
+        await Promise.resolve();
         await new Promise(process.nextTick);
 
         expect(mockOfflineService.enqueueOfflineMutation).toHaveBeenCalledWith('test_mutation', item);
@@ -117,6 +122,7 @@ describe('NetworkStorageSyncAdapter', () => {
         expect(mockNetworkStatusProvider.isOnline).toHaveBeenCalled();
         expect(mockApiClient.fetch).toHaveBeenCalled();
 
+        await Promise.resolve();
         await new Promise(process.nextTick);
 
         expect(mockRetryStrategy.shouldEnqueue).toHaveBeenCalledWith(testError);
