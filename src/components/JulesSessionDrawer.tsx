@@ -24,7 +24,7 @@ import {
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { useServices } from "../services/ServiceContext";
-import { getSafeDocument, safeAddEventListener } from "../utils/platform";
+
 import { Combobox } from "./Combobox";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import { Drawer } from "./ui/Drawer";
@@ -49,7 +49,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   onBulkDeleteSessions,
   onOpenApiKeyModal,
 }) => {
-  const { julesStorageService, julesClient } = useServices();
+  const { julesStorageService, julesClient, platformService } = useServices();
 
   const julesStore = useStore(julesStorageService.julesSessionsManager);
   const sessions = julesStore.items;
@@ -163,14 +163,14 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "a" && !isCreating) {
         // Prevent default browser select all
-        if (getSafeDocument()!.activeElement?.tagName !== 'INPUT' && getSafeDocument()!.activeElement?.tagName !== 'TEXTAREA') {
+        if (platformService.getDocument()!.activeElement?.tagName !== 'INPUT' && platformService.getDocument()!.activeElement?.tagName !== 'TEXTAREA') {
           e.preventDefault();
           toggleSelectAll(filteredSessions);
         }
       }
     };
 
-    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
     return () => removeKey();
   }, [isOpen, selectedSessionIds.size, isCreating, filteredSessions, onClose, clearSelection, toggleSelectAll]);
 

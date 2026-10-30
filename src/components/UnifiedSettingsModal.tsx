@@ -2,7 +2,7 @@ import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsS
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
-import { getSafeDocument, safeAddEventListener } from "../utils/platform";
+
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -190,7 +190,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   }, [toggleSelectAllProjectsRaw, projects]);
 
 
-  const { generalSettingsService } = useServices();
+  const { generalSettingsService, platformService } = useServices();
   const [flagSecure, setFlagSecure] = useState<boolean>(() => generalSettingsService.isFlagSecureEnabled());
 
   // Enable device/browser back navigation to dismiss drawer smoothly
@@ -212,13 +212,13 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "a" && activeTab === "account") {
-        if (getSafeDocument()!.activeElement?.tagName !== 'INPUT' && getSafeDocument()!.activeElement?.tagName !== 'TEXTAREA') {
+        if (platformService.getDocument()!.activeElement?.tagName !== 'INPUT' && platformService.getDocument()!.activeElement?.tagName !== 'TEXTAREA') {
           e.preventDefault();
           toggleSelectAllProjects();
         }
       }
     };
-    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
     return () => removeKey();
   }, [isOpen, onClose, activeTab, selectedProjectIds.size, clearProjectSelection, toggleSelectAllProjects]);
 

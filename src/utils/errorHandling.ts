@@ -1,6 +1,9 @@
 export function extractMessageFromUnknown(error: unknown): string | null {
   if (typeof error === "string") return error;
   if (typeof error === "object" && error !== null) {
+    if (Array.isArray(error) && error.length > 0) {
+       return extractMessageFromUnknown(error[0]);
+    }
     const obj = error as Record<string, unknown>;
     if (obj.error) {
       if (typeof obj.error === "string") return obj.error;
@@ -16,7 +19,7 @@ export function extractMessageFromUnknown(error: unknown): string | null {
 
 function tryParseJsonMessage(msg: string): string | null {
   const trimmed = msg.trim();
-  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
     try {
       const parsed = JSON.parse(trimmed);
       const parsedMsg = extractMessageFromUnknown(parsed);

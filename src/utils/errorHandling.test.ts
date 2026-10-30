@@ -48,4 +48,14 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage(123)).toBe('An unexpected error occurred.');
     expect(getErrorMessage({})).toBe('An unexpected error occurred.');
   });
+
+  it('should parse an array JSON string', () => {
+    const errStr = '[{"error":{"message":"JSON Array String message"}}]';
+    expect(getErrorMessage(errStr)).toBe('JSON Array String message');
+  });
+
+  it('should parse an array object', () => {
+    const errObj = [{ error: { message: 'Object array message' } }];
+    expect(getErrorMessage(errObj)).toBe('Object array message');
+  });
 });

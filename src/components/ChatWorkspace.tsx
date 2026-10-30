@@ -1,7 +1,5 @@
-import { getSafeDocument, getSafeNavigator } from "../utils/platform";
 import { ChatHistoryPopover } from "./ChatHistoryPopover";
 import { useBatchSelection } from "../hooks/useBatchSelection";
-import { isBrowserEnvironment, safeAddDocumentListener, safeAddVisualViewportListener, getSafeWindowSpeechSynthesis, getSafeWindow, getSafeWindowVisualViewport } from "../utils/platform";
 import React, { useState, useRef, useEffect, useMemo , useCallback} from "react";
 import {
   Send,
@@ -327,9 +325,9 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     let removeKey: (() => void) | null = null;
 
     if (isHistoryOpen) {
-      removeMouse = safeAddDocumentListener("mousedown", handleClickOutside);
-      removeTouch = safeAddDocumentListener("touchstart", handleClickOutside as EventListener);
-      removeKey = safeAddDocumentListener("keydown", handleKeyDown);
+      removeMouse = platformService.addDocumentListener("mousedown", handleClickOutside);
+      removeTouch = platformService.addDocumentListener("touchstart", handleClickOutside as EventListener);
+      removeKey = platformService.addDocumentListener("keydown", handleKeyDown);
     }
 
     return () => {
@@ -374,17 +372,17 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // Dismiss / hide the mobile soft keyboard safely across platforms
   const hideKeyboard = () => {
-    if (isBrowserEnvironment() && "virtualKeyboard" in getSafeNavigator()!) {
+    if (platformService.isBrowserEnv() && "virtualKeyboard" in platformService.getNavigator()!) {
       try {
-        (getSafeNavigator()! as { virtualKeyboard?: { hide?: () => void } }).virtualKeyboard?.hide?.();
+        (platformService.getNavigator()! as { virtualKeyboard?: { hide?: () => void } }).virtualKeyboard?.hide?.();
       } catch {
         // ignore
       }
     }
-    if (textareaRef.current && getSafeDocument()!.activeElement === textareaRef.current) {
+    if (textareaRef.current && platformService.getDocument()!.activeElement === textareaRef.current) {
       textareaRef.current.blur();
-    } else if (getSafeDocument()!.activeElement instanceof HTMLElement) {
-      (getSafeDocument()!.activeElement as HTMLElement)?.blur();
+    } else if (platformService.getDocument()!.activeElement instanceof HTMLElement) {
+      (platformService.getDocument()!.activeElement as HTMLElement)?.blur();
     }
     setIsInputFocused(false);
   };
@@ -419,7 +417,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
 
       // Guard against offline or missing API key so voice state does not hang indefinitely
-      if (isBrowserEnvironment() && !getSafeNavigator()!.onLine) {
+      if (platformService.isBrowserEnv() && !platformService.getNavigator()!.onLine) {
         setVoiceState("listening");
         startListening(undefined, true);
         return;
@@ -550,7 +548,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       activeAudioRef.current.pause();
       activeAudioRef.current = null;
     }
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = platformService.getSpeechSynthesis();
     if (synth) {
       try {
         synth.cancel();
@@ -569,11 +567,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // visualViewport scroll anchoring: dynamically re-anchor messages on mobile keyboard resize
   useEffect(() => {
-    const vvInit = getSafeWindowVisualViewport();
+    const vvInit = platformService.getVisualViewport();
     let previousHeight = vvInit ? vvInit.height : 0;
 
     const handleViewportResize = () => {
-      const vv = getSafeWindowVisualViewport();
+      const vv = platformService.getVisualViewport();
       if (!vv) return;
       // If viewport shrunk significantly (soft keyboard appeared) or input is focused
       if (vv.height < previousHeight || isInputFocused) {
@@ -592,8 +590,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     const handleResizeWrapper = () => handleViewportResize();
     const handleScrollWrapper = () => handleViewportScroll();
 
-    const removeResize = safeAddVisualViewportListener("resize", handleResizeWrapper);
-    const removeScroll = safeAddVisualViewportListener("scroll", handleScrollWrapper);
+    platformService.getWindow()?.visualViewport?.addEventListener("resize", handleResizeWrapper);
+    const removeResize = () => platformService.getWindow()?.visualViewport?.removeEventListener("resize", handleResizeWrapper);
+    platformService.getWindow()?.visualViewport?.addEventListener("scroll", handleScrollWrapper);
+    const removeScroll = () => platformService.getWindow()?.visualViewport?.removeEventListener("scroll", handleScrollWrapper);
 
     return () => {
       removeResize();
@@ -605,7 +605,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      const win = getSafeWindow();
+      const win = platformService.getWindow();
       const isMobile = win ? win.innerWidth < 640 : false;
       const maxHeight = isMobile ? 72 : 112;
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, maxHeight)}px`;
@@ -727,7 +727,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
   // Helper for on-device speech synthesis fallback
   const fallbackToDeviceSpeech = (textToSpeak: string) => {
-    const synth = getSafeWindowSpeechSynthesis();
+    const synth = platformService.getSpeechSynthesis();
     if (!synth) {
       setIsSpeaking(false);
       setIsBufferingAudio(false);
@@ -1102,7 +1102,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         }}
         onTouchMove={() => {
           // On mobile, dragging through message history hides the soft keyboard
-          if (isInputFocused || getSafeDocument()!.activeElement === textareaRef.current) {
+          if (isInputFocused || platformService.getDocument()!.activeElement === textareaRef.current) {
             hideKeyboard();
           }
         }}
@@ -1799,7 +1799,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     }}
                     onBlur={() => {
                       platformService.setTimeout(() => {
-                        if (getSafeDocument()!.activeElement !== textareaRef.current) {
+                        if (platformService.getDocument()!.activeElement !== textareaRef.current) {
                           setIsInputFocused(false);
                         }
                       }, 150);

@@ -3,7 +3,7 @@ import { StorageEventNotifier } from './StorageEventNotifier';
 import { BroadcastChannelNotifier } from './BroadcastChannelNotifier';
 import { createCrossTabNotifier } from './CrossTabNotifierFactory';
 import { NoOpLogger } from '../logger';
-import { getSafeLocalStorage, getSafeWindow } from '../platform';
+import { defaultPlatformService } from '../../services/platformService';
 
 describe('CrossTabNotifier', () => {
   let logger: NoOpLogger;
@@ -21,7 +21,7 @@ describe('CrossTabNotifier', () => {
 
     afterEach(() => {
       notifier.dispose();
-      getSafeLocalStorage()?.clear();
+      defaultPlatformService.getLocalStorage()?.clear();
     });
 
     it('should notify and trigger storage event handler', () => {
@@ -35,14 +35,14 @@ describe('CrossTabNotifier', () => {
         key: '_sync_notify_test_channel',
         newValue: payload
       });
-      getSafeWindow()?.dispatchEvent(event);
+      defaultPlatformService.getWindow()?.dispatchEvent(event);
 
       expect(handler).toHaveBeenCalledWith(message);
     });
 
     it('should write to localStorage on notify', () => {
         notifier.notify('TEST_MSG');
-        const val = getSafeLocalStorage()?.getItem('_sync_notify_test_channel');
+        const val = defaultPlatformService.getLocalStorage()?.getItem('_sync_notify_test_channel');
         expect(val).toBeDefined();
         const parsed = JSON.parse(val!);
         expect(parsed.message).toBe('TEST_MSG');
@@ -57,18 +57,18 @@ describe('CrossTabNotifier', () => {
       });
 
       it('should fallback to StorageEventNotifier if BroadcastChannel is missing', () => {
-          const win = getSafeWindow();
-          const originalBroadcastChannel = win?.BroadcastChannel;
+          const win = defaultPlatformService.getWindow();
+          const originalBroadcastChannel = (win as any)?.BroadcastChannel;
           if (win) {
               // @ts-ignore
-              delete win.BroadcastChannel;
+              delete (win as any).BroadcastChannel;
           }
 
           const notifier = createCrossTabNotifier({ name: 'test', logger });
           expect(notifier instanceof StorageEventNotifier).toBe(true);
 
           if (win && originalBroadcastChannel) {
-              win.BroadcastChannel = originalBroadcastChannel;
+              (win as any).BroadcastChannel = originalBroadcastChannel;
           }
       });
   });

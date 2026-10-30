@@ -1,6 +1,6 @@
 import { IApiClient, defaultClient } from "../utils/apiClient";
 import { IAuthService, defaultAuthService } from "./auth";
-import { getSafeWindowSpeechSynthesis, getSafeNavigatorLanguage } from "../utils/platform";
+import { getSafeNavigatorLanguage } from "../utils/platform";
 /**
  * Voice definitions and speech playback engine
  * Supports:
@@ -108,19 +108,22 @@ export interface SpeechVoicesServiceConfig {
   authService: IAuthService;
   apiClient: IApiClient;
   speechSettingsSingleton?: IMutableSingleton<SpeechSettings>;
-  getWindowSpeechSynthesis?: typeof getSafeWindowSpeechSynthesis;
+
   getNavigatorLanguage?: typeof getSafeNavigatorLanguage;
 }
 
+import { IPlatformService, defaultPlatformService } from "./platformService";
 export class SpeechVoicesService implements ISpeechVoicesService {
+  private platformService: IPlatformService;
   private speechSettingsSingleton: IMutableSingleton<SpeechSettings>;
-  private getWindowSpeechSynthesis: typeof getSafeWindowSpeechSynthesis;
+
   private getNavigatorLanguage: typeof getSafeNavigatorLanguage;
   private authService: IAuthService;
   private apiClient: IApiClient;
 
-  constructor(config: SpeechVoicesServiceConfig) {
-    this.getWindowSpeechSynthesis = config?.getWindowSpeechSynthesis || getSafeWindowSpeechSynthesis;
+  constructor(config: SpeechVoicesServiceConfig, platformService?: IPlatformService) {
+    this.platformService = platformService || defaultPlatformService;
+
     this.getNavigatorLanguage = config?.getNavigatorLanguage || getSafeNavigatorLanguage;
     this.authService = config.authService;
     this.apiClient = config.apiClient;
@@ -189,7 +192,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
    * Retrieves and filters system voices, scoring natural/neural voices to top
    */
   public getAvailableDeviceVoices(): DeviceVoiceOption[] {
-    const synth = this.getWindowSpeechSynthesis();
+    const synth = this.platformService.getSpeechSynthesis();
     if (!synth) {
       return [];
     }
@@ -226,7 +229,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
    * Automatically finds the highest-quality natural device voice matching the preferred URI or system
    */
   public getBestNaturalDeviceVoice(preferredURI?: string): SpeechSynthesisVoice | null {
-    const synth = this.getWindowSpeechSynthesis();
+    const synth = this.platformService.getSpeechSynthesis();
     if (!synth) return null;
     const voices = synth.getVoices();
     if (!voices || voices.length === 0) return null;

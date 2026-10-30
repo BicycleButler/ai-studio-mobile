@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useServices } from "../services/ServiceContext";
 import { useBackNavigation } from "../hooks/useBackNavigation";
-import { getSafeWindow } from "../utils/platform";
+
 
 export type CredentialTargetService = "aistudio" | "jules";
 
@@ -90,7 +90,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   }, [isOpen, activeApiKey, activeService, platformService]);
 
   const handleOpenSystemBrowser = () => {
-    getSafeWindow()?.open(targetUrl, "_blank", "noopener,noreferrer");
+    platformService.getWindow()?.open(targetUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleCopyUrl = async () => {
