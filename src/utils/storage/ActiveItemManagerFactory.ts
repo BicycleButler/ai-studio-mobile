@@ -3,6 +3,7 @@ import { StorageCollectionOptions } from "./StorageCollection";
 import { defaultStorageFactory } from "./StorageFactory";
 import { StorageSingletonOptions } from "./StorageSingleton";
 import { IMutableCollection, IMutableSingleton } from "./types";
+import { ISelectionStrategy } from "./selectionStrategy";
 
 export interface CreateActiveItemManagerOptions<T> {
   collectionKey: string;
@@ -14,7 +15,8 @@ export interface CreateActiveItemManagerOptions<T> {
   activeIdSingleton?: IMutableSingleton<string | null>;
 
   getId: (item: T) => string;
-  allowImplicitSelection?: boolean;
+  allowImplicitSelection?: boolean; // Deprecated, use implicitSelectionStrategy
+  implicitSelectionStrategy?: ISelectionStrategy<T>;
 }
 
 export interface IActiveItemManagerFactory {
@@ -31,6 +33,7 @@ export class DefaultActiveItemManagerFactory implements IActiveItemManagerFactor
       activeIdSingleton,
       getId: options.getId,
       allowImplicitSelection: options.allowImplicitSelection,
+      implicitSelectionStrategy: options.implicitSelectionStrategy,
     });
   }
 }
