@@ -70,7 +70,7 @@ export interface IServices {
 
 
 const explicitlyInjectedApiClient = new ApiClient();
-const explicitlyInjectedOfflineService = new OfflineService({ queueStore: new (require('../utils/offlineQueueStore').OfflineQueueStore)({ storageKey: 'ai_studio_offline_mutations', storageAdapter: new (require('../utils/asyncStorage').IDBStorage)('ai_studio_db', 'offline_queue'), logger: defaultLogger }) });
+const explicitlyInjectedOfflineService = new OfflineService({ queueStore: new (require('../utils/offlineQueueStore').OfflineQueueStore)({ storageKey: 'ai_studio_offline_mutations', storageAdapter: new (require('../utils/asyncStorage').IndexedDbAsyncStorage)(), logger: defaultLogger }) });
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
   explicitlyInjectedOfflineService,
