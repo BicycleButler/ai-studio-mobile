@@ -1097,3 +1097,17 @@ Optimize the `BatchSelectionManager` to short-circuit iteration using early retu
 
 **Recommendation:**
 **Path 2 (Optimization and Hybrid DI)** was implemented. This achieves the performance benefits for robustness and reusability, tightens the production DI abstraction tree for the API and Offline clients, but gracefully preserves test compatibility.
+
+## Architectural Decision: Web API Factory for Audio and SpeechSynthesis
+
+**Context:**
+Various UI components and hooks (`ChatWorkspace`, `useAudioSettings`, `SentenceSpeechQueue`) were directly instantiating standard browser APIs like `new Audio()` and `new SpeechSynthesisUtterance()`. This directly coupled React components to the browser's global object, limiting abstraction and significantly complicating automated testing in headless environments (like Node.js) where these APIs do not natively exist.
+
+**Path 1: Isolate Instantiations Inside a new `AudioService`**
+Create an entirely new service dedicated strictly to managing audio playback and TTS state.
+
+**Path 2: Extend `IPlatformService` as a General API Factory**
+Since `IPlatformService` already abstracts global object properties (`window`, `document`, `navigator`), extend its interface with factory methods: `createAudio()` and `createSpeechSynthesisUtterance()`. Components simply invoke the platform service injected via context to obtain these primitives.
+
+**Recommendation:**
+**Path 2 (Extend `IPlatformService` as a General API Factory)** was implemented. It aligns perfectly with the current architecture where platform-dependent interactions are routed through `PlatformService`. This reduces coupling and makes testing environments substantially more resilient and predictable without requiring global mock injections.

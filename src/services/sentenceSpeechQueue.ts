@@ -134,7 +134,8 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
     if (!spokenText || spokenText.length < 2) return;
 
     try {
-      const utterance = new SpeechSynthesisUtterance(spokenText);
+      const utterance = this.platformService.createSpeechSynthesisUtterance(spokenText);
+      if (!utterance) return;
       const settings = this.options.speechSettings;
 
       utterance.rate = Math.max(0.5, Math.min(2.0, settings.playbackRate || 1.0));

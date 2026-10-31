@@ -58,7 +58,8 @@ export function useAudioSettings(initialSettings: SpeechSettings, onSave: (setti
       try {
         const data = await speechVoicesService.fetchTTSAudioUrl(samplePhrase, voiceName);
         if (!data || !data.audioUrl) throw new Error("Audio URL is null");
-        const audio = new Audio(data.audioUrl);
+        const audio = platformService.createAudio(data.audioUrl);
+        if (!audio) throw new Error("Audio generation failed: Platform missing audio support");
         previewAudioRef.current = audio;
         audio.onended = () => {
           setPreviewingVoiceId(null);
@@ -74,7 +75,13 @@ export function useAudioSettings(initialSettings: SpeechSettings, onSave: (setti
     } else {
       const synth = platformService.getSpeechSynthesis();
       if (synth) {
-        const utterance = new SpeechSynthesisUtterance(samplePhrase);
+        const utterance = platformService.createSpeechSynthesisUtterance(samplePhrase);
+        if (!utterance) {
+          setPreviewError("Device speech synthesis failed.");
+          setPreviewingVoiceId(null);
+          setIsPreviewLoading(false);
+          return;
+        }
         const rawVoices = synth.getVoices();
         const selectedVoice = rawVoices.find(
           (v) => v.name === voiceName || v.voiceURI === voiceName

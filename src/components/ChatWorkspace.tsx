@@ -735,7 +735,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
 
     synth.cancel();
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    const utterance = platformService.createSpeechSynthesisUtterance(textToSpeak);
+    if (!utterance) return;
     activeUtteranceRef.current = utterance;
     utterance.rate = speechSettings.playbackRate;
 
