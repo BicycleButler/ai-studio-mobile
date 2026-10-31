@@ -41,6 +41,8 @@ export interface IPlatformService {
   addDocumentListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void;
   getBroadcastChannel(name: string): BroadcastChannel | null;
   addMatchMediaListener(mql: MediaQueryList, listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void): () => void;
+  createAudio(url?: string): HTMLAudioElement | null;
+  createSpeechSynthesisUtterance(text?: string): SpeechSynthesisUtterance | null;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -166,7 +168,16 @@ export class BrowserPlatformService implements IPlatformService {
 
   public getBroadcastChannel(name: string): BroadcastChannel | null {
     return getSafeBroadcastChannel(name);
+  }
 
+  public createAudio(url?: string): HTMLAudioElement | null {
+    if (!this.isBrowserEnv()) return null;
+    return typeof url === "string" ? new Audio(url) : new Audio();
+  }
+
+  public createSpeechSynthesisUtterance(text?: string): SpeechSynthesisUtterance | null {
+    if (!this.isBrowserEnv()) return null;
+    return typeof text === "string" ? new SpeechSynthesisUtterance(text) : new SpeechSynthesisUtterance();
   }
 }
 
