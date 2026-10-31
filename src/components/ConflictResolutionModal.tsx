@@ -82,7 +82,7 @@ export const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = (
         </div>
       </DialogBody>
 
-      <DialogFooter>
+      <DialogFooter className="flex-wrap-reverse sm:flex-row-reverse">
         <button
           type="button"
           onClick={onCancel}
