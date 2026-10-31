@@ -11,6 +11,7 @@ import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
 import { IIdGenerator, defaultIdGenerator } from "../idGenerator";
+import { ITimeProvider, defaultTimeProvider } from "../timeProvider";
 
 export interface IJulesStorageService {
   julesSessionsManager: IActiveItemManager<JulesSession>;
@@ -32,6 +33,7 @@ export interface IJulesStorageService {
 }
 
 export interface JulesStorageServiceConfig {
+  timeProvider?: ITimeProvider;
   apiClient: IApiClient;
   julesApiKeySingleton?: IMutableSingleton<string>;
   julesSettingsSingleton?: IMutableSingleton<JulesSettings>;
@@ -54,11 +56,13 @@ export class JulesStorageService implements IJulesStorageService {
   private logger: ILogger;
   private apiClient: IApiClient;
   private idGenerator: IIdGenerator;
+  private timeProvider: ITimeProvider;
 
   constructor(config: JulesStorageServiceConfig) {
     this.logger = config.logger;
     this.apiClient = config.apiClient;
     this.idGenerator = config.idGenerator || defaultIdGenerator;
+    this.timeProvider = config.timeProvider || defaultTimeProvider;
 
     this.julesApiKeySingleton = config?.julesApiKeySingleton || defaultStorageFactory.createSingleton<string>(
       STORAGE_KEYS.JULES_API_KEY,
@@ -174,8 +178,8 @@ export class JulesStorageService implements IJulesStorageService {
       status: "idle",
       steps: [],
       messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: this.timeProvider.now(),
+      updatedAt: this.timeProvider.now(),
     };
     this.saveJulesSession(newSession);
     return newSession;
