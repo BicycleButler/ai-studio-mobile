@@ -104,15 +104,25 @@ export class BatchSelectionManager extends Observable<BatchSelectionState> imple
   }
 
   public getSelectionState(filteredIds: string[]): SelectionState {
-    if (filteredIds.length === 0) return 'none';
-    let selectedCount = 0;
+    if (filteredIds.length === 0 || this.selectedIds.size === 0) return 'none';
+
+    let hasSelected = false;
+    let hasUnselected = false;
+
     for (const id of filteredIds) {
       if (this.selectedIds.has(id)) {
-        selectedCount++;
+        hasSelected = true;
+      } else {
+        hasUnselected = true;
+      }
+
+      if (hasSelected && hasUnselected) {
+        return 'some'; // Fast-fail O(1) average case
       }
     }
-    if (selectedCount === 0) return 'none';
-    if (selectedCount === filteredIds.length) return 'all';
-    return 'some';
+
+    if (!hasSelected) return 'none';
+    if (!hasUnselected) return 'all';
+    return 'some'; // Should not be reached but keeps TypeScript happy
   }
 }
