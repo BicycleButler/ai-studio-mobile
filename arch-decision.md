@@ -1084,3 +1084,16 @@ Even though `ISentenceSpeechQueue` and `ISSEStreamParser` were previously extrac
 
 **Decision:**
 Abstracted their instantiations by introducing `createSentenceSpeechQueue` and `createSSEStreamParser` factory methods into the `ServiceContext` and component configuration interfaces respectively. Components and services now invoke these factories to obtain implementations, strictly enforcing abstraction boundaries and enabling full testability without global mock overrides.
+
+## Architectural Decision: BatchSelectionManager Optimization and Strict Dependency Injection
+**Context:**
+The `BatchSelectionManager` iterated entirely through arrays in `getSelectionState` and `toggleSelectAll`, yielding O(N) complexity which degraded performance on large lists. Additionally, the ServiceContext graph instantiated `ApiClient` and `OfflineQueueStore` relying on implicit global defaults like `defaultPlatformService` internally for timeouts, which violated strict abstraction boundaries.
+
+**Path 1: Purely optimize BatchSelectionManager and enforce Strict DI everywhere, removing all defaults**
+This would improve O(N) constraints and perfectly align all services to explicit DI, but would break backwards compatibility across hundreds of legacy tests that relied on the implicit global fallbacks.
+
+**Path 2: Optimization and Hybrid DI**
+Optimize the `BatchSelectionManager` to short-circuit iteration using early returns (`O(1)` average case for mixed states). Explicitly pass injected instances of `PlatformService`, `Mutex`, and `RetryStrategy` inside `ServiceContext.tsx` to completely decouple the production graph from globals, while retaining the global fallbacks inside constructor defaults to avoid breaking legacy tests.
+
+**Recommendation:**
+**Path 2 (Optimization and Hybrid DI)** was implemented. This achieves the performance benefits for robustness and reusability, tightens the production DI abstraction tree for the API and Offline clients, but gracefully preserves test compatibility.

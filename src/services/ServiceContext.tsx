@@ -38,6 +38,8 @@ import { IFileDownloadService, BrowserFileDownloadService } from "./fileDownload
 import { SSEStreamParser } from "../utils/sseParser";
 import { OfflineQueueStore } from "../utils/offlineQueueStore";
 import { IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from "../utils/asyncStorage";
+import { Mutex } from "../utils/mutex";
+import { ExponentialBackoffRetryStrategy } from "../utils/apiClientRetry";
 
 export interface IServices {
   themeService: IThemeService;
@@ -72,8 +74,23 @@ export interface IServices {
 }
 
 
-const explicitlyInjectedApiClient = new ApiClient();
-const explicitlyInjectedOfflineService = new OfflineService({ queueStore: new OfflineQueueStore({ storageKey: 'ai_studio_offline_mutations', storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], defaultLogger), logger: defaultLogger }) });
+const explicitlyInjectedPlatformService = new BrowserPlatformService();
+
+const explicitlyInjectedApiClient = new ApiClient({
+  retryConfig: {
+    retryStrategy: new ExponentialBackoffRetryStrategy(undefined, explicitlyInjectedPlatformService),
+  }
+});
+
+const explicitlyInjectedOfflineService = new OfflineService({
+  queueStore: new OfflineQueueStore({
+    storageKey: 'ai_studio_offline_mutations',
+    storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], defaultLogger),
+    logger: defaultLogger,
+    platformService: explicitlyInjectedPlatformService,
+    mutex: new Mutex(defaultLogger, explicitlyInjectedPlatformService),
+  })
+});
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
   explicitlyInjectedOfflineService,
@@ -145,7 +162,7 @@ const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService({});
 
 const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
     generalSettingsService: explicitlyInjectedGeneralSettingsService,
-    platformService: new BrowserPlatformService()
+    platformService: explicitlyInjectedPlatformService
 });
 
 const explicitlyInjectedProjectService = new ProjectService({
@@ -169,7 +186,7 @@ const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
   ]
 });
 
-const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLogger, defaultPlatformService);
+const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLogger, explicitlyInjectedPlatformService);
 const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(defaultLogger);
 
 const defaultServices: IServices = {
@@ -195,13 +212,13 @@ const defaultServices: IServices = {
   keyVerificationService: explicitlyInjectedKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,
   codeGeneratorService: explicitlyInjectedCodeGeneratorService,
-  pwaInstallService: new PwaInstallService({ platformService: new BrowserPlatformService() }),
+  pwaInstallService: new PwaInstallService({ platformService: explicitlyInjectedPlatformService }),
   windowSecurityService: explicitlyInjectedWindowSecurityService,
   logger: defaultLogger,
   imageCompressor: explicitlyInjectedImageCompressor,
   clipboardService: explicitlyInjectedClipboardService,
   fileDownloadService: explicitlyInjectedFileDownloadService,
-  platformService: new BrowserPlatformService(),
+  platformService: explicitlyInjectedPlatformService,
 };
 
 
