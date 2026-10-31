@@ -78,7 +78,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-muted/30 flex justify-end gap-3 border-t border-border shrink-0">
+            <div className="p-4 bg-muted/30 flex flex-wrap-reverse sm:flex-row items-center justify-end gap-3 border-t border-border shrink-0">
               <button
                 type="button"
                 ref={cancelRef}
