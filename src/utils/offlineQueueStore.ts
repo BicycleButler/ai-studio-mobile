@@ -2,7 +2,7 @@ import { IMutex, Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
-import { ICrossTabNotifier, createCrossTabNotifier, CrossTabNotifierConfig } from "./crossTabNotifier";
+import { ICrossTabNotifier, ICrossTabNotifierFactory, defaultCrossTabNotifierFactory } from "./crossTabNotifier";
 import { AsyncStorage } from "./asyncStorage";
 import { IPlatformService } from "../services/platformService";
 import { defaultPlatformService } from "../services/platformService";
@@ -24,7 +24,7 @@ export interface OfflineQueueStoreConfig {
   storageKey: string;
   storageAdapter: AsyncStorage;
   logger?: ILogger;
-  createCrossTabNotifier?: (config: CrossTabNotifierConfig) => ICrossTabNotifier;
+  crossTabNotifierFactory?: ICrossTabNotifierFactory;
   mutex?: IMutex;
   platformService?: IPlatformService;
 }
@@ -46,10 +46,10 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     this.storageKey = config.storageKey;
     this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || defaultLogger;
-    const createNotifier = config.createCrossTabNotifier || createCrossTabNotifier;
+    const notifierFactory = config.crossTabNotifierFactory || defaultCrossTabNotifierFactory;
     this.queueMutex = config.mutex || new Mutex(this.logger);
     try {
-        this.notifier = createNotifier({ name: `${this.storageKey}_channel`, logger: this.logger, platformService: config.platformService || defaultPlatformService });
+        this.notifier = notifierFactory.createCrossTabNotifier({ name: `${this.storageKey}_channel`, logger: this.logger, platformService: config.platformService || defaultPlatformService });
         this.notifier.onMessage((message) => {
           if (message === 'SYNC') {
             this.syncCacheFromStorage().catch((err) => this.logger.error("Failed to sync cache from storage", err));
