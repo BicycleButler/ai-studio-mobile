@@ -1,9 +1,9 @@
-import { generateUniqueId } from "./idGenerator";
 import { IObservable } from "./observable";
 import { AsyncStorage, IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from "./asyncStorage";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineQueueStore, IOfflineQueueStore } from "./offlineQueueStore";
 import { ISyncEngine, SyncEngine } from "./syncEngine";
+import { IIdGenerator, defaultIdGenerator } from "./idGenerator";
 
 export interface OfflineMutation {
   type: string;
@@ -43,15 +43,18 @@ export interface OfflineServiceConfig {
   queueStore?: IOfflineQueueStore;
   syncEngine?: ISyncEngine;
   logger?: ILogger;
+  idGenerator?: IIdGenerator;
 }
 
 export class OfflineService implements IOfflineService {
   private queueStore: IOfflineQueueStore;
   private syncEngine: ISyncEngine;
   private logger: ILogger;
+  private idGenerator: IIdGenerator;
 
   constructor(config: OfflineServiceConfig) {
     this.logger = config.logger || defaultLogger;
+    this.idGenerator = config.idGenerator || defaultIdGenerator;
 
     if (config.queueStore) {
       this.queueStore = config.queueStore;
@@ -93,7 +96,7 @@ export class OfflineService implements IOfflineService {
       type,
       payload,
       timestamp: Date.now(),
-      id: generateUniqueId("mutation"),
+      id: this.idGenerator.generate("mutation"),
       version,
     };
     await this.queueStore.enqueue(mutation);

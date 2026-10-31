@@ -4,13 +4,13 @@ import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
 import { IApiClient } from "../apiClient";
-import { generateUniqueId } from "../idGenerator";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { defaultStorageFactory } from "./StorageFactory";
 import { ILogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
+import { IIdGenerator, defaultIdGenerator } from "../idGenerator";
 
 export interface IJulesStorageService {
   julesSessionsManager: IActiveItemManager<JulesSession>;
@@ -38,6 +38,7 @@ export interface JulesStorageServiceConfig {
   julesSessionsManager?: IActiveItemManager<JulesSession>;
   syncAdapter?: IStorageSyncAdapter<JulesSession[]>;
   logger: ILogger;
+  idGenerator?: IIdGenerator;
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {
@@ -52,10 +53,12 @@ export class JulesStorageService implements IJulesStorageService {
   private syncAdapter: IStorageSyncAdapter<JulesSession[]>;
   private logger: ILogger;
   private apiClient: IApiClient;
+  private idGenerator: IIdGenerator;
 
   constructor(config: JulesStorageServiceConfig) {
     this.logger = config.logger;
     this.apiClient = config.apiClient;
+    this.idGenerator = config.idGenerator || defaultIdGenerator;
 
     this.julesApiKeySingleton = config?.julesApiKeySingleton || defaultStorageFactory.createSingleton<string>(
       STORAGE_KEYS.JULES_API_KEY,
@@ -162,7 +165,7 @@ export class JulesStorageService implements IJulesStorageService {
     branch: string = "main",
     initialTitle?: string
   ): JulesSession {
-    const id = generateUniqueId("jules_sess");
+    const id = this.idGenerator.generate("jules_sess");
     const newSession: JulesSession = {
       id,
       title: initialTitle || `Task on ${repository}`,

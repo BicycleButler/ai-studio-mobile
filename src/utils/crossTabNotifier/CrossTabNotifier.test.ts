@@ -3,6 +3,7 @@ import { StorageEventNotifier } from './StorageEventNotifier';
 import { createCrossTabNotifier } from './CrossTabNotifierFactory';
 import { NoOpLogger } from '../logger';
 import { IPlatformService } from "../../services/platformService";
+import { StorageEventCtor } from '../testUtils/storageEvent';
 
 describe('CrossTabNotifier', () => {
   let logger: NoOpLogger;
@@ -59,16 +60,6 @@ describe('CrossTabNotifier', () => {
       // Simulate a storage event from another tab
       const message = 'SYNC';
       const payload = JSON.stringify({ message, timestamp: Date.now() });
-
-      const StorageEventCtor = (globalThis as typeof globalThis & { StorageEvent?: new (type: string, dict: Record<string, unknown>) => Event }).StorageEvent || class extends Event {
-          key: string;
-          newValue: string;
-          constructor(type: string, dict: Record<string, unknown>) {
-              super(type);
-              this.key = dict.key as string;
-              this.newValue = dict.newValue as string;
-          }
-      };
 
       const event = new StorageEventCtor('storage', {
         key: '_sync_notify_test_channel',

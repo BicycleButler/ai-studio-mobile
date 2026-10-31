@@ -1111,3 +1111,17 @@ Since `IPlatformService` already abstracts global object properties (`window`, `
 
 **Recommendation:**
 **Path 2 (Extend `IPlatformService` as a General API Factory)** was implemented. It aligns perfectly with the current architecture where platform-dependent interactions are routed through `PlatformService`. This reduces coupling and makes testing environments substantially more resilient and predictable without requiring global mock injections.
+
+## Architectural Decision: Id Generation Abstraction
+
+**Context:**
+The codebase relied on a globally imported function, `generateUniqueId`, for generating unique identifiers. This function was used across services (like `OfflineService` and `JulesStorageService`) and React components. While simple, it tightly coupled domain logic to a specific implementation of ID generation, making it difficult to inject mock IDs during testing or swap the generation strategy in the future.
+
+**Path 1: Complete replacement of `generateUniqueId` with `IIdGenerator` across all files**
+This would involve updating every React component and service to accept and use an `IIdGenerator`. While pure, it would cause significant churn in the UI layer and require extensive updates to component props.
+
+**Path 2: Hybrid Dependency Injection (Targeted Abstraction)**
+Define the `IIdGenerator` interface and `DefaultIdGenerator` class. Inject this abstraction into the core services (`OfflineService`, `JulesStorageService`) via their configurations. For React components and test files where strict DI is less critical and churn is undesirable, retain the backward-compatible `generateUniqueId` function (now internally acting as a wrapper around `DefaultIdGenerator`).
+
+**Recommendation:**
+**Path 2 (Hybrid Dependency Injection)** was implemented. It successfully isolates the domain logic in core services from concrete ID generation, significantly improving testability and abstraction for those services. By retaining the legacy wrapper function, we minimize unnecessary code churn in the UI layer and preserve backwards compatibility.
