@@ -39,6 +39,7 @@ import {
 import { ISentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
+import { useSpeechPlayback } from "../hooks/useSpeechPlayback";
 import { useStore } from "../hooks/useStore";
 import {  } from "../utils/timeUtils";
 import { JulesActivityCard } from "./JulesActivityCard";
@@ -130,8 +131,49 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { speechVoicesService, logger, clipboardService, platformService, createSentenceSpeechQueue } = useServices();
 
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isBufferingAudio, setIsBufferingAudio] = useState(false);
+  const handleAudioPlaybackEnd = useCallback(() => {
+    if (isVoiceModeActiveRef.current) {
+      // Acoustic echo safety: delay 350ms before opening mic
+      platformService.setTimeout(() => {
+        if (isVoiceModeActiveRef.current) {
+          speechBaseTextRef.current = "";
+          clearTranscript();
+          setInputText("");
+          startListening(undefined, true);
+          setVoiceState("listening");
+        }
+      }, 350);
+    } else {
+      setVoiceState("idle");
+    }
+  }, [platformService]);
+
+  const handleAudioPlaybackError = useCallback(() => {
+    if (isVoiceModeActiveRef.current) {
+      platformService.setTimeout(() => {
+        if (isVoiceModeActiveRef.current) {
+          speechBaseTextRef.current = "";
+          clearTranscript();
+          setInputText("");
+          startListening(undefined, true);
+          setVoiceState("listening");
+        }
+      }, 350);
+    } else {
+      setVoiceState("idle");
+    }
+  }, [platformService]);
+
+  const handleAudioPlaybackPlay = useCallback(() => {
+    setVoiceState("speaking");
+  }, []);
+
+  const { isSpeaking, isBufferingAudio, playSpeech, stopAllPlayback: hookStopAllPlayback } = useSpeechPlayback({
+    onPlay: handleAudioPlaybackPlay,
+    onEnd: handleAudioPlaybackEnd,
+    onError: handleAudioPlaybackError,
+  });
+
   const [localSpeechSettings] = useState<SpeechSettings>(() =>
     speechVoicesService.loadSpeechSettings()
   );
@@ -348,8 +390,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   isVoiceModeActiveRef.current = isVoiceModeActive;
 
   const sentenceQueueRef = useRef<ISentenceSpeechQueue | null>(null);
-  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -541,23 +581,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       sentenceQueueRef.current.cancel();
       sentenceQueueRef.current = null;
     }
-    if (activeUtteranceRef.current) {
-      activeUtteranceRef.current = null;
-    }
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current = null;
-    }
-    const synth = platformService.getSpeechSynthesis();
-    if (synth) {
-      try {
-        synth.cancel();
-      } catch {
-        // Safe ignore
-      }
-    }
-    setIsSpeaking(false);
-    setIsBufferingAudio(false);
+    hookStopAllPlayback();
   };
 
   // Scroll anchoring: Keep latest message pinned on messages update
@@ -725,88 +749,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
   }, [isGenerating]);
 
-  // Helper for on-device speech synthesis fallback
-  const fallbackToDeviceSpeech = (textToSpeak: string) => {
-    const synth = platformService.getSpeechSynthesis();
-    if (!synth) {
-      setIsSpeaking(false);
-      setIsBufferingAudio(false);
-      return;
-    }
-
-    synth.cancel();
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    activeUtteranceRef.current = utterance;
-    utterance.rate = speechSettings.playbackRate;
-
-    // Pick chosen device voice or best natural voice
-    const rawVoices = synth.getVoices();
-    if (speechSettings.deviceVoiceURI) {
-      const matched = rawVoices.find(
-        (v) => v.voiceURI === speechSettings.deviceVoiceURI
-      );
-      if (matched) utterance.voice = matched;
-    } else if (rawVoices.length > 0) {
-      const naturalVoice = rawVoices.find((v) => {
-        const name = v.name.toLowerCase();
-        return (
-          name.includes("natural") ||
-          name.includes("enhanced") ||
-          name.includes("google") ||
-          name.includes("siri") ||
-          name.includes("online")
-        );
-      });
-      if (naturalVoice) utterance.voice = naturalVoice;
-    }
-
-    utterance.onstart = () => {
-      setIsBufferingAudio(false);
-      setIsSpeaking(true);
-      setVoiceState("speaking");
-    };
-
-    utterance.onend = () => {
-      activeUtteranceRef.current = null;
-      setIsSpeaking(false);
-      if (isVoiceModeActiveRef.current) {
-        // Acoustic echo safety: delay 350ms before opening mic
-        platformService.setTimeout(() => {
-          if (isVoiceModeActiveRef.current) {
-            speechBaseTextRef.current = "";
-            clearTranscript();
-            setInputText("");
-            startListening(undefined, true);
-            setVoiceState("listening");
-          }
-        }, 350);
-      } else {
-        setVoiceState("idle");
-      }
-    };
-
-    utterance.onerror = () => {
-      activeUtteranceRef.current = null;
-      setIsSpeaking(false);
-      setIsBufferingAudio(false);
-      if (isVoiceModeActiveRef.current) {
-        platformService.setTimeout(() => {
-          if (isVoiceModeActiveRef.current) {
-            speechBaseTextRef.current = "";
-            clearTranscript();
-            setInputText("");
-            startListening(undefined, true);
-            setVoiceState("listening");
-          }
-        }, 350);
-      } else {
-        setVoiceState("idle");
-      }
-    };
-
-    synth.speak(utterance);
-  };
-
   const handleToggleSpeech = async (customText?: string) => {
     if (isSpeaking || isBufferingAudio) {
       stopAllPlayback();
@@ -822,56 +764,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       spokenText.trim() ||
       "The agent response contains code only, which was omitted.";
 
-    if (speechSettings.engine === "gemini") {
-      setIsBufferingAudio(true);
-      try {
-        const data = await speechVoicesService.fetchTTSAudioUrl(contentToSpeak, speechSettings.geminiVoice);
-
-        if (!data.audioUrl) {
-          throw new Error("No audio payload returned from Gemini TTS");
-        }
-
-        const audio = new Audio(data.audioUrl);
-        audio.playbackRate = speechSettings.playbackRate;
-        activeAudioRef.current = audio;
-
-        audio.onplay = () => {
-          setIsBufferingAudio(false);
-          setIsSpeaking(true);
-          setVoiceState("speaking");
-        };
-
-        audio.onended = () => {
-          setIsSpeaking(false);
-          activeAudioRef.current = null;
-          if (isVoiceModeActiveRef.current) {
-            platformService.setTimeout(() => {
-              if (isVoiceModeActiveRef.current) {
-                speechBaseTextRef.current = "";
-                clearTranscript();
-                setInputText("");
-                startListening(undefined, true);
-                setVoiceState("listening");
-              }
-            }, 350);
-          } else {
-            setVoiceState("idle");
-          }
-        };
-
-        audio.onerror = () => {
-          logger.warn("Audio element error, falling back to on-device natural voice");
-          fallbackToDeviceSpeech(contentToSpeak);
-        };
-
-        await audio.play();
-      } catch (err: unknown) {
-        logger.warn("Gemini Studio TTS failed, falling back to on-device voice:", err);
-        fallbackToDeviceSpeech(contentToSpeak);
-      }
-    } else {
-      fallbackToDeviceSpeech(contentToSpeak);
-    }
+    playSpeech(contentToSpeak, speechSettings);
   };
 
   const handleSend = () => {
