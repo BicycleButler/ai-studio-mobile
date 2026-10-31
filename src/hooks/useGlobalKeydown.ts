@@ -38,11 +38,6 @@ export function useGlobalKeydown(
       }
     };
 
-    const win = platformService.getWindow();
-    if (win) {
-      win.addEventListener("keydown", handleKeyDown);
-      return () => win.removeEventListener("keydown", handleKeyDown);
-    }
-    return undefined;
+    return platformService.addEventListener("keydown", handleKeyDown);
   }, [key, handler, ctrlKey, metaKey, ignoreIfInputFocused, isActive, platformService]);
 }

@@ -20,19 +20,12 @@ export function useAppState() {
     generalSettingsService,
     apiClient,
     draftStateService,
+    projectService,
     platformService
   } = useServices();
 
   // Load initial app draft safely before deriving other states
-  const initialActiveProjectId = (() => {
-    try {
-      const localStorage = platformService.getLocalStorage();
-      const stored = localStorage?.getItem("aistudio_active_project_id");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  })();
+  const initialActiveProjectId = projectService.getActiveProjectId();
 
   const initialDraft = draftStateService.loadDraftState(initialActiveProjectId);
 
