@@ -14,8 +14,9 @@ import { PromptType, GoogleUser, ProjectInfo, JulesSession } from "../types";
 import { SettingsTab } from "../types";
 import { useTheme } from "../hooks/useTheme";
 import { TokenCounterVisualization } from "./TokenCounterVisualization";
+import { useServices } from "../services/ServiceContext";
 import { PWAInstallButton } from "./PWAInstallButton";
-import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
+
 
 export interface TopAppBarProps {
   promptType: PromptType;
@@ -43,6 +44,7 @@ export interface TopAppBarProps {
 }
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
+
   promptType,
   currentModelName,
   onOpenParameters,
@@ -60,6 +62,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   selectedTemplateCount = 0,
 }) => {
   const { resolvedTheme } = useTheme();
+  const { platformService } = useServices();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -79,8 +82,8 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
       }
     };
 
-    const removeMouse = safeAddDocumentListener("mousedown", handleClickOutside);
-    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    const removeMouse = platformService.addDocumentListener("mousedown", handleClickOutside);
+    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
     return () => {
       removeMouse();
       removeKey();

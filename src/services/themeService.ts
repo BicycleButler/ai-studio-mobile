@@ -1,4 +1,4 @@
-import { safeAddMatchMediaListener } from "../utils/platform";
+
 import { defaultPlatformService, IPlatformService } from "./platformService";
 
 /**
@@ -51,14 +51,14 @@ export class ThemeService implements IThemeService {
   private mediaQueryList: MediaQueryList | null = null;
   private isBrowserEnv: () => boolean;
 
-  private addMatchMediaListener: typeof safeAddMatchMediaListener;
+  private addMatchMediaListener: (mql: MediaQueryList, listener: (ev: MediaQueryListEvent) => void) => () => void;
 
 
   constructor(config?: ThemeServiceConfig) {
     this.platformService = config?.platformService || defaultPlatformService;
     this.isBrowserEnv = config?.isBrowserEnv || (() => this.platformService.isBrowserEnv());
 
-    this.addMatchMediaListener = config?.addMatchMediaListener || safeAddMatchMediaListener;
+    this.addMatchMediaListener = config?.addMatchMediaListener || this.platformService.addMatchMediaListener.bind(this.platformService);
         this.themeObservable = new Observable<ThemeState>({ mode: "system", resolvedTheme: "dark" });
     this.themeModeSingleton = config?.themeModeSingleton || defaultStorageFactory.createSingleton<ThemeMode>(
       STORAGE_KEYS.THEME_MODE,

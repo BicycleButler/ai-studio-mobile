@@ -17,7 +17,7 @@ import {
   isDeprecatedOrUnusableModel,
   sanitizeModelId,
 } from "../../utils/modelCatalog";
-import { safeAddEventListener } from "../../utils/platform";
+
 
 
 export interface TunerActionHandlers {
@@ -35,6 +35,7 @@ export interface TunerBottomSheetProps extends TunerActionHandlers {
   hasApiKey?: boolean;
 }
 
+import { useServices } from "../../services/ServiceContext";
 export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
   config,
   onChangeConfig,
@@ -46,6 +47,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
   onOpenAuth,
 }) => {
 
+  const { platformService } = useServices();
   const [activeCategory, setActiveCategory] = useState<string>("All");
 
   // Filter out any deprecated, legacy, or unusable non-chat models
@@ -86,7 +88,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
         onClose();
       }
     };
-    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
     return () => removeKey();
   }, [isModal, onClose]);
 

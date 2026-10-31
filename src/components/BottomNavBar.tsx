@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { MessageSquare, Code2, Bot, Ticket } from "lucide-react";
 import { PromptType } from "../types";
-import { safeAddEventListener } from "../utils/platform";
+
 import { Drawer } from "./ui/Drawer";
 
 interface BottomNavBarProps {
@@ -18,12 +18,14 @@ interface WorkspaceItem {
   tooltip: string;
 }
 
+import { useServices } from "../services/ServiceContext";
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   activeWorkspace,
   onSelectWorkspace,
   isOpen: propIsOpen,
   onClose,
 }) => {
+  const { platformService } = useServices();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = propIsOpen !== undefined ? propIsOpen : internalIsOpen;
 
@@ -72,7 +74,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       }
     };
 
-    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
     return () => removeKey();
   }, [isOpen]);
 

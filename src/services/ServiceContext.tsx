@@ -35,6 +35,9 @@ import { IWindowSecurityService, WindowSecurityService } from "./windowSecurityS
 import { IImageCompressor, ImageCompressor, CanvasImageCompressionStrategy } from "../utils/imageCompressor";
 import { IClipboardService, BrowserClipboardService } from "./clipboardService";
 import { IFileDownloadService, BrowserFileDownloadService } from "./fileDownloadService";
+import { SSEStreamParser } from "../utils/sseParser";
+import { OfflineQueueStore } from "../utils/offlineQueueStore";
+import { IndexedDbAsyncStorage } from "../utils/asyncStorage";
 
 export interface IServices {
   themeService: IThemeService;
@@ -70,7 +73,7 @@ export interface IServices {
 
 
 const explicitlyInjectedApiClient = new ApiClient();
-const explicitlyInjectedOfflineService = new OfflineService({ queueStore: new (require('../utils/offlineQueueStore').OfflineQueueStore)({ storageKey: 'ai_studio_offline_mutations', storageAdapter: new (require('../utils/asyncStorage').IndexedDbAsyncStorage)(), logger: defaultLogger }) });
+const explicitlyInjectedOfflineService = new OfflineService({ queueStore: new OfflineQueueStore({ storageKey: 'ai_studio_offline_mutations', storageAdapter: new IndexedDbAsyncStorage(), logger: defaultLogger }) });
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
   explicitlyInjectedOfflineService,
@@ -187,7 +190,7 @@ const defaultServices: IServices = {
   julesClient: explicitlyInjectedJulesClient,
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
   createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
-  createSSEStreamParser: (onEvent) => new (require("../utils/sseParser")).SSEStreamParser(onEvent),
+  createSSEStreamParser: (onEvent) => new SSEStreamParser(onEvent),
   geminiStreamService: explicitlyInjectedGeminiStreamService,
   keyVerificationService: explicitlyInjectedKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,

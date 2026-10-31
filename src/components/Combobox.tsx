@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader2, Search, X } from "lucide-react";
-import { safeAddEventListener } from "../utils/platform";
+
 import { useServices } from "../services/ServiceContext";
 
 export interface ComboboxOption {
@@ -61,9 +61,9 @@ export const Combobox: React.FC<ComboboxProps> = ({
         setIsOpen(false);
       }
     };
-    const removeClick = safeAddEventListener("mousedown", handleClickOutside);
+    const removeClick = platformService.addEventListener("mousedown", handleClickOutside);
     return () => removeClick();
-  }, []);
+  }, [platformService]);
 
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
