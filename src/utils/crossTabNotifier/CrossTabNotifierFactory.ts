@@ -21,14 +21,6 @@ export class DefaultCrossTabNotifierFactory implements ICrossTabNotifierFactory 
 
 export const defaultCrossTabNotifierFactory = new DefaultCrossTabNotifierFactory();
 
-import { defaultPlatformService } from "../../services/platformService";
-
-export function createCrossTabNotifier(config: CrossTabNotifierConfig | string, logger = defaultLogger): ICrossTabNotifier {
-  if (typeof config === "string") {
-    return defaultCrossTabNotifierFactory.createCrossTabNotifier({ name: config, logger, platformService: defaultPlatformService });
-  }
-  return defaultCrossTabNotifierFactory.createCrossTabNotifier({
-    platformService: defaultPlatformService,
-    ...config
-  });
+export function createCrossTabNotifier(config: CrossTabNotifierConfig): ICrossTabNotifier {
+  return defaultCrossTabNotifierFactory.createCrossTabNotifier(config);
 }

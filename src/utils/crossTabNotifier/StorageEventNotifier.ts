@@ -1,12 +1,6 @@
-import { ICrossTabNotifier } from "./types";
+import { ICrossTabNotifier, CrossTabNotifierConfig } from "./types";
 import { ILogger, defaultLogger } from "../logger";
-import { IPlatformService, defaultPlatformService } from "../../services/platformService";
-
-export interface StorageEventNotifierConfig {
-  name: string;
-  logger?: ILogger;
-  platformService?: IPlatformService;
-}
+import { IPlatformService } from "../../services/platformService";
 
 export class StorageEventNotifier implements ICrossTabNotifier {
   private key: string;
@@ -18,10 +12,11 @@ export class StorageEventNotifier implements ICrossTabNotifier {
 
   private platformService: IPlatformService;
 
-  constructor(config: StorageEventNotifierConfig) {
+  constructor(config: CrossTabNotifierConfig) {
     this.key = `_sync_notify_${config.name}`;
     this.logger = config.logger || defaultLogger;
-    this.platformService = config.platformService || defaultPlatformService;
+    if (!config.platformService) throw new Error("platformService is required");
+    this.platformService = config.platformService;
     this.boundListener = this.handleStorageEvent.bind(this);
   }
 
