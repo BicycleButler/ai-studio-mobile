@@ -22,7 +22,7 @@ import { PromptTemplate, PromptTemplateCategory } from "../types";
 import { useServices } from "../services/ServiceContext";
 import { FewShotBuilderTool } from "./prompt-tools/FewShotBuilderTool";
 import { VariablePromptTool } from "./prompt-tools/VariablePromptTool";
-import { safeAddEventListener } from "../utils/platform";
+
 import { Drawer } from "./ui/Drawer";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
 import { useBatchSelection } from "../hooks/useBatchSelection";
@@ -95,7 +95,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   draftUserText = "",
   onInsertText,
 }) => {
-  const { promptTemplateService } = useServices();
+  const { promptTemplateService, platformService } = useServices();
 
   // Keyboard Escape listener
   useEffect(() => {
@@ -105,7 +105,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
         onClose();
       }
     };
-    const removeKey = safeAddEventListener("keydown", handleKeyDown);
+    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
     return () => removeKey();
   }, [isOpen, onClose]);
 

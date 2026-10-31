@@ -24,7 +24,7 @@ import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
 import { useWindowSecurity } from "./hooks/useWindowSecurity";
 import {
 
-  projectsManager,
+// removed projectsManager
 } from "./utils/storage";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
@@ -33,7 +33,7 @@ import { useServices } from "./services/ServiceContext";
 
 
 export default function App() {
-  const { keyVerificationService, speechVoicesService } = useServices();
+  const { keyVerificationService, speechVoicesService, projectService } = useServices();
 
   const {
     projects,
@@ -128,7 +128,7 @@ export default function App() {
     onError: (err) => {
       if (err.isKeyInvalid || err.isAuthError || err.isRevoked) {
         if (activeProject) {
-          projectsManager.collection.update(activeProject.id, {
+          projectService.projectsManager.collection.update(activeProject.id, {
             isValid: false,
             status: "invalid_key",
             statusMessage: "Key expired or revoked",

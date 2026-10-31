@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { safeAddEventListener } from "../utils/platform";
+
 import { useServices } from "../services/ServiceContext";
 
 /**
@@ -53,7 +53,7 @@ export function useBackNavigation(
       onCloseRef.current();
     };
 
-    const removePopState = safeAddEventListener("popstate", handlePopState);
+    const removePopState = platformService.addEventListener("popstate", handlePopState);
 
     return () => {
       removePopState();

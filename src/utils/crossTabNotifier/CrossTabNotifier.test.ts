@@ -107,7 +107,7 @@ describe('CrossTabNotifier', () => {
 
       it('should fallback to StorageEventNotifier if BroadcastChannel is missing', () => {
           const win = mockPlatformService.getWindow() as unknown as Record<string, unknown>;
-          const originalBroadcastChannel = win?.BroadcastChannel;
+
           if (win) {
               mockPlatformService.getBroadcastChannel = () => null;
           }

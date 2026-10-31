@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useServices } from "../services/ServiceContext";
-import { safeAddEventListener, safeAddDocumentListener } from "../utils/platform";
+
 
 interface UseClipboardKeySnifferOptions {
   activeApiKey?: string;
@@ -91,14 +91,14 @@ export function useClipboardKeySniffer({
       }, 250);
     };
 
-    const removeVis = safeAddDocumentListener("visibilitychange", handleVisibilityChange);
-    const removeFocus = safeAddEventListener("focus", handleFocus);
+    const removeVis = platformService.addDocumentListener("visibilitychange", handleVisibilityChange);
+    const removeFocus = platformService.addEventListener("focus", handleFocus);
 
     return () => {
       removeVis();
       removeFocus();
     };
-  }, [enabled, inspectClipboard]);
+  }, [enabled, inspectClipboard, platformService]);
 
   return {
     detectedKey,

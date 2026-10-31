@@ -11,7 +11,8 @@ import {
   PlatformCapabilities,
   safeAddEventListener,
   safeAddDocumentListener,
-  getSafeBroadcastChannel
+  getSafeBroadcastChannel,
+  safeAddMatchMediaListener
 } from "../utils/platform";
 import { ILogger, defaultLogger } from "../utils/logger";
 
@@ -39,6 +40,7 @@ export interface IPlatformService {
   addEventListener<K extends keyof WindowEventMap>(type: K, listener: (this: Window, ev: WindowEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void;
   addDocumentListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void;
   getBroadcastChannel(name: string): BroadcastChannel | null;
+  addMatchMediaListener(mql: MediaQueryList, listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void): () => void;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -158,8 +160,13 @@ export class BrowserPlatformService implements IPlatformService {
     return safeAddDocumentListener(type, listener, options);
   }
 
+  public addMatchMediaListener(mql: MediaQueryList, listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void): () => void {
+    return safeAddMatchMediaListener(mql, listener);
+  }
+
   public getBroadcastChannel(name: string): BroadcastChannel | null {
     return getSafeBroadcastChannel(name);
+
   }
 }
 
