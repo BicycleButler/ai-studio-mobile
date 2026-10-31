@@ -6,6 +6,7 @@ import { encryptSecret, decryptSecret } from "./encryption";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { IGeneralSettingsService } from "./general";
 import { IActiveItemManager } from "./ActiveItemManager";
+import { ITimeProvider, defaultTimeProvider } from "../timeProvider";
 
 export interface IProjectService {
   projectsManager: IActiveItemManager<ProjectInfo>;
@@ -19,14 +20,17 @@ export interface IProjectService {
 }
 
 export interface ProjectServiceConfig {
+  timeProvider?: ITimeProvider;
   generalSettingsService?: IGeneralSettingsService;
   projectsManager?: IActiveItemManager<ProjectInfo>;
 }
 
 export class ProjectService implements IProjectService {
   public projectsManager: IActiveItemManager<ProjectInfo>;
+  private timeProvider: ITimeProvider;
 
   constructor(config: ProjectServiceConfig) {
+    this.timeProvider = config?.timeProvider || defaultTimeProvider;
     this.projectsManager = config?.projectsManager || createActiveItemManager<ProjectInfo>({
       collectionKey: STORAGE_KEYS.PROJECTS,
       collectionOptions: {
@@ -84,7 +88,7 @@ export class ProjectService implements IProjectService {
   public saveAndActivateProject(
     projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
   ): ProjectInfo {
-    const now = Date.now();
+    const now = this.timeProvider.now();
     const id = projectData.id || generateUniqueId("proj");
 
     const savedProject = {

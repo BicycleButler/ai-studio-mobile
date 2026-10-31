@@ -4,6 +4,7 @@ import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, defaultLogger } from "../utils/logger";
 import { defaultPlatformService } from "./platformService";
 import { isMockSession } from "../utils/mockDefinitions";
+import { ITimeProvider, defaultTimeProvider } from "../utils/timeProvider";
 
 export interface IChatHistoryService {
   getChatSessionsStorageKey(projectId?: string): string;
@@ -21,6 +22,7 @@ export interface IChatHistoryService {
 }
 
 export interface ChatHistoryServiceConfig {
+  timeProvider?: ITimeProvider;
   quotaObservable?: typeof globalStorageQuotaObservable;
   storageKeys?: typeof STORAGE_KEYS;
   logger: ILogger;
@@ -30,14 +32,17 @@ export interface ChatHistoryServiceConfig {
 
 export class ChatHistoryService implements IChatHistoryService {
   private unsubscribeQuota: () => void;
-  private config: Required<ChatHistoryServiceConfig>;
+  private config: Required<Omit<ChatHistoryServiceConfig, 'timeProvider'>> & { timeProvider: ITimeProvider };
   private collectionRegistry: IStorageRegistry<IMutableCollection<ChatSession>>;
+  private timeProvider: ITimeProvider;
 
   constructor(config: ChatHistoryServiceConfig) {
+    this.timeProvider = config?.timeProvider || defaultTimeProvider;
     this.config = {
       quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
+      timeProvider: this.timeProvider,
       isBrowserEnv: config?.isBrowserEnv || (() => defaultPlatformService.isBrowserEnv()),
       collectionRegistry: config?.collectionRegistry || defaultStorageFactory.createRegistry<IMutableCollection<ChatSession>>((key) => {
         return defaultStorageFactory.createCollection<ChatSession>(key, {
@@ -176,8 +181,8 @@ export class ChatHistoryService implements IChatHistoryService {
       title,
       messages: sanitizedMessages,
       projectId: projectId || session.projectId,
-      updatedAt: Date.now(),
-      createdAt: session.createdAt || Date.now(),
+      updatedAt: this.timeProvider.now(),
+      createdAt: session.createdAt || this.timeProvider.now(),
     };
 
     collection.upsert(updatedSession, true);

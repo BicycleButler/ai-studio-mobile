@@ -4,6 +4,7 @@ import { ILogger, defaultLogger } from "./logger";
 import { OfflineQueueStore, IOfflineQueueStore } from "./offlineQueueStore";
 import { ISyncEngine, SyncEngine } from "./syncEngine";
 import { IIdGenerator, defaultIdGenerator } from "./idGenerator";
+import { ITimeProvider, defaultTimeProvider } from "./timeProvider";
 
 export interface OfflineMutation {
   type: string;
@@ -38,6 +39,7 @@ export interface IOfflineService {
 }
 
 export interface OfflineServiceConfig {
+  timeProvider?: ITimeProvider;
   storageKey?: string;
   storageAdapter?: AsyncStorage;
   queueStore?: IOfflineQueueStore;
@@ -51,10 +53,12 @@ export class OfflineService implements IOfflineService {
   private syncEngine: ISyncEngine;
   private logger: ILogger;
   private idGenerator: IIdGenerator;
+  private timeProvider: ITimeProvider;
 
   constructor(config: OfflineServiceConfig) {
     this.logger = config.logger || defaultLogger;
     this.idGenerator = config.idGenerator || defaultIdGenerator;
+    this.timeProvider = config.timeProvider || defaultTimeProvider;
 
     if (config.queueStore) {
       this.queueStore = config.queueStore;
@@ -95,7 +99,7 @@ export class OfflineService implements IOfflineService {
     const mutation: OfflineMutation = {
       type,
       payload,
-      timestamp: Date.now(),
+      timestamp: this.timeProvider.now(),
       id: this.idGenerator.generate("mutation"),
       version,
     };

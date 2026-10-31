@@ -6,6 +6,7 @@ import { IMutableSingleton } from "./types";
 import { STORAGE_KEYS } from "./constants";
 import { cleanMockData, getNestedValue } from "./helpers";
 import { ILogger, defaultLogger } from "../logger";
+import { ITimeProvider, defaultTimeProvider } from "../timeProvider";
 
 export interface DraftState {
   promptType: PromptType;
@@ -25,6 +26,7 @@ export interface IDraftStateService {
 }
 
 export interface DraftStateServiceConfig {
+  timeProvider?: ITimeProvider;
   logger: ILogger;
   draftRegistry?: IStorageRegistry<IMutableSingleton<DraftState | null>>;
 }
@@ -32,9 +34,11 @@ export interface DraftStateServiceConfig {
 export class DraftStateService implements IDraftStateService {
   private draftRegistry: IStorageRegistry<IMutableSingleton<DraftState | null>>;
   private logger: ILogger;
+  private timeProvider: ITimeProvider;
 
   constructor(config: DraftStateServiceConfig) {
     this.logger = config?.logger || defaultLogger;
+    this.timeProvider = config?.timeProvider || defaultTimeProvider;
     this.draftRegistry = config?.draftRegistry || defaultStorageFactory.createRegistry<IMutableSingleton<DraftState | null>>((key) => {
       return defaultStorageFactory.createSingleton<DraftState | null>(key, null);
     });
@@ -60,7 +64,7 @@ export class DraftStateService implements IDraftStateService {
       structuredExamples: [],
       messages: undefined,
       selectedTemplateIds: [],
-      updatedAt: Date.now(),
+      updatedAt: this.timeProvider.now(),
     };
 
     const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
@@ -125,7 +129,7 @@ export class DraftStateService implements IDraftStateService {
       const updated: DraftState = {
         ...current,
         ...draft,
-        updatedAt: Date.now(),
+        updatedAt: this.timeProvider.now(),
       };
       const key = this.getProjectDraftKey(projectId);
       const draftSingleton = this.getDraftSingleton(key);
