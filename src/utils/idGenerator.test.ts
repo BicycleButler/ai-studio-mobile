@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateUniqueId } from './idGenerator';
+import { generateUniqueId, DefaultIdGenerator } from './idGenerator';
 
 describe('generateUniqueId', () => {
   it('should generate an id with the given prefix', () => {
@@ -28,5 +28,13 @@ describe('generateUniqueId', () => {
     const id1 = generateUniqueId('test');
     const id2 = generateUniqueId('test');
     expect(id1).not.toBe(id2);
+  });
+});
+
+describe('DefaultIdGenerator', () => {
+  it('should generate an id with the given prefix', () => {
+    const generator = new DefaultIdGenerator();
+    const id = generator.generate('test_prefix');
+    expect(id.startsWith('test_prefix_')).toBe(true);
   });
 });
