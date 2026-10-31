@@ -681,6 +681,14 @@ Continue injecting functional `fetchFn` and `fetchStreamFn` across all services.
 **Recommendation:**
 **Path 1 (Full `IApiClient` Interface Injection)** was implemented. It strictly enforces the Dependency Inversion Principle by programming against the `IApiClient` interface. It unifies networking across the codebase, simplifies testing by standardizing on `IApiClient` mocks, and ensures all services can seamlessly adopt interceptors, retry strategies, and custom headers managed by the client instance.
 
+## Architectural Decision: Environment-Agnostic Storage Fallback and Interface-Driven Factory Injection
+
+**Context:**
+The `OfflineQueueStore` previously defaulted strictly to `IndexedDbAsyncStorage` in `ServiceContext.tsx`, creating a single point of failure if the environment blocked IndexedDB. Furthermore, the store accepted a bare `createCrossTabNotifier` functional callback for its cross-tab notifications, which violated the Dependency Inversion Principle and deviated from the established pattern of injecting factory interfaces.
+
+**Decision:**
+Updated `ServiceContext.tsx` to instantiate `OfflineQueueStore` with the `FallbackAsyncStorage` wrapper, cascading from `IndexedDbAsyncStorage` to `MemoryAsyncStorage`. Refactored `OfflineQueueStoreConfig` to accept an `ICrossTabNotifierFactory` interface (`crossTabNotifierFactory`) instead of a functional callback. This vastly improves the queue's robustness across environments and strictly enforces dependency inversion.
+
 ## Architectural Decision: OfflineQueueStore Mutation Operations Abstraction
 
 **Context:**

@@ -37,7 +37,7 @@ import { IClipboardService, BrowserClipboardService } from "./clipboardService";
 import { IFileDownloadService, BrowserFileDownloadService } from "./fileDownloadService";
 import { SSEStreamParser } from "../utils/sseParser";
 import { OfflineQueueStore } from "../utils/offlineQueueStore";
-import { IndexedDbAsyncStorage } from "../utils/asyncStorage";
+import { IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from "../utils/asyncStorage";
 
 export interface IServices {
   themeService: IThemeService;
@@ -73,7 +73,7 @@ export interface IServices {
 
 
 const explicitlyInjectedApiClient = new ApiClient();
-const explicitlyInjectedOfflineService = new OfflineService({ queueStore: new OfflineQueueStore({ storageKey: 'ai_studio_offline_mutations', storageAdapter: new IndexedDbAsyncStorage(), logger: defaultLogger }) });
+const explicitlyInjectedOfflineService = new OfflineService({ queueStore: new OfflineQueueStore({ storageKey: 'ai_studio_offline_mutations', storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], defaultLogger), logger: defaultLogger }) });
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
   explicitlyInjectedOfflineService,
