@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { StorageEventNotifier } from './StorageEventNotifier';
 import { createCrossTabNotifier } from './CrossTabNotifierFactory';
 import { NoOpLogger } from '../logger';
-import { defaultPlatformService } from '../../services/platformService';
+import { IPlatformService } from "../../services/platformService";
 
 describe('CrossTabNotifier', () => {
   let logger: NoOpLogger;
@@ -11,16 +11,45 @@ describe('CrossTabNotifier', () => {
     logger = new NoOpLogger();
   });
 
+  let mockPlatformService: IPlatformService;
+  let mockLocalStorage: Record<string, string>;
+
+  beforeEach(() => {
+    mockLocalStorage = {};
+    mockPlatformService = {
+      isBrowserEnv: () => true,
+      getLocalStorage: () => ({
+        getItem: (key: string) => mockLocalStorage[key] || null,
+        setItem: (key: string, value: string) => { mockLocalStorage[key] = value; },
+        clear: () => { mockLocalStorage = {}; },
+        removeItem: (key: string) => { delete mockLocalStorage[key]; },
+        length: Object.keys(mockLocalStorage).length,
+        key: (index: number) => Object.keys(mockLocalStorage)[index] || null,
+      }) as Storage,
+      getBroadcastChannel: (name: string) => {
+          if (name === "test_fail") return null;
+          return {
+             postMessage: vi.fn(),
+             close: vi.fn(),
+             onmessage: null,
+             name
+          } as unknown as BroadcastChannel;
+      },
+      addEventListener: vi.fn(() => vi.fn()),
+      getWindow: () => ({ dispatchEvent: vi.fn() }) as unknown as Window,
+    } as unknown as IPlatformService;
+  });
+
   describe('StorageEventNotifier', () => {
     let notifier: StorageEventNotifier;
 
     beforeEach(() => {
-      notifier = new StorageEventNotifier({ name: 'test_channel', logger });
+      notifier = new StorageEventNotifier({ name: 'test_channel', logger, platformService: mockPlatformService });
     });
 
     afterEach(() => {
       notifier.dispose();
-      defaultPlatformService.getLocalStorage()?.clear();
+      mockPlatformService.getLocalStorage()?.clear();
     });
 
     it('should notify and trigger storage event handler', () => {
@@ -51,7 +80,7 @@ describe('CrossTabNotifier', () => {
       if (boundListener) {
           boundListener(event);
       } else {
-         defaultPlatformService.getWindow()?.dispatchEvent(event as Event);
+         mockPlatformService.getWindow()?.dispatchEvent(event as Event);
       }
 
       expect(handler).toHaveBeenCalledWith(message);
@@ -59,7 +88,7 @@ describe('CrossTabNotifier', () => {
 
     it('should write to localStorage on notify', () => {
         notifier.notify('TEST_MSG');
-        const val = defaultPlatformService.getLocalStorage()?.getItem('_sync_notify_test_channel');
+        const val = mockPlatformService.getLocalStorage()?.getItem('_sync_notify_test_channel');
         expect(val).not.toBeNull();
         if (val) {
           const parsed = JSON.parse(val);
@@ -70,25 +99,23 @@ describe('CrossTabNotifier', () => {
 
   describe('CrossTabNotifierFactory', () => {
       it('should prefer BroadcastChannel if available', () => {
-          const notifier = createCrossTabNotifier({ name: 'test', logger });
+          const notifier = createCrossTabNotifier({ name: 'test', logger, platformService: mockPlatformService });
           expect(notifier).toBeDefined();
           expect(typeof notifier.notify).toBe('function');
           expect(typeof notifier.onMessage).toBe('function');
       });
 
       it('should fallback to StorageEventNotifier if BroadcastChannel is missing', () => {
-          const win = defaultPlatformService.getWindow() as unknown as Record<string, unknown>;
+          const win = mockPlatformService.getWindow() as unknown as Record<string, unknown>;
           const originalBroadcastChannel = win?.BroadcastChannel;
           if (win) {
-              delete win.BroadcastChannel;
+              mockPlatformService.getBroadcastChannel = () => null;
           }
 
-          const notifier = createCrossTabNotifier({ name: 'test', logger });
+          const notifier = createCrossTabNotifier({ name: 'test', logger, platformService: mockPlatformService });
           expect(notifier instanceof StorageEventNotifier).toBe(true);
 
-          if (win && originalBroadcastChannel) {
-              win.BroadcastChannel = originalBroadcastChannel;
-          }
+
       });
   });
 });
