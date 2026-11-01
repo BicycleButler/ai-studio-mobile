@@ -1125,3 +1125,17 @@ Define the `IIdGenerator` interface and `DefaultIdGenerator` class. Inject this 
 
 **Recommendation:**
 **Path 2 (Hybrid Dependency Injection)** was implemented. It successfully isolates the domain logic in core services from concrete ID generation, significantly improving testability and abstraction for those services. By retaining the legacy wrapper function, we minimize unnecessary code churn in the UI layer and preserve backwards compatibility.
+
+## Architectural Decision: Time Provider Abstraction
+
+**Context:**
+The utility function `formatRelativeTime` in `src/utils/timeUtils.ts` directly invoked `Date.now()`. This tightly coupled the formatting logic to the global system clock, which made testing brittle. `src/utils/timeUtils.test.ts` previously relied on overriding the global `Date.now` with a mock function (`global.Date.now = vi.fn(...)`). This global monkey-patching approach can lead to flaky tests, test pollution, and race conditions in concurrent testing environments.
+
+**Path 1: Strict Dependency Injection**
+Modify `formatRelativeTime` to make the `timeProvider` parameter mandatory. This enforces the highest level of abstraction but would require updating every single consumer in the application (like `ChatHistoryPopover`) to explicitly pass down the provider, causing a large amount of boilerplate.
+
+**Path 2: Optional Dependency Injection (Default Parameter)**
+Modify `formatRelativeTime` to accept an optional `timeProvider: ITimeProvider = defaultTimeProvider`. This allows production code to continue working without modification, while tests can explicitly inject a mock provider, avoiding the need for global `Date` manipulation.
+
+**Recommendation:**
+**Path 2 (Optional Dependency Injection)** was implemented. It effectively decouples the utility from the system clock and allows safe, parallelizable unit testing without the heavy boilerplate and disruption that strict DI would introduce for a simple utility function.

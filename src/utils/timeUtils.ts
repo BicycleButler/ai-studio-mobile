@@ -1,9 +1,11 @@
+import { ITimeProvider, defaultTimeProvider } from './timeProvider';
+
 /**
  * Formats a relative timestamp (e.g. "Just now", "5m ago", "2h ago", "Yesterday")
  */
-export function formatRelativeTime(timestamp: number): string {
+export function formatRelativeTime(timestamp: number, timeProvider: ITimeProvider = defaultTimeProvider): string {
   if (!timestamp) return "";
-  const now = Date.now();
+  const now = timeProvider.now();
   const diffMs = now - timestamp;
   const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);
