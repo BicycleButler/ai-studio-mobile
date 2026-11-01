@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../utils/timeProvider";
 import { GoogleUser } from "../types";
 import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
@@ -197,7 +198,7 @@ export class GoogleAuthService implements IGoogleAuthService {
             picture: user.picture,
             sub: user.sub,
             authSource: "google_oauth",
-            authenticatedAt: Date.now(),
+            authenticatedAt: defaultTimeProvider.now(),
             aiStudioSynced: true,
           };
           this.saveStoredGoogleUser(localUser);

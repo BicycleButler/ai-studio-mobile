@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../../utils/timeProvider";
 import { getErrorMessage } from "../../utils/errorHandling";
 import { useState, useCallback, useEffect } from "react";
 import {
@@ -51,7 +52,7 @@ export function useStubsData(showToast: (msg: string) => void) {
       const res = await stubsClient.fetchDiagram(diagramGroupBy);
       setDiagramMermaid(res.mermaid);
       try {
-        const id = "mermaid-svg-" + Date.now();
+        const id = "mermaid-svg-" + defaultTimeProvider.now();
         const { svg } = await mermaid.render(id, res.mermaid);
         setRenderedSvg(svg);
       } catch (renderErr: unknown) {

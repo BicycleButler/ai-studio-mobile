@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../utils/timeProvider";
 import { useState, useEffect } from "react";
 import { usePromptTemplates } from "./usePromptTemplates";
 
@@ -142,8 +143,8 @@ export function useAppState() {
             id: chatSession.currentSessionId,
             title: chatHistoryService.generateSessionTitle(chatSession.messages),
             messages: chatSession.messages,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
+            createdAt: defaultTimeProvider.now(),
+            updatedAt: defaultTimeProvider.now(),
             model: config.model,
             projectId: activeProject?.id,
           },

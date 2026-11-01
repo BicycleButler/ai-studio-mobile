@@ -831,7 +831,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           throw new Error("No audio payload returned from Gemini TTS");
         }
 
-        const audio = new Audio(data.audioUrl);
+        const audio = platformService.createAudio(data.audioUrl) as HTMLAudioElement;
         audio.playbackRate = speechSettings.playbackRate;
         activeAudioRef.current = audio;
 

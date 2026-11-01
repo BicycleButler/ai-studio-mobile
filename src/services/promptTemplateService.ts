@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../utils/timeProvider";
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
 import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
@@ -138,7 +139,7 @@ export class PromptTemplateService implements IPromptTemplateService {
       throw new Error("Template content is required");
     }
 
-    const now = Date.now();
+    const now = defaultTimeProvider.now();
     const id = data.id || this.idGenerator.generate("custom_tpl");
 
     // Find if it exists to preserve createdAt

@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../utils/timeProvider";
 import { useStore } from "./useStore";
 import { getErrorMessage } from "../utils/errorHandling";
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -42,7 +43,7 @@ export function useJules() {
   const handleClearJulesMessages = useCallback(() => {
     handleStopJulesPolling();
     if (activeJulesSession) {
-      const updated = { ...activeJulesSession, messages: [], updatedAt: Date.now() };
+      const updated = { ...activeJulesSession, messages: [], updatedAt: defaultTimeProvider.now() };
       julesSessionsManager.collection.upsert(updated);
     }
   }, [activeJulesSession, handleStopJulesPolling]);
@@ -61,28 +62,28 @@ export function useJules() {
 
       if (!julesApiKey.trim()) {
         const errorMsg: ChatMessage = {
-          id: `msg_${Date.now()}_err`,
+          id: `msg_${defaultTimeProvider.now()}_err`,
           role: "model",
           text: "Jules API Key is required to authorize autonomous workspace access. Please configure it in settings.",
-          timestamp: Date.now(),
+          timestamp: defaultTimeProvider.now(),
           error: "Missing API Key",
         };
         const sessionWithMessages: JulesSession = {
           ...currentSession,
           messages: [...(currentSession.messages || []), errorMsg],
-          updatedAt: Date.now(),
+          updatedAt: defaultTimeProvider.now(),
         };
         julesSessionsManager.collection.upsert(sessionWithMessages);
         return true;
       }
 
       const userMsg: ChatMessage = {
-        id: `msg_${Date.now()}`,
+        id: `msg_${defaultTimeProvider.now()}`,
         role: "user",
         text,
         rawUserText,
         templateIds,
-        timestamp: Date.now(),
+        timestamp: defaultTimeProvider.now(),
         julesActivity: {
           type: "plan",
           status: "queued",
@@ -91,10 +92,10 @@ export function useJules() {
       };
 
       const aiMsg: ChatMessage = {
-        id: `msg_${Date.now() + 1}`,
+        id: `msg_${defaultTimeProvider.now() + 1}`,
         role: "model",
         text: "",
-        timestamp: Date.now() + 1,
+        timestamp: defaultTimeProvider.now() + 1,
         isStreaming: true,
         julesActivity: {
           type: "plan",
@@ -109,7 +110,7 @@ export function useJules() {
         ...currentSession,
         status: "analyzing",
         messages: updatedMessages,
-        updatedAt: Date.now(),
+        updatedAt: defaultTimeProvider.now(),
       };
 
       julesSessionsManager.collection.upsert(sessionWithMessages);
@@ -146,7 +147,7 @@ export function useJules() {
           julesSessionsManager.collection.upsert({
             ...currentSession,
             messages: planningMessages,
-            updatedAt: Date.now()
+            updatedAt: defaultTimeProvider.now()
           });
         }
 
@@ -186,7 +187,7 @@ export function useJules() {
                  ...latestSession,
                  status: taskUpdate.status,
                  messages: polledMessages,
-                 updatedAt: Date.now(),
+                 updatedAt: defaultTimeProvider.now(),
                });
             }
 
@@ -217,7 +218,7 @@ export function useJules() {
           julesSessionsManager.collection.upsert({
              ...errorSession,
              messages: errorMessages,
-             updatedAt: Date.now()
+             updatedAt: defaultTimeProvider.now()
           });
         }
       }
@@ -249,7 +250,7 @@ export function useJules() {
            julesSessionsManager.collection.upsert({
              ...latestSession,
              messages: approvedMessages,
-             updatedAt: Date.now()
+             updatedAt: defaultTimeProvider.now()
            });
         }
       } catch (err: unknown) {
@@ -264,7 +265,7 @@ export function useJules() {
            julesSessionsManager.collection.upsert({
              ...latestSession,
              messages: errorMessages,
-             updatedAt: Date.now()
+             updatedAt: defaultTimeProvider.now()
            });
         }
       } finally {
@@ -297,7 +298,7 @@ export function useJules() {
            julesSessionsManager.collection.upsert({
              ...latestSession,
              messages: rejectedMessages,
-             updatedAt: Date.now()
+             updatedAt: defaultTimeProvider.now()
            });
         }
       } catch (err: unknown) {

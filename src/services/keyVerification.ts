@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../utils/timeProvider";
 import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
 import { IApiClient, defaultClient } from "../utils/apiClient";
@@ -156,7 +157,7 @@ export class KeyVerificationService implements IKeyVerificationService {
           valid: true,
           model: data.model || model,
           totalTokens: data.totalTokens,
-          verifiedAt: data.verifiedAt || Date.now(),
+          verifiedAt: data.verifiedAt || defaultTimeProvider.now(),
         };
       }
 

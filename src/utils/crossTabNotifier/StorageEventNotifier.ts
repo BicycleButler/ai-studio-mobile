@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../timeProvider";
 import { ICrossTabNotifier, CrossTabNotifierConfig } from "./types";
 import { ILogger, defaultLogger } from "../logger";
 import { IPlatformService } from "../../services/platformService";
@@ -37,7 +38,7 @@ export class StorageEventNotifier implements ICrossTabNotifier {
     const localStorage = this.platformService.getLocalStorage();
     if (this.platformService.isBrowserEnv() && localStorage) {
       try {
-        const payload = JSON.stringify({ message, timestamp: Date.now() });
+        const payload = JSON.stringify({ message, timestamp: defaultTimeProvider.now() });
         localStorage.setItem(this.key, payload);
         // We do NOT clear it immediately because that might fire a second storage event
         // with a null newValue that could confuse listeners if they aren't careful,

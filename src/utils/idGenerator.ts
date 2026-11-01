@@ -1,10 +1,11 @@
+import { defaultTimeProvider } from "./timeProvider";
 export interface IIdGenerator {
   generate(prefix: string, explicitSuffix?: string): string;
 }
 
 export class DefaultIdGenerator implements IIdGenerator {
   public generate(prefix: string, explicitSuffix?: string): string {
-    const now = Date.now();
+    const now = defaultTimeProvider.now();
     const randomSuffix = Math.random().toString(36).substring(2, 7);
     const suffixToUse = explicitSuffix ? `${explicitSuffix}_${randomSuffix}` : randomSuffix;
     return `${prefix}_${now}_${suffixToUse}`;

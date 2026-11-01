@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Plus, Trash2, Sparkles, RotateCcw } from "lucide-react";
 import { PromptToolActionDock } from "./PromptToolActionDock";
 import { StructuredExample } from "../../types";
-import { generateUniqueId } from "../../utils/idGenerator";
+import { defaultIdGenerator } from "../../utils/idGenerator";
 import { useServices } from "../../services/ServiceContext";
 
 interface FewShotBuilderToolProps {
@@ -75,7 +75,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
     setExamples((prev) => [
       ...prev,
       {
-        id: generateUniqueId("ex"),
+        id: defaultIdGenerator.generate("ex"),
         input: "",
         output: "",
       },
@@ -93,7 +93,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
   };
 
   const handleLoadPreset = (preset: typeof PRESETS[0]) => {
-    setExamples(preset.examples.map((ex) => ({ ...ex, id: generateUniqueId("ex") })));
+    setExamples(preset.examples.map((ex) => ({ ...ex, id: defaultIdGenerator.generate("ex") })));
   };
 
   const formatFewShotPrompt = (): string => {
