@@ -41,13 +41,41 @@ describe('ImageCompressor Utils', () => {
 
         beforeEach(() => {
             mockPlatformService = {
-                getDocument: () => null // Stub just enough for testing init
+                getDocument: () => null, // Stub just enough for testing init
+                createFileReader: () => null,
+                createImage: () => null
             } as unknown as IPlatformService;
         });
 
         it('should handle missing document gracefully (returns unsupported for webp)', () => {
             const strategy = new CanvasImageCompressionStrategy({ platformService: mockPlatformService });
             expect((strategy as any).isWebPSupported()).toBe(false);
+        });
+
+        it('should fail compression gracefully if FileReader is unavailable', async () => {
+            const strategy = new CanvasImageCompressionStrategy({ platformService: mockPlatformService });
+            const mockFile = new File(['test'], 'test.png', { type: 'image/png' });
+
+            await expect(strategy.compress(mockFile, {})).rejects.toThrow("FileReader is not available");
+        });
+
+        it('should fail compression gracefully if Image API is unavailable', async () => {
+            const fileReaderMock = {
+                readAsDataURL: vi.fn(function(this: any) {
+                    setTimeout(() => this.onload({ target: { result: 'data:image/png;base64,abc' } }), 0);
+                })
+            };
+
+            mockPlatformService = {
+                getDocument: () => null,
+                createFileReader: () => fileReaderMock as any,
+                createImage: () => null
+            } as unknown as IPlatformService;
+
+            const strategy = new CanvasImageCompressionStrategy({ platformService: mockPlatformService });
+            const mockFile = new File(['test'], 'test.png', { type: 'image/png' });
+
+            await expect(strategy.compress(mockFile, {})).rejects.toThrow("Image API is not available");
         });
     });
 });
