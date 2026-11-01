@@ -1,7 +1,7 @@
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
 import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
-import { generateUniqueId } from "../utils/idGenerator";
+import { IIdGenerator, defaultIdGenerator } from "../utils/idGenerator";
 
 export interface IPromptTemplateService {
   getBuiltinTemplates(): PromptTemplate[];
@@ -82,14 +82,17 @@ export interface PromptTemplateServiceConfig {
   builtinTemplates?: PromptTemplate[];
   customTemplatesCollection?: IMutableCollection<PromptTemplate>;
   storageFactory?: IStorageFactory;
+  idGenerator?: IIdGenerator;
 }
 
 export class PromptTemplateService implements IPromptTemplateService {
   private customTemplatesCollection: IMutableCollection<PromptTemplate>;
   private builtinTemplates: PromptTemplate[];
+  private idGenerator: IIdGenerator;
 
   constructor(config: PromptTemplateServiceConfig) {
     this.builtinTemplates = config?.builtinTemplates || BUILTIN_PROMPT_TEMPLATES;
+    this.idGenerator = config?.idGenerator || defaultIdGenerator;
 
     if (config?.customTemplatesCollection) {
       this.customTemplatesCollection = config.customTemplatesCollection;
@@ -136,7 +139,7 @@ export class PromptTemplateService implements IPromptTemplateService {
     }
 
     const now = Date.now();
-    const id = data.id || generateUniqueId("custom_tpl");
+    const id = data.id || this.idGenerator.generate("custom_tpl");
 
     // Find if it exists to preserve createdAt
     const existing = this.customTemplatesCollection.load().find((t) => t.id === id);
