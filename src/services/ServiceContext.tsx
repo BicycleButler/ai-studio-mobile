@@ -5,6 +5,7 @@ import { IApiClient, ApiClient } from "../utils/apiClient";
 import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
+import { defaultStorageFactory } from "../utils/storage";
 import { defaultLogger, ILogger } from "../utils/logger";
 
 import { IThemeService, ThemeService } from "./themeService";
@@ -104,12 +105,14 @@ const explicitlyInjectedAuthService = new AuthService({
 
 const explicitlyInjectedGoogleAuthService = new GoogleAuthService({
   apiClient: explicitlyInjectedApiClient,
-  logger: defaultLogger
+  logger: defaultLogger,
+  storageFactory: defaultStorageFactory
 });
 
 const explicitlyInjectedSpeechVoicesService = new SpeechVoicesService({
   apiClient: explicitlyInjectedApiClient,
   authService: explicitlyInjectedAuthService,
+  storageFactory: defaultStorageFactory
 });
 
 const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
@@ -135,6 +138,7 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
   logger: defaultLogger,
   apiClient: explicitlyInjectedApiClient,
   julesSessionsManager: undefined,
+  storageFactory: defaultStorageFactory,
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
@@ -157,7 +161,9 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   }),
 });
 
-const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService({});
+const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService({
+  storageFactory: defaultStorageFactory
+});
 
 const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
     generalSettingsService: explicitlyInjectedGeneralSettingsService,
@@ -168,12 +174,13 @@ const explicitlyInjectedProjectService = new ProjectService({
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
 });
 
-const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger });
+const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger, storageFactory: defaultStorageFactory });
 
 const explicitlyInjectedImageCompressor = new ImageCompressor(new CanvasImageCompressionStrategy());
 
 const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
   builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
+  storageFactory: defaultStorageFactory
 });
 
 const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
@@ -189,7 +196,7 @@ const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLo
 const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(defaultLogger);
 
 const defaultServices: IServices = {
-  themeService: new ThemeService(),
+  themeService: new ThemeService({ storageFactory: defaultStorageFactory }),
   promptTemplateService: explicitlyInjectedPromptTemplateService,
   authService: explicitlyInjectedAuthService,
   googleAuthService: explicitlyInjectedGoogleAuthService,
@@ -197,7 +204,7 @@ const defaultServices: IServices = {
   apiClient: explicitlyInjectedApiClient,
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
   networkStatusProvider: new BrowserNetworkStatusProvider(),
-  chatHistoryService: new ChatHistoryService({ logger: defaultLogger }),
+  chatHistoryService: new ChatHistoryService({ logger: defaultLogger, storageFactory: defaultStorageFactory }),
   projectService: explicitlyInjectedProjectService,
   savedPromptsService: explicitlyInjectedSavedPromptsService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,

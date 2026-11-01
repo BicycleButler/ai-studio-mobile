@@ -7,7 +7,7 @@ import { IAuthService, defaultAuthService } from "./auth";
  * 2. Enhanced On-Device System Voices (with intelligent Natural/Neural voice prioritization)
  */
 
-import { STORAGE_KEYS, defaultStorageFactory } from "../utils/storage";
+import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 
 export interface GeminiVoiceOption {
@@ -109,6 +109,7 @@ export interface SpeechVoicesServiceConfig {
   speechSettingsSingleton?: IMutableSingleton<SpeechSettings>;
 
   getNavigatorLanguage?: () => string;
+  storageFactory?: IStorageFactory;
 }
 
 import { IPlatformService, defaultPlatformService } from "./platformService";
@@ -126,26 +127,32 @@ export class SpeechVoicesService implements ISpeechVoicesService {
     this.getNavigatorLanguage = config?.getNavigatorLanguage || (() => this.platformService.getNavigator()?.language || "en-US");
     this.authService = config.authService;
     this.apiClient = config.apiClient;
-    this.speechSettingsSingleton = config?.speechSettingsSingleton || defaultStorageFactory.createSingleton<SpeechSettings>(
-      STORAGE_KEYS.SPEECH_SETTINGS,
-      DEFAULT_SPEECH_SETTINGS,
-      {
-        transformOut: (parsed) => {
-          if (!parsed) return DEFAULT_SPEECH_SETTINGS;
-          return {
-            engine: parsed.engine === "gemini" ? "gemini" : "device",
-            geminiVoice: parsed.geminiVoice || "Puck",
-            deviceVoiceURI: parsed.deviceVoiceURI || "",
-            playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
-            autoReadResponses: Boolean(parsed.autoReadResponses),
-            handsFreeMode: Boolean(parsed.handsFreeMode),
-            silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
-            sentenceStreaming: parsed.sentenceStreaming !== false,
-            voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
-          };
+
+    if (config?.speechSettingsSingleton) {
+      this.speechSettingsSingleton = config.speechSettingsSingleton;
+    } else {
+      const factory = config?.storageFactory || defaultStorageFactory;
+      this.speechSettingsSingleton = factory.createSingleton<SpeechSettings>(
+        STORAGE_KEYS.SPEECH_SETTINGS,
+        DEFAULT_SPEECH_SETTINGS,
+        {
+          transformOut: (parsed) => {
+            if (!parsed) return DEFAULT_SPEECH_SETTINGS;
+            return {
+              engine: parsed.engine === "gemini" ? "gemini" : "device",
+              geminiVoice: parsed.geminiVoice || "Puck",
+              deviceVoiceURI: parsed.deviceVoiceURI || "",
+              playbackRate: typeof parsed.playbackRate === "number" ? parsed.playbackRate : 1.0,
+              autoReadResponses: Boolean(parsed.autoReadResponses),
+              handsFreeMode: Boolean(parsed.handsFreeMode),
+              silenceTimeoutMs: typeof parsed.silenceTimeoutMs === "number" ? parsed.silenceTimeoutMs : 1500,
+              sentenceStreaming: parsed.sentenceStreaming !== false,
+              voiceButtonPlacement: parsed.voiceButtonPlacement === "fab" ? "fab" : "footer",
+            };
+          }
         }
-      }
-    );
+      );
+    }
   }
 
   /**

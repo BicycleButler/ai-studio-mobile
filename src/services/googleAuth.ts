@@ -1,5 +1,5 @@
 import { GoogleUser } from "../types";
-import { STORAGE_KEYS, defaultStorageFactory } from "../utils/storage";
+import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 import { IApiClient } from "../utils/apiClient";
 
@@ -15,6 +15,7 @@ export interface GoogleAuthServiceConfig {
 
   logger: ILogger;
   platformService?: IPlatformService;
+  storageFactory?: IStorageFactory;
 }
 
 export interface IGoogleAuthService {
@@ -56,13 +57,19 @@ export class GoogleAuthService implements IGoogleAuthService {
     this.apiClient = config.apiClient;
     this.currentAuthProvider = config?.authProvider || null;
     this.logger = config.logger;
-    this.googleUserSingleton = config?.storageSingleton || defaultStorageFactory.createSingleton<GoogleUser | null>(
-      STORAGE_KEYS.GOOGLE_USER,
-      null
-    );
+
+    if (config?.storageSingleton) {
+        this.googleUserSingleton = config.storageSingleton;
+    } else {
+        const factory = config?.storageFactory || defaultStorageFactory;
+        this.googleUserSingleton = factory.createSingleton<GoogleUser | null>(
+          STORAGE_KEYS.GOOGLE_USER,
+          null
+        );
+    }
+    this.platformService = config?.platformService || defaultPlatformService;
     this.isBrowserEnv = config?.isBrowserEnv || (() => this.platformService.isBrowserEnv());
 
-    this.platformService = config?.platformService || defaultPlatformService;
   }
 
   public setAuthProvider(provider: IAuthProvider) {

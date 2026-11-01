@@ -6,7 +6,7 @@ import { defaultPlatformService, IPlatformService } from "./platformService";
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
  */
 
-import { STORAGE_KEYS, defaultStorageFactory } from "../utils/storage";
+import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 import { Observable, IObservable } from "../utils/observable";
 
@@ -39,6 +39,7 @@ export interface ThemeServiceConfig {
   addMatchMediaListener?: (mql: MediaQueryList, listener: (ev: MediaQueryListEvent) => void) => () => void;
 
   platformService?: IPlatformService;
+  storageFactory?: IStorageFactory;
 }
 
 export class ThemeService implements IThemeService {
@@ -60,13 +61,19 @@ export class ThemeService implements IThemeService {
 
     this.addMatchMediaListener = config?.addMatchMediaListener || this.platformService.addMatchMediaListener.bind(this.platformService);
         this.themeObservable = new Observable<ThemeState>({ mode: "system", resolvedTheme: "dark" });
-    this.themeModeSingleton = config?.themeModeSingleton || defaultStorageFactory.createSingleton<ThemeMode>(
-      STORAGE_KEYS.THEME_MODE,
-      "system",
-      {
-        validate: (val) => val === "light" || val === "dark" || val === "system",
-      }
-    );
+
+    if (config?.themeModeSingleton) {
+        this.themeModeSingleton = config.themeModeSingleton;
+    } else {
+        const factory = config?.storageFactory || defaultStorageFactory;
+        this.themeModeSingleton = factory.createSingleton<ThemeMode>(
+          STORAGE_KEYS.THEME_MODE,
+          "system",
+          {
+            validate: (val) => val === "light" || val === "dark" || val === "system",
+          }
+        );
+    }
   }
 
   public getSystemResolvedTheme(): ResolvedTheme {
