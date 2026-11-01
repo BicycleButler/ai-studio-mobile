@@ -43,6 +43,8 @@ export interface IPlatformService {
   addMatchMediaListener(mql: MediaQueryList, listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void): () => void;
   createAudio(url?: string): HTMLAudioElement | null;
   createSpeechSynthesisUtterance(text?: string): SpeechSynthesisUtterance | null;
+  createFileReader(): FileReader | null;
+  createImage(): HTMLImageElement | null;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -178,6 +180,16 @@ export class BrowserPlatformService implements IPlatformService {
   public createSpeechSynthesisUtterance(text?: string): SpeechSynthesisUtterance | null {
     if (!this.isBrowserEnv()) return null;
     return typeof text === "string" ? new SpeechSynthesisUtterance(text) : new SpeechSynthesisUtterance();
+  }
+
+  public createFileReader(): FileReader | null {
+    if (!this.isBrowserEnv() || typeof FileReader === "undefined") return null;
+    return new FileReader();
+  }
+
+  public createImage(): HTMLImageElement | null {
+    if (!this.isBrowserEnv() || typeof Image === "undefined") return null;
+    return new Image();
   }
 }
 

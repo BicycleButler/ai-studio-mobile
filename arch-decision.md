@@ -1139,3 +1139,17 @@ Modify `formatRelativeTime` to accept an optional `timeProvider: ITimeProvider =
 
 **Recommendation:**
 **Path 2 (Optional Dependency Injection)** was implemented. It effectively decouples the utility from the system clock and allows safe, parallelizable unit testing without the heavy boilerplate and disruption that strict DI would introduce for a simple utility function.
+
+## Architectural Decision: Web API Factory for FileReader and Image
+
+**Context:**
+The `CanvasImageCompressionStrategy` in `src/utils/imageCompressor.ts` was directly instantiating standard browser APIs like `new FileReader()` and `new Image()`. Similar to the previous decision regarding `Audio` and `SpeechSynthesisUtterance`, this tightly coupled the utility class to the browser's global object, limiting abstraction and making it difficult to inject mock implementations during automated testing in headless environments.
+
+**Path 1: Isolate Instantiations Inside a new \`ImageService\`**
+Create an entirely new service dedicated strictly to managing image and file reader instances.
+
+**Path 2: Extend \`IPlatformService\` as a General API Factory**
+Since `IPlatformService` already acts as a factory for other browser primitives (`createAudio`, `createSpeechSynthesisUtterance`), extend its interface with `createFileReader()` and `createImage()`. The image compressor can then invoke the platform service injected via its configuration to obtain these primitives.
+
+**Recommendation:**
+**Path 2 (Extend \`IPlatformService\` as a General API Factory)** was implemented. It maintains architectural consistency by routing all platform-dependent instantiations through `PlatformService`. This reduces coupling and makes testing environments substantially more resilient and predictable without requiring global mock injections.

@@ -53,10 +53,17 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
     const { maxDimension = 1568, quality = 0.82 } = options;
 
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+      const reader = this.platformService.createFileReader();
+      if (!reader) {
+        return reject(new Error("FileReader is not available in the current platform."));
+      }
 
       reader.onload = (e) => {
-        const img = new Image();
+        const img = this.platformService.createImage();
+        if (!img) {
+          return reject(new Error("Image API is not available in the current platform."));
+        }
+
         img.onload = () => {
           try {
             const { width, height } = calculateProportionalDimensions(img.width, img.height, maxDimension);
