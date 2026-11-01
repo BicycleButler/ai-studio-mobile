@@ -97,18 +97,6 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
 }) => {
   const { promptTemplateService, platformService } = useServices();
 
-  // Keyboard Escape listener
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
-    return () => removeKey();
-  }, [isOpen, onClose]);
-
   const [activeToolTab, setActiveToolTab] = useState<"directives" | "few-shot" | "variables">("directives");
   const [activeCategory, setActiveCategory] = useState<"all" | PromptTemplateCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -165,7 +153,21 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
   } = useBatchSelection({ clearOnDependencies: [searchQuery, activeCategory],
     items: customFilteredTemplates,
     getItemId: (t) => t.id,
+    isActive: isOpen && viewMode === "browse" && activeToolTab === "directives",
+    enableShortcuts: true
   });
+
+  // Keyboard Escape listener for Drawer close
+  useEffect(() => {
+    if (!isOpen || selectedCustomTemplateIds.size > 0) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
+    return () => removeKey();
+  }, [isOpen, onClose, selectedCustomTemplateIds.size, platformService]);
 
   const handleBulkDelete = () => {
     const ids = Array.from(selectedCustomTemplateIds);

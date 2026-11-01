@@ -1,18 +1,29 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { BatchSelectionManager, IBatchSelectionManager, SelectionState } from '../utils/batchSelectionManager';
 import { useStore } from './useStore';
+import { useServices } from '../services/ServiceContext';
 
 export interface UseBatchSelectionProps<T> {
   items: T[];
   getItemId: (item: T) => string;
   clearOnDependencies?: unknown[];
   managerFactory?: () => IBatchSelectionManager;
+  isActive?: boolean;
+  enableShortcuts?: boolean;
 }
 
-export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [], managerFactory }: UseBatchSelectionProps<T>) {
+export function useBatchSelection<T>({
+  items,
+  getItemId,
+  clearOnDependencies = [],
+  managerFactory,
+  isActive = true,
+  enableShortcuts = false
+}: UseBatchSelectionProps<T>) {
   const [manager] = React.useState<IBatchSelectionManager>(() => managerFactory ? managerFactory() : new BatchSelectionManager());
 
   const state = useStore(manager);
+  const { platformService } = useServices();
 
   // ADR 0047 Option A: Clear selection on filter/tab changes
   const prevDepsRef = React.useRef(clearOnDependencies);
@@ -63,6 +74,29 @@ export function useBatchSelection<T>({ items, getItemId, clearOnDependencies = [
     },
     [manager, itemIds, getItemId]
   );
+
+  useEffect(() => {
+    if (!isActive || !enableShortcuts) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (manager.getSnapshot().selectedIds.size > 0) {
+          manager.clearSelection();
+        }
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+        if (!platformService.isInputFocused()) {
+          e.preventDefault();
+          manager.toggleSelectAll(itemIds);
+        }
+      }
+    };
+
+    const removeKey = platformService.addEventListener("keydown", handleKeyDown);
+    return () => removeKey();
+  }, [isActive, enableShortcuts, itemIds, manager, platformService]);
+
 
   return {
     selectedIds: state.selectedIds,

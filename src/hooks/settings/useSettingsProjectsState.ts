@@ -11,7 +11,9 @@ export function useSettingsProjectsState(projects: ProjectInfo[], activeTab: str
   } = useBatchSelection({
     items: projects,
     getItemId: (p) => p.id,
-    clearOnDependencies: [activeTab]
+    clearOnDependencies: [activeTab],
+    isActive: activeTab === "account",
+    enableShortcuts: true
   });
 
   const handleBulkDeleteProjects = () => {

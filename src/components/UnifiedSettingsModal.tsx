@@ -199,28 +199,17 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     onClose();
   }, "settings-drawer");
 
-  // Keyboard shortcuts and Escape listener
+  // Keyboard Escape listener for Drawer close
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || (selectedProjectIds.size > 0 && activeTab === "account")) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (selectedProjectIds.size > 0 && activeTab === "account") {
-          clearProjectSelection();
-        } else {
-
-          onClose();
-        }
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "a" && activeTab === "account") {
-        if (platformService.getDocument()!.activeElement?.tagName !== 'INPUT' && platformService.getDocument()!.activeElement?.tagName !== 'TEXTAREA') {
-          e.preventDefault();
-          toggleSelectAllProjects();
-        }
+        onClose();
       }
     };
     const removeKey = platformService.addEventListener("keydown", handleKeyDown);
     return () => removeKey();
-  }, [isOpen, onClose, activeTab, selectedProjectIds.size, clearProjectSelection, toggleSelectAllProjects]);
+  }, [isOpen, onClose, activeTab, selectedProjectIds.size, platformService]);
 
 
   // Audio state

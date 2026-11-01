@@ -95,6 +95,8 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   } = useBatchSelection({ clearOnDependencies: [searchQuery],
     items: filteredSessions,
     getItemId: (s) => s.id,
+    isActive: isOpen,
+    enableShortcuts: !isCreating
   });
 
   const handleBulkDelete = () => {
@@ -149,30 +151,19 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
     removeFromSelection(id);
   };
 
-  // Keyboard shortcuts (Cmd/Ctrl+A to select all, Esc to clear selection)
+  // Keyboard Escape listener for Drawer close
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || selectedSessionIds.size > 0) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (selectedSessionIds.size > 0) {
-          clearSelection();
-        } else {
-          onClose();
-        }
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "a" && !isCreating) {
-        // Prevent default browser select all
-        if (platformService.getDocument()!.activeElement?.tagName !== 'INPUT' && platformService.getDocument()!.activeElement?.tagName !== 'TEXTAREA') {
-          e.preventDefault();
-          toggleSelectAll(filteredSessions);
-        }
+        onClose();
       }
     };
 
     const removeKey = platformService.addEventListener("keydown", handleKeyDown);
     return () => removeKey();
-  }, [isOpen, selectedSessionIds.size, isCreating, filteredSessions, onClose, clearSelection, toggleSelectAll]);
+  }, [isOpen, onClose, selectedSessionIds.size, platformService]);
 
   const getStatusIndicator = (status: JulesTaskStatus) => {
     switch (status) {
