@@ -1,6 +1,6 @@
 import { PromptConfig, PromptType, StructuredExample, ChatMessage } from "../../types";
 import { DEFAULT_CONFIG } from "../../data/templates";
-import { defaultStorageFactory } from "./StorageFactory";
+import { defaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { IStorageRegistry } from "./StorageRegistry";
 import { IMutableSingleton } from "./types";
 import { STORAGE_KEYS } from "./constants";
@@ -29,6 +29,7 @@ export interface DraftStateServiceConfig {
   timeProvider?: ITimeProvider;
   logger: ILogger;
   draftRegistry?: IStorageRegistry<IMutableSingleton<DraftState | null>>;
+  storageFactory?: IStorageFactory;
 }
 
 export class DraftStateService implements IDraftStateService {
@@ -39,9 +40,15 @@ export class DraftStateService implements IDraftStateService {
   constructor(config: DraftStateServiceConfig) {
     this.logger = config?.logger || defaultLogger;
     this.timeProvider = config?.timeProvider || defaultTimeProvider;
-    this.draftRegistry = config?.draftRegistry || defaultStorageFactory.createRegistry<IMutableSingleton<DraftState | null>>((key) => {
-      return defaultStorageFactory.createSingleton<DraftState | null>(key, null);
-    });
+
+    if (config?.draftRegistry) {
+        this.draftRegistry = config.draftRegistry;
+    } else {
+        const factory = config?.storageFactory || defaultStorageFactory;
+        this.draftRegistry = factory.createRegistry<IMutableSingleton<DraftState | null>>((key) => {
+          return factory.createSingleton<DraftState | null>(key, null);
+        });
+    }
   }
 
   public getProjectDraftKey(projectId?: string | null): string {

@@ -1,5 +1,5 @@
 
-import { defaultStorageFactory } from "./StorageFactory";
+import { defaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeSetStorageString } from "./core";
 import { IMutableSingleton } from "./types";
@@ -16,6 +16,7 @@ export interface IGeneralSettingsService {
 export interface GeneralSettingsServiceConfig {
   apiKeySingleton?: IMutableSingleton<string>;
   flagSecureSingleton?: IMutableSingleton<boolean>;
+  storageFactory?: IStorageFactory;
 }
 
 export class GeneralSettingsService implements IGeneralSettingsService {
@@ -24,23 +25,33 @@ export class GeneralSettingsService implements IGeneralSettingsService {
   public flagSecureObservable: IObservable<boolean>;
 
   constructor(config: GeneralSettingsServiceConfig) {
-    this.apiKeySingleton = config?.apiKeySingleton || defaultStorageFactory.createSingleton<string>(
-      STORAGE_KEYS.API_KEY,
-      "",
-      {
-        transformIn: (key) => key.trim(),
-        adapter: {
-          get: (k, f) => safeGetStorageString(k, f as string),
-          set: (k, v) => safeSetStorageString(k, v),
-          remove: (k) => safeSetStorageString(k, ""),
-        }
-      }
-    );
+    if (config?.apiKeySingleton) {
+        this.apiKeySingleton = config.apiKeySingleton;
+    } else {
+        const factory = config?.storageFactory || defaultStorageFactory;
+        this.apiKeySingleton = factory.createSingleton<string>(
+          STORAGE_KEYS.API_KEY,
+          "",
+          {
+            transformIn: (key) => key.trim(),
+            adapter: {
+              get: (k, f) => safeGetStorageString(k, f as string),
+              set: (k, v) => safeSetStorageString(k, v),
+              remove: (k) => safeSetStorageString(k, ""),
+            }
+          }
+        );
+    }
 
-    this.flagSecureSingleton = config?.flagSecureSingleton || defaultStorageFactory.createSingleton<boolean>(
-      STORAGE_KEYS.FLAG_SECURE_ENABLED,
-      true
-    );
+    if (config?.flagSecureSingleton) {
+        this.flagSecureSingleton = config.flagSecureSingleton;
+    } else {
+        const factory = config?.storageFactory || defaultStorageFactory;
+        this.flagSecureSingleton = factory.createSingleton<boolean>(
+          STORAGE_KEYS.FLAG_SECURE_ENABLED,
+          true
+        );
+    }
 
     this.flagSecureObservable = new Observable<boolean>(this.flagSecureSingleton.load());
   }

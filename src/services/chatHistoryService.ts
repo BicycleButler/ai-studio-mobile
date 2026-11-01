@@ -1,5 +1,5 @@
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorageKeys, STORAGE_KEYS, globalStorageQuotaObservable, IStorageRegistry, defaultStorageFactory } from "../utils/storage";
+import { safeGetStorageKeys, STORAGE_KEYS, globalStorageQuotaObservable, IStorageRegistry, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, defaultLogger } from "../utils/logger";
 import { defaultPlatformService } from "./platformService";
@@ -28,24 +28,27 @@ export interface ChatHistoryServiceConfig {
   logger: ILogger;
   collectionRegistry?: IStorageRegistry<IMutableCollection<ChatSession>>;
   isBrowserEnv?: () => boolean;
+  storageFactory?: IStorageFactory;
 }
 
 export class ChatHistoryService implements IChatHistoryService {
   private unsubscribeQuota: () => void;
-  private config: Required<Omit<ChatHistoryServiceConfig, 'timeProvider'>> & { timeProvider: ITimeProvider };
+  private config: Required<Omit<ChatHistoryServiceConfig, 'timeProvider' | 'storageFactory'>> & { timeProvider: ITimeProvider };
   private collectionRegistry: IStorageRegistry<IMutableCollection<ChatSession>>;
   private timeProvider: ITimeProvider;
 
   constructor(config: ChatHistoryServiceConfig) {
     this.timeProvider = config?.timeProvider || defaultTimeProvider;
+    const factory = config?.storageFactory || defaultStorageFactory;
+
     this.config = {
       quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
       timeProvider: this.timeProvider,
       isBrowserEnv: config?.isBrowserEnv || (() => defaultPlatformService.isBrowserEnv()),
-      collectionRegistry: config?.collectionRegistry || defaultStorageFactory.createRegistry<IMutableCollection<ChatSession>>((key) => {
-        return defaultStorageFactory.createCollection<ChatSession>(key, {
+      collectionRegistry: config?.collectionRegistry || factory.createRegistry<IMutableCollection<ChatSession>>((key) => {
+        return factory.createCollection<ChatSession>(key, {
           keyExtractor: (item) => String(item.id || ""),
           validate: (s) => !this.isMockChatSession(s as Partial<ChatSession>),
           maxItems: 100,

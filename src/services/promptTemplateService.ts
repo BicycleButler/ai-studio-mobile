@@ -1,5 +1,5 @@
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
-import { STORAGE_KEYS, defaultStorageFactory } from "../utils/storage";
+import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
 import { generateUniqueId } from "../utils/idGenerator";
 
@@ -81,6 +81,7 @@ export const BUILTIN_PROMPT_TEMPLATES: PromptTemplate[] = [
 export interface PromptTemplateServiceConfig {
   builtinTemplates?: PromptTemplate[];
   customTemplatesCollection?: IMutableCollection<PromptTemplate>;
+  storageFactory?: IStorageFactory;
 }
 
 export class PromptTemplateService implements IPromptTemplateService {
@@ -89,7 +90,13 @@ export class PromptTemplateService implements IPromptTemplateService {
 
   constructor(config: PromptTemplateServiceConfig) {
     this.builtinTemplates = config?.builtinTemplates || BUILTIN_PROMPT_TEMPLATES;
-    this.customTemplatesCollection = config?.customTemplatesCollection || defaultStorageFactory.createCollection<PromptTemplate>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
+
+    if (config?.customTemplatesCollection) {
+      this.customTemplatesCollection = config.customTemplatesCollection;
+    } else {
+      const factory = config?.storageFactory || defaultStorageFactory;
+      this.customTemplatesCollection = factory.createCollection<PromptTemplate>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
+    }
   }
 
   public getBuiltinTemplates(): PromptTemplate[] {

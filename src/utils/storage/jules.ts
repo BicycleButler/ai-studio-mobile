@@ -5,7 +5,7 @@ import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
 import { IApiClient } from "../apiClient";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
-import { defaultStorageFactory } from "./StorageFactory";
+import { defaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { ILogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
@@ -41,6 +41,7 @@ export interface JulesStorageServiceConfig {
   syncAdapter?: IStorageSyncAdapter<JulesSession[]>;
   logger: ILogger;
   idGenerator?: IIdGenerator;
+  storageFactory?: IStorageFactory;
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {
