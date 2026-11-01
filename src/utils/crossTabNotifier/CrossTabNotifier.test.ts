@@ -4,6 +4,8 @@ import { createCrossTabNotifier } from './CrossTabNotifierFactory';
 import { NoOpLogger } from '../logger';
 import { IPlatformService } from "../../services/platformService";
 import { StorageEventCtor } from '../testUtils/storageEvent';
+import { FallbackCrossTabNotifier } from './FallbackCrossTabNotifier';
+import { BroadcastChannelNotifier } from './BroadcastChannelNotifier';
 
 describe('CrossTabNotifier', () => {
   let logger: NoOpLogger;
@@ -94,6 +96,8 @@ describe('CrossTabNotifier', () => {
           expect(notifier).toBeDefined();
           expect(typeof notifier.notify).toBe('function');
           expect(typeof notifier.onMessage).toBe('function');
+          expect(notifier instanceof FallbackCrossTabNotifier).toBe(true);
+          expect((notifier as unknown as { activeNotifier: any }).activeNotifier instanceof BroadcastChannelNotifier).toBe(true);
       });
 
       it('should fallback to StorageEventNotifier if BroadcastChannel is missing', () => {
@@ -104,9 +108,8 @@ describe('CrossTabNotifier', () => {
           }
 
           const notifier = createCrossTabNotifier({ name: 'test', logger, platformService: mockPlatformService });
-          expect(notifier instanceof StorageEventNotifier).toBe(true);
-
-
+          expect(notifier instanceof FallbackCrossTabNotifier).toBe(true);
+          expect((notifier as unknown as { activeNotifier: any }).activeNotifier instanceof StorageEventNotifier).toBe(true);
       });
   });
 });

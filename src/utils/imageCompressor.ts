@@ -123,12 +123,20 @@ export interface IImageCompressor {
   compressImageForGemini(file: File, options?: CompressionOptions): Promise<MessageAttachment>;
 }
 
+export interface ImageCompressorConfig {
+  strategy?: IImageCompressionStrategy;
+}
+
 export class ImageCompressor implements IImageCompressor {
-  constructor(private strategy: IImageCompressionStrategy) {}
+  private strategy: IImageCompressionStrategy;
+
+  constructor(config?: ImageCompressorConfig) {
+    this.strategy = config?.strategy || new CanvasImageCompressionStrategy();
+  }
 
   public async compressImageForGemini(file: File, options?: CompressionOptions): Promise<MessageAttachment> {
     return this.strategy.compress(file, options || {});
   }
 }
 
-export const defaultImageCompressor = new ImageCompressor(new CanvasImageCompressionStrategy());
+export const defaultImageCompressor = new ImageCompressor();

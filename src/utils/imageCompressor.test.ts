@@ -1,21 +1,53 @@
-import { describe, it, expect } from 'vitest';
-import { calculateProportionalDimensions } from './imageCompressor';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { calculateProportionalDimensions, ImageCompressor, CanvasImageCompressionStrategy, CompressionOptions, IImageCompressionStrategy } from './imageCompressor';
+import { IPlatformService } from '../services/platformService';
+import { MessageAttachment } from '../types';
 
-describe('imageCompressor', () => {
-  describe('calculateProportionalDimensions', () => {
-    it('should not scale if dimensions are smaller than max', () => {
-      const result = calculateProportionalDimensions(100, 100, 1000);
-      expect(result).toEqual({ width: 100, height: 100 });
+describe('ImageCompressor Utils', () => {
+    describe('calculateProportionalDimensions', () => {
+        it('should not scale if within limits', () => {
+            expect(calculateProportionalDimensions(800, 600, 1000)).toEqual({ width: 800, height: 600 });
+        });
+
+        it('should scale down wide images proportionally', () => {
+            expect(calculateProportionalDimensions(2000, 1000, 1000)).toEqual({ width: 1000, height: 500 });
+        });
+
+        it('should scale down tall images proportionally', () => {
+            expect(calculateProportionalDimensions(1000, 2000, 1000)).toEqual({ width: 500, height: 1000 });
+        });
     });
 
-    it('should scale down width properly', () => {
-      const result = calculateProportionalDimensions(2000, 1000, 1000);
-      expect(result).toEqual({ width: 1000, height: 500 });
+    describe('ImageCompressor Configuration Injection', () => {
+        it('should use provided strategy', async () => {
+            const mockStrategy: IImageCompressionStrategy = {
+                compress: vi.fn().mockResolvedValue({ id: 'test' } as MessageAttachment)
+            };
+            const compressor = new ImageCompressor({ strategy: mockStrategy });
+            const mockFile = new File(['test'], 'test.png', { type: 'image/png' });
+
+            await compressor.compressImageForGemini(mockFile);
+            expect(mockStrategy.compress).toHaveBeenCalledWith(mockFile, {});
+        });
+
+        it('should use default Canvas strategy if no strategy provided', () => {
+            const compressor = new ImageCompressor();
+            expect((compressor as any).strategy).toBeInstanceOf(CanvasImageCompressionStrategy);
+        });
     });
 
-    it('should scale down height properly', () => {
-      const result = calculateProportionalDimensions(1000, 2000, 1000);
-      expect(result).toEqual({ width: 500, height: 1000 });
+    describe('CanvasImageCompressionStrategy', () => {
+        let mockPlatformService: IPlatformService;
+
+        beforeEach(() => {
+            mockPlatformService = {
+                getDocument: () => null // Stub just enough for testing init
+            } as unknown as IPlatformService;
+        });
+
+        it('should handle missing document gracefully (returns unsupported for webp)', () => {
+            const strategy = new CanvasImageCompressionStrategy({ platformService: mockPlatformService });
+            expect((strategy as any).isWebPSupported()).toBe(false);
+        });
     });
-  });
 });

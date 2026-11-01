@@ -180,7 +180,9 @@ const explicitlyInjectedProjectService = new ProjectService({
 
 const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger, storageFactory: defaultStorageFactory });
 
-const explicitlyInjectedImageCompressor = new ImageCompressor(new CanvasImageCompressionStrategy({ idGenerator: defaultIdGenerator }));
+const explicitlyInjectedImageCompressor = new ImageCompressor({
+  strategy: new CanvasImageCompressionStrategy({ idGenerator: defaultIdGenerator })
+});
 
 const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
   builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
