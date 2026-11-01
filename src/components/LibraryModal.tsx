@@ -52,6 +52,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   );
 
 
+  const { platformService } = useServices();
   const {
     selectedIds: selectedPromptIds,
     toggleSelection,
@@ -62,6 +63,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   } = useBatchSelection({
     items: savedPrompts,
     getItemId: (p) => p.id,
+    isActive: true,
+    enableShortcuts: true
   });
 
   const handleBulkDelete = () => {
@@ -73,31 +76,6 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
     }
   };
 
-  const { platformService } = useServices();
-  // Keyboard shortcut listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-         if (selectedPromptIds.size > 0) {
-            clearSelection();
-         }
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.key === "a") {
-        if (!platformService.isInputFocused()) {
-          e.preventDefault();
-          toggleSelectAll(savedPrompts);
-        }
-      }
-    };
-
-    const win = platformService.getWindow();
-    if (win) {
-      win.addEventListener("keydown", handleKeyDown);
-      return () => win.removeEventListener("keydown", handleKeyDown);
-    }
-    return undefined;
-  }, [toggleSelectAll, savedPrompts, selectedPromptIds.size, clearSelection, platformService]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();

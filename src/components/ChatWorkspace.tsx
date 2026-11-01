@@ -166,13 +166,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     toggleSelection: toggleHistorySelectionRaw,
     toggleSelectAll: toggleSelectAllHistoryRaw,
     getSelectionState: getHistorySelectionState,
-
-
-
     clearSelection: clearHistorySelection,
   } = useBatchSelection({
     items: validHistorySessions,
     getItemId: (s) => s.id,
+    isActive: isHistoryOpen,
+    enableShortcuts: true
   });
 
   const handleBulkDeleteHistory = () => {
@@ -314,7 +313,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && selectedHistoryIds.size === 0) {
         setIsHistoryOpen(false);
         historyButtonRef.current?.focus();
       }
