@@ -1,5 +1,5 @@
 import { ProjectInfo } from "../../types";
-import { generateUniqueId } from "../idGenerator";
+import { IIdGenerator, defaultIdGenerator } from "../idGenerator";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";
@@ -23,14 +23,17 @@ export interface ProjectServiceConfig {
   timeProvider?: ITimeProvider;
   generalSettingsService?: IGeneralSettingsService;
   projectsManager?: IActiveItemManager<ProjectInfo>;
+  idGenerator?: IIdGenerator;
 }
 
 export class ProjectService implements IProjectService {
   public projectsManager: IActiveItemManager<ProjectInfo>;
   private timeProvider: ITimeProvider;
+  private idGenerator: IIdGenerator;
 
   constructor(config: ProjectServiceConfig) {
     this.timeProvider = config?.timeProvider || defaultTimeProvider;
+    this.idGenerator = config?.idGenerator || defaultIdGenerator;
     this.projectsManager = config?.projectsManager || createActiveItemManager<ProjectInfo>({
       collectionKey: STORAGE_KEYS.PROJECTS,
       collectionOptions: {
@@ -89,7 +92,7 @@ export class ProjectService implements IProjectService {
     projectData: Omit<ProjectInfo, "id" | "createdAt" | "updatedAt"> & { id?: string }
   ): ProjectInfo {
     const now = this.timeProvider.now();
-    const id = projectData.id || generateUniqueId("proj");
+    const id = projectData.id || this.idGenerator.generate("proj");
 
     const savedProject = {
       ...projectData,

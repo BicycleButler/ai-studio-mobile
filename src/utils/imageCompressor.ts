@@ -1,5 +1,5 @@
 import { MessageAttachment } from "../types";
-import { generateUniqueId } from "./idGenerator";
+import { IIdGenerator, defaultIdGenerator } from "./idGenerator";
 import { IPlatformService, defaultPlatformService } from "../services/platformService";
 
 export interface CompressionOptions {
@@ -31,13 +31,16 @@ export interface IImageCompressionStrategy {
 
 export interface CanvasImageCompressionStrategyConfig {
   platformService?: IPlatformService;
+  idGenerator?: IIdGenerator;
 }
 
 export class CanvasImageCompressionStrategy implements IImageCompressionStrategy {
   private platformService: IPlatformService;
+  private idGenerator: IIdGenerator;
 
   constructor(config?: CanvasImageCompressionStrategyConfig) {
     this.platformService = config?.platformService || defaultPlatformService;
+    this.idGenerator = config?.idGenerator || defaultIdGenerator;
   }
   private isWebPSupported(): boolean {
     if (!this.platformService.getDocument()) return false;
@@ -82,7 +85,7 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
             const sizeKb = Math.round((base64Data.length * 3) / 4 / 1024);
 
             const attachment: MessageAttachment = {
-              id: generateUniqueId("att"),
+              id: this.idGenerator.generate("att"),
               name: file.name,
               mimeType: targetMime,
               data: base64Data,

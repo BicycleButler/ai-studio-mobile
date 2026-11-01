@@ -7,6 +7,7 @@ import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
 import { defaultStorageFactory } from "../utils/storage";
 import { defaultLogger, ILogger } from "../utils/logger";
+import { defaultIdGenerator } from "../utils/idGenerator";
 
 import { IThemeService, ThemeService } from "./themeService";
 import { IPromptTemplateService, PromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
@@ -89,7 +90,8 @@ const explicitlyInjectedOfflineService = new OfflineService({
     logger: defaultLogger,
     platformService: explicitlyInjectedPlatformService,
     mutex: new Mutex(defaultLogger, explicitlyInjectedPlatformService),
-  })
+  }),
+  idGenerator: defaultIdGenerator
 });
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
@@ -139,6 +141,7 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
   apiClient: explicitlyInjectedApiClient,
   julesSessionsManager: undefined,
   storageFactory: defaultStorageFactory,
+  idGenerator: defaultIdGenerator,
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
@@ -172,15 +175,17 @@ const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
 
 const explicitlyInjectedProjectService = new ProjectService({
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
+  idGenerator: defaultIdGenerator
 });
 
 const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger, storageFactory: defaultStorageFactory });
 
-const explicitlyInjectedImageCompressor = new ImageCompressor(new CanvasImageCompressionStrategy());
+const explicitlyInjectedImageCompressor = new ImageCompressor(new CanvasImageCompressionStrategy({ idGenerator: defaultIdGenerator }));
 
 const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
   builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
-  storageFactory: defaultStorageFactory
+  storageFactory: defaultStorageFactory,
+  idGenerator: defaultIdGenerator
 });
 
 const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
