@@ -1,5 +1,4 @@
-import { useServices } from "../services/ServiceContext";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
 import { BatchDeleteOverlay } from "./BatchDeleteOverlay";
 import {
@@ -52,7 +51,6 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   );
 
 
-  const { platformService } = useServices();
   const {
     selectedIds: selectedPromptIds,
     toggleSelection,
