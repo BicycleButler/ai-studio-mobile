@@ -22,7 +22,7 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
   private platformService: IPlatformService;
 
   constructor(delayStrategy?: IDelayStrategy, platformService: IPlatformService = defaultPlatformService) {
-    // By default, start with baseDelayMs, max limit isn't strictly needed for small retry counts
+    // By default, start with base delay, max limit isn't strictly needed for small retry counts
     // but the strategy takes base, max, multiplier.
     this.delayStrategy = delayStrategy || new ExponentialBackoffDelayStrategy(1000, 10000, 2, 500);
     this.platformService = platformService;

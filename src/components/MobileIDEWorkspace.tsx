@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../utils/timeProvider";
 import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
@@ -17,7 +18,7 @@ import {
   Terminal,
 } from "lucide-react";
 
-import { generateUniqueId } from "../utils/idGenerator";
+import { defaultIdGenerator } from "../utils/idGenerator";
 
 import { IDEWorkspaceProps } from "./WorkspaceRouter";
 import { useServices } from "../services/ServiceContext";
@@ -98,13 +99,13 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   const [consoleLogs, setConsoleLogs] = useState<ConsoleLog[]>([
     {
       id: "c-0",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      timestamp: defaultTimeProvider.date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
       type: "system",
       message: `Google AI Studio Mobile IDE v2.5 initialized [Target Model: ${config.model}]`,
     },
     {
       id: "c-1",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      timestamp: defaultTimeProvider.date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
       type: "info",
       message: "Ready. Tap 'Run Script' to execute current file in simulated mobile environment.",
     },
@@ -152,8 +153,8 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   };
 
   const addConsoleLog = (type: ConsoleLog["type"], message: string) => {
-    const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    setConsoleLogs((prev) => [...prev, { id: generateUniqueId("c"), timestamp, type, message }]);
+    const timestamp = defaultTimeProvider.date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    setConsoleLogs((prev) => [...prev, { id: defaultIdGenerator.generate("c"), timestamp, type, message }]);
     if (type === "info" || type === "system" || type === "stdout") {
         logger.info(`[IDE] ${message}`);
     } else if (type === "stderr") {
@@ -182,7 +183,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       addConsoleLog("info", `[IDE] System instruction loaded (${config.systemInstruction.length} chars).`);
     }
 
-    const startTime = Date.now();
+    const startTime = defaultTimeProvider.now();
 
     // If user has no API key, alert in console
     if (!hasApiKey && activeFile.id !== "system" && activeFile.id !== "config") {
@@ -191,7 +192,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
           "stderr",
           "Error: GEMINI_API_KEY environment variable is not configured. Connect your key via Settings > Authentication to execute live queries."
         );
-        addConsoleLog("system", `Process terminated with exit code 1 (${Date.now() - startTime}ms).`);
+        addConsoleLog("system", `Process terminated with exit code 1 (${defaultTimeProvider.now() - startTime}ms).`);
         setIsRunning(false);
       }, 500);
       return;
@@ -228,7 +229,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       const resultText = data.text || "(Empty response received from model)";
       addConsoleLog("stdout", resultText);
 
-      const elapsed = data.durationMs || Date.now() - startTime;
+      const elapsed = data.durationMs || defaultTimeProvider.now() - startTime;
       const totalTokens = data.usageMetadata?.totalTokenCount || Math.round(resultText.length / 4);
       addConsoleLog(
         "success",
@@ -306,7 +307,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
   // Create new scratchpad file
   const handleCreateScratchpad = () => {
-    const newId = generateUniqueId("scratch");
+    const newId = defaultIdGenerator.generate("scratch");
     const newFile: IDEFile = {
       id: newId,
       name: `scratch_${files.length + 1}.ts`,

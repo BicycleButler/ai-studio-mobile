@@ -1,12 +1,13 @@
+import { defaultTimeProvider } from "../utils/timeProvider";
 import { useServices } from "../services/ServiceContext";
 import { useState, useCallback } from "react";
 import { ChatMessage, StructuredExample, SavedPrompt, PromptType, PromptConfig, ProjectInfo } from "../types";
-import { generateUniqueId } from "../utils/idGenerator";
+import { defaultIdGenerator } from "../utils/idGenerator";
 import { IPromptTemplateService } from "../services/promptTemplateService";
 import { useStore } from "./useStore";
 
 export function useChatSession(initialDraft: { messages?: ChatMessage[]; freeformText?: string; structuredExamples?: StructuredExample[] }, promptType: PromptType, config: PromptConfig, activeProject: ProjectInfo | null, promptTemplateService: IPromptTemplateService) {
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${Date.now()}`);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${defaultTimeProvider.now()}`);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (initialDraft.messages && initialDraft.messages.length > 0) {
       return initialDraft.messages;
@@ -31,19 +32,19 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
     if (onStopStream) {
       onStopStream();
     }
-    const newSessionId = generateUniqueId("sess");
+    const newSessionId = defaultIdGenerator.generate("sess");
     setCurrentSessionId(newSessionId);
     setMessages([]);
   }, []);
 
   const handleSaveCurrentPrompt = useCallback((title: string) => {
     const newSaved: SavedPrompt = {
-      id: generateUniqueId("saved"),
+      id: defaultIdGenerator.generate("saved"),
       title,
       type: promptType,
       config: { ...config },
       messages: [...messages],
-      updatedAt: Date.now(),
+      updatedAt: defaultTimeProvider.now(),
       projectId: activeProject?.id,
     };
     savedPromptsService.savedPromptsManager.collection.upsert(newSaved, true);

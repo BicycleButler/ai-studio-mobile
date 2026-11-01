@@ -1,3 +1,4 @@
+import { defaultTimeProvider } from "../utils/timeProvider";
 import { SavedPrompt } from "../types";
 
 export const DEFAULT_CONFIG = {
@@ -22,7 +23,7 @@ export const STARTER_TEMPLATES: SavedPrompt[] = [
       systemInstruction: "You are an expert Google staff software engineer. Write clean, idiomatic, fully-typed TypeScript and modern Android Kotlin. Always prioritize correctness, security, and edge-case handling.",
     },
     messages: [],
-    updatedAt: Date.now(),
+    updatedAt: defaultTimeProvider.now(),
     tags: ["Coding", "Android", "Kotlin"],
   },
   {
@@ -62,7 +63,7 @@ export const STARTER_TEMPLATES: SavedPrompt[] = [
       ),
     },
     messages: [],
-    updatedAt: Date.now(),
+    updatedAt: defaultTimeProvider.now(),
     tags: ["JSON", "Schema", "Extraction"],
   },
   {
@@ -75,7 +76,7 @@ export const STARTER_TEMPLATES: SavedPrompt[] = [
       systemInstruction: "You are a senior UI/UX designer and mobile developer. Analyze screenshots, wireframes, and UI mockups. Identify layout hierarchy, accessibility contrast flaws, touch target issues, and provide Tailwind CSS or Compose code.",
     },
     messages: [],
-    updatedAt: Date.now(),
+    updatedAt: defaultTimeProvider.now(),
     tags: ["UX", "Design", "Vision"],
   },
 ];
