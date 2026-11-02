@@ -19,11 +19,14 @@ export interface IProjectService {
   ): ProjectInfo;
 }
 
+import { IStorageFactory } from "./StorageFactory";
+
 export interface ProjectServiceConfig {
   timeProvider?: ITimeProvider;
   generalSettingsService?: IGeneralSettingsService;
   projectsManager?: IActiveItemManager<ProjectInfo>;
   idGenerator?: IIdGenerator;
+  storageFactory?: IStorageFactory;
 }
 
 export class ProjectService implements IProjectService {
@@ -35,6 +38,7 @@ export class ProjectService implements IProjectService {
     this.timeProvider = config?.timeProvider || defaultTimeProvider;
     this.idGenerator = config?.idGenerator || defaultIdGenerator;
     this.projectsManager = config?.projectsManager || createActiveItemManager<ProjectInfo>({
+      storageFactory: config?.storageFactory,
       collectionKey: STORAGE_KEYS.PROJECTS,
       collectionOptions: {
         transformIn: (p) => ({ ...p, apiKey: encryptSecret(p.apiKey) }),

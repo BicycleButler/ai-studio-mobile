@@ -10,9 +10,12 @@ export interface ISavedPromptsService {
   persistSavedPrompts(prompts: SavedPrompt[]): void;
 }
 
+import { IStorageFactory } from "./StorageFactory";
+
 export interface SavedPromptsServiceConfig {
   savedPromptsManager?: IActiveItemManager<SavedPrompt>;
   syncAdapter?: IStorageSyncAdapter<SavedPrompt[]>;
+  storageFactory?: IStorageFactory;
 }
 
 export class SavedPromptsService implements ISavedPromptsService {
@@ -24,6 +27,7 @@ export class SavedPromptsService implements ISavedPromptsService {
     this.syncAdapter = config.syncAdapter;
 
     this.savedPromptsManager = config?.savedPromptsManager || createActiveItemManager<SavedPrompt>({
+      storageFactory: config?.storageFactory,
       collectionKey: STORAGE_KEYS.SAVED_PROMPTS,
       collectionOptions: {
         transformIn: (p) => ({

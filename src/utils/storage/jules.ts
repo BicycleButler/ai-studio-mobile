@@ -65,7 +65,8 @@ export class JulesStorageService implements IJulesStorageService {
     this.idGenerator = config.idGenerator || defaultIdGenerator;
     this.timeProvider = config.timeProvider || defaultTimeProvider;
 
-    this.julesApiKeySingleton = config?.julesApiKeySingleton || defaultStorageFactory.createSingleton<string>(
+    const factory = config.storageFactory || defaultStorageFactory;
+    this.julesApiKeySingleton = config?.julesApiKeySingleton || factory.createSingleton<string>(
       STORAGE_KEYS.JULES_API_KEY,
       "",
       {
@@ -74,7 +75,7 @@ export class JulesStorageService implements IJulesStorageService {
       }
     );
 
-    this.julesSettingsSingleton = config?.julesSettingsSingleton || defaultStorageFactory.createSingleton<JulesSettings>(
+    this.julesSettingsSingleton = config?.julesSettingsSingleton || factory.createSingleton<JulesSettings>(
       STORAGE_KEYS.JULES_SETTINGS,
       DEFAULT_JULES_SETTINGS
     );
@@ -83,6 +84,7 @@ export class JulesStorageService implements IJulesStorageService {
     this.syncAdapter = config.syncAdapter;
 
     this.julesSessionsManager = config?.julesSessionsManager || createActiveItemManager<JulesSession>({
+      storageFactory: config?.storageFactory,
       collectionKey: STORAGE_KEYS.JULES_SESSIONS,
       collectionOptions: {
         validate: (s) => !this.isMockJulesSession(s as Partial<JulesSession>),
