@@ -12,7 +12,7 @@ import { fetchModels } from "../utils/modelCatalog";
 
 export function useAppState() {
   // External Services
-  const { chatHistoryService, googleAuthService, authService, promptTemplateService, generalSettingsService, apiClient, draftStateService, projectService, platformService, timeProvider } = useServices();
+  const { chatHistoryService, appAuthManager, promptTemplateService, generalSettingsService, apiClient, draftStateService, projectService, platformService, timeProvider } = useServices();
 
   // Load initial app draft safely before deriving other states
   const initialActiveProjectId = projectService.getActiveProjectId();
@@ -23,8 +23,8 @@ export function useAppState() {
 
   // Auth state (could use useAppAuth instead but keeping logic unified here for compatibility if needed,
   // or refactoring completely)
-  const [googleUser, setGoogleUser] = useState(() => googleAuthService.loadStoredGoogleUser());
-  const [hasServerKey, setHasServerKey] = useState(false);
+  const [googleUser, setGoogleUser] = useState(() => appAuthManager.getGoogleUser());
+  const [hasServerKey, setHasServerKey] = useState(() => appAuthManager.hasServerKey());
   const [customApiKey, setCustomApiKey] = useState(() => generalSettingsService.loadStoredApiKey());
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
@@ -81,15 +81,12 @@ export function useAppState() {
   };
 
   const refreshServerAuth = async (): Promise<boolean> => {
-    try {
-      const data = await authService.fetchServerHealth();
-      const hasKey = Boolean(data.hasServerApiKey);
-      setHasServerKey(hasKey);
-      return hasKey;
-    } catch {
-      return false;
-    }
+    await appAuthManager.refreshServerAuth();
+    const hasKey = appAuthManager.hasServerKey();
+    setHasServerKey(hasKey);
+    return hasKey;
   };
+
 
   const handleSelectChatSession = (session: ChatSession, onStopStream?: () => void) => {
     if (onStopStream) {
@@ -147,24 +144,20 @@ export function useAppState() {
   useEffect(() => {
     chatHistoryService.purgeMockSessionsFromStorage();
 
-    authService.fetchServerHealth()
-      .then((data) => {
-        if (data.hasServerApiKey) setHasServerKey(true);
-      })
-      .catch(() => {});
-
-    googleAuthService.fetchCurrentGoogleUser().then((user) => {
-      if (user) setGoogleUser(user);
-    });
-
-    const unsubscribeAuth = googleAuthService.initAuth((user) => {
-      if (user) setGoogleUser(user);
-    });
+    const unsubscribeAuth = appAuthManager.initializeAuth(
+      (serverKeyStatus) => {
+        setHasServerKey(serverKeyStatus);
+      },
+      (user) => {
+        setGoogleUser(user);
+      }
+    );
 
     return () => {
       unsubscribeAuth();
     };
-  }, []);
+  }, [appAuthManager, chatHistoryService]);
+
 
   return {
     ...projectManager,

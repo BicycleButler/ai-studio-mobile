@@ -1167,3 +1167,17 @@ Treat time and random ID generation as pure static utilities and retain the glob
 
 **Recommendation:**
 **Path 1 (Injected Instantiation from ServiceContext)** was implemented. It strictly enforces the Dependency Inversion Principle uniformly across both domain services and the UI layer. It enhances Generality and Testability, allowing isolated component tests to easily inject predictable time and ID generation via `<ServiceProvider>` without relying on potentially brittle or globally-leaking system-time mocks.
+
+## Architectural Decision: App Auth Orchestration Decoupling
+
+**Context:**
+The React hook `useAppAuth` was responsible for orchestrating the interaction between `AuthService` (handling backend proxy authentication) and `GoogleAuthService` (handling Google OAuth). It manually managed the synchronization of user state, server keys, and custom API keys directly within the UI layer. This violated the Single Responsibility Principle, coupled the React components directly to authentication domain logic, and made it difficult to unit-test the orchestration rules without rendering the hook.
+
+**Path 1: Extract an `IAppAuthManager` (Facade/Orchestrator)**
+Create a dedicated `AppAuthManager` domain class to encapsulate the combination of Google OAuth identity and backend proxy access. This class exposes a unified API (`initiateGoogleLogin`, `hasServerKey`, `getCustomApiKey`) and provides a single `initializeAuth` method for the UI to subscribe to state changes. The `ServiceContext` injects this manager, and `useAppAuth` simply consumes it.
+
+**Path 2: Maintain Logic in `useAppAuth` but abstract hooks**
+Break `useAppAuth` down into smaller hooks like `useGoogleIdentity` and `useServerAuth`. (Drawback: still leaves domain orchestration in the React layer, and doesn't resolve the lack of a centralized unified auth state representation for non-React consumers).
+
+**Recommendation:**
+**Path 1 (Extract an `IAppAuthManager`)** was implemented. It strictly enforces the Dependency Inversion Principle, moving domain orchestration out of the React layer and into a testable, dedicated service class. This vastly improves Abstraction and Maintainability, aligning with the architectural patterns established by `OfflineQueueStore` and `SyncOrchestrator`.

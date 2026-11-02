@@ -1,3 +1,4 @@
+import { IAppAuthManager, AppAuthManager } from "./appAuthManager";
 import { IPlatformService, BrowserPlatformService } from "./platformService";
 import React, { createContext, useContext, ReactNode } from "react";
 
@@ -49,6 +50,7 @@ export interface IServices {
   promptTemplateService: IPromptTemplateService;
   authService: IAuthService;
   googleAuthService: IGoogleAuthService;
+  appAuthManager: IAppAuthManager;
   offlineService: IOfflineService;
   networkStatusProvider: INetworkStatusProvider;
   chatHistoryService: IChatHistoryService;
@@ -173,6 +175,13 @@ const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService({
   storageFactory: defaultStorageFactory
 });
 
+const explicitlyInjectedAppAuthManager = new AppAuthManager({
+  googleAuthService: explicitlyInjectedGoogleAuthService,
+  authService: explicitlyInjectedAuthService,
+  generalSettingsService: explicitlyInjectedGeneralSettingsService,
+  logger: defaultLogger
+});
+
 const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
     generalSettingsService: explicitlyInjectedGeneralSettingsService,
     platformService: explicitlyInjectedPlatformService
@@ -212,6 +221,7 @@ const defaultServices: IServices = {
   promptTemplateService: explicitlyInjectedPromptTemplateService,
   authService: explicitlyInjectedAuthService,
   googleAuthService: explicitlyInjectedGoogleAuthService,
+  appAuthManager: explicitlyInjectedAppAuthManager,
   offlineService: explicitlyInjectedOfflineService,
   apiClient: explicitlyInjectedApiClient,
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
