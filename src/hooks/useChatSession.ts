@@ -5,7 +5,8 @@ import { IPromptTemplateService } from "../services/promptTemplateService";
 import { useStore } from "./useStore";
 
 export function useChatSession(initialDraft: { messages?: ChatMessage[]; freeformText?: string; structuredExamples?: StructuredExample[] }, promptType: PromptType, config: PromptConfig, activeProject: ProjectInfo | null, promptTemplateService: IPromptTemplateService) {
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${timeProvider.now()}`);
+  const { savedPromptsService, idGenerator, timeProvider } = useServices();
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => idGenerator.generate("sess"));
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (initialDraft.messages && initialDraft.messages.length > 0) {
       return initialDraft.messages;
@@ -16,7 +17,6 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
   const [freeformText] = useState(initialDraft.freeformText);
   const [structuredExamples] = useState<StructuredExample[]>(initialDraft.structuredExamples || []);
 
-  const { savedPromptsService, idGenerator, timeProvider } = useServices();
   const savedPromptsStore = useStore(savedPromptsService.savedPromptsManager);
   const savedPrompts = savedPromptsStore.items;
 
