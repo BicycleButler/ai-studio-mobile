@@ -10,6 +10,7 @@ describe('ProjectService', () => {
 
   beforeEach(() => {
     mockActiveItemManager = {
+      ...({} as unknown as IActiveItemManager<ProjectInfo>),
       getItems: vi.fn().mockReturnValue([]),
       getActiveId: vi.fn().mockReturnValue(null),
       setActiveId: vi.fn(),
@@ -22,6 +23,7 @@ describe('ProjectService', () => {
     } as unknown as IActiveItemManager<ProjectInfo>;
 
     mockGeneralSettingsService = {
+      ...({} as unknown as GeneralSettingsService),
       saveStoredApiKey: vi.fn(),
     } as unknown as GeneralSettingsService;
   });

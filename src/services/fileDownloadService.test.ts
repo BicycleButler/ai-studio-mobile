@@ -10,7 +10,10 @@ describe('BrowserFileDownloadService', () => {
             ...defaultPlatformService,
             getDocument: () => null
         };
-        const service = new BrowserFileDownloadService(new NoOpLogger(), mockPlatformService as any);
+        const service = new BrowserFileDownloadService(new NoOpLogger(), {
+            ...({} as unknown as import("./platformService").IPlatformService),
+            ...mockPlatformService,
+        });
         const result = await service.downloadText('test.txt', 'content');
 
         expect(result).toBe(false);

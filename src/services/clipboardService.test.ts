@@ -7,8 +7,9 @@ describe('BrowserClipboardService', () => {
         const mockWriteText = vi.fn().mockResolvedValue(undefined);
         const mockClipboard = { writeText: mockWriteText } as unknown as Clipboard;
 
-        const mockPlatformService: any = {
-            getNavigator: () => ({ clipboard: mockClipboard }),
+        const mockPlatformService = {
+            ...({} as unknown as import("./platformService").IPlatformService),
+            getNavigator: () => ({ clipboard: mockClipboard }) as unknown as Navigator,
         };
         const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);
         const result = await service.writeText('test text');
@@ -21,8 +22,9 @@ describe('BrowserClipboardService', () => {
         const mockWriteText = vi.fn().mockRejectedValue(new Error('clipboard error'));
         const mockClipboard = { writeText: mockWriteText } as unknown as Clipboard;
 
-        const mockPlatformService: any = {
-            getNavigator: () => ({ clipboard: mockClipboard }),
+        const mockPlatformService = {
+            ...({} as unknown as import("./platformService").IPlatformService),
+            getNavigator: () => ({ clipboard: mockClipboard }) as unknown as Navigator,
         };
         const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);
         const result = await service.writeText('test text');
@@ -31,8 +33,9 @@ describe('BrowserClipboardService', () => {
     });
 
     it('should return false if clipboard is not available', async () => {
-        const mockPlatformService: any = {
-            getNavigator: () => ({ clipboard: null }),
+        const mockPlatformService = {
+            ...({} as unknown as import("./platformService").IPlatformService),
+            getNavigator: () => ({ clipboard: null }) as unknown as Navigator,
         };
         const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);
         const result = await service.writeText('test text');

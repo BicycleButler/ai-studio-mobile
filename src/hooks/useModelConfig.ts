@@ -22,7 +22,7 @@ export function useModelConfig(
           setModels(cleaned);
         }
       }
-    } catch (e) {
+    } catch {
       // Intentionally ignore fetch errors for fallback models
     }
   }, [apiClient]);

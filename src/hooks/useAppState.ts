@@ -12,7 +12,7 @@ import { PromptType, ChatMessage, ChatSession, SavedPrompt } from "../types";
 
 export function useAppState() {
   // External Services
-  const { chatHistoryService, appAuthManager, promptTemplateService, generalSettingsService, apiClient, draftStateService, projectService, platformService, timeProvider } = useServices();
+  const { chatHistoryService, appAuthManager, promptTemplateService, generalSettingsService, draftStateService, projectService, platformService, timeProvider } = useServices();
 
   // Load initial app draft safely before deriving other states
   const initialActiveProjectId = projectService.getActiveProjectId();

@@ -182,8 +182,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
     toggleSelectAllProjectsRaw,
     clearProjectSelection,
     handleBulkDeleteProjects,
-    getProjectSelectionState,
+    getProjectSelectionState: getProjectSelectionStateRaw,
   } = useSettingsProjectsState(projects, activeTab, onBulkDeleteProjects, onDeleteProject);
+
+  const getProjectSelectionState = useCallback(() => getProjectSelectionStateRaw(projects), [getProjectSelectionStateRaw, projects]);
 
   const toggleSelectAllProjects = useCallback(() => {
     toggleSelectAllProjectsRaw(projects);

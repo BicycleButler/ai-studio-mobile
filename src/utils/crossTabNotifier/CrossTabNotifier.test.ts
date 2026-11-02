@@ -97,7 +97,7 @@ describe('CrossTabNotifier', () => {
           expect(typeof notifier.notify).toBe('function');
           expect(typeof notifier.onMessage).toBe('function');
           expect(notifier instanceof FallbackCrossTabNotifier).toBe(true);
-          expect((notifier as unknown as { activeNotifier: any }).activeNotifier instanceof BroadcastChannelNotifier).toBe(true);
+          expect(((notifier as FallbackCrossTabNotifier) as unknown as { activeNotifier: unknown }).activeNotifier instanceof BroadcastChannelNotifier).toBe(true);
       });
 
       it('should fallback to StorageEventNotifier if BroadcastChannel is missing', () => {
@@ -109,7 +109,7 @@ describe('CrossTabNotifier', () => {
 
           const notifier = createCrossTabNotifier({ name: 'test', logger, platformService: mockPlatformService });
           expect(notifier instanceof FallbackCrossTabNotifier).toBe(true);
-          expect((notifier as unknown as { activeNotifier: any }).activeNotifier instanceof StorageEventNotifier).toBe(true);
+          expect(((notifier as FallbackCrossTabNotifier) as unknown as { activeNotifier: unknown }).activeNotifier instanceof StorageEventNotifier).toBe(true);
       });
   });
 });

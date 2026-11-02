@@ -32,7 +32,7 @@ describe('ImageCompressor Utils', () => {
 
         it('should use default Canvas strategy if no strategy provided', () => {
             const compressor = new ImageCompressor();
-            expect((compressor as any).strategy).toBeInstanceOf(CanvasImageCompressionStrategy);
+            expect((compressor as unknown as { strategy: unknown }).strategy).toBeInstanceOf(CanvasImageCompressionStrategy);
         });
     });
 
@@ -49,7 +49,7 @@ describe('ImageCompressor Utils', () => {
 
         it('should handle missing document gracefully (returns unsupported for webp)', () => {
             const strategy = new CanvasImageCompressionStrategy({ platformService: mockPlatformService });
-            expect((strategy as any).isWebPSupported()).toBe(false);
+            expect(((strategy as CanvasImageCompressionStrategy) as unknown as { isWebPSupported: () => boolean }).isWebPSupported()).toBe(false);
         });
 
         it('should fail compression gracefully if FileReader is unavailable', async () => {
@@ -61,14 +61,14 @@ describe('ImageCompressor Utils', () => {
 
         it('should fail compression gracefully if Image API is unavailable', async () => {
             const fileReaderMock = {
-                readAsDataURL: vi.fn(function(this: any) {
-                    setTimeout(() => this.onload({ target: { result: 'data:image/png;base64,abc' } }), 0);
+                readAsDataURL: vi.fn(function(this: FileReader) {
+                    setTimeout(() => this.onload?.({ target: { result: 'data:image/png;base64,abc' } } as unknown as ProgressEvent<FileReader>), 0);
                 })
             };
 
             mockPlatformService = {
                 getDocument: () => null,
-                createFileReader: () => fileReaderMock as any,
+                createFileReader: () => (fileReaderMock as unknown as FileReader),
                 createImage: () => null
             } as unknown as IPlatformService;
 

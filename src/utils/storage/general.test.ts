@@ -8,6 +8,7 @@ describe('GeneralSettingsService', () => {
 
   beforeEach(() => {
     mockApiKeySingleton = {
+      ...({} as unknown as IMutableSingleton<string>),
       load: vi.fn().mockReturnValue(''),
       save: vi.fn(),
       clear: vi.fn(),
@@ -16,6 +17,7 @@ describe('GeneralSettingsService', () => {
     } as unknown as IMutableSingleton<string>;
 
     mockFlagSecureSingleton = {
+      ...({} as unknown as IMutableSingleton<boolean>),
       load: vi.fn().mockReturnValue(true),
       save: vi.fn(),
       clear: vi.fn(),
