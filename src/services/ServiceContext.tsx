@@ -7,6 +7,7 @@ import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
 import { defaultStorageFactory } from "../utils/storage";
+import { defaultCrossTabNotifierFactory } from "../utils/crossTabNotifier/CrossTabNotifierFactory";
 import { defaultLogger, ILogger } from "../utils/logger";
 import { IIdGenerator, defaultIdGenerator } from "../utils/idGenerator";
 
@@ -96,6 +97,7 @@ const explicitlyInjectedOfflineService = new OfflineService({
     storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], defaultLogger),
     logger: defaultLogger,
     platformService: explicitlyInjectedPlatformService,
+    crossTabNotifierFactory: defaultCrossTabNotifierFactory,
     mutex: new Mutex(defaultLogger, explicitlyInjectedPlatformService),
   }),
   idGenerator: defaultIdGenerator

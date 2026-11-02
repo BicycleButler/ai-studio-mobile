@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { OfflineQueueStore } from './offlineQueueStore';
 import { AsyncStorage } from './asyncStorage';
 import { NoOpLogger } from './logger';
+import { defaultCrossTabNotifierFactory } from './crossTabNotifier/CrossTabNotifierFactory';
+import { defaultPlatformService } from '../services/platformService';
 
 class MockAsyncStorage implements AsyncStorage {
   private store = new Map<string, unknown>();
@@ -24,7 +26,9 @@ describe('OfflineQueueStore', () => {
         store = new OfflineQueueStore({
             storageKey: 'test_queue',
             storageAdapter: mockStorage,
-            logger: new NoOpLogger()
+            logger: new NoOpLogger(),
+            crossTabNotifierFactory: defaultCrossTabNotifierFactory,
+            platformService: defaultPlatformService
         });
     });
 
@@ -112,7 +116,9 @@ describe('OfflineQueueStore Error Propagation', () => {
         const store = new OfflineQueueStore({
             storageKey: 'test_queue_error',
             storageAdapter: new FailingAsyncStorage(),
-            logger: new NoOpLogger()
+            logger: new NoOpLogger(),
+            crossTabNotifierFactory: defaultCrossTabNotifierFactory,
+            platformService: defaultPlatformService
         });
 
         await new Promise(r => setTimeout(r, 0)); // wait for initial load
@@ -127,7 +133,9 @@ describe('OfflineQueueStore Error Propagation', () => {
         const store = new OfflineQueueStore({
             storageKey: 'test_queue_error_2',
             storageAdapter: new FailingAsyncStorage(),
-            logger: new NoOpLogger()
+            logger: new NoOpLogger(),
+            crossTabNotifierFactory: defaultCrossTabNotifierFactory,
+            platformService: defaultPlatformService
         });
 
         await new Promise(r => setTimeout(r, 0)); // wait for initial load
