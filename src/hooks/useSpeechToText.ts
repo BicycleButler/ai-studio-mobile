@@ -1,50 +1,10 @@
 import { useServices } from "../services/ServiceContext";
 import { useState, useRef, useEffect, useCallback } from "react";
-
-// Safe Web Speech API TypeScript definitions
-interface SpeechRecognitionResultItem {
-  transcript: string;
-}
-
-interface SpeechRecognitionAlternative {
-  0?: SpeechRecognitionResultItem;
-  isFinal?: boolean;
-  length: number;
-}
-
-interface SpeechRecognitionResultListLike {
-  length: number;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionEventLike {
-  resultIndex: number;
-  results: SpeechRecognitionResultListLike;
-}
-
-interface SpeechRecognitionErrorEventLike {
-  error: string;
-  message?: string;
-}
-
-interface ISpeechRecognitionInstance {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onstart: (() => void) | null;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
-  onend: (() => void) | null;
-  onsoundstart?: (() => void) | null;
-  onsoundend?: (() => void) | null;
-  onspeechstart?: (() => void) | null;
-  onspeechend?: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
-
-type SpeechRecognitionConstructor = new () => ISpeechRecognitionInstance;
+import {
+  ISpeechRecognitionInstance,
+  SpeechRecognitionEventLike,
+  SpeechRecognitionErrorEventLike
+} from "../types/speechRecognition";
 
 export interface ISpeechRecognitionFactory {
   create(): ISpeechRecognitionInstance | undefined;
@@ -106,10 +66,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
     if (optionsRef.current.speechRecognitionFactory) {
       return optionsRef.current.speechRecognitionFactory.create();
     }
-    if (!platformService.isBrowserEnv()) return undefined;
-    const win = platformService.getWindow() as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } | null;
-    const Constructor = (win?.SpeechRecognition || win?.webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
-    return Constructor ? new Constructor() : undefined;
+    return platformService.createSpeechRecognition() || undefined;
   }, [platformService]);
 
   const isSupported = Boolean(createRecognitionInstance());

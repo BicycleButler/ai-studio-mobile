@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { BatchSelectionManager, IBatchSelectionManager, SelectionState } from '../utils/batchSelectionManager';
+import { IBatchSelectionManager, SelectionState } from '../utils/batchSelectionManager';
 import { useStore } from './useStore';
 import { useServices } from '../services/ServiceContext';
 
@@ -20,10 +20,10 @@ export function useBatchSelection<T>({
   isActive = true,
   enableShortcuts = false
 }: UseBatchSelectionProps<T>) {
-  const [manager] = React.useState<IBatchSelectionManager>(() => managerFactory ? managerFactory() : new BatchSelectionManager());
+  const { platformService, createBatchSelectionManager } = useServices();
+  const [manager] = React.useState<IBatchSelectionManager>(() => managerFactory ? managerFactory() : createBatchSelectionManager());
 
   const state = useStore(manager);
-  const { platformService } = useServices();
 
   // ADR 0047 Option A: Clear selection on filter/tab changes
   const prevDepsRef = React.useRef(clearOnDependencies);

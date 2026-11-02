@@ -15,6 +15,7 @@ import {
   safeAddMatchMediaListener
 } from "../utils/platform";
 import { ILogger, defaultLogger } from "../utils/logger";
+import { ISpeechRecognitionInstance } from "../types/speechRecognition";
 
 export interface IPlatformService {
   isInputFocused(): boolean;
@@ -51,6 +52,8 @@ export interface IPlatformService {
   createTextDecoder(label?: string, options?: TextDecoderOptions): TextDecoder | null;
   createEventSource(url: string | URL, eventSourceInitDict?: EventSourceInit): EventSource | null;
   createURLSearchParams(init?: string | URLSearchParams | string[][] | Record<string, string>): URLSearchParams | null;
+  createAbortController(): AbortController | null;
+  createSpeechRecognition(): ISpeechRecognitionInstance | null;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -227,6 +230,18 @@ export class BrowserPlatformService implements IPlatformService {
   public createURLSearchParams(init?: string | URLSearchParams | string[][] | Record<string, string>): URLSearchParams | null {
     if (typeof URLSearchParams === "undefined") return null;
     return new URLSearchParams(init);
+  }
+
+  public createAbortController(): AbortController | null {
+    if (typeof AbortController === "undefined") return null;
+    return new AbortController();
+  }
+
+  public createSpeechRecognition(): ISpeechRecognitionInstance | null {
+    if (!this.isBrowserEnv()) return null;
+    const win = this.getWindow() as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } | null;
+    const Constructor = (win?.SpeechRecognition || win?.webkitSpeechRecognition) as (new () => ISpeechRecognitionInstance) | undefined;
+    return Constructor ? new Constructor() : null;
   }
 }
 

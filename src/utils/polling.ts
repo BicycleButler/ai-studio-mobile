@@ -22,7 +22,10 @@ export function startPolling<T>(
   const { strategy, onUpdate, onError, isComplete, platformService = defaultPlatformService } = options;
 
   let stopped = false;
-  let abortController = new AbortController();
+  let abortController = platformService.createAbortController();
+  if (!abortController) {
+    throw new Error("AbortController is not supported in this environment.");
+  }
   let timer: unknown | undefined;
   let attempt = 0;
   let lastError: unknown = undefined;
@@ -32,7 +35,7 @@ export function startPolling<T>(
     attempt++;
 
     try {
-      const data = await fetcher(abortController.signal);
+      const data = await fetcher(abortController!.signal);
       if (!stopped) {
         lastError = undefined; // clear previous error on success
         attempt = 0; // reset attempt counter on success if desired, but we can also just keep it
@@ -69,7 +72,9 @@ export function startPolling<T>(
       if (timer !== undefined) {
         platformService.clearTimeout(timer);
       }
-      abortController.abort();
+      if (abortController) {
+          abortController.abort();
+      }
     },
   };
 }
