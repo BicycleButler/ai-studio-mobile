@@ -45,6 +45,12 @@ export interface IPlatformService {
   createSpeechSynthesisUtterance(text?: string): SpeechSynthesisUtterance | null;
   createFileReader(): FileReader | null;
   createImage(): HTMLImageElement | null;
+  createBlob(blobParts?: BlobPart[], options?: BlobPropertyBag): Blob | null;
+  createObjectURL(obj: Blob | MediaSource): string | null;
+  revokeObjectURL(url: string): void;
+  createTextDecoder(label?: string, options?: TextDecoderOptions): TextDecoder | null;
+  createEventSource(url: string | URL, eventSourceInitDict?: EventSourceInit): EventSource | null;
+  createURLSearchParams(init?: string | URLSearchParams | string[][] | Record<string, string>): URLSearchParams | null;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -190,6 +196,37 @@ export class BrowserPlatformService implements IPlatformService {
   public createImage(): HTMLImageElement | null {
     if (!this.isBrowserEnv() || typeof Image === "undefined") return null;
     return new Image();
+  }
+
+  public createBlob(blobParts?: BlobPart[], options?: BlobPropertyBag): Blob | null {
+    if (typeof Blob === "undefined") return null;
+    return new Blob(blobParts, options);
+  }
+
+  public createObjectURL(obj: Blob | MediaSource): string | null {
+    if (typeof URL === "undefined" || typeof URL.createObjectURL !== "function") return null;
+    return URL.createObjectURL(obj);
+  }
+
+  public revokeObjectURL(url: string): void {
+    if (typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  public createTextDecoder(label?: string, options?: TextDecoderOptions): TextDecoder | null {
+    if (typeof TextDecoder === "undefined") return null;
+    return new TextDecoder(label, options);
+  }
+
+  public createEventSource(url: string | URL, eventSourceInitDict?: EventSourceInit): EventSource | null {
+    if (typeof EventSource === "undefined") return null;
+    return new EventSource(url, eventSourceInitDict);
+  }
+
+  public createURLSearchParams(init?: string | URLSearchParams | string[][] | Record<string, string>): URLSearchParams | null {
+    if (typeof URLSearchParams === "undefined") return null;
+    return new URLSearchParams(init);
   }
 }
 

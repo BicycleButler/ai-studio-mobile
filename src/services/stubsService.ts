@@ -6,6 +6,7 @@ import {
   StubsSidecarSpec,
 } from "../types";
 import { ILogger, defaultLogger } from "../utils/logger";
+import { defaultPlatformService, IPlatformService } from "./platformService";
 
 export interface StubsDiagramResponse {
   mermaid: string;
@@ -46,15 +47,18 @@ export interface StubsClientConfig {
   apiClient: IApiClient;
   logger?: ILogger;
   createEventSource?: (endpoint: string) => EventSource | undefined;
+  platformService?: IPlatformService;
 }
 
 export class StubsClient implements IStubsClient {
-  private config: Required<StubsClientConfig>;
+  private config: Required<Omit<StubsClientConfig, 'platformService'>> & { platformService: IPlatformService };
   constructor(config: StubsClientConfig) {
+    const platformService = config.platformService || defaultPlatformService;
     this.config = {
       apiClient: config.apiClient,
       logger: config.logger || defaultLogger,
-      createEventSource: config.createEventSource || ((endpoint: string) => typeof EventSource !== "undefined" ? new EventSource(endpoint) : undefined)
+      platformService,
+      createEventSource: config.createEventSource || ((endpoint: string) => platformService.createEventSource(endpoint) || undefined)
     };
   }
 

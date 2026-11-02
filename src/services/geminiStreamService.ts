@@ -2,6 +2,7 @@ import { GenerateRequestBody } from "../types";
 import { IApiClient, BaseApiError, isAbortError } from "../utils/apiClient";
 import { SSEStreamParser, ISSEStreamParser, SSEEventCallback } from "../utils/sseParser";
 import { ILogger } from "../utils/logger";
+import { IPlatformService, defaultPlatformService } from "./platformService";
 
 
 export interface StreamCallbacks {
@@ -100,17 +101,20 @@ export interface GeminiStreamServiceConfig {
   apiClient: IApiClient;
   logger: ILogger;
   createSSEStreamParser?: (onEvent: SSEEventCallback) => ISSEStreamParser;
+  platformService?: IPlatformService;
 }
 
 export class GeminiStreamService implements IGeminiStreamService {
   private apiClient: IApiClient;
   private logger: ILogger;
   private createSSEStreamParser: (onEvent: SSEEventCallback) => ISSEStreamParser;
+  private platformService: IPlatformService;
 
   constructor(config: GeminiStreamServiceConfig) {
     this.apiClient = config.apiClient;
     this.logger = config.logger;
     this.createSSEStreamParser = config.createSSEStreamParser || ((onEvent) => new SSEStreamParser(onEvent));
+    this.platformService = config.platformService || defaultPlatformService;
   }
 
   public sanitizeLogMessage(message: string): string {
@@ -212,7 +216,10 @@ export class GeminiStreamService implements IGeminiStreamService {
       throw new GeminiApiError("Streaming is not supported by the network response.");
     }
 
-    const decoder = new TextDecoder();
+    const decoder = this.platformService.createTextDecoder();
+    if (!decoder) {
+      throw new GeminiApiError("TextDecoder is not supported in this environment.");
+    }
     let accumulatedText = "";
     let durationMs = 0;
     let totalTokens = 0;

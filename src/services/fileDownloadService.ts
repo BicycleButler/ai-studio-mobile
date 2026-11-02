@@ -1,26 +1,31 @@
 import { ILogger } from "../utils/logger";
-import { defaultPlatformService } from "./platformService";
+import { defaultPlatformService, IPlatformService } from "./platformService";
 
 export interface IFileDownloadService {
   downloadText(filename: string, content: string): Promise<boolean>;
 }
 
 export class BrowserFileDownloadService implements IFileDownloadService {
-  constructor(private logger: ILogger, private getDoc = () => defaultPlatformService.getDocument()) {}
+  constructor(
+    private logger: ILogger,
+    private platformService: IPlatformService = defaultPlatformService
+  ) {}
 
   public async downloadText(filename: string, content: string): Promise<boolean> {
     try {
-      const doc = this.getDoc();
+      const doc = this.platformService.getDocument();
       if (!doc) return false;
-      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
+      const blob = this.platformService.createBlob([content], { type: "text/plain;charset=utf-8" });
+      if (!blob) return false;
+      const url = this.platformService.createObjectURL(blob);
+      if (!url) return false;
       const a = doc.createElement("a");
       a.href = url;
       a.download = filename;
       doc.body.appendChild(a);
       a.click();
       doc.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      this.platformService.revokeObjectURL(url);
       return true;
     } catch (err) {
       this.logger.debug("Failed to download file:", err);
