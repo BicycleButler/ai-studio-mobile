@@ -7,7 +7,7 @@ import { JulesTaskPayload } from "../services/julesService";
 
 
 export function useJules() {
-  const { julesStorageService, julesClient, logger, timeProvider } = useServices();
+  const { julesStorageService, julesClient, logger, timeProvider, idGenerator } = useServices();
   const julesSessionsManager = julesStorageService.julesSessionsManager;
   const [julesApiKey, setJulesApiKey] = useState<string>(() => julesStorageService.loadStoredJulesApiKey());
 
@@ -61,7 +61,7 @@ export function useJules() {
 
       if (!julesApiKey.trim()) {
         const errorMsg: ChatMessage = {
-          id: `msg_${timeProvider.now()}_err`,
+          id: idGenerator.generate("msg", "err"),
           role: "model",
           text: "Jules API Key is required to authorize autonomous workspace access. Please configure it in settings.",
           timestamp: timeProvider.now(),
@@ -77,7 +77,7 @@ export function useJules() {
       }
 
       const userMsg: ChatMessage = {
-        id: `msg_${timeProvider.now()}`,
+        id: idGenerator.generate("msg"),
         role: "user",
         text,
         rawUserText,
@@ -91,7 +91,7 @@ export function useJules() {
       };
 
       const aiMsg: ChatMessage = {
-        id: `msg_${timeProvider.now() + 1}`,
+        id: idGenerator.generate("msg"),
         role: "model",
         text: "",
         timestamp: timeProvider.now() + 1,

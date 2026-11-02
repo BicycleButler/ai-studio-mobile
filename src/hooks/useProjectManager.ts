@@ -13,7 +13,7 @@ export function useProjectManager(
   promptType: PromptType,
   config: PromptConfig
 ) {
-  const { chatHistoryService, projectService, generalSettingsService, draftStateService, logger, timeProvider } = useServices();
+  const { chatHistoryService, projectService, generalSettingsService, draftStateService, logger, idGenerator } = useServices();
   const projectManagerStore = useStore(projectService.projectsManager);
   const projects = projectManagerStore.items;
 
@@ -75,7 +75,7 @@ export function useProjectManager(
     setCandidateClipboardKey("");
     setClipboardToastKey(null);
 
-    chatSession.setCurrentSessionId(`sess_${timeProvider.now()}`);
+    chatSession.setCurrentSessionId(idGenerator.generate("sess"));
   };
 
   const handleRenameProject = (id: string, newName: string) => {
