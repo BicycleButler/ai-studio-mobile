@@ -1,6 +1,5 @@
 import { IStorageAdapter } from "./types";
 import { defaultPlatformService } from "../../services/platformService";
-import { WindowWithLocalStorage } from "../platform";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 
 import { ILogger, defaultLogger } from "../logger";

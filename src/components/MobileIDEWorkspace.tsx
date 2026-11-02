@@ -50,7 +50,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   onSwitchToPrompt: _onSwitchToPrompt,
   onOpenParameters,
 }) => {
-  const { codeGeneratorService, geminiStreamService, logger, clipboardService, fileDownloadService, platformService } = useServices();
+  const { codeGeneratorService, geminiStreamService, logger, clipboardService, fileDownloadService, platformService, idGenerator, timeProvider } = useServices();
 
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [

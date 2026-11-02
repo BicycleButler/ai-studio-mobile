@@ -92,8 +92,6 @@ const explicitlyInjectedOfflineService = new OfflineService({
     storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], defaultLogger),
     logger: defaultLogger,
     platformService: explicitlyInjectedPlatformService,
-  timeProvider: defaultTimeProvider,
-  idGenerator: defaultIdGenerator,
     mutex: new Mutex(defaultLogger, explicitlyInjectedPlatformService),
   }),
   idGenerator: defaultIdGenerator

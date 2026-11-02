@@ -1,5 +1,4 @@
 import { useServices } from "../services/ServiceContext";
-import { useServices } from "../services/ServiceContext";
 import { useState, useCallback } from "react";
 import { ChatMessage, StructuredExample, SavedPrompt, PromptType, PromptConfig, ProjectInfo } from "../types";
 import { IPromptTemplateService } from "../services/promptTemplateService";
@@ -17,7 +16,7 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
   const [freeformText] = useState(initialDraft.freeformText);
   const [structuredExamples] = useState<StructuredExample[]>(initialDraft.structuredExamples || []);
 
-  const { savedPromptsService } = useServices();
+  const { savedPromptsService, idGenerator, timeProvider } = useServices();
   const savedPromptsStore = useStore(savedPromptsService.savedPromptsManager);
   const savedPrompts = savedPromptsStore.items;
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { calculateProportionalDimensions, ImageCompressor, CanvasImageCompressionStrategy, CompressionOptions, IImageCompressionStrategy } from './imageCompressor';
+import { calculateProportionalDimensions, ImageCompressor, CanvasImageCompressionStrategy, IImageCompressionStrategy } from './imageCompressor';
 import { IPlatformService } from '../services/platformService';
 import { MessageAttachment } from '../types';
 

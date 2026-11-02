@@ -7,7 +7,6 @@ import {
   StubsImpactResult,
 } from "../../types";
 import mermaid from "mermaid";
-import { useServices } from "../../services/ServiceContext";
 
 
 export function useStubsData(showToast: (msg: string) => void) {
