@@ -6,9 +6,9 @@ import { useChatSession } from "./useChatSession";
 import { useProjectManager } from "./useProjectManager";
 import { useUIState } from "./useUIState";
 import { useModelConfig } from "./useModelConfig";
-import { PromptType, ChatMessage, ChatSession } from "../types";
+import { PromptType, ChatMessage, ChatSession, SavedPrompt } from "../types";
 
-import { fetchModels } from "../utils/modelCatalog";
+
 
 export function useAppState() {
   // External Services
@@ -58,25 +58,25 @@ export function useAppState() {
   const activeProject = projectManager.activeProject;
 
   // Model Config
-  const modelConfig = useModelConfig(initialDraft.config, customApiKey, chatSession);
+  const modelConfig = useModelConfig(customApiKey);
 
-  // Sync back config to models if it changed
-  useEffect(() => {
-    setConfig(modelConfig.config);
-  }, [modelConfig.config]);
-
+  const handleLoadPrompt = (prompt: SavedPrompt) => {
+    const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
+    const targetType: PromptType = validPromptTypes.includes(prompt.type as PromptType)
+      ? (prompt.type as PromptType)
+      : "chat";
+    setPromptType(targetType);
+    setConfig(prompt.config);
+    if (prompt.messages && prompt.messages.length > 0) {
+      chatSession.setMessages(prompt.messages);
+    }
+  };
 
   const handleSaveApiKey = (key: string) => {
     setCustomApiKey(key);
     generalSettingsService.saveStoredApiKey(key);
     if (key.trim()) {
-      fetchModels(apiClient, key.trim(), true)
-        .then((data) => {
-          if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-            modelConfig.setModels(data.models);
-          }
-        })
-        .catch(() => {});
+      modelConfig.refreshModels(key.trim(), true);
     }
   };
 
@@ -174,7 +174,7 @@ export function useAppState() {
     setModels: modelConfig.setModels,
     config,
     setConfig,
-    handleLoadPrompt: (p: import("../types").SavedPrompt) => modelConfig.handleLoadPrompt(p, setPromptType),
+    handleLoadPrompt,
 
     promptType,
     setPromptType,

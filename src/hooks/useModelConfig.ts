@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ModelInfo, PromptConfig, SavedPrompt, PromptType } from "../types";
+import { useState, useEffect, useCallback } from "react";
+import { ModelInfo } from "../types";
 import { useServices } from "../services/ServiceContext";
 import {
   CURATED_MODELS,
@@ -8,44 +8,32 @@ import {
 } from "../utils/modelCatalog";
 
 export function useModelConfig(
-  initialConfig: PromptConfig,
-  customApiKey: string,
-  chatSession: ReturnType<typeof import("./useChatSession").useChatSession>
+  customApiKey: string
 ) {
   const { apiClient } = useServices();
   const [models, setModels] = useState<ModelInfo[]>(CURATED_MODELS);
-  const [config, setConfig] = useState<PromptConfig>(initialConfig);
+
+  const refreshModels = useCallback(async (apiKey?: string, forceRefresh = false) => {
+    try {
+      const data = await fetchModels(apiClient, apiKey, forceRefresh);
+      if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
+        const cleaned = data.models.filter((m: ModelInfo) => !isDeprecatedOrUnusableModel(m.id));
+        if (cleaned.length > 0) {
+          setModels(cleaned);
+        }
+      }
+    } catch (e) {
+      // Intentionally ignore fetch errors for fallback models
+    }
+  }, [apiClient]);
 
   useEffect(() => {
-    fetchModels(apiClient, customApiKey)
-      .then((data) => {
-        if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-          const cleaned = data.models.filter((m: ModelInfo) => !isDeprecatedOrUnusableModel(m.id));
-          if (cleaned.length > 0) {
-            setModels(cleaned);
-          }
-        }
-      })
-      .catch(() => {});
-  }, [customApiKey]);
-
-  const handleLoadPrompt = (prompt: SavedPrompt, setPromptType: (type: PromptType) => void) => {
-    const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
-    const targetType: PromptType = validPromptTypes.includes(prompt.type as PromptType)
-      ? (prompt.type as PromptType)
-      : "chat";
-    setPromptType(targetType);
-    setConfig(prompt.config);
-    if (prompt.messages && prompt.messages.length > 0) {
-      chatSession.setMessages(prompt.messages);
-    }
-  };
+    refreshModels(customApiKey);
+  }, [customApiKey, refreshModels]);
 
   return {
     models,
     setModels,
-    config,
-    setConfig,
-    handleLoadPrompt,
+    refreshModels,
   };
 }
