@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+import { useServices } from "../services/ServiceContext";
 import { useStore } from "./useStore";
 import { ProjectInfo, PromptConfig, PromptType } from "../types";
 
@@ -75,7 +75,8 @@ export function useProjectManager(
 
     setCandidateClipboardKey("");
     setClipboardToastKey(null);
-    chatSession.setCurrentSessionId(`sess_${defaultTimeProvider.now()}`);
+    const { timeProvider } = useServices();
+    chatSession.setCurrentSessionId(`sess_${timeProvider.now()}`);
   };
 
   const handleRenameProject = (id: string, newName: string) => {

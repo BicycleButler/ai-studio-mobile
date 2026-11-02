@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -151,7 +151,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
         name: projectName.trim() || "AI Studio Project",
         apiKey: trimmedKey,
         defaultModel: selectedModel,
-        lastVerifiedAt: defaultTimeProvider.now(),
+        lastVerifiedAt: timeProvider.now(),
         isValid: true,
       });
 

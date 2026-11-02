@@ -7,8 +7,9 @@ import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
 import { defaultStorageFactory } from "../utils/storage";
 import { defaultLogger, ILogger } from "../utils/logger";
-import { defaultIdGenerator } from "../utils/idGenerator";
+import { IIdGenerator, defaultIdGenerator } from "../utils/idGenerator";
 
+import { ITimeProvider, defaultTimeProvider } from "../utils/timeProvider";
 import { IThemeService, ThemeService } from "./themeService";
 import { IPromptTemplateService, PromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
 import { IAuthService, AuthService } from "./auth";
@@ -72,6 +73,8 @@ export interface IServices {
   clipboardService: IClipboardService;
   fileDownloadService: IFileDownloadService;
   platformService: IPlatformService;
+  timeProvider: ITimeProvider;
+  idGenerator: IIdGenerator;
 }
 
 
@@ -89,6 +92,8 @@ const explicitlyInjectedOfflineService = new OfflineService({
     storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], defaultLogger),
     logger: defaultLogger,
     platformService: explicitlyInjectedPlatformService,
+  timeProvider: defaultTimeProvider,
+  idGenerator: defaultIdGenerator,
     mutex: new Mutex(defaultLogger, explicitlyInjectedPlatformService),
   }),
   idGenerator: defaultIdGenerator
@@ -232,6 +237,8 @@ const defaultServices: IServices = {
   clipboardService: explicitlyInjectedClipboardService,
   fileDownloadService: explicitlyInjectedFileDownloadService,
   platformService: explicitlyInjectedPlatformService,
+  timeProvider: defaultTimeProvider,
+  idGenerator: defaultIdGenerator,
 };
 
 

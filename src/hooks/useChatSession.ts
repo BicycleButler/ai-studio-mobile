@@ -1,13 +1,12 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+import { useServices } from "../services/ServiceContext";
 import { useServices } from "../services/ServiceContext";
 import { useState, useCallback } from "react";
 import { ChatMessage, StructuredExample, SavedPrompt, PromptType, PromptConfig, ProjectInfo } from "../types";
-import { defaultIdGenerator } from "../utils/idGenerator";
 import { IPromptTemplateService } from "../services/promptTemplateService";
 import { useStore } from "./useStore";
 
 export function useChatSession(initialDraft: { messages?: ChatMessage[]; freeformText?: string; structuredExamples?: StructuredExample[] }, promptType: PromptType, config: PromptConfig, activeProject: ProjectInfo | null, promptTemplateService: IPromptTemplateService) {
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${defaultTimeProvider.now()}`);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `sess_${timeProvider.now()}`);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (initialDraft.messages && initialDraft.messages.length > 0) {
       return initialDraft.messages;
@@ -32,19 +31,19 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
     if (onStopStream) {
       onStopStream();
     }
-    const newSessionId = defaultIdGenerator.generate("sess");
+    const newSessionId = idGenerator.generate("sess");
     setCurrentSessionId(newSessionId);
     setMessages([]);
   }, []);
 
   const handleSaveCurrentPrompt = useCallback((title: string) => {
     const newSaved: SavedPrompt = {
-      id: defaultIdGenerator.generate("saved"),
+      id: idGenerator.generate("saved"),
       title,
       type: promptType,
       config: { ...config },
       messages: [...messages],
-      updatedAt: defaultTimeProvider.now(),
+      updatedAt: timeProvider.now(),
       projectId: activeProject?.id,
     };
     savedPromptsService.savedPromptsManager.collection.upsert(newSaved, true);

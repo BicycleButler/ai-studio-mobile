@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../../utils/timeProvider";
+import { useServices } from "../../services/ServiceContext";
 import { getErrorMessage } from "../../utils/errorHandling";
 import { useState, useCallback, useEffect } from "react";
 import {
@@ -52,7 +52,8 @@ export function useStubsData(showToast: (msg: string) => void) {
       const res = await stubsClient.fetchDiagram(diagramGroupBy);
       setDiagramMermaid(res.mermaid);
       try {
-        const id = "mermaid-svg-" + defaultTimeProvider.now();
+        const { timeProvider } = useServices();
+        const id = "mermaid-svg-" + timeProvider.now();
         const { svg } = await mermaid.render(id, res.mermaid);
         setRenderedSvg(svg);
       } catch (renderErr: unknown) {

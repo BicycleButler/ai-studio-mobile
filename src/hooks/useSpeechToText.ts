@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+import { useServices } from "../services/ServiceContext";
 import { useServices } from "../services/ServiceContext";
 import { useState, useRef, useEffect, useCallback } from "react";
 
@@ -258,9 +258,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeech
 
               // Start countdown timer for visible UI feedback
               setSilenceCountdownMs(timeoutDelay);
-              const startTime = defaultTimeProvider.now();
+              const startTime = timeProvider.now();
               countdownIntervalRef.current = platformService.setInterval(() => {
-                const elapsed = defaultTimeProvider.now() - startTime;
+                const elapsed = timeProvider.now() - startTime;
                 const remaining = Math.max(0, timeoutDelay - elapsed);
                 setSilenceCountdownMs(remaining);
                 if (remaining <= 0 && countdownIntervalRef.current) {
