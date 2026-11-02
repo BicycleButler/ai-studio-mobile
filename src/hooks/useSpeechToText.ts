@@ -1,5 +1,4 @@
 import { useServices } from "../services/ServiceContext";
-import { useServices } from "../services/ServiceContext";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // Safe Web Speech API TypeScript definitions
@@ -80,7 +79,7 @@ export interface UseSpeechToTextReturn {
 }
 
 export function useSpeechToText(options: UseSpeechToTextOptions = {}): UseSpeechToTextReturn {
-  const { logger, platformService } = useServices();
+  const { logger, platformService, timeProvider } = useServices();
   const [isListening, setIsListening] = useState(false);
   const [isAudioDetected, setIsAudioDetected] = useState(false);
   const [transcript, setTranscript] = useState("");

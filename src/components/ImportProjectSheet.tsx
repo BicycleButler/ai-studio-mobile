@@ -47,7 +47,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   onSuccess,
   availableModels = DEFAULT_MODELS,
 }) => {
-  const { keyVerificationService, logger, projectService, clipboardService } = useServices();
+  const { keyVerificationService, logger, projectService, clipboardService, timeProvider } = useServices();
 
   // Enable device/browser back navigation to dismiss sheet smoothly
   useBackNavigation(isOpen, () => {

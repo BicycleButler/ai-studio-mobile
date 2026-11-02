@@ -2,7 +2,6 @@ import { useServices } from "../services/ServiceContext";
 import { useStore } from "./useStore";
 import { ProjectInfo, PromptConfig, PromptType } from "../types";
 
-import { useServices } from "../services/ServiceContext";
 
 export function useProjectManager(
   chatSession: ReturnType<typeof import("./useChatSession").useChatSession>,
@@ -14,7 +13,7 @@ export function useProjectManager(
   promptType: PromptType,
   config: PromptConfig
 ) {
-  const { chatHistoryService, projectService, generalSettingsService, draftStateService, logger } = useServices();
+  const { chatHistoryService, projectService, generalSettingsService, draftStateService, logger, timeProvider } = useServices();
   const projectManagerStore = useStore(projectService.projectsManager);
   const projects = projectManagerStore.items;
 
@@ -75,7 +74,7 @@ export function useProjectManager(
 
     setCandidateClipboardKey("");
     setClipboardToastKey(null);
-    const { timeProvider } = useServices();
+
     chatSession.setCurrentSessionId(`sess_${timeProvider.now()}`);
   };
 

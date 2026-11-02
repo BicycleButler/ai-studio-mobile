@@ -32,7 +32,7 @@ import { useServices } from "./services/ServiceContext";
 
 
 export default function App() {
-  const { keyVerificationService, speechVoicesService, projectService } = useServices();
+  const { keyVerificationService, speechVoicesService, projectService, idGenerator, timeProvider } = useServices();
 
   const {
     projects,

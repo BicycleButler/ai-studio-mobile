@@ -2,7 +2,6 @@ import { useServices } from "../services/ServiceContext";
 import { useState, useEffect } from "react";
 import { usePromptTemplates } from "./usePromptTemplates";
 
-import { useServices } from "../services/ServiceContext";
 import { useChatSession } from "./useChatSession";
 import { useProjectManager } from "./useProjectManager";
 import { useUIState } from "./useUIState";
@@ -13,17 +12,7 @@ import { fetchModels } from "../utils/modelCatalog";
 
 export function useAppState() {
   // External Services
-  const {
-    chatHistoryService,
-    googleAuthService,
-    authService,
-    promptTemplateService,
-    generalSettingsService,
-    apiClient,
-    draftStateService,
-    projectService,
-    platformService
-  } = useServices();
+  const { chatHistoryService, googleAuthService, authService, promptTemplateService, generalSettingsService, apiClient, draftStateService, projectService, platformService, timeProvider } = useServices();
 
   // Load initial app draft safely before deriving other states
   const initialActiveProjectId = projectService.getActiveProjectId();

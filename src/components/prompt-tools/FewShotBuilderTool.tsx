@@ -1,3 +1,4 @@
+import { useServices } from '../../services/ServiceContext';
 import React, { useState } from "react";
 import { Plus, Trash2, Sparkles, RotateCcw } from "lucide-react";
 import { PromptToolActionDock } from "./PromptToolActionDock";
@@ -63,7 +64,7 @@ const PRESETS: Array<{
 ];
 
 export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsertText }) => {
-  const { clipboardService, platformService } = useServices();
+  const { clipboardService, platformService, idGenerator } = useServices();
   const [examples, setExamples] = useState<StructuredExample[]>([]);
   const [testInput, setTestInput] = useState("");
   const [copied, setCopied] = useState(false);

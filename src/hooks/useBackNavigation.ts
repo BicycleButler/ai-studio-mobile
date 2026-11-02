@@ -1,7 +1,6 @@
 import { useServices } from "../services/ServiceContext";
 import { useEffect, useRef } from "react";
 
-import { useServices } from "../services/ServiceContext";
 
 /**
  * useBackNavigation Hook
@@ -19,7 +18,7 @@ export function useBackNavigation(
   onClose: () => void,
   drawerId: string
 ) {
-  const { platformService } = useServices();
+  const { platformService, timeProvider } = useServices();
   const isPoppedBySystemRef = useRef(false);
   const pushedRef = useRef(false);
   const onCloseRef = useRef(onClose);

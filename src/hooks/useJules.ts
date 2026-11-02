@@ -5,10 +5,9 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { ChatMessage, JulesSession, MessageAttachment } from "../types";
 import { JulesTaskPayload } from "../services/julesService";
 
-import { useServices } from "../services/ServiceContext";
 
 export function useJules() {
-  const { julesStorageService, julesClient, logger } = useServices();
+  const { julesStorageService, julesClient, logger, timeProvider } = useServices();
   const julesSessionsManager = julesStorageService.julesSessionsManager;
   const [julesApiKey, setJulesApiKey] = useState<string>(() => julesStorageService.loadStoredJulesApiKey());
 
