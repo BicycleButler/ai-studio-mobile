@@ -30,6 +30,7 @@ describe('DraftStateService', () => {
     } as unknown as IMutableSingleton<DraftState | null>;
 
     mockDraftRegistry = {
+      ...({} as unknown as IMutableSingleton<DraftState | null>),
       get: vi.fn((key: string) => {
         if (key === STORAGE_KEYS.DRAFT_STATE) {
             return mockGlobalDraftSingleton;

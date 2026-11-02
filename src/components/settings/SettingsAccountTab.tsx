@@ -28,7 +28,7 @@ export interface SettingsAccountTabProps {
   toggleProjectSelection?: (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredList?: ProjectInfo[]) => void;
   toggleSelectAllProjects?: () => void;
   clearProjectSelection?: () => void;
-  getProjectSelectionState?: (items?: ProjectInfo[]) => 'none' | 'some' | 'all';
+  getProjectSelectionState?: () => 'none' | 'some' | 'all';
   handleBulkDeleteProjects?: () => void;
   liveModelsCount: number;
 }
@@ -281,7 +281,7 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
                 <BatchSelectionHeader
                   selectedCount={selectedProjectIds?.size || 0}
                   totalCount={projects.length}
-                  selectionState={getProjectSelectionState?.(projects) || 'none'}
+                  selectionState={getProjectSelectionState?.() || 'none'}
                   onToggleSelectAll={toggleSelectAllProjects}
                   className="!px-0 mb-2"
                 />

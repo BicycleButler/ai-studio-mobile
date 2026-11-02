@@ -7,6 +7,7 @@ describe('FormDataSyncTransport', () => {
 
     beforeEach(() => {
         mockApiClient = {
+            ...({} as unknown as import("vitest").Mocked<IApiClient>),
             fetch: vi.fn().mockResolvedValue({ ok: true }),
         } as unknown as import("vitest").Mocked<IApiClient>;
     });

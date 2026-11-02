@@ -16,10 +16,12 @@ describe('NetworkStorageSyncAdapter', () => {
 
     beforeEach(() => {
         mockApiClient = {
+            ...({} as unknown as import("vitest").Mocked<IApiClient>),
             fetch: vi.fn(),
         } as unknown as import("vitest").Mocked<IApiClient>;
 
         mockOfflineService = {
+            ...({} as unknown as import("vitest").Mocked<IOfflineService>),
             enqueueOfflineMutation: vi.fn(),
         } as unknown as import("vitest").Mocked<IOfflineService>;
 
