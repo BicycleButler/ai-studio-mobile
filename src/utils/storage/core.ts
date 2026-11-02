@@ -27,13 +27,13 @@ export function getStorageInstance(): Storage {
 
   try {
     if (defaultPlatformService.isBrowserEnv()) {
-      const win = (defaultPlatformService.getWindow() as unknown) as WindowWithLocalStorage;
-      if (win && win.localStorage) {
+      const localStorage = defaultPlatformService.getLocalStorage();
+      if (localStorage) {
         // Validation check to ensure localStorage is fully accessible and not throwing QuotaExceeded on boot (e.g., Safari Private Mode)
         const testKey = "__storage_test__";
-        win.localStorage.setItem(testKey, testKey);
-        win.localStorage.removeItem(testKey);
-        const wrapper = new FallbackStorageWrapper(win.localStorage);
+        localStorage.setItem(testKey, testKey);
+        localStorage.removeItem(testKey);
+        const wrapper = new FallbackStorageWrapper(localStorage);
         wrapper.quotaExceededEvent.subscribe(() => {
             globalStorageQuotaObservable.emit();
         });
