@@ -3,32 +3,30 @@ import { GoogleUser } from "../types";
 import { useServices } from "../services/ServiceContext";
 
 export function useGoogleAuth() {
-  const { googleAuthService, logger } = useServices();
-  const [user, setUser] = useState<GoogleUser | null>(googleAuthService.loadStoredGoogleUser());
+  const { appAuthManager, logger } = useServices();
+  const [user, setUser] = useState<GoogleUser | null>(appAuthManager.getGoogleUser());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Initial fetch to sync state
-    setUser(googleAuthService.loadStoredGoogleUser());
+    setUser(appAuthManager.getGoogleUser());
 
     // Set up auth state listener
-    const unsubscribe = googleAuthService.initAuth((syncedUser) => {
+    const unsubscribe = appAuthManager.initializeAuth(() => {}, (syncedUser) => {
       setUser(syncedUser);
-    }, () => {
-      setUser(null);
     });
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [googleAuthService]);
+  }, [appAuthManager]);
 
   const handleLogin = useCallback(async (email?: string, name?: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const loggedInUser = await googleAuthService.initiateGoogleLogin(email, name);
+      const loggedInUser = await appAuthManager.initiateGoogleLogin(email, name);
       setUser(loggedInUser);
     } catch (err: unknown) {
       logger.error("Sign in error:", err);
@@ -41,13 +39,13 @@ export function useGoogleAuth() {
     } finally {
       setIsLoading(false);
     }
-  }, [googleAuthService, logger]);
+  }, [appAuthManager, logger]);
 
   const handleLogout = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      await googleAuthService.logoutGoogleUser();
+      await appAuthManager.logoutGoogleUser();
       setUser(null);
     } catch (err: unknown) {
       logger.error("Sign out error:", err);
@@ -56,7 +54,7 @@ export function useGoogleAuth() {
     } finally {
       setIsLoading(false);
     }
-  }, [googleAuthService, logger]);
+  }, [appAuthManager, logger]);
 
   return {
     user,

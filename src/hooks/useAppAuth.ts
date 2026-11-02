@@ -3,53 +3,53 @@ import { GoogleUser } from "../types";
 import { useServices } from "../services/ServiceContext";
 
 export function useAppAuth() {
-  const { generalSettingsService } = useServices();
-  const { googleAuthService, logger } = useServices();
+  const { appAuthManager } = useServices();
 
-  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => googleAuthService.loadStoredGoogleUser());
-  const [hasServerKey, setHasServerKey] = useState<boolean>(false);
-  const [customApiKey, setCustomApiKey] = useState<string>(() => generalSettingsService.loadStoredApiKey());
+  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => appAuthManager.getGoogleUser());
+  const [hasServerKey, setHasServerKey] = useState<boolean>(() => appAuthManager.hasServerKey());
+  const [customApiKey, setCustomApiKey] = useState<string>(() => appAuthManager.getCustomApiKey());
+
   const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
 
   const handleSaveApiKey = (key: string) => {
-    generalSettingsService.saveStoredApiKey(key);
+    appAuthManager.saveCustomApiKey(key);
     setCustomApiKey(key);
   };
 
   const handleGoogleLogin = async () => {
     try {
-      const u = await googleAuthService.initiateGoogleLogin();
+      const u = await appAuthManager.initiateGoogleLogin();
       setGoogleUser(u);
-    } catch (err) {
-      logger.error("Google login failed", err);
+    } catch {
+      // error handling is managed by the manager
     }
   };
 
   const handleGoogleLogout = async () => {
     try {
-      await googleAuthService.logoutGoogleUser();
+      await appAuthManager.logoutGoogleUser();
       setGoogleUser(null);
-    } catch (err) {
-      logger.error("Logout failed", err);
+    } catch {
+      // error handling is managed by the manager
     }
   };
 
   const refreshServerAuth = async () => {
-    const freshUser = await googleAuthService.fetchCurrentGoogleUser();
-    setGoogleUser(freshUser);
+    await appAuthManager.refreshServerAuth();
+    setHasServerKey(appAuthManager.hasServerKey());
   };
 
   useEffect(() => {
-    Promise.resolve(googleAuthService.initAuth())
-      .then((res: unknown) => {
-        const r = res as { hasServerKey?: boolean };
-        if (r && r.hasServerKey) {
-          setHasServerKey(r.hasServerKey);
-        }
-        refreshServerAuth();
-      })
-      .catch((err) => logger.error("Auth init failed", err));
-  }, [googleAuthService, logger]);
+    const unsubscribe = appAuthManager.initializeAuth(
+      (serverKeyStatus) => {
+        setHasServerKey(serverKeyStatus);
+      },
+      (user) => {
+        setGoogleUser(user);
+      }
+    );
+    return () => unsubscribe();
+  }, [appAuthManager]);
 
   return {
     googleUser,
