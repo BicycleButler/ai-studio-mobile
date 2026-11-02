@@ -1,8 +1,16 @@
-export function buildUrlWithParams(endpoint: string, queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>): string {
+import { defaultPlatformService, IPlatformService } from "../services/platformService";
+
+export function buildUrlWithParams(
+  endpoint: string,
+  queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>,
+  platformService: IPlatformService = defaultPlatformService
+): string {
   if (!queryParams || Object.keys(queryParams).length === 0) {
     return endpoint;
   }
-  const searchParams = new URLSearchParams();
+  const searchParams = platformService.createURLSearchParams();
+  if (!searchParams) return endpoint;
+
   for (const [key, value] of Object.entries(queryParams)) {
     if (value === undefined || value === null) continue;
 
