@@ -1,4 +1,3 @@
-import { defaultTimeProvider } from "./utils/timeProvider";
 import React from "react";
 import {
   ChatMessage,
@@ -29,7 +28,6 @@ import {
 } from "./utils/storage";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAppState } from "./hooks/useAppState";
-import { defaultIdGenerator } from "./utils/idGenerator";
 import { useServices } from "./services/ServiceContext";
 
 
@@ -181,11 +179,11 @@ export default function App() {
     }
 
     const userMessage: ChatMessage = {
-      id: defaultIdGenerator.generate("user"),
+      id: idGenerator.generate("user"),
       role: "user",
       text,
       images: attachments,
-      timestamp: defaultTimeProvider.now(),
+      timestamp: timeProvider.now(),
       templateIds,
       rawUserText,
     };
@@ -193,12 +191,12 @@ export default function App() {
     const updatedMessages = [...messages, userMessage];
 
     // Placeholder model message for streaming
-    const modelMessageId = defaultIdGenerator.generate("model");
+    const modelMessageId = idGenerator.generate("model");
     const placeholderModelMsg: ChatMessage = {
       id: modelMessageId,
       role: "model",
       text: "",
-      timestamp: defaultTimeProvider.now(),
+      timestamp: timeProvider.now(),
       isStreaming: true,
     };
     setMessages([...updatedMessages, placeholderModelMsg]);

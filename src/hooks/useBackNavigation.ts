@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+import { useServices } from "../services/ServiceContext";
 import { useEffect, useRef } from "react";
 
 import { useServices } from "../services/ServiceContext";
@@ -39,7 +39,7 @@ export function useBackNavigation(
     pushedRef.current = true;
 
     const stateKey = `drawer_${drawerId}`;
-    const state = { [stateKey]: true, drawerId, timestamp: defaultTimeProvider.now() };
+    const state = { [stateKey]: true, drawerId, timestamp: timeProvider.now() };
 
     try {
       const win = platformService.getWindow() as Window & { history?: History };

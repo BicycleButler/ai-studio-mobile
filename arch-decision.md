@@ -1153,3 +1153,17 @@ Since `IPlatformService` already acts as a factory for other browser primitives 
 
 **Recommendation:**
 **Path 2 (Extend \`IPlatformService\` as a General API Factory)** was implemented. It maintains architectural consistency by routing all platform-dependent instantiations through `PlatformService`. This reduces coupling and makes testing environments substantially more resilient and predictable without requiring global mock injections.
+
+## Architectural Decision: TimeProvider and IdGenerator UI Layer Abstraction
+
+**Context:**
+The core domain services previously had their dependencies updated to receive `ITimeProvider` and `IIdGenerator` via constructor injection. However, React components (like `MobileIDEWorkspace`, `ImportProjectSheet`, and various hooks like `useJules`) still directly imported the singleton instances `defaultTimeProvider` and `defaultIdGenerator` from their respective files. This coupling circumvents the established `ServiceContext` DI layer, violating the Dependency Inversion Principle within the presentation layer. It limits the ability to universally mock time or ID generation for UI components during testing or preview scenarios without global monkey-patching.
+
+**Path 1: Injected Instantiation from ServiceContext (Composition)**
+Add `timeProvider: ITimeProvider` and `idGenerator: IIdGenerator` to the `IServices` interface in `ServiceContext.tsx`. Initialize them with the default instances. Update all React components and custom hooks to consume these dependencies via `useServices().timeProvider` and `useServices().idGenerator`, removing the direct module imports.
+
+**Path 2: Retain Global Import for Static Utilities**
+Treat time and random ID generation as pure static utilities and retain the global imports, since mocking `Date.now()` globally is often supported by testing frameworks (like Vitest's `vi.setSystemTime`).
+
+**Recommendation:**
+**Path 1 (Injected Instantiation from ServiceContext)** was implemented. It strictly enforces the Dependency Inversion Principle uniformly across both domain services and the UI layer. It enhances Generality and Testability, allowing isolated component tests to easily inject predictable time and ID generation via `<ServiceProvider>` without relying on potentially brittle or globally-leaking system-time mocks.
