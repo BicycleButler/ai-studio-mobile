@@ -15,6 +15,8 @@ class MockAsyncStorage implements AsyncStorage {
 }
 
 import { NoOpLogger } from './logger';
+import { defaultCrossTabNotifierFactory } from './crossTabNotifier/CrossTabNotifierFactory';
+import { defaultPlatformService } from '../services/platformService';
 
 describe('OfflineService', () => {
   let mockStorage: MockAsyncStorage;
@@ -25,7 +27,9 @@ describe('OfflineService', () => {
     service = new OfflineService({
       storageKey: 'test_queue',
       storageAdapter: mockStorage,
-      logger: new NoOpLogger()
+      logger: new NoOpLogger(),
+      crossTabNotifierFactory: defaultCrossTabNotifierFactory,
+      platformService: defaultPlatformService
     });
   });
 

@@ -5,6 +5,8 @@ import { OfflineQueueStore, IOfflineQueueStore } from "./offlineQueueStore";
 import { ISyncEngine, SyncEngine } from "./syncEngine";
 import { IIdGenerator, defaultIdGenerator } from "./idGenerator";
 import { ITimeProvider, defaultTimeProvider } from "./timeProvider";
+import { ICrossTabNotifierFactory, defaultCrossTabNotifierFactory } from "./crossTabNotifier";
+import { IPlatformService, defaultPlatformService } from "../services/platformService";
 
 export interface OfflineMutation {
   type: string;
@@ -46,6 +48,8 @@ export interface OfflineServiceConfig {
   syncEngine?: ISyncEngine;
   logger?: ILogger;
   idGenerator?: IIdGenerator;
+  crossTabNotifierFactory?: ICrossTabNotifierFactory;
+  platformService?: IPlatformService;
 }
 
 export class OfflineService implements IOfflineService {
@@ -63,10 +67,15 @@ export class OfflineService implements IOfflineService {
     if (config.queueStore) {
       this.queueStore = config.queueStore;
     } else if (config.storageAdapter) {
+      if (!config.crossTabNotifierFactory || !config.platformService) {
+        throw new Error("OfflineService requires crossTabNotifierFactory and platformService when instantiating queueStore");
+      }
       this.queueStore = new OfflineQueueStore({
         storageKey: config.storageKey || OFFLINE_QUEUE_KEY,
         storageAdapter: config.storageAdapter,
         logger: this.logger,
+        crossTabNotifierFactory: config.crossTabNotifierFactory,
+        platformService: config.platformService
       });
     } else {
       throw new Error("OfflineService requires either a queueStore or a storageAdapter");
@@ -135,4 +144,8 @@ export class OfflineService implements IOfflineService {
   }
 }
 
-export const defaultOfflineService = new OfflineService({ storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()]) });
+export const defaultOfflineService = new OfflineService({
+  storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()]),
+  crossTabNotifierFactory: defaultCrossTabNotifierFactory,
+  platformService: defaultPlatformService
+});

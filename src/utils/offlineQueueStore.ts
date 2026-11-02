@@ -2,10 +2,9 @@ import { IMutex, Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
-import { ICrossTabNotifier, ICrossTabNotifierFactory, defaultCrossTabNotifierFactory } from "./crossTabNotifier";
+import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./crossTabNotifier";
 import { AsyncStorage } from "./asyncStorage";
 import { IPlatformService } from "../services/platformService";
-import { defaultPlatformService } from "../services/platformService";
 
 export interface IOfflineQueueStore {
   getObservable(): IObservable<OfflineMutation[]>;
@@ -24,9 +23,9 @@ export interface OfflineQueueStoreConfig {
   storageKey: string;
   storageAdapter: AsyncStorage;
   logger?: ILogger;
-  crossTabNotifierFactory?: ICrossTabNotifierFactory;
+  crossTabNotifierFactory: ICrossTabNotifierFactory;
   mutex?: IMutex;
-  platformService?: IPlatformService;
+  platformService: IPlatformService;
 }
 
 export class OfflineQueueStore implements IOfflineQueueStore {
@@ -46,10 +45,10 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     this.storageKey = config.storageKey;
     this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || defaultLogger;
-    const notifierFactory = config.crossTabNotifierFactory || defaultCrossTabNotifierFactory;
+    const notifierFactory = config.crossTabNotifierFactory;
     this.queueMutex = config.mutex || new Mutex(this.logger);
     try {
-        this.notifier = notifierFactory.createCrossTabNotifier({ name: `${this.storageKey}_channel`, logger: this.logger, platformService: config.platformService || defaultPlatformService });
+        this.notifier = notifierFactory.createCrossTabNotifier({ name: `${this.storageKey}_channel`, logger: this.logger, platformService: config.platformService });
         this.notifier.onMessage((message) => {
           if (message === 'SYNC') {
             this.syncCacheFromStorage().catch((err) => this.logger.error("Failed to sync cache from storage", err));
