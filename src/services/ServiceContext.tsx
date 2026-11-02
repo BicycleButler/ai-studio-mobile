@@ -42,6 +42,7 @@ import { OfflineQueueStore } from "../utils/offlineQueueStore";
 import { IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from "../utils/asyncStorage";
 import { Mutex } from "../utils/mutex";
 import { ExponentialBackoffRetryStrategy } from "../utils/apiClientRetry";
+import { BatchSelectionManager, IBatchSelectionManager } from "../utils/batchSelectionManager";
 
 export interface IServices {
   themeService: IThemeService;
@@ -60,6 +61,7 @@ export interface IServices {
   speechVoicesService: ISpeechVoicesService;
   createSentenceSpeechQueue: (options: SentenceQueueOptions) => ISentenceSpeechQueue;
   createSSEStreamParser: (onEvent: import("../utils/sseParser").SSEEventCallback) => import("../utils/sseParser").ISSEStreamParser;
+  createBatchSelectionManager: () => IBatchSelectionManager;
   geminiStreamService: IGeminiStreamService;
   keyVerificationService: IKeyVerificationService;
   stubsClient: IStubsClient;
@@ -224,6 +226,7 @@ const defaultServices: IServices = {
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
   createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
   createSSEStreamParser: (onEvent) => new SSEStreamParser(onEvent),
+  createBatchSelectionManager: () => new BatchSelectionManager(),
   geminiStreamService: explicitlyInjectedGeminiStreamService,
   keyVerificationService: explicitlyInjectedKeyVerificationService,
   stubsClient: explicitlyInjectedStubsClient,

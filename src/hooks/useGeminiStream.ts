@@ -25,7 +25,7 @@ export interface UseGeminiStreamReturn {
 }
 
 export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGeminiStreamReturn {
-  const { geminiStreamService } = useServices();
+  const { geminiStreamService, platformService } = useServices();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<GeminiApiError | null>(null);
@@ -68,7 +68,10 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
         abortControllerRef.current.abort();
       }
 
-      const controller = new AbortController();
+      const controller = platformService.createAbortController();
+      if (!controller) {
+          throw new Error("AbortController is not supported in this environment.");
+      }
       abortControllerRef.current = controller;
 
       setIsGenerating(true);
