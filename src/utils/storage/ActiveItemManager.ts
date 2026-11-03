@@ -1,7 +1,7 @@
 import { IReadableStore } from "../observable";
 import { ComputedStore } from "../computedStore";
 import { IMutableCollection, IMutableSingleton } from "./types";
-import { ISelectionStrategy, FirstItemSelectionStrategy, NoImplicitSelectionStrategy } from "./selectionStrategy";
+import { ISelectionStrategy } from "./selectionStrategy";
 
 export interface ActiveItemManagerOptions<T> {
   collection: IMutableCollection<T>;
@@ -34,14 +34,10 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   private implicitSelectionStrategy: ISelectionStrategy<T>;
 
   constructor(options: ActiveItemManagerOptions<T>) {
-    let implicitSelectionStrategy = options.implicitSelectionStrategy;
+    const implicitSelectionStrategy = options.implicitSelectionStrategy;
 
     if (!implicitSelectionStrategy) {
-        if (options.allowImplicitSelection === false) {
-             implicitSelectionStrategy = new NoImplicitSelectionStrategy<T>();
-        } else {
-             implicitSelectionStrategy = new FirstItemSelectionStrategy<T>();
-        }
+        throw new Error("ISelectionStrategy is required for ActiveItemManager");
     }
 
     super([options.collection, options.activeIdSingleton], () => {

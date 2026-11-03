@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ActiveItemManager } from './ActiveItemManager';
 import { defaultStorageFactory } from './StorageFactory';
-
+import { FirstItemSelectionStrategy, NoImplicitSelectionStrategy } from './selectionStrategy';
 
 describe('ActiveItemManager', () => {
     it('should initialize with implicit selection', () => {
@@ -12,7 +12,8 @@ describe('ActiveItemManager', () => {
         const manager = new ActiveItemManager({
             collection,
             activeIdSingleton,
-            getId: (i) => i.id
+            getId: (i) => i.id,
+            implicitSelectionStrategy: new FirstItemSelectionStrategy()
         });
 
         const state = manager.getSnapshot();
@@ -29,7 +30,8 @@ describe('ActiveItemManager', () => {
         const manager = new ActiveItemManager({
             collection,
             activeIdSingleton,
-            getId: (i) => i.id
+            getId: (i) => i.id,
+            implicitSelectionStrategy: new FirstItemSelectionStrategy()
         });
 
         const state = manager.getSnapshot();
@@ -46,7 +48,7 @@ describe('ActiveItemManager', () => {
             collection,
             activeIdSingleton,
             getId: (i) => i.id,
-            allowImplicitSelection: false
+            implicitSelectionStrategy: new NoImplicitSelectionStrategy()
         });
 
         const state = manager.getSnapshot();
@@ -61,7 +63,8 @@ describe('ActiveItemManager', () => {
         const manager = new ActiveItemManager({
             collection,
             activeIdSingleton,
-            getId: (i) => i.id
+            getId: (i) => i.id,
+            implicitSelectionStrategy: new FirstItemSelectionStrategy()
         });
 
         collection.save([{ id: '3' }]);
@@ -83,7 +86,8 @@ describe('ActiveItemManager', () => {
         const manager = new ActiveItemManager({
             collection,
             activeIdSingleton,
-            getId: (i) => i.id
+            getId: (i) => i.id,
+            implicitSelectionStrategy: new FirstItemSelectionStrategy()
         });
 
         const state = manager.getSnapshot();
