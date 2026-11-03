@@ -26,7 +26,7 @@ export interface SettingsAccountTabProps {
   onDeleteProject: (p: ProjectInfo) => void;
   onBulkDeleteProjects?: (ids: string[]) => void;
   selectedProjectIds?: Set<string>;
-  toggleProjectSelection?: (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredList?: ProjectInfo[]) => void;
+  toggleProjectSelection?: (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredIds?: string[]) => void;
   toggleSelectAllProjects?: () => void;
   clearProjectSelection?: () => void;
   getProjectSelectionState?: () => 'none' | 'some' | 'all';
@@ -303,7 +303,7 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
                   >
                     <button
                       type="button"
-                      onClick={(e) => toggleProjectSelection && toggleProjectSelection(p.id, e, index)}
+                      onClick={(e) => toggleProjectSelection && toggleProjectSelection(p.id, e, index, projects.map(proj => proj.id))}
                       className="me-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
                       aria-label={`Select project ${p.name}`}
                     >

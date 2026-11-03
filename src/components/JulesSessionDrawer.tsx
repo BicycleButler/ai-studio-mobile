@@ -395,8 +395,8 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
           <BatchSelectionHeader
             selectedCount={selectedSessionIds.size}
             totalCount={filteredSessions.length}
-            selectionState={getSelectionState(filteredSessions)}
-            onToggleSelectAll={() => toggleSelectAll(filteredSessions)}
+            selectionState={getSelectionState(filteredSessions.map(s => s.id))}
+            onToggleSelectAll={() => toggleSelectAll(filteredSessions.map(s => s.id))}
           />
         )}
 
@@ -442,7 +442,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                 >
                   <button
                     type="button"
-                    onClick={(e) => toggleSelection(session.id, e, index, filteredSessions)}
+                    onClick={(e) => toggleSelection(session.id, e, index, filteredSessions.map(s => s.id))}
                     className="mt-1 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
                     aria-label={`Select session ${session.title}`}
                   >

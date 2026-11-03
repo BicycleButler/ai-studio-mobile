@@ -188,13 +188,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   };
 
   const toggleHistorySelection = useCallback((id: string, e: React.MouseEvent | React.KeyboardEvent, index: number) => {
-    toggleHistorySelectionRaw(id, e, index, validHistorySessions);
+    toggleHistorySelectionRaw(id, e, index, validHistorySessions.map(s => s.id));
   }, [toggleHistorySelectionRaw, validHistorySessions]);
 
   const toggleSelectAllHistory = useCallback(() => {
-    toggleSelectAllHistoryRaw(validHistorySessions);
-  }, [toggleSelectAllHistoryRaw,
-    validHistorySessions]);
+    toggleSelectAllHistoryRaw(validHistorySessions.map(s => s.id));
+  }, [toggleSelectAllHistoryRaw, validHistorySessions]);
 
   // Clear selection on popover close
   useEffect(() => {

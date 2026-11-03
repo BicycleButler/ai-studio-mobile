@@ -194,8 +194,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           <BatchSelectionHeader
           selectedCount={selectedPromptIds.size}
           totalCount={savedPrompts.length}
-          selectionState={getSelectionState(savedPrompts)}
-          onToggleSelectAll={() => toggleSelectAll()}
+          selectionState={getSelectionState(savedPrompts.map(p => p.id))}
+          onToggleSelectAll={() => toggleSelectAll(savedPrompts.map(p => p.id))}
           className="!px-2 mb-2"
         />
         )}
@@ -218,7 +218,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               >
                 <button
                   type="button"
-                  onClick={(e) => toggleSelection(item.id, e, index)}
+                  onClick={(e) => toggleSelection(item.id, e, index, savedPrompts.map(p => p.id))}
                   className="me-3 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
                   aria-label={`Select prompt ${item.title}`}
                 >
