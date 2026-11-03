@@ -86,6 +86,8 @@ export interface IServices {
 
 
 const explicitlyInjectedPlatformService = new BrowserPlatformService();
+const explicitlyInjectedStorageInstance = createDefaultStorageInstance();
+const explicitlyInjectedStorageFactory = new DefaultStorageFactory(explicitlyInjectedStorageInstance);
 
 const explicitlyInjectedApiClient = new ApiClient({
   retryConfig: {
@@ -119,13 +121,13 @@ const explicitlyInjectedAuthService = new AuthService({
 const explicitlyInjectedGoogleAuthService = new GoogleAuthService({
   apiClient: explicitlyInjectedApiClient,
   logger: defaultLogger,
-  storageFactory: defaultStorageFactory
+  storageFactory: explicitlyInjectedStorageFactory
 });
 
 const explicitlyInjectedSpeechVoicesService = new SpeechVoicesService({
   apiClient: explicitlyInjectedApiClient,
   authService: explicitlyInjectedAuthService,
-  storageFactory: defaultStorageFactory
+  storageFactory: explicitlyInjectedStorageFactory
 });
 
 const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
@@ -159,7 +161,7 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
   logger: defaultLogger,
   apiClient: explicitlyInjectedApiClient,
   julesSessionsManager: undefined,
-  storageFactory: defaultStorageFactory,
+  storageFactory: explicitlyInjectedStorageFactory,
   idGenerator: defaultIdGenerator,
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
@@ -184,7 +186,7 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
 });
 
 const explicitlyInjectedGeneralSettingsService = new GeneralSettingsService({
-  storageFactory: defaultStorageFactory
+  storageFactory: explicitlyInjectedStorageFactory
 });
 
 const explicitlyInjectedAppAuthManager = new AppAuthManager({
@@ -204,7 +206,7 @@ const explicitlyInjectedProjectService = new ProjectService({
   idGenerator: defaultIdGenerator
 });
 
-const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger, storageFactory: defaultStorageFactory });
+const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger, storageFactory: explicitlyInjectedStorageFactory });
 
 const explicitlyInjectedImageCompressor = new ImageCompressor({
   strategy: new CanvasImageCompressionStrategy({ idGenerator: defaultIdGenerator })
@@ -212,7 +214,7 @@ const explicitlyInjectedImageCompressor = new ImageCompressor({
 
 const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
   builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
-  storageFactory: defaultStorageFactory,
+  storageFactory: explicitlyInjectedStorageFactory,
   idGenerator: defaultIdGenerator
 });
 
@@ -229,7 +231,7 @@ const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLo
 const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(defaultLogger);
 
 const defaultServices: IServices = {
-  themeService: new ThemeService({ storageFactory: defaultStorageFactory }),
+  themeService: new ThemeService({ storageFactory: explicitlyInjectedStorageFactory }),
   promptTemplateService: explicitlyInjectedPromptTemplateService,
   authService: explicitlyInjectedAuthService,
   googleAuthService: explicitlyInjectedGoogleAuthService,
@@ -238,7 +240,7 @@ const defaultServices: IServices = {
   apiClient: explicitlyInjectedApiClient,
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
   networkStatusProvider: new BrowserNetworkStatusProvider(),
-  chatHistoryService: new ChatHistoryService({ logger: defaultLogger, storageFactory: defaultStorageFactory }),
+  chatHistoryService: new ChatHistoryService({ logger: defaultLogger, storageFactory: explicitlyInjectedStorageFactory }),
   projectService: explicitlyInjectedProjectService,
   savedPromptsService: explicitlyInjectedSavedPromptsService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,

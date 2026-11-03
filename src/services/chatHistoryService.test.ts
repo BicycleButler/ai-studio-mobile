@@ -1,12 +1,13 @@
 import { defaultLogger } from "../utils/logger";
 import { ChatHistoryService } from "./chatHistoryService";
+import { createDefaultStorageInstance, DefaultStorageFactory } from "../utils/storage";
 import { describe, test } from 'vitest';
 import { ChatSession, ChatMessage } from '../types';
 
 
 describe('testChatHistoryService', () => {
   test('main', () => {
-  const service = new ChatHistoryService({ logger: defaultLogger });
+  const service = new ChatHistoryService({ storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()), logger: defaultLogger });
 
   const activeProjectId = "proj_mobile_arch_101";
 

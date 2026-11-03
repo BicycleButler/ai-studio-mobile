@@ -17,7 +17,12 @@ import {
 import { ILogger, defaultLogger } from "../utils/logger";
 import { ISpeechRecognitionInstance } from "../types/speechRecognition";
 
+import { EventEmitter } from "../utils/eventEmitter";
+
 export interface IPlatformService {
+  getStorageEventObservable(): EventEmitter<StorageEvent>;
+  getStorageQuotaObservable(): EventEmitter<void>;
+
   isInputFocused(): boolean;
   blurActiveElement(): void;
   openUrl(url: string, target?: string): void;
@@ -57,7 +62,28 @@ export interface IPlatformService {
 }
 
 export class BrowserPlatformService implements IPlatformService {
-  constructor(private logger: ILogger = defaultLogger) {}
+  private storageEventObservable = new EventEmitter<StorageEvent>();
+  private storageQuotaObservable = new EventEmitter<void>();
+
+  constructor(private logger: ILogger = defaultLogger) {
+    if (this.isBrowserEnv()) {
+      const win = this.getWindow();
+      if (win) {
+        win.addEventListener("storage", (e) => {
+          this.storageEventObservable.emit(e);
+        });
+      }
+    }
+  }
+
+  public getStorageEventObservable(): EventEmitter<StorageEvent> {
+    return this.storageEventObservable;
+  }
+
+  public getStorageQuotaObservable(): EventEmitter<void> {
+    return this.storageQuotaObservable;
+  }
+
 
   public isInputFocused(): boolean {
     const doc = getSafeDocument();

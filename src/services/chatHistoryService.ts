@@ -1,5 +1,5 @@
+import { safeGetStorageKeys, STORAGE_KEYS, IStorageRegistry, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { ChatMessage, ChatSession } from "../types";
-import { safeGetStorageKeys, STORAGE_KEYS, globalStorageQuotaObservable, IStorageRegistry, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, defaultLogger } from "../utils/logger";
 import { defaultPlatformService } from "./platformService";
@@ -23,7 +23,7 @@ export interface IChatHistoryService {
 
 export interface ChatHistoryServiceConfig {
   timeProvider?: ITimeProvider;
-  quotaObservable?: typeof globalStorageQuotaObservable;
+  quotaObservable?: import("../utils/eventEmitter").EventEmitter<void>;
   storageKeys?: typeof STORAGE_KEYS;
   logger: ILogger;
   collectionRegistry?: IStorageRegistry<IMutableCollection<ChatSession>>;
@@ -42,7 +42,7 @@ export class ChatHistoryService implements IChatHistoryService {
     const factory = config?.storageFactory || defaultStorageFactory;
 
     this.config = {
-      quotaObservable: config?.quotaObservable || globalStorageQuotaObservable,
+      quotaObservable: config?.quotaObservable || defaultPlatformService.getStorageQuotaObservable(),
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
       timeProvider: this.timeProvider,
@@ -64,7 +64,7 @@ export class ChatHistoryService implements IChatHistoryService {
   private handleQuotaExceeded(): void {
     this.config.logger.warn("ChatHistoryService: Storage quota exceeded. Evicting old chat histories to recover space.");
     try {
-      const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX);
+      const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX, (this.config as any).storageFactory?.storageInstance || (require("../utils/storage/core") as any).createDefaultStorageInstance?.());
       if (keysToClean.length === 0) {
         // Fallback for tests or environments where safeGetStorageKeys might not work as expected
         // Check the registry directly
@@ -119,7 +119,7 @@ export class ChatHistoryService implements IChatHistoryService {
   public purgeMockSessionsFromStorage(): void {
     try {
       if (this.config.isBrowserEnv()) {
-        const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX);
+        const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX, (this.config as any).storageFactory?.storageInstance || (require("../utils/storage/core") as any).createDefaultStorageInstance?.());
 
         keysToClean.forEach((key) => {
           const collection = this.getChatCollectionByKey(key);

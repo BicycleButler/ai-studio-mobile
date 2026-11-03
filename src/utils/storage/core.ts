@@ -5,49 +5,28 @@ import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 import { ILogger, defaultLogger } from "../logger";
 import { EventEmitter } from "../eventEmitter";
 import { ISerializer, JsonSerializer } from "./serializer";
-export const globalStorageEventObservable = new EventEmitter<StorageEvent>();
 const defaultSerializer = new JsonSerializer();
 
-if (defaultPlatformService.isBrowserEnv()) {
-  const win = defaultPlatformService.getWindow();
-  if (win) {
-    win.addEventListener("storage", (e) => {
-      globalStorageEventObservable.emit(e);
-    });
-  }
-}
-
-
-let _storageInstance: FallbackStorageWrapper | MemoryStorage | null = null;
-export const globalStorageQuotaObservable = new EventEmitter<void>();
-
-export function getStorageInstance(): Storage {
-  if (_storageInstance) return _storageInstance;
-
+export function createDefaultStorageInstance(): Storage {
   try {
     if (defaultPlatformService.isBrowserEnv()) {
       const localStorage = defaultPlatformService.getLocalStorage();
       if (localStorage) {
-        // Validation check to ensure localStorage is fully accessible and not throwing QuotaExceeded on boot (e.g., Safari Private Mode)
         const testKey = "__storage_test__";
         localStorage.setItem(testKey, testKey);
         localStorage.removeItem(testKey);
         const wrapper = new FallbackStorageWrapper(localStorage);
         wrapper.quotaExceededEvent.subscribe(() => {
-            globalStorageQuotaObservable.emit();
+            defaultPlatformService.getStorageQuotaObservable().emit();
         });
-        _storageInstance = wrapper;
-        return _storageInstance;
+        return wrapper;
       }
     }
   } catch {
-    // Storage access might be denied
   }
-
-  // Fallback to memory if localStorage is unavailable
-  _storageInstance = new MemoryStorage();
-  return _storageInstance;
+  return new MemoryStorage();
 }
+
 
 export class MemoryStorage implements Storage {
   private store: Map<string, string>;
@@ -112,9 +91,9 @@ export function safeParseStorageItem<T>(
   }
 }
 
-export function safeGetStorage<T>(key: string, fallback: T, storageInstance?: Storage, logger: ILogger = defaultLogger, serializer: ISerializer = defaultSerializer): T {
+export function safeGetStorage<T>(key: string, fallback: T, storageInstance: Storage, logger: ILogger = defaultLogger, serializer: ISerializer = defaultSerializer): T {
   try {
-    const storage = storageInstance || getStorageInstance();
+    const storage = storageInstance;
     const raw = storage.getItem(key);
     if (!raw) return fallback;
     const isArray = Array.isArray(fallback);
@@ -125,10 +104,10 @@ export function safeGetStorage<T>(key: string, fallback: T, storageInstance?: St
   }
 }
 
-export function safeGetStorageKeys(prefix: string, storageInstance?: Storage, logger: ILogger = defaultLogger): string[] {
+export function safeGetStorageKeys(prefix: string, storageInstance: Storage, logger: ILogger = defaultLogger): string[] {
   const keys: string[] = [];
   try {
-    const storage = storageInstance || getStorageInstance();
+    const storage = storageInstance;
     const len = storage.length;
     for (let i = 0; i < len; i++) {
       const key = storage.key(i);
@@ -142,7 +121,7 @@ export function safeGetStorageKeys(prefix: string, storageInstance?: Storage, lo
   return keys;
 }
 
-export function safeSetStorage<T>(key: string, value: T, storageInstance?: Storage, logger: ILogger = defaultLogger, serializer: ISerializer = defaultSerializer): boolean {
+export function safeSetStorage<T>(key: string, value: T, storageInstance: Storage, logger: ILogger = defaultLogger, serializer: ISerializer = defaultSerializer): boolean {
   try {
     const serialized = serializer.serialize(value);
     return safeSetStorageString(key, serialized, storageInstance, logger);
@@ -152,18 +131,18 @@ export function safeSetStorage<T>(key: string, value: T, storageInstance?: Stora
   }
 }
 
-export function safeGetStorageString(key: string, fallback: string = "", storageInstance?: Storage): string {
+export function safeGetStorageString(key: string, fallback: string = "", storageInstance: Storage): string {
   try {
-    const storage = storageInstance || getStorageInstance();
+    const storage = storageInstance;
     return storage.getItem(key) || fallback;
   } catch {
     return fallback;
   }
 }
 
-export function safeSetStorageString(key: string, value: string, storageInstance?: Storage, logger: ILogger = defaultLogger): boolean {
+export function safeSetStorageString(key: string, value: string, storageInstance: Storage, logger: ILogger = defaultLogger): boolean {
   try {
-    const storage = storageInstance || getStorageInstance();
+    const storage = storageInstance;
     storage.setItem(key, value);
     return true;
   } catch (err: unknown) {
@@ -172,9 +151,9 @@ export function safeSetStorageString(key: string, value: string, storageInstance
   }
 }
 
-export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance?: Storage, logger: ILogger = defaultLogger): void {
+export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance: Storage, logger: ILogger = defaultLogger): void {
   try {
-    const storage = storageInstance || getStorageInstance();
+    const storage = storageInstance;
     const keysToRemove = safeGetStorageKeys(prefix, storage, logger);
     for (const key of keysToRemove) {
       storage.removeItem(key);
@@ -184,9 +163,9 @@ export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance?
   }
 }
 
-export function safeRemoveStorage(key: string, storageInstance?: Storage, logger: ILogger = defaultLogger): boolean {
+export function safeRemoveStorage(key: string, storageInstance: Storage, logger: ILogger = defaultLogger): boolean {
   try {
-    const storage = storageInstance || getStorageInstance();
+    const storage = storageInstance;
     storage.removeItem(key);
     return true;
   } catch (err: unknown) {
@@ -196,7 +175,7 @@ export function safeRemoveStorage(key: string, storageInstance?: Storage, logger
 }
 
 export class DefaultStorageAdapter<T> implements IStorageAdapter<T> {
-  constructor(private storageInstance?: Storage, private logger: ILogger = defaultLogger, private serializer: ISerializer = defaultSerializer) {}
+  constructor(private storageInstance: Storage, private logger: ILogger = defaultLogger, private serializer: ISerializer = defaultSerializer) {}
 
   get(key: string, fallback: T): T {
     return safeGetStorage(key, fallback, this.storageInstance, this.logger, this.serializer);
