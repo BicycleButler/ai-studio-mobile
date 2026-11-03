@@ -27,6 +27,7 @@ import { GeneralSettingsService, IGeneralSettingsService } from "../utils/storag
 import { DraftStateService, IDraftStateService } from "../utils/storage/draftState";
 import { JulesStorageService, IJulesStorageService } from "../utils/storage/jules";
 import { IJulesClient, JulesClient } from "./julesService";
+import { IJulesSessionOrchestrator, JulesSessionOrchestrator } from "./julesSessionOrchestrator";
 import { SpeechVoicesService, ISpeechVoicesService } from "./speechVoices";
 import { ISentenceSpeechQueue, SentenceSpeechQueue, SentenceQueueOptions } from "./sentenceSpeechQueue";
 import { GeminiStreamService, IGeminiStreamService } from "./geminiStreamService";
@@ -61,6 +62,7 @@ export interface IServices {
   draftStateService: IDraftStateService;
   julesStorageService: IJulesStorageService;
   julesClient: IJulesClient;
+  julesSessionOrchestrator: IJulesSessionOrchestrator;
   speechVoicesService: ISpeechVoicesService;
   createSentenceSpeechQueue: (options: SentenceQueueOptions) => ISentenceSpeechQueue;
   createSSEStreamParser: (onEvent: import("../utils/sseParser").SSEEventCallback) => import("../utils/sseParser").ISSEStreamParser;
@@ -136,6 +138,14 @@ const explicitlyInjectedJulesClient = new JulesClient({
   getApiKey: () => explicitlyInjectedJulesStorageService.loadStoredJulesApiKey(),
   getSettings: () => explicitlyInjectedJulesStorageService.loadStoredJulesSettings(),
   apiClient: explicitlyInjectedApiClient,
+});
+
+const explicitlyInjectedJulesSessionOrchestrator = new JulesSessionOrchestrator({
+  julesClient: explicitlyInjectedJulesClient,
+  julesStorageService: explicitlyInjectedJulesStorageService,
+  timeProvider: defaultTimeProvider,
+  idGenerator: defaultIdGenerator,
+  logger: defaultLogger,
 });
 
 const explicitlyInjectedStubsClient = new StubsClient({ apiClient: explicitlyInjectedApiClient, logger: defaultLogger });
@@ -235,6 +245,7 @@ const defaultServices: IServices = {
   draftStateService: explicitlyInjectedDraftStateService,
   julesStorageService: explicitlyInjectedJulesStorageService,
   julesClient: explicitlyInjectedJulesClient,
+  julesSessionOrchestrator: explicitlyInjectedJulesSessionOrchestrator,
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
   createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
   createSSEStreamParser: (onEvent) => new SSEStreamParser(onEvent),

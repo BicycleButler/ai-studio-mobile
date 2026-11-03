@@ -1235,3 +1235,16 @@ Add a `responseType: "json" | "text" | "blob" | "arraybuffer"` option to the `fe
 
 **Recommendation:**
 **Path 1 (Extracted Response Parser Interface)** is recommended to adhere strictly to the Dependency Inversion and Single Responsibility principles, aligning with how retries and interceptors are already structured in the `ApiClient`.
+**Architectural Decision: Jules Task Orchestration Decoupling**
+
+**Context:**
+The React hook `useJules` is currently responsible for orchestrating the interaction between `IJulesClient` (which handles API communication and polling) and `IJulesStorageService` (which manages the local sessions state). It manually manages polling lifecycle, updates the session messages with progress from task payloads, and maintains local React state for execution tracking. This violates the Single Responsibility Principle, couples the React components directly to task lifecycle domain logic, and makes it difficult to unit-test the polling orchestration without rendering the hook.
+
+**Path 1: Extract an `IJulesSessionOrchestrator` (Facade/Orchestrator)**
+Create a dedicated `JulesSessionOrchestrator` domain class to encapsulate the task dispatching, polling, and session mutation logic. This class exposes a unified API (`dispatchTask`, `approvePlan`, `rejectPlan`, `stopPolling`) and updates the underlying `JulesStorageService` automatically. The `ServiceContext` injects this orchestrator, and `useJules` simply delegates to it, relying entirely on the `julesStorageService` store for session state. Any transient UI state like `isExecuting` can be exposed as an observable by the orchestrator.
+
+**Path 2: Maintain Logic in `useJules` but abstract the polling into a utility**
+Extract only the polling loop logic into a custom hook or utility function (e.g., `useJulesPolling`), passing in callbacks to update the session. This reduces the size of `useJules` but still leaves the domain orchestration (mapping task payload to session messages) within the React layer.
+
+**Recommendation:**
+**Path 1 (Extract an `IJulesSessionOrchestrator`)** is the recommended path. It strictly enforces the Dependency Inversion Principle and aligns with the pattern established by `AppAuthManager` and `SyncOrchestrator`. Moving domain orchestration out of the React layer into a testable, dedicated service class significantly improves abstraction, reusability, and maintainability.
