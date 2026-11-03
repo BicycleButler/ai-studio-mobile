@@ -636,8 +636,8 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
               <BatchSelectionHeader
                 selectedCount={selectedCustomTemplateIds.size}
                 totalCount={customFilteredTemplates.length}
-                selectionState={getCustomTemplateSelectionState(customFilteredTemplates)}
-                onToggleSelectAll={() => toggleSelectAllCustomTemplates(customFilteredTemplates)}
+                selectionState={getCustomTemplateSelectionState(customFilteredTemplates.map(t => t.id))}
+                onToggleSelectAll={() => toggleSelectAllCustomTemplates(customFilteredTemplates.map(t => t.id))}
                 className="!px-4 !border-x-0"
               />
             )}
@@ -679,7 +679,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                       confirmDeleteId={confirmDeleteId}
                       handleDelete={handleDelete}
                       isBatchSelected={selectedCustomTemplateIds.has(template.id)}
-                      onBatchSelect={(e) => toggleCustomTemplateSelection(template.id, e, customFilteredTemplates.indexOf(template), customFilteredTemplates)}
+                      onBatchSelect={(e) => toggleCustomTemplateSelection(template.id, e, customFilteredTemplates.indexOf(template), customFilteredTemplates.map(t => t.id))}
                     />
                   );
                 })

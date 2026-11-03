@@ -40,20 +40,20 @@ export function useBatchSelection<T>({
   const itemIds = useMemo(() => items.map(getItemId), [items, getItemId]);
 
   const toggleSelection = useCallback(
-    (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredList: T[] = items) => {
+    (id: string, e: React.MouseEvent | React.KeyboardEvent, index: number, filteredIds?: string[]) => {
       e.stopPropagation();
-      const filteredItemIds = filteredList === items ? itemIds : filteredList.map(getItemId);
-      manager.toggleSelection(id, e.shiftKey, index, filteredItemIds);
+      const activeItemIds = filteredIds || itemIds;
+      manager.toggleSelection(id, e.shiftKey, index, activeItemIds);
     },
-    [manager, items, itemIds, getItemId]
+    [manager, itemIds]
   );
 
   const toggleSelectAll = useCallback(
-    (filteredList?: T[]) => {
-      const filteredItemIds = filteredList ? filteredList.map(getItemId) : itemIds;
-      manager.toggleSelectAll(filteredItemIds);
+    (filteredIds?: string[]) => {
+      const activeItemIds = filteredIds || itemIds;
+      manager.toggleSelectAll(activeItemIds);
     },
-    [manager, itemIds, getItemId]
+    [manager, itemIds]
   );
 
   const clearSelection = useCallback(() => {
@@ -68,11 +68,11 @@ export function useBatchSelection<T>({
   );
 
   const getSelectionState = useCallback(
-    (filteredList?: T[]): SelectionState => {
-      const filteredItemIds = filteredList ? filteredList.map(getItemId) : itemIds;
-      return manager.getSelectionState(filteredItemIds);
+    (filteredIds?: string[]): SelectionState => {
+      const activeItemIds = filteredIds || itemIds;
+      return manager.getSelectionState(activeItemIds);
     },
-    [manager, itemIds, getItemId]
+    [manager, itemIds]
   );
 
   useEffect(() => {
