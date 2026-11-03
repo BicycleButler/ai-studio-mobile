@@ -50,9 +50,9 @@ export class DefaultActiveItemManagerFactory implements IActiveItemManagerFactor
   }
 }
 
-export const defaultActiveItemManagerFactory = new DefaultActiveItemManagerFactory();
+
 
 // Kept for backwards compatibility
 export function createActiveItemManager<T>(options: CreateActiveItemManagerOptions<T>): IActiveItemManager<T> {
-  return defaultActiveItemManagerFactory.create(options);
+  return new DefaultActiveItemManagerFactory().create(options);
 }

@@ -1,8 +1,8 @@
 import { defaultTimeProvider } from "../utils/timeProvider";
 import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
-import { IApiClient, defaultClient } from "../utils/apiClient";
-import { ILogger, defaultLogger } from "../utils/logger";
+import { IApiClient } from "../utils/apiClient";
+import { ILogger } from "../utils/logger";
 import { IClipboardService } from "./clipboardService";
 
 // Base string patterns for dynamic regex composition
@@ -182,7 +182,4 @@ export class KeyVerificationService implements IKeyVerificationService {
   }
 }
 
-import { BrowserClipboardService } from "./clipboardService";
-import { defaultPlatformService } from "./platformService";
 
-export const defaultKeyVerificationService = new KeyVerificationService({ apiClient: defaultClient, logger: defaultLogger, clipboardService: new BrowserClipboardService(defaultLogger, defaultPlatformService) });

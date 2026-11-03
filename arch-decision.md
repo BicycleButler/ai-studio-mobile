@@ -1262,3 +1262,18 @@ Update the UI component (`JulesActivityCard`) to check for the `awaiting_approva
 
 **Recommendation:**
 **Path 1 (Defaulting within Orchestrator)** was implemented. It adds robustness by explicitly enforcing plan review when the backend state strictly sits in awaiting_approval, ensuring consistency in the domain model payload rather than pushing edge-case handling to the presentation layer.
+## Architectural Decision: Server Context Abstraction
+
+**Context:**
+The backend entrypoint (`server.ts`) and services manually instantiated core utility services (like `ApiClient`, `ProcessRunner`, `Logger`, `ServerJulesClient`), circumventing the rigorous dependency injection pattern used by the frontend (`ServiceContext`).
+
+**Decision:**
+We extracted a dedicated `ServerContext` for the backend to instantiate and weave together its dependencies explicitly. `server.ts` and `stubsService.ts` now retrieve instances from this shared context instead of using global defaults or raw instantiation, ensuring uniform strict Dependency Inversion on both client and server.
+
+## Architectural Decision: Subsystem Extraneous Default Exports Cleanup
+
+**Context:**
+Several module files (like `imageCompressor.ts`, `draftState.ts`, `projects.ts`) exported `defaultX` singletons which were completely unused by the application because the frontend `ServiceContext.tsx` had been refactored to explicitly instantiate those dependencies via `new X()` constructor logic directly.
+
+**Decision:**
+To eliminate dead code and strictly enforce the injection hierarchy established in `ServiceContext.tsx`, completely unused `export const defaultX` declarations were removed from their respective domain modules.

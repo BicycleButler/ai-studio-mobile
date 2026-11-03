@@ -147,5 +147,4 @@ export class DraftStateService implements IDraftStateService {
   }
 }
 
-export const defaultDraftStateService = new DraftStateService({ logger: defaultLogger });
 

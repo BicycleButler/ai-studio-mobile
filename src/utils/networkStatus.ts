@@ -66,4 +66,3 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
   }
 }
 
-export const defaultNetworkStatusProvider = new BrowserNetworkStatusProvider();

@@ -46,5 +46,5 @@ export class NoOpLoggerFactory implements ILoggerFactory {
   }
 }
 
-export const defaultLoggerFactory: ILoggerFactory = new DefaultLoggerFactory();
-export const defaultLogger: ILogger = defaultLoggerFactory.createLogger(); // Keep for backward compatibility/global access if absolutely necessary, but prefer DI
+
+export const defaultLogger: ILogger = new DefaultLoggerFactory().createLogger(); // Keep for backward compatibility/global access if absolutely necessary, but prefer DI
