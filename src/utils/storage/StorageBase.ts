@@ -33,7 +33,10 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
     this.key = key;
     this.options = options;
     this.logger = options.logger || defaultLogger;
-    this.adapter = options.adapter || new DefaultStorageAdapter<T>(options.storageAdapter, this.logger, this.options.serializer);
+    if (!options.adapter) {
+      throw new Error("IStorageAdapter is required for StorageBase");
+    }
+    this.adapter = options.adapter;
 
     this.boundHandleStorageEvent = this.handleStorageEvent.bind(this);
 

@@ -69,7 +69,11 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
     super(key, baseOptions);
 
     this.keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
-    this.collectionEngine = options?.engine || new MapCollection<T>(this.keyExtractor);
+
+    if (!options?.engine) {
+      throw new Error("ICollectionEngine is required for StorageCollection");
+    }
+    this.collectionEngine = options.engine;
   }
 
   private applyOperation<R extends { items: T[]; changed: boolean }>(
