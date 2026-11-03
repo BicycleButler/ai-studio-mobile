@@ -37,4 +37,3 @@ export class CodeGeneratorService implements ICodeGeneratorService {
   }
 }
 
-export const defaultCodeGeneratorService = new CodeGeneratorService();

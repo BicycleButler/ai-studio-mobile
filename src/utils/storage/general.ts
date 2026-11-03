@@ -79,7 +79,7 @@ export class GeneralSettingsService implements IGeneralSettingsService {
   }
 }
 
-export const defaultGeneralSettingsService = new GeneralSettingsService({});
+
 
 
 

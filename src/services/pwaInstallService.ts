@@ -70,4 +70,3 @@ export class PwaInstallService implements IPwaInstallService {
   }
 }
 
-export const defaultPwaInstallService = new PwaInstallService();

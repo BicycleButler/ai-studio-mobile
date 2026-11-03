@@ -5,7 +5,7 @@ import { describe, test } from 'vitest';
 import {
   STANDARD_GOOGLE_KEY_REGEX,
   AISTUDIO_PROJECT_KEY_REGEX,
-  defaultKeyVerificationService,
+  KeyVerificationService,
 } from "./keyVerification";
 import {
   encryptSecret,
@@ -22,6 +22,7 @@ function assert(condition: boolean, message: string): void {
 describe('testKeyVerificationSubsystem', () => {
   test('main', async () => {
 const defaultProjectService = new ProjectService({ generalSettingsService: new GeneralSettingsService({ storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()) }), storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()) });
+  const defaultKeyVerificationService = new KeyVerificationService({ apiClient: {} as any, logger: {} as any });
   // Test 1: Standard Google API Key pattern validation (AIza + 35 characters = 39 chars total)
   const validStandardKey = "AIzaSyD" + "A".repeat(32); // 4 + 35 = 39 chars
   assert(validStandardKey.length === 39, "Standard key must be 39 chars long");

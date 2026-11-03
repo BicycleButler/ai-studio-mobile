@@ -118,8 +118,6 @@ export class ProjectService implements IProjectService {
   }
 }
 
-export const defaultProjectService = new ProjectService({});
 
-export const projectsManager = defaultProjectService.projectsManager;
 
 

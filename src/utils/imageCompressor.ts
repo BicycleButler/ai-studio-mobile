@@ -146,4 +146,3 @@ export class ImageCompressor implements IImageCompressor {
   }
 }
 
-export const defaultImageCompressor = new ImageCompressor();

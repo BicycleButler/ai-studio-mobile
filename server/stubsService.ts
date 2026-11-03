@@ -1,8 +1,8 @@
-import { defaultLogger } from "../src/utils/logger";
+import { defaultServerContext } from "./serverContext";
 import path from "node:path";
 import fs from "node:fs";
 import { EventEmitter } from "node:events";
-import { defaultProcessRunner } from "./utils/processRunner";
+
 import { DatabaseSync } from "node:sqlite";
 import {
   StubsNode,
@@ -28,7 +28,7 @@ function getDatabase(): DatabaseSync | null {
     }
     return new DatabaseSync(DB_PATH);
   } catch (err) {
-    defaultLogger.error("[stubsService] Error opening SQLite database:", err);
+    defaultServerContext.services.logger.error("[stubsService] Error opening SQLite database:", err);
     return null;
   }
 }
@@ -45,7 +45,7 @@ export async function getGraphData(): Promise<StubsGraphData> {
       await runCliCommand("scan");
       db = getDatabase();
     } catch (e) {
-      defaultLogger.warn("[stubsService] Initial scan failed:", e);
+      defaultServerContext.services.logger.warn("[stubsService] Initial scan failed:", e);
     }
   }
 
@@ -121,7 +121,7 @@ export async function getGraphData(): Promise<StubsGraphData> {
         });
       }
     } catch (err) {
-      defaultLogger.error("[stubsService] Query error:", err);
+      defaultServerContext.services.logger.error("[stubsService] Query error:", err);
     }
   }
 
@@ -456,7 +456,7 @@ export async function listSidecarSpecs(): Promise<StubsSidecarSpec[]> {
             targetExists,
           });
         } catch (e) {
-          defaultLogger.warn("[stubsService] Error reading spec file:", full, e);
+          defaultServerContext.services.logger.warn("[stubsService] Error reading spec file:", full, e);
         }
       }
     }
@@ -544,7 +544,7 @@ export async function runCliCommand(
     throw new Error(`Stubs CLI not found at ${CLI_PATH}. Please build the agent skills first.`);
   }
 
-  return defaultProcessRunner.runCommand(
+  return defaultServerContext.services.processRunner.runCommand(
     CLI_PATH,
     [command, ...args],
     { cwd: CWD },

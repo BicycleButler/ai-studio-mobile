@@ -236,4 +236,3 @@ export class PromptTemplateService implements IPromptTemplateService {
   }
 }
 
-export const defaultPromptTemplateService = new PromptTemplateService({});

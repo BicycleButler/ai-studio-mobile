@@ -1,4 +1,5 @@
-import { defaultLogger } from "./src/utils/logger";
+import { defaultServerContext } from "./server/serverContext";
+
 import express, { Request, Response } from "express";
 import path from "path";
 import fs from "fs";
@@ -28,16 +29,16 @@ import {
   stubsEvents,
 } from "./server/stubsService";
 import { getGenAIClient } from "./server/utils/genai";
-import { ServerJulesClient, ServerJulesTask, IServerJulesClient } from "./server/julesClient";
-import { ApiClient, BaseApiError } from "./src/utils/apiClient";
+import { ServerJulesTask } from "./server/julesClient";
+import { BaseApiError } from "./src/utils/apiClient";
 import { getErrorMessage } from "./src/utils/errorHandling";
 
 dotenv.config();
 
 const app = express();
 
-const serverApiClient = new ApiClient();
-const serverJulesClient: IServerJulesClient = new ServerJulesClient({ apiClient: serverApiClient, logger: defaultLogger });
+const { julesClient: serverJulesClient, logger: defaultLogger } = defaultServerContext.services;
+
 
 const JULES_SESSIONS_FILE = path.join(process.cwd(), ".stubs", "jules_sessions.json");
 
