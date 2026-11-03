@@ -6,7 +6,7 @@ import { IApiClient, ApiClient } from "../utils/apiClient";
 import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
-import { defaultStorageFactory } from "../utils/storage";
+import { createDefaultStorageInstance, DefaultStorageFactory } from "../utils/storage";
 import { defaultCrossTabNotifierFactory } from "../utils/crossTabNotifier/CrossTabNotifierFactory";
 import { defaultLogger, ILogger } from "../utils/logger";
 import { IIdGenerator, defaultIdGenerator } from "../utils/idGenerator";
@@ -136,6 +136,22 @@ const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
 });
 
 
+const explicitlyInjectedJulesStorageService = new JulesStorageService({
+  logger: defaultLogger,
+  apiClient: explicitlyInjectedApiClient,
+  julesSessionsManager: undefined,
+  storageFactory: explicitlyInjectedStorageFactory,
+  idGenerator: defaultIdGenerator,
+  syncAdapter: new NetworkStorageSyncAdapter({
+    transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
+    offlineService: explicitlyInjectedOfflineService,
+    networkStatusProvider: new BrowserNetworkStatusProvider(),
+    retryStrategy: new DefaultOfflineRetryStrategy(),
+    logger: defaultLogger,
+    endpoint: "/api/jules/sessions"
+  }),
+});
+
 const explicitlyInjectedJulesClient = new JulesClient({
   getApiKey: () => explicitlyInjectedJulesStorageService.loadStoredJulesApiKey(),
   getSettings: () => explicitlyInjectedJulesStorageService.loadStoredJulesSettings(),
@@ -157,21 +173,7 @@ const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
   logger: defaultLogger
 });
 
-const explicitlyInjectedJulesStorageService = new JulesStorageService({
-  logger: defaultLogger,
-  apiClient: explicitlyInjectedApiClient,
-  julesSessionsManager: undefined,
-  storageFactory: explicitlyInjectedStorageFactory,
-  idGenerator: defaultIdGenerator,
-  syncAdapter: new NetworkStorageSyncAdapter({
-    transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
-    offlineService: explicitlyInjectedOfflineService,
-    networkStatusProvider: new BrowserNetworkStatusProvider(),
-    retryStrategy: new DefaultOfflineRetryStrategy(),
-    logger: defaultLogger,
-    endpoint: "/api/jules/sessions"
-  }),
-});
+
 
 const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   savedPromptsManager: undefined,

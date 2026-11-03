@@ -36,9 +36,9 @@ export class GeneralSettingsService implements IGeneralSettingsService {
           {
             transformIn: (key) => key.trim(),
             adapter: {
-              get: (k, f) => safeGetStorageString(k, f as string, (factory as any).storageInstance || createDefaultStorageInstance()),
-              set: (k, v) => safeSetStorageString(k, v, (factory as any).storageInstance || createDefaultStorageInstance()),
-              remove: (k) => safeSetStorageString(k, "", (factory as any).storageInstance || createDefaultStorageInstance()),
+              get: (k, f) => safeGetStorageString(k, f as string, (factory as unknown as { storageInstance?: Storage }).storageInstance || createDefaultStorageInstance()),
+              set: (k, v) => safeSetStorageString(k, v, (factory as unknown as { storageInstance?: Storage }).storageInstance || createDefaultStorageInstance()),
+              remove: (k) => safeSetStorageString(k, "", (factory as unknown as { storageInstance?: Storage }).storageInstance || createDefaultStorageInstance()),
             }
           }
         );

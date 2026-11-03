@@ -49,17 +49,17 @@ export class ProjectService implements IProjectService {
       activeIdOptions: {
         adapter: {
           get: (key: string, fallback: string | null) => {
-            const val = safeGetStorageString(key, "", ((config?.storageFactory as any)?.storageInstance || createDefaultStorageInstance()));
+            const val = safeGetStorageString(key, "", ((config?.storageFactory as unknown as { storageInstance?: Storage })?.storageInstance || createDefaultStorageInstance()));
             return val ? val : fallback;
           },
           set: (key: string, value: string | null) => {
             if (value) {
-              safeSetStorageString(key, value, ((config?.storageFactory as any)?.storageInstance || createDefaultStorageInstance()));
+              safeSetStorageString(key, value, ((config?.storageFactory as unknown as { storageInstance?: Storage })?.storageInstance || createDefaultStorageInstance()));
             } else {
-              safeRemoveStorage(key, ((config?.storageFactory as any)?.storageInstance || createDefaultStorageInstance()));
+              safeRemoveStorage(key, ((config?.storageFactory as unknown as { storageInstance?: Storage })?.storageInstance || createDefaultStorageInstance()));
             }
           },
-          remove: (key: string) => safeRemoveStorage(key),
+          remove: (key: string) => safeRemoveStorage(key, ((config?.storageFactory as unknown as { storageInstance?: Storage })?.storageInstance || createDefaultStorageInstance())),
         }
       },
       getId: (p) => p.id,
