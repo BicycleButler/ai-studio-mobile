@@ -1,19 +1,19 @@
 import { defaultLogger } from "./logger";
 
 import { describe, test, expect } from 'vitest';
-import { safeGetStorage, safeSetStorage } from "./storage/core";
+import { safeGetStorage, safeSetStorage, createDefaultStorageInstance } from "./storage/core";
 import { DraftStateService } from './storage/draftState';
 
 describe('storage', () => {
   test('testStorage', () => {
     // Test safe fallback
     const fallbackVal = { test: 123 };
-    const res = safeGetStorage("non_existent_key_xyz", fallbackVal);
+    const res = safeGetStorage("non_existent_key_xyz", fallbackVal, createDefaultStorageInstance());
     expect(res.test).toBe(123);
 
     // Test set and get
-    safeSetStorage("test_key_abc", { valid: true });
-    const fetched = safeGetStorage<{ valid: boolean }>("test_key_abc", { valid: false });
+    safeSetStorage("test_key_abc", { valid: true }, createDefaultStorageInstance());
+    const fetched = safeGetStorage<{ valid: boolean }>("test_key_abc", { valid: false }, createDefaultStorageInstance());
     expect(fetched.valid).toBe(true);
 
     // Test draft state initialization

@@ -1,3 +1,4 @@
+import { createDefaultStorageInstance } from "./core";
 import { ProjectInfo } from "../../types";
 import { IIdGenerator, defaultIdGenerator } from "../idGenerator";
 import { STORAGE_KEYS } from "./constants";
@@ -48,14 +49,14 @@ export class ProjectService implements IProjectService {
       activeIdOptions: {
         adapter: {
           get: (key: string, fallback: string | null) => {
-            const val = safeGetStorageString(key, "");
+            const val = safeGetStorageString(key, "", ((config?.storageFactory as any)?.storageInstance || createDefaultStorageInstance()));
             return val ? val : fallback;
           },
           set: (key: string, value: string | null) => {
             if (value) {
-              safeSetStorageString(key, value);
+              safeSetStorageString(key, value, ((config?.storageFactory as any)?.storageInstance || createDefaultStorageInstance()));
             } else {
-              safeRemoveStorage(key);
+              safeRemoveStorage(key, ((config?.storageFactory as any)?.storageInstance || createDefaultStorageInstance()));
             }
           },
           remove: (key: string) => safeRemoveStorage(key),
