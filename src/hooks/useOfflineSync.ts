@@ -5,6 +5,7 @@ import {
   ConflictData
 } from "../utils/offlineService";
 import { useServices } from "../services/ServiceContext";
+import { useOfflineQueue } from "./useOfflineQueue";
 
 export type ReconnectState = "idle" | "reconnecting" | "success" | "conflict";
 
@@ -12,19 +13,11 @@ export function useOfflineSync(customOfflineService?: IOfflineService) {
   const { offlineService: contextOfflineService, platformService } = useServices();
   const offlineService = customOfflineService || contextOfflineService;
   const { isOnline, wasOffline } = useNetworkStatus();
-  const [reconnectState, setReconnectState] = useState<ReconnectState>("idle");
-  const [pendingQueueLength, setPendingQueueLength] = useState(0);
-  const [conflictData, setConflictData] = useState<ConflictData | null>(null);
+  const queue = useOfflineQueue(offlineService);
+  const pendingQueueLength = queue.length;
 
-  useEffect(() => {
-    let mounted = true;
-    const checkQueue = async () => {
-      const length = await offlineService.getOfflineQueueLength();
-      if (mounted) setPendingQueueLength(length);
-    };
-    checkQueue();
-    return () => { mounted = false; };
-  }, [isOnline, offlineService]);
+  const [reconnectState, setReconnectState] = useState<ReconnectState>("idle");
+  const [conflictData, setConflictData] = useState<ConflictData | null>(null);
 
   const handleProcessResult = useCallback((conflicts: ConflictData[], mounted: boolean = true) => {
     if (!mounted) return;
@@ -37,7 +30,7 @@ export function useOfflineSync(customOfflineService?: IOfflineService) {
         setReconnectState((prev) => (prev === "success" ? "idle" : prev));
       }, 3000);
     }
-  }, []);
+  }, [platformService]);
 
   useEffect(() => {
     let mounted = true;
