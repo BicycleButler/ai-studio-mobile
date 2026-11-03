@@ -9,7 +9,7 @@ describe('ActiveItemManager', () => {
         collection.save([{ id: '1' }, { id: '2' }]);
         const activeIdSingleton = defaultStorageFactory.createSingleton<string | null>('test_id', null);
 
-        const manager = new ActiveItemManager({
+        const manager = new ActiveItemManager<{ id: string }>({
             collection,
             activeIdSingleton,
             getId: (i) => i.id,
@@ -27,7 +27,7 @@ describe('ActiveItemManager', () => {
         collection.save([{ id: '1' }, { id: '2' }]);
         const activeIdSingleton = defaultStorageFactory.createSingleton<string | null>('test_id', '2');
 
-        const manager = new ActiveItemManager({
+        const manager = new ActiveItemManager<{ id: string }>({
             collection,
             activeIdSingleton,
             getId: (i) => i.id,
@@ -44,7 +44,7 @@ describe('ActiveItemManager', () => {
         collection.save([{ id: '1' }, { id: '2' }]);
         const activeIdSingleton = defaultStorageFactory.createSingleton<string | null>('test_id', null);
 
-        const manager = new ActiveItemManager({
+        const manager = new ActiveItemManager<{ id: string }>({
             collection,
             activeIdSingleton,
             getId: (i) => i.id,
@@ -60,7 +60,7 @@ describe('ActiveItemManager', () => {
         const collection = defaultStorageFactory.createCollection<{ id: string }>('test_col');
         const activeIdSingleton = defaultStorageFactory.createSingleton<string | null>('test_id', null);
 
-        const manager = new ActiveItemManager({
+        const manager = new ActiveItemManager<{ id: string }>({
             collection,
             activeIdSingleton,
             getId: (i) => i.id,
@@ -83,7 +83,7 @@ describe('ActiveItemManager', () => {
         collection.save([]);
         const activeIdSingleton = defaultStorageFactory.createSingleton<string | null>('test_id', 'dangling_id');
 
-        const manager = new ActiveItemManager({
+        const manager = new ActiveItemManager<{ id: string }>({
             collection,
             activeIdSingleton,
             getId: (i) => i.id,
