@@ -118,7 +118,8 @@ export class ApiClient implements IApiClient {
   ): Promise<Response> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
 
-    return this.executeRequest(url, fetchOptions, defaultErrorMessage);
+    const res = await this.executeRequest(url, fetchOptions, defaultErrorMessage);
+    return this.responseParser.parseStream(res, endpoint);
   }
 }
 

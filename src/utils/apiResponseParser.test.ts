@@ -43,4 +43,13 @@ describe('DefaultResponseParser', () => {
         const result = await parser.parse<string>(res, '/test');
         expect(result).toBe('plain text');
     });
+
+    it('should return raw response for parseStream', async () => {
+        const res = new Response('stream data', {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' }
+        });
+        const result = await parser.parseStream(res, '/test');
+        expect(result).toBe(res);
+    });
 });

@@ -2,9 +2,14 @@ import { BaseApiError } from "./apiClientErrors";
 
 export interface IResponseParser {
   parse<T>(response: Response, endpoint: string): Promise<T>;
+  parseStream(response: Response, endpoint: string): Promise<Response>;
 }
 
 export class DefaultResponseParser implements IResponseParser {
+  public async parseStream(response: Response, _endpoint: string): Promise<Response> {
+    return response;
+  }
+
   public async parse<T>(response: Response, endpoint: string): Promise<T> {
     if (response.status === 204) {
       return {} as T;
