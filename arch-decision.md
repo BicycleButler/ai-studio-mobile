@@ -1181,3 +1181,31 @@ Break `useAppAuth` down into smaller hooks like `useGoogleIdentity` and `useServ
 
 **Recommendation:**
 **Path 1 (Extract an `IAppAuthManager`)** was implemented. It strictly enforces the Dependency Inversion Principle, moving domain orchestration out of the React layer and into a testable, dedicated service class. This vastly improves Abstraction and Maintainability, aligning with the architectural patterns established by `OfflineQueueStore` and `SyncOrchestrator`.
+
+## Architectural Decision: RandomProvider Abstraction
+
+**Context:**
+The codebase relied on a globally imported function, `Math.random()`, for generating random values in utilities such as `idGenerator.ts` and `delayStrategy.ts`. The direct use of `Math.random()` tightly coupled these utilities to the JavaScript global environment, preventing full test isolation and determinism in unit testing.
+
+**Path 1: Complete replacement of `Math.random` with a injected provider**
+Create a new `IRandomProvider` interface and a default implementation (`DefaultRandomProvider`). Pass it down to any domain utility that requires random number generation (e.g. `IIdGenerator` and `IDelayStrategy`). This perfectly adheres to the Dependency Inversion Principle, increasing testability by allowing for a deterministic mock random provider in the future.
+
+**Path 2: Mock the global `Math.random()` within the testing framework**
+Allow the application to use standard JS global calls like `Math.random()` and rely on Vitest/Jest mocking when testing (e.g. `vi.spyOn(Math, 'random').mockReturnValue(0.5)`). While easier to implement, it leads to test pollution and brittle test suites across concurrent testing environments.
+
+**Recommendation:**
+**Path 1 (Complete replacement of `Math.random` with a injected provider)** was implemented. It strictly enforces the Dependency Inversion Principle uniformly across domain utilities. It enhances testability, ensuring deterministic output can easily be verified via mock injection without global monkey-patching.
+
+## Architectural Decision: Full Integration of `timeProvider` in React Components
+
+**Context:**
+Certain React components (`SettingsAccountTab`, `LibraryModal`, `JulesSessionDrawer`) were still directly instantiating `new Date(timestamp)` to format dates, bypassing the `timeProvider` injected via `ServiceContext`. While it didn't use `Date.now()`, the failure to route Date initialization through the provider meant that mocking system time could not reliably control these UI elements during test suites or snapshots.
+
+**Path 1: Standardize `timeProvider.date(timestamp)` usage**
+Extend `ITimeProvider` to optionally accept a timestamp and update all React components to use `useServices().timeProvider.date(timestamp)`. This ensures that all temporal instantiations are routed strictly through the domain abstraction.
+
+**Path 2: Extract a purely static utility function for date formatting**
+Create a helper like `formatDate(timestamp)` and just import it across components. But this doesn't fully abstract the raw Date initialization from the system.
+
+**Recommendation:**
+**Path 1 (Standardize `timeProvider.date(timestamp)` usage)** was implemented. This completes the separation of concern initiated in earlier timeProvider abstractions, guaranteeing uniform testability across both domain code and the presentation layer.

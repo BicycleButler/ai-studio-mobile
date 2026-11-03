@@ -49,7 +49,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
   onBulkDeleteSessions,
   onOpenApiKeyModal,
 }) => {
-  const { julesStorageService, julesClient, platformService } = useServices();
+  const { julesStorageService, julesClient, platformService, timeProvider } = useServices();
 
   const julesStore = useStore(julesStorageService.julesSessionsManager);
   const sessions = julesStore.items;
@@ -502,7 +502,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-2">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>{new Date(session.updatedAt).toLocaleDateString()}</span>
+                        <span>{timeProvider.date(session.updatedAt).toLocaleDateString()}</span>
                         {pendingIds.has(session.id) && (
                           <Clock className="w-3.5 h-3.5 text-muted-foreground/60 ml-2" aria-label="Pending sync" />
                         )}

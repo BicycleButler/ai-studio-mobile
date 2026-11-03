@@ -9,12 +9,12 @@ interface UseWindowSecurityOptions {
 export function useWindowSecurity({
   isSensitiveScreenActive = false,
 }: UseWindowSecurityOptions = {}) {
-  const { generalSettingsService, windowSecurityService } = useServices();
+  const { generalSettingsService, windowSecurityService, idGenerator } = useServices();
 
   const flagSecureEnabled = useStore(generalSettingsService.flagSecureObservable)!;
 
   // We need a stable ID for the lifetime of this hook mount
-  const hookId = useRef(Math.random().toString(36).substring(7)).current;
+  const hookId = useRef(idGenerator.generate("hook")).current;
 
   useEffect(() => {
      windowSecurityService.registerScreen(hookId, isSensitiveScreenActive);
