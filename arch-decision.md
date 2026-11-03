@@ -1209,3 +1209,11 @@ Create a helper like `formatDate(timestamp)` and just import it across component
 
 **Recommendation:**
 **Path 1 (Standardize `timeProvider.date(timestamp)` usage)** was implemented. This completes the separation of concern initiated in earlier timeProvider abstractions, guaranteeing uniform testability across both domain code and the presentation layer.
+
+## Architectural Decision: Sync Engine Queue Processing Strategy Abstraction
+
+**Context:**
+`SyncEngine` implemented a hardcoded "Strict FIFO Halting" loop directly in its `processOfflineMutations` method. This coupled the orchestration of the queue to a specific execution strategy, violating the Open/Closed Principle and making it difficult to inject custom queue processing strategies (like parallel execution or optimistic continues) for different domain contexts.
+
+**Decision:**
+Extracted an `IQueueProcessingStrategy` interface and moved the existing loop into a `StrictFifoQueueProcessingStrategy` class. `SyncEngine` now accepts an `IQueueProcessingStrategy` via dependency injection (defaulting to the Strict FIFO implementation) and simply delegates processing to it. This cleanly separates concerns, enhancing robustness and generality.
