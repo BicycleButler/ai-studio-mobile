@@ -18,6 +18,6 @@ export function formatRelativeTime(timestamp: number, timeProvider: ITimeProvide
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays}d ago`;
 
-  const d = new Date(timestamp);
+  const d = timeProvider.date(timestamp);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }

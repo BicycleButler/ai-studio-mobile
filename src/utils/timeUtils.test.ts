@@ -7,7 +7,7 @@ describe('timeUtils', () => {
 
   const mockTimeProvider: ITimeProvider = {
     now: () => MOCK_NOW,
-    date: () => new Date(MOCK_NOW),
+    date: (ts?: number) => new Date(ts ?? MOCK_NOW),
   };
 
   it('should return empty string for 0 timestamp', () => {

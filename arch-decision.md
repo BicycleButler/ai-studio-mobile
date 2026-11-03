@@ -1217,3 +1217,21 @@ Create a helper like `formatDate(timestamp)` and just import it across component
 
 **Decision:**
 Extracted an `IQueueProcessingStrategy` interface and moved the existing loop into a `StrictFifoQueueProcessingStrategy` class. `SyncEngine` now accepts an `IQueueProcessingStrategy` via dependency injection (defaulting to the Strict FIFO implementation) and simply delegates processing to it. This cleanly separates concerns, enhancing robustness and generality.
+
+## Architectural Decision: API Client Response Parsing Abstraction
+
+**Context:**
+The `ApiClient` class currently handles preparing requests, executing them with retries, and also *parsing* the response body (handling 204 No Content, JSON parsing with error wrapping, and plain text fallbacks). This violates the Single Responsibility Principle and hardcodes how responses are interpreted, preventing consumers from seamlessly handling binary data (like Blobs or ArrayBuffers) or custom content types without altering the core `ApiClient` class.
+
+**Path 1: Extracted Response Parser Interface (Recommended)**
+Extract the response parsing logic into an `IResponseParser` interface that takes a `Response` and returns a `Promise<T>`. Update `ApiClient` to accept a parser via its constructor configuration, defaulting to a `DefaultResponseParser` that perfectly mimics the existing JSON/text behavior.
+- *Pros:* Decouples parsing from the client orchestrator. Enables custom parsing (e.g., `BlobResponseParser`) to be injected for specific api instances. Deepens abstraction and reusability.
+- *Cons:* Adds a slight amount of configuration overhead when instantiating custom clients.
+
+**Path 2: Response Type Option**
+Add a `responseType: "json" | "text" | "blob" | "arraybuffer"` option to the `fetch` method signature of `ApiClient`.
+- *Pros:* Simple to implement.
+- *Cons:* Requires modifying the `IApiClient` interface to accept configuration it shouldn't care about. Still violates SRP within the `ApiClient` body, which would grow to handle all possible formats.
+
+**Recommendation:**
+**Path 1 (Extracted Response Parser Interface)** is recommended to adhere strictly to the Dependency Inversion and Single Responsibility principles, aligning with how retries and interceptors are already structured in the `ApiClient`.

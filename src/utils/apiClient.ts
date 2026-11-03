@@ -2,10 +2,12 @@ import { buildUrlWithParams } from "./urlUtils";
 import { BaseApiError, isAbortError, parseErrorResponse } from "./apiClientErrors";
 import { InterceptorManager, Interceptor, IInterceptorManager } from "./apiClientInterceptors";
 import { ExponentialBackoffRetryStrategy, IRetryStrategy, RetryConfig } from "./apiClientRetry";
+import { IResponseParser, DefaultResponseParser } from "./apiResponseParser";
 
 export interface ApiClientConfig {
   retryConfig?: RetryConfig;
   interceptorManager?: IInterceptorManager;
+  responseParser?: IResponseParser;
 }
 
 export interface IApiClient {
@@ -27,11 +29,13 @@ export interface IApiClient {
 
 export class ApiClient implements IApiClient {
   private interceptorManager: IInterceptorManager;
+  private responseParser: IResponseParser;
   public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
 
   constructor(config: ApiClientConfig = {}) {
     const retryConfig = config.retryConfig || {};
     this.interceptorManager = config.interceptorManager || new InterceptorManager();
+    this.responseParser = config.responseParser || new DefaultResponseParser();
 
     this.retryConfig = {
       retries: retryConfig.retries ?? 3,
@@ -103,23 +107,7 @@ export class ApiClient implements IApiClient {
 
     const res = await this.executeRequest(url, fetchOptions, defaultErrorMessage);
 
-    if (res.status === 204) {
-      return {} as T;
-    }
-
-    const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      try {
-        return await res.json() as T;
-      } catch (err: unknown) {
-        const headersRecord: Record<string, string> = {};
-        res.headers.forEach((value, key) => { headersRecord[key] = value; });
-        throw BaseApiError.fromResponse("Invalid JSON response from server", res.status, headersRecord, endpoint, err);
-      }
-    }
-
-    const text = await res.text();
-    return (text as unknown) as T;
+    return this.responseParser.parse<T>(res, endpoint);
   }
 
   public async fetchStream(
