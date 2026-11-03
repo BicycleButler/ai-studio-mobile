@@ -208,7 +208,7 @@ export class JulesSessionOrchestrator implements IJulesSessionOrchestrator {
                       steps: taskUpdate.steps || m.julesActivity.steps,
                       pullRequestUrl: taskUpdate.pullRequestUrl,
                       pullRequestNumber: taskUpdate.pullRequestNumber,
-                      requiresApproval: taskUpdate.requiresApproval,
+                      requiresApproval: taskUpdate.requiresApproval ?? (taskUpdate.status === "awaiting_approval"),
                       diffStats: taskUpdate.diffStats || m.julesActivity.diffStats,
                     },
                   };

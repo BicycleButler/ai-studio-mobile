@@ -1248,3 +1248,17 @@ Extract only the polling loop logic into a custom hook or utility function (e.g.
 
 **Recommendation:**
 **Path 1 (Extract an `IJulesSessionOrchestrator`)** is the recommended path. It strictly enforces the Dependency Inversion Principle and aligns with the pattern established by `AppAuthManager` and `SyncOrchestrator`. Moving domain orchestration out of the React layer into a testable, dedicated service class significantly improves abstraction, reusability, and maintainability.
+
+## Architectural Decision: Robust Requires Approval Evaluation
+
+**Context:**
+The application relied on `taskUpdate.requiresApproval` being explicitly present in the polling payload to properly show the plan approval actions in the UI. If the payload simply returned `status: "awaiting_approval"` without the boolean `requiresApproval: true`, the user would be unable to proceed.
+
+**Path 1: Defaulting within Orchestrator**
+Update the `JulesSessionOrchestrator` to evaluate `requiresApproval: taskUpdate.requiresApproval ?? (taskUpdate.status === "awaiting_approval")`. This adds robustness by interpreting the explicit await state as functionally requiring approval.
+
+**Path 2: Strict UI Evaluation**
+Update the UI component (`JulesActivityCard`) to check for the `awaiting_approval` status to determine if the plan requires approval, ignoring the `requiresApproval` flag. This might decouple the orchestrator from UI-specific logic, but leaves the underlying data model incomplete or potentially conflicting.
+
+**Recommendation:**
+**Path 1 (Defaulting within Orchestrator)** was implemented. It adds robustness by explicitly enforcing plan review when the backend state strictly sits in awaiting_approval, ensuring consistency in the domain model payload rather than pushing edge-case handling to the presentation layer.
