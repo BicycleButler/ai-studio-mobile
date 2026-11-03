@@ -1,6 +1,6 @@
 export interface ITimeProvider {
   now(): number;
-  date(): Date;
+  date(timestamp?: number): Date;
 }
 
 export class DefaultTimeProvider implements ITimeProvider {
@@ -8,8 +8,8 @@ export class DefaultTimeProvider implements ITimeProvider {
     return Date.now();
   }
 
-  public date(): Date {
-    return new Date();
+  public date(timestamp?: number): Date {
+    return timestamp !== undefined ? new Date(timestamp) : new Date();
   }
 }
 

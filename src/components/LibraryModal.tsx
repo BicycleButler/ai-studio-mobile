@@ -17,6 +17,7 @@ import { SavedPrompt } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
 import { STARTER_TEMPLATES } from "../data/templates";
 import { useBatchSelection } from "../hooks/useBatchSelection";
+import { useServices } from "../services/ServiceContext";
 
 interface LibraryModalProps {
   savedPrompts: SavedPrompt[];
@@ -41,6 +42,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [showSaveForm, setShowSaveForm] = useState(false);
 
   const offlineQueue = useOfflineQueue();
+  const { timeProvider } = useServices();
   const pendingPromptIds = new Set(
     offlineQueue.filter(m => m.type === "saved_prompts").flatMap(m => {
       if (typeof m.payload === "object" && m.payload !== null && "prompts" in m.payload && Array.isArray((m.payload as Record<string, unknown>).prompts)) {
@@ -241,7 +243,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {new Date(item.updatedAt).toLocaleDateString()}
+                      {timeProvider.date(item.updatedAt).toLocaleDateString()}
                       {pendingPromptIds.has(item.id) && (
                         <Clock className="w-3.5 h-3.5 text-muted-foreground/60 ml-2 flex-shrink-0 inline-block" aria-label="Pending sync" />
                       )}

@@ -6,6 +6,7 @@ import { useOfflineQueue } from "../../hooks/useOfflineQueue";
 import { GoogleAuthCard } from "../GoogleAuthCard";
 import { BatchSelectionHeader } from "../BatchSelectionHeader";
 import { BatchDeleteOverlay } from "../BatchDeleteOverlay";
+import { useServices } from "../../services/ServiceContext";
 
 export interface SettingsAccountTabProps {
   customApiKey: string;
@@ -60,6 +61,7 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
 }) => {
 
   const offlineQueue = useOfflineQueue();
+  const { timeProvider } = useServices();
   const pendingProjectIds = new Set(
     offlineQueue.filter(m => m.type === "projects").flatMap(m => {
       if (typeof m.payload === "object" && m.payload !== null && "projects" in m.payload && Array.isArray((m.payload as Record<string, unknown>).projects)) {
@@ -331,7 +333,7 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
                         </div>
                         <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-2">
                           <span>
-                            {new Date(p.updatedAt).toLocaleDateString()}
+                            {timeProvider.date(p.updatedAt).toLocaleDateString()}
                           </span>
                           {p.status === "invalid_key" && (
                             <span className="text-muted-foreground font-medium flex items-center gap-1">
