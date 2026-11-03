@@ -1,7 +1,7 @@
 import { useServices } from "../services/ServiceContext";
 import { useStore } from "./useStore";
 import { useState, useCallback, useEffect } from "react";
-import { ChatMessage, JulesSession, MessageAttachment } from "../types";
+import { JulesSession, MessageAttachment } from "../types";
 
 export function useJules() {
   const { julesStorageService, julesSessionOrchestrator } = useServices();

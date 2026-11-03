@@ -1,4 +1,4 @@
-import { DefaultStorageAdapter } from "./core";
+
 import { IStorageAdapter, IStorageBase } from "./types";
 import { Observable } from "../observable";
 import { ILogger, defaultLogger } from "../logger";

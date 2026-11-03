@@ -3,7 +3,7 @@ import { defaultPlatformService } from "../../services/platformService";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 
 import { ILogger, defaultLogger } from "../logger";
-import { EventEmitter } from "../eventEmitter";
+
 import { ISerializer, JsonSerializer } from "./serializer";
 const defaultSerializer = new JsonSerializer();
 

@@ -1,4 +1,4 @@
-import { MapCollection } from "./MapCollection";
+
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { IMutableCollection, ICollectionEngine, IStorageAdapter } from "./types";
 import { IEventEmitter } from "../eventEmitter";
