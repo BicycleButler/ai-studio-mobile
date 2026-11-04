@@ -1277,3 +1277,11 @@ Several module files (like `imageCompressor.ts`, `draftState.ts`, `projects.ts`)
 
 **Decision:**
 To eliminate dead code and strictly enforce the injection hierarchy established in `ServiceContext.tsx`, completely unused `export const defaultX` declarations were removed from their respective domain modules.
+
+## Architectural Decision: UrlBuilder Strategy Abstraction
+
+**Context:**
+The `ApiClient` orchestrator previously imported a global utility function `buildUrlWithParams` directly inside its `prepareRequest` step to construct query string URLs. This hardcoded dependency violated the Dependency Inversion Principle, making it impossible to inject custom URL serialization strategies (e.g. for APIs requiring specific list encodings or specialized path formatting).
+
+**Decision:**
+Extracted the `buildUrlWithParams` logic into an `IUrlBuilder` interface and a `DefaultUrlBuilder` implementation. `ApiClientConfig` was updated to accept an `urlBuilder` dependency, defaulting to the `DefaultUrlBuilder`. This mirrors the pattern set by `IResponseParser` and `IInterceptorManager`, completely abstracting API configuration strategies.
