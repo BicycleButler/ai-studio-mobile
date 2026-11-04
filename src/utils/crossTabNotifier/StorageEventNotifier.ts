@@ -2,6 +2,8 @@ import { defaultTimeProvider, ITimeProvider } from "../timeProvider";
 import { ICrossTabNotifier, CrossTabNotifierConfig } from "./types";
 import { ILogger, defaultLogger } from "../logger";
 import { IPlatformService } from "../../services/platformService";
+import { JsonSerializer } from "../storage/serializer/JsonSerializer";
+import { ISerializer } from "../storage/serializer/types";
 
 export class StorageEventNotifier implements ICrossTabNotifier {
   private key: string;
@@ -13,6 +15,7 @@ export class StorageEventNotifier implements ICrossTabNotifier {
 
   private platformService: IPlatformService;
   private timeProvider: ITimeProvider;
+  private serializer: ISerializer;
 
   constructor(config: CrossTabNotifierConfig) {
     this.key = `_sync_notify_${config.name}`;
@@ -20,13 +23,14 @@ export class StorageEventNotifier implements ICrossTabNotifier {
     if (!config.platformService) throw new Error("platformService is required");
     this.platformService = config.platformService;
     this.timeProvider = config.timeProvider || defaultTimeProvider;
+    this.serializer = config.serializer || new JsonSerializer();
     this.boundListener = this.handleStorageEvent.bind(this);
   }
 
   private handleStorageEvent(e: StorageEvent): void {
     if (e.key === this.key && e.newValue) {
       try {
-        const payload = JSON.parse(e.newValue);
+        const payload = this.serializer.deserialize<{ message?: string }>(e.newValue);
         if (payload && payload.message && this.handler) {
           this.handler(payload.message);
         }
@@ -40,7 +44,7 @@ export class StorageEventNotifier implements ICrossTabNotifier {
     const localStorage = this.platformService.getLocalStorage();
     if (this.platformService.isBrowserEnv() && localStorage) {
       try {
-        const payload = JSON.stringify({ message, timestamp: this.timeProvider.now() });
+        const payload = this.serializer.serialize({ message, timestamp: this.timeProvider.now() });
         localStorage.setItem(this.key, payload);
         // We do NOT clear it immediately because that might fire a second storage event
         // with a null newValue that could confuse listeners if they aren't careful,

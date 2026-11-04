@@ -15,7 +15,7 @@ import {
   } from "lucide-react";
 import { SavedPrompt } from "../types";
 import { useOfflineQueue } from "../hooks/useOfflineQueue";
-import { STARTER_TEMPLATES } from "../data/templates";
+import { getStarterTemplates } from "../data/templates";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import { useServices } from "../services/ServiceContext";
 
@@ -143,7 +143,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           Google AI Studio Templates
         </div>
         <div className="grid grid-cols-1 gap-2">
-          {STARTER_TEMPLATES.map((tmpl) => (
+          {getStarterTemplates(services.timeProvider).map((tmpl) => (
             <div
               key={tmpl.id}
               onClick={() => onLoadPrompt(tmpl)}
