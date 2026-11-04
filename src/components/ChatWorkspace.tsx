@@ -588,16 +588,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     const handleResizeWrapper = () => handleViewportResize();
     const handleScrollWrapper = () => handleViewportScroll();
 
-    platformService.getWindow()?.visualViewport?.addEventListener("resize", handleResizeWrapper);
-    const removeResize = () => platformService.getWindow()?.visualViewport?.removeEventListener("resize", handleResizeWrapper);
-    platformService.getWindow()?.visualViewport?.addEventListener("scroll", handleScrollWrapper);
-    const removeScroll = () => platformService.getWindow()?.visualViewport?.removeEventListener("scroll", handleScrollWrapper);
+    const removeResize = platformService.addVisualViewportListener("resize", handleResizeWrapper);
+    const removeScroll = platformService.addVisualViewportListener("scroll", handleScrollWrapper);
 
     return () => {
       removeResize();
       removeScroll();
     };
-  }, [isInputFocused]);
+  }, [isInputFocused, platformService]);
 
   // Adjust textarea height: limit multi-line auto-expansion to max 3 lines on mobile (~72px)
   useEffect(() => {
