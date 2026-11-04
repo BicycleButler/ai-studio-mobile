@@ -12,7 +12,8 @@ import {
   safeAddEventListener,
   safeAddDocumentListener,
   getSafeBroadcastChannel,
-  safeAddMatchMediaListener
+  safeAddMatchMediaListener,
+  safeAddVisualViewportListener
 } from "../utils/platform";
 import { ILogger, defaultLogger } from "../utils/logger";
 import { ISpeechRecognitionInstance } from "../types/speechRecognition";
@@ -45,6 +46,7 @@ export interface IPlatformService {
   getPlatformCaps(): PlatformCapabilities;
   addEventListener<K extends keyof WindowEventMap>(type: K, listener: (this: Window, ev: WindowEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void;
   addDocumentListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void;
+  addVisualViewportListener<K extends keyof VisualViewportEventMap>(type: K, listener: (this: VisualViewport, ev: VisualViewportEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void;
   getBroadcastChannel(name: string): BroadcastChannel | null;
   addMatchMediaListener(mql: MediaQueryList, listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void): () => void;
   createAudio(url?: string): HTMLAudioElement | null;
@@ -59,6 +61,7 @@ export interface IPlatformService {
   createURLSearchParams(init?: string | URLSearchParams | string[][] | Record<string, string>): URLSearchParams | null;
   createAbortController(): AbortController | null;
   createSpeechRecognition(): ISpeechRecognitionInstance | null;
+  createElement<K extends keyof HTMLElementTagNameMap>(tagName: K): HTMLElementTagNameMap[K] | null;
 }
 
 export class BrowserPlatformService implements IPlatformService {
@@ -199,6 +202,10 @@ export class BrowserPlatformService implements IPlatformService {
     return safeAddDocumentListener(type, listener, options);
   }
 
+  public addVisualViewportListener<K extends keyof VisualViewportEventMap>(type: K, listener: (this: VisualViewport, ev: VisualViewportEventMap[K]) => void, options?: boolean | AddEventListenerOptions): () => void {
+    return safeAddVisualViewportListener(type, listener, options);
+  }
+
   public addMatchMediaListener(mql: MediaQueryList, listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void): () => void {
     return safeAddMatchMediaListener(mql, listener);
   }
@@ -268,6 +275,12 @@ export class BrowserPlatformService implements IPlatformService {
     const win = this.getWindow() as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } | null;
     const Constructor = (win?.SpeechRecognition || win?.webkitSpeechRecognition) as (new () => ISpeechRecognitionInstance) | undefined;
     return Constructor ? new Constructor() : null;
+  }
+
+  public createElement<K extends keyof HTMLElementTagNameMap>(tagName: K): HTMLElementTagNameMap[K] | null {
+    const doc = this.getDocument();
+    if (!doc) return null;
+    return doc.createElement(tagName);
   }
 }
 

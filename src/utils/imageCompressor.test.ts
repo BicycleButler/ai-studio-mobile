@@ -43,7 +43,8 @@ describe('ImageCompressor Utils', () => {
             mockPlatformService = {
                 getDocument: () => null, // Stub just enough for testing init
                 createFileReader: () => null,
-                createImage: () => null
+                createImage: () => null,
+                createElement: () => null
             } as unknown as IPlatformService;
         });
 
@@ -69,7 +70,8 @@ describe('ImageCompressor Utils', () => {
             mockPlatformService = {
                 getDocument: () => null,
                 createFileReader: () => (fileReaderMock as unknown as FileReader),
-                createImage: () => null
+                createImage: () => null,
+                createElement: () => null
             } as unknown as IPlatformService;
 
             const strategy = new CanvasImageCompressionStrategy({ platformService: mockPlatformService });

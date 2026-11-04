@@ -19,7 +19,8 @@ export class BrowserFileDownloadService implements IFileDownloadService {
       if (!blob) return false;
       const url = this.platformService.createObjectURL(blob);
       if (!url) return false;
-      const a = doc.createElement("a");
+      const a = this.platformService.createElement("a");
+      if (!a) return false;
       a.href = url;
       a.download = filename;
       doc.body.appendChild(a);

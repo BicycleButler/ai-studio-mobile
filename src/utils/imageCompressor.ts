@@ -43,8 +43,8 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
     this.idGenerator = config?.idGenerator || defaultIdGenerator;
   }
   private isWebPSupported(): boolean {
-    if (!this.platformService.getDocument()) return false;
-    const canvas = this.platformService.getDocument()!.createElement("canvas");
+    const canvas = this.platformService.createElement("canvas");
+    if (!canvas) return false;
     if (!canvas.toDataURL) return false;
     return canvas.toDataURL("image/webp").indexOf("data:image/webp") === 0;
   }
@@ -68,7 +68,10 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
           try {
             const { width, height } = calculateProportionalDimensions(img.width, img.height, maxDimension);
 
-            const canvas = this.platformService.getDocument()!.createElement("canvas");
+            const canvas = this.platformService.createElement("canvas");
+            if (!canvas) {
+              throw new Error("Unable to create canvas element for image processing.");
+            }
             canvas.width = width;
             canvas.height = height;
 
