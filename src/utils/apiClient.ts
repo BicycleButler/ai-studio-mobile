@@ -1,4 +1,4 @@
-import { buildUrlWithParams } from "./urlUtils";
+import { DefaultUrlBuilder, IUrlBuilder } from "./urlUtils";
 import { BaseApiError, isAbortError, parseErrorResponse } from "./apiClientErrors";
 import { InterceptorManager, Interceptor, IInterceptorManager } from "./apiClientInterceptors";
 import { ExponentialBackoffRetryStrategy, IRetryStrategy, RetryConfig } from "./apiClientRetry";
@@ -8,6 +8,7 @@ export interface ApiClientConfig {
   retryConfig?: RetryConfig;
   interceptorManager?: IInterceptorManager;
   responseParser?: IResponseParser;
+  urlBuilder?: IUrlBuilder;
 }
 
 export interface IApiClient {
@@ -30,12 +31,14 @@ export interface IApiClient {
 export class ApiClient implements IApiClient {
   private interceptorManager: IInterceptorManager;
   private responseParser: IResponseParser;
+  private urlBuilder: IUrlBuilder;
   public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
 
   constructor(config: ApiClientConfig = {}) {
     const retryConfig = config.retryConfig || {};
     this.interceptorManager = config.interceptorManager || new InterceptorManager();
     this.responseParser = config.responseParser || new DefaultResponseParser();
+    this.urlBuilder = config.urlBuilder || new DefaultUrlBuilder();
 
     this.retryConfig = {
       retries: retryConfig.retries ?? 3,
@@ -58,7 +61,7 @@ export class ApiClient implements IApiClient {
     options?: RequestInit,
     queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<{ url: string; fetchOptions: RequestInit }> {
-    let url = buildUrlWithParams(endpoint, queryParams);
+    let url = this.urlBuilder.build(endpoint, queryParams);
     let fetchOptions = options || {};
 
     return this.interceptorManager.applyInterceptors(url, fetchOptions);
