@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+import { defaultTimeProvider, ITimeProvider } from "../utils/timeProvider";
 import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
 import { IApiClient } from "../utils/apiClient";
@@ -54,17 +54,20 @@ export interface KeyVerificationServiceConfig {
   apiClient: IApiClient;
   logger: ILogger;
   clipboardService?: IClipboardService;
+  timeProvider?: ITimeProvider;
 }
 
 export class KeyVerificationService implements IKeyVerificationService {
   private apiClient: IApiClient;
   private logger: ILogger;
   private clipboardService?: IClipboardService;
+  private timeProvider: ITimeProvider;
 
   constructor(config: KeyVerificationServiceConfig) {
     this.apiClient = config.apiClient;
     this.logger = config.logger;
     this.clipboardService = config.clipboardService;
+    this.timeProvider = config.timeProvider || defaultTimeProvider;
   }
 
   public isValidJulesApiKeyFormat(key: string): boolean {
@@ -157,7 +160,7 @@ export class KeyVerificationService implements IKeyVerificationService {
           valid: true,
           model: data.model || model,
           totalTokens: data.totalTokens,
-          verifiedAt: data.verifiedAt || defaultTimeProvider.now(),
+          verifiedAt: data.verifiedAt || this.timeProvider.now(),
         };
       }
 

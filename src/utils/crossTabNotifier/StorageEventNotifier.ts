@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../timeProvider";
+import { defaultTimeProvider, ITimeProvider } from "../timeProvider";
 import { ICrossTabNotifier, CrossTabNotifierConfig } from "./types";
 import { ILogger, defaultLogger } from "../logger";
 import { IPlatformService } from "../../services/platformService";
@@ -12,12 +12,14 @@ export class StorageEventNotifier implements ICrossTabNotifier {
   private isListening = false;
 
   private platformService: IPlatformService;
+  private timeProvider: ITimeProvider;
 
   constructor(config: CrossTabNotifierConfig) {
     this.key = `_sync_notify_${config.name}`;
     this.logger = config.logger || defaultLogger;
     if (!config.platformService) throw new Error("platformService is required");
     this.platformService = config.platformService;
+    this.timeProvider = config.timeProvider || defaultTimeProvider;
     this.boundListener = this.handleStorageEvent.bind(this);
   }
 
@@ -38,7 +40,7 @@ export class StorageEventNotifier implements ICrossTabNotifier {
     const localStorage = this.platformService.getLocalStorage();
     if (this.platformService.isBrowserEnv() && localStorage) {
       try {
-        const payload = JSON.stringify({ message, timestamp: defaultTimeProvider.now() });
+        const payload = JSON.stringify({ message, timestamp: this.timeProvider.now() });
         localStorage.setItem(this.key, payload);
         // We do NOT clear it immediately because that might fire a second storage event
         // with a null newValue that could confuse listeners if they aren't careful,

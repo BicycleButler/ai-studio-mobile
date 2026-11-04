@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+import { defaultTimeProvider, ITimeProvider } from "../utils/timeProvider";
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
 import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
@@ -84,16 +84,19 @@ export interface PromptTemplateServiceConfig {
   customTemplatesCollection?: IMutableCollection<PromptTemplate>;
   storageFactory?: IStorageFactory;
   idGenerator?: IIdGenerator;
+  timeProvider?: ITimeProvider;
 }
 
 export class PromptTemplateService implements IPromptTemplateService {
   private customTemplatesCollection: IMutableCollection<PromptTemplate>;
   private builtinTemplates: PromptTemplate[];
   private idGenerator: IIdGenerator;
+  private timeProvider: ITimeProvider;
 
   constructor(config: PromptTemplateServiceConfig) {
     this.builtinTemplates = config?.builtinTemplates || BUILTIN_PROMPT_TEMPLATES;
     this.idGenerator = config?.idGenerator || defaultIdGenerator;
+    this.timeProvider = config?.timeProvider || defaultTimeProvider;
 
     if (config?.customTemplatesCollection) {
       this.customTemplatesCollection = config.customTemplatesCollection;
@@ -139,7 +142,7 @@ export class PromptTemplateService implements IPromptTemplateService {
       throw new Error("Template content is required");
     }
 
-    const now = defaultTimeProvider.now();
+    const now = this.timeProvider.now();
     const id = data.id || this.idGenerator.generate("custom_tpl");
 
     // Find if it exists to preserve createdAt
