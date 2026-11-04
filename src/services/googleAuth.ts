@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+import { defaultTimeProvider, ITimeProvider } from "../utils/timeProvider";
 import { GoogleUser } from "../types";
 import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
@@ -17,6 +17,7 @@ export interface GoogleAuthServiceConfig {
   logger: ILogger;
   platformService?: IPlatformService;
   storageFactory?: IStorageFactory;
+  timeProvider?: ITimeProvider;
 }
 
 export interface IGoogleAuthService {
@@ -53,11 +54,13 @@ export class GoogleAuthService implements IGoogleAuthService {
 
   private logger: ILogger;
   private platformService: IPlatformService;
+  private timeProvider: ITimeProvider;
 
   constructor(config: GoogleAuthServiceConfig) {
     this.apiClient = config.apiClient;
     this.currentAuthProvider = config?.authProvider || null;
     this.logger = config.logger;
+    this.timeProvider = config.timeProvider || defaultTimeProvider;
 
     if (config?.storageSingleton) {
         this.googleUserSingleton = config.storageSingleton;
@@ -198,7 +201,7 @@ export class GoogleAuthService implements IGoogleAuthService {
             picture: user.picture,
             sub: user.sub,
             authSource: "google_oauth",
-            authenticatedAt: defaultTimeProvider.now(),
+            authenticatedAt: this.timeProvider.now(),
             aiStudioSynced: true,
           };
           this.saveStoredGoogleUser(localUser);

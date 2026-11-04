@@ -1285,3 +1285,17 @@ The `ApiClient` orchestrator previously imported a global utility function `buil
 
 **Decision:**
 Extracted the `buildUrlWithParams` logic into an `IUrlBuilder` interface and a `DefaultUrlBuilder` implementation. `ApiClientConfig` was updated to accept an `urlBuilder` dependency, defaulting to the `DefaultUrlBuilder`. This mirrors the pattern set by `IResponseParser` and `IInterceptorManager`, completely abstracting API configuration strategies.
+
+## Architectural Decision: Eliminating Hardcoded Dependencies in Domain Methods
+
+**Context:**
+Several domain services (`KeyVerificationService`, `GoogleAuthService`, `PromptTemplateService`, `StorageEventNotifier`) currently had direct module imports of global singletons (like `defaultTimeProvider`) which they called directly inside their method bodies (e.g. `defaultTimeProvider.now()`). Even though previous ADRs permit using these defaults as constructor fallbacks, executing them directly inside methods violates the Dependency Inversion Principle. It makes mocking system time during unit testing impossible for those functions without global monkey-patching.
+
+**Path 1: Parameter-level Injection (Functional approach)**
+Modify the methods themselves to optionally accept the dependency (e.g. `verifyGoogleApiKey(apiKey, model, timeProvider = defaultTimeProvider)`).
+
+**Path 2: Constructor-level Injection with Default Fallbacks**
+Add the required dependencies (like `ITimeProvider`) to the configuration interfaces or constructors of these classes. Default them to the exported singletons if not explicitly provided, adhering to the existing DI pattern, and update the method bodies to use the instance properties (e.g. `this.timeProvider.now()`).
+
+**Recommendation:**
+**Path 2 (Constructor-level Injection with Default Fallbacks)** was implemented. It properly encapsulates dependencies within the class instance and ensures full testability by allowing mocked providers to be injected at instantiation, while maintaining backward compatibility for existing instantiations via the fallback mechanism.
