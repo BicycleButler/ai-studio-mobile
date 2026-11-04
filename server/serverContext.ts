@@ -10,7 +10,11 @@ export interface IServerServices {
   processRunner: IProcessRunner;
 }
 
-export class ServerContext {
+export interface IServerContext {
+  services: IServerServices;
+}
+
+export class ServerContext implements IServerContext {
   public services: IServerServices;
 
   constructor(overrides?: Partial<IServerServices>) {
@@ -28,4 +32,4 @@ export class ServerContext {
   }
 }
 
-export const defaultServerContext = new ServerContext();
+export const defaultServerContext: IServerContext = new ServerContext();

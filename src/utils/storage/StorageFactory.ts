@@ -33,4 +33,4 @@ export class DefaultStorageFactory implements IStorageFactory {
   }
 }
 
-export const defaultStorageFactory = new DefaultStorageFactory();
+export const defaultStorageFactory: IStorageFactory = new DefaultStorageFactory();

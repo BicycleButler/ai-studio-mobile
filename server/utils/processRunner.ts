@@ -108,4 +108,4 @@ export class ProcessRunner implements IProcessRunner {
   }
 }
 
-export const defaultProcessRunner = new ProcessRunner();
+export const defaultProcessRunner: IProcessRunner = new ProcessRunner();

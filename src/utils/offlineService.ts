@@ -144,7 +144,7 @@ export class OfflineService implements IOfflineService {
   }
 }
 
-export const defaultOfflineService = new OfflineService({
+export const defaultOfflineService: IOfflineService = new OfflineService({
   storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()]),
   crossTabNotifierFactory: defaultCrossTabNotifierFactory,
   platformService: defaultPlatformService
