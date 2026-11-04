@@ -1,7 +1,7 @@
 import { ApiClient, IApiClient } from "../src/utils/apiClient";
 import { ServerJulesClient, IServerJulesClient } from "./julesClient";
 import { ILogger, defaultLogger } from "../src/utils/logger";
-import { IProcessRunner, defaultProcessRunner } from "./utils/processRunner";
+import { IProcessRunner, ProcessRunner } from "./utils/processRunner";
 
 export interface IServerServices {
   apiClient: IApiClient;
@@ -20,7 +20,7 @@ export class ServerContext implements IServerContext {
   constructor(overrides?: Partial<IServerServices>) {
     const logger = overrides?.logger || defaultLogger;
     const apiClient = overrides?.apiClient || new ApiClient();
-    const processRunner = overrides?.processRunner || defaultProcessRunner;
+    const processRunner = overrides?.processRunner || new ProcessRunner();
     const julesClient = overrides?.julesClient || new ServerJulesClient({ apiClient, logger });
 
     this.services = {
