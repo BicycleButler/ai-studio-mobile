@@ -12,7 +12,7 @@ export const DEFAULT_CONFIG = {
   responseSchemaText: "",
 };
 
-export const STARTER_TEMPLATES: SavedPrompt[] = [
+export const getStarterTemplates = (timeProvider = defaultTimeProvider): SavedPrompt[] => [
   {
     id: "template-chat-code",
     title: "Full-Stack Code Assistant",
@@ -23,7 +23,7 @@ export const STARTER_TEMPLATES: SavedPrompt[] = [
       systemInstruction: "You are an expert Google staff software engineer. Write clean, idiomatic, fully-typed TypeScript and modern Android Kotlin. Always prioritize correctness, security, and edge-case handling.",
     },
     messages: [],
-    updatedAt: defaultTimeProvider.now(),
+    updatedAt: timeProvider.now(),
     tags: ["Coding", "Android", "Kotlin"],
   },
   {
@@ -63,7 +63,7 @@ export const STARTER_TEMPLATES: SavedPrompt[] = [
       ),
     },
     messages: [],
-    updatedAt: defaultTimeProvider.now(),
+    updatedAt: timeProvider.now(),
     tags: ["JSON", "Schema", "Extraction"],
   },
   {
@@ -76,7 +76,7 @@ export const STARTER_TEMPLATES: SavedPrompt[] = [
       systemInstruction: "You are a senior UI/UX designer and mobile developer. Analyze screenshots, wireframes, and UI mockups. Identify layout hierarchy, accessibility contrast flaws, touch target issues, and provide Tailwind CSS or Compose code.",
     },
     messages: [],
-    updatedAt: defaultTimeProvider.now(),
+    updatedAt: timeProvider.now(),
     tags: ["UX", "Design", "Vision"],
   },
 ];

@@ -1,6 +1,7 @@
 import { ILogger } from "../logger";
 import { IPlatformService } from "../../services/platformService";
 import { ITimeProvider } from "../timeProvider";
+import { ISerializer } from "../storage/serializer/types";
 
 export interface ICrossTabNotifier {
   notify(message: string): void;
@@ -14,6 +15,7 @@ export interface CrossTabNotifierConfig {
   logger?: ILogger;
   platformService?: IPlatformService;
   timeProvider?: ITimeProvider;
+  serializer?: ISerializer;
 }
 
 export interface ICrossTabNotifierFactory {
