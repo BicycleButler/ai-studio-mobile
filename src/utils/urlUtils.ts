@@ -43,7 +43,6 @@ export class DefaultUrlBuilder implements IUrlBuilder {
   }
 }
 
-export const defaultUrlBuilder = new DefaultUrlBuilder();
 
 // Maintain backward compatibility for now if required elsewhere
 export function buildUrlWithParams(

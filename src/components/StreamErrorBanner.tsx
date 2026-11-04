@@ -38,7 +38,7 @@ export const StreamErrorBanner: React.FC<StreamErrorBannerProps> = ({
       className={`border-b px-3 py-2 text-xs flex items-center justify-between gap-2 shrink-0 ${
         isInvalidKey
           ? "bg-muted border-border text-foreground"
-          : "bg-destructive/15 border-destructive/30 text-foreground /* error */"
+          : "bg-muted border-border text-foreground /* error */"
       }`}
     >
       <div className="flex items-center gap-2 overflow-hidden">
