@@ -143,7 +143,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
           Google AI Studio Templates
         </div>
         <div className="grid grid-cols-1 gap-2">
-          {getStarterTemplates(services.timeProvider).map((tmpl) => (
+          {getStarterTemplates(timeProvider).map((tmpl) => (
             <div
               key={tmpl.id}
               onClick={() => onLoadPrompt(tmpl)}
