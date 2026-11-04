@@ -89,14 +89,14 @@ export class BrowserPlatformService implements IPlatformService {
 
 
   public isInputFocused(): boolean {
-    const doc = getSafeDocument();
+    const doc = this.getDocument();
     if (!doc) return false;
     const tagName = doc.activeElement?.tagName;
     return tagName === "INPUT" || tagName === "TEXTAREA";
   }
 
   public blurActiveElement(): void {
-    const doc = getSafeDocument();
+    const doc = this.getDocument();
     if (!doc) return;
     if (doc.activeElement instanceof HTMLElement) {
       doc.activeElement.blur();
@@ -104,7 +104,7 @@ export class BrowserPlatformService implements IPlatformService {
   }
 
   public openUrl(url: string, target: string = "_blank"): void {
-    const win = getSafeWindow();
+    const win = this.getWindow();
     if (win) {
       win.open(url, target, "noopener,noreferrer");
     } else {
@@ -113,7 +113,7 @@ export class BrowserPlatformService implements IPlatformService {
   }
 
   public reloadWindow(): void {
-    const win = getSafeWindow();
+    const win = this.getWindow();
     if (win) {
       win.location.reload();
     } else {
@@ -122,22 +122,22 @@ export class BrowserPlatformService implements IPlatformService {
   }
 
   public isKeyboardVisible(): boolean {
-    if (!isBrowserEnvironment()) return false;
-    const nav = getSafeNavigator();
+    if (!this.isBrowserEnv()) return false;
+    const nav = this.getNavigator();
     return Boolean(nav && "virtualKeyboard" in nav);
   }
 
   public hideKeyboard(): void {
-    if (!isBrowserEnvironment()) return;
-    const nav = getSafeNavigator() as Navigator & { virtualKeyboard?: { hide: () => void } } | null;
+    if (!this.isBrowserEnv()) return;
+    const nav = this.getNavigator() as Navigator & { virtualKeyboard?: { hide: () => void } } | null;
     if (nav && nav.virtualKeyboard && typeof nav.virtualKeyboard.hide === "function") {
       nav.virtualKeyboard.hide();
     }
   }
 
   public isOnline(): boolean {
-    if (!isBrowserEnvironment()) return true;
-    const nav = getSafeNavigator();
+    if (!this.isBrowserEnv()) return true;
+    const nav = this.getNavigator();
     return Boolean(nav && typeof nav.onLine === 'boolean' ? nav.onLine : true);
   }
 
