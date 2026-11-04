@@ -22,7 +22,7 @@ export class DefaultIdGenerator implements IIdGenerator {
   }
 }
 
-export const defaultIdGenerator = new DefaultIdGenerator();
+export const defaultIdGenerator: IIdGenerator = new DefaultIdGenerator();
 
 export function generateUniqueId(prefix: string, explicitSuffix?: string): string {
   return defaultIdGenerator.generate(prefix, explicitSuffix);

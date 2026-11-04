@@ -262,4 +262,4 @@ export class SpeechVoicesService implements ISpeechVoicesService {
   }
 }
 
-export const defaultSpeechVoicesService = new SpeechVoicesService({ apiClient: defaultClient, authService: defaultAuthService });
+export const defaultSpeechVoicesService: ISpeechVoicesService = new SpeechVoicesService({ apiClient: defaultClient, authService: defaultAuthService });

@@ -8,4 +8,4 @@ export class DefaultRandomProvider implements IRandomProvider {
   }
 }
 
-export const defaultRandomProvider = new DefaultRandomProvider();
+export const defaultRandomProvider: IRandomProvider = new DefaultRandomProvider();

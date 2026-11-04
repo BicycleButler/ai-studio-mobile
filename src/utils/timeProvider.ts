@@ -13,4 +13,4 @@ export class DefaultTimeProvider implements ITimeProvider {
   }
 }
 
-export const defaultTimeProvider = new DefaultTimeProvider();
+export const defaultTimeProvider: ITimeProvider = new DefaultTimeProvider();

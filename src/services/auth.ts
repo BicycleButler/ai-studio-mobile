@@ -56,4 +56,4 @@ export class AuthService implements IAuthService {
   }
 }
 
-export const defaultAuthService = new AuthService({ apiClient: defaultClient, loadStoredApiKeyFn: () => "" });
+export const defaultAuthService: IAuthService = new AuthService({ apiClient: defaultClient, loadStoredApiKeyFn: () => "" });

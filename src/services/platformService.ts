@@ -271,4 +271,4 @@ export class BrowserPlatformService implements IPlatformService {
   }
 }
 
-export const defaultPlatformService = new BrowserPlatformService();
+export const defaultPlatformService: IPlatformService = new BrowserPlatformService();

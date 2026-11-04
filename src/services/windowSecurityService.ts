@@ -1,5 +1,5 @@
 import { Observable, IObservable } from "../utils/observable";
-import { GeneralSettingsService } from "../utils/storage/general";
+import { IGeneralSettingsService } from "../utils/storage/general";
 import { defaultPlatformService, IPlatformService } from "./platformService";
 
 export interface ShieldState {
@@ -7,7 +7,7 @@ export interface ShieldState {
 }
 
 export interface WindowSecurityServiceConfig {
-    generalSettingsService: GeneralSettingsService;
+    generalSettingsService: IGeneralSettingsService;
     platformService?: IPlatformService;
 }
 
@@ -19,7 +19,7 @@ export interface IWindowSecurityService {
 
 export class WindowSecurityService implements IWindowSecurityService {
   public shieldStore: IObservable<ShieldState>;
-  private generalSettingsService: GeneralSettingsService;
+  private generalSettingsService: IGeneralSettingsService;
   private flagSecureEnabled: boolean;
   private timerRef: unknown = null;
   private sensitiveScreenRegistrations = new Set<string>();
