@@ -12,28 +12,19 @@ export class MapCollection<T> implements ICollectionEngine<T> {
     return this.bulkUpdate(items, [{ id, changes: updates }]);
   }
 
-  private applyMutations(
-    items: T[],
-    mutationsMap: Map<string, Partial<T> | T>,
-    isUpsert: boolean,
-    prepend: boolean
-  ): CollectionOperationResult<T> {
+  private processUpdates(items: T[], updatesMap: Map<string, Partial<T>>): CollectionOperationResult<T> {
     let changed = false;
     let nextItems: T[] | undefined = undefined;
     let updateCount = 0;
-    let singleUpdatedItem: T | null | undefined = undefined;
+    let singleUpdatedItem: T | null = null;
 
     for (let i = 0; i < items.length; i++) {
       const existing = items[i];
       const id = this.keyExtractor(existing);
-      const changes = mutationsMap.get(id);
+      const changes = updatesMap.get(id);
 
       if (changes !== undefined) {
-        if (isUpsert) {
-          mutationsMap.delete(id); // Marked as updated, remove from additions
-        }
-
-        const mutated = (isUpsert ? changes : { ...existing, ...changes }) as T;
+        const mutated = { ...existing, ...changes };
         if (!fastDeepEqual(existing, mutated)) {
           if (!nextItems) nextItems = [...items];
           nextItems[i] = mutated;
@@ -44,25 +35,56 @@ export class MapCollection<T> implements ICollectionEngine<T> {
       }
     }
 
-    if (isUpsert) {
-      const itemsToAdd: T[] = Array.from(mutationsMap.values()) as T[];
-      if (itemsToAdd.length > 0) {
-        if (!nextItems) nextItems = [...items];
-        if (prepend) {
-          nextItems.unshift(...itemsToAdd);
-        } else {
-          nextItems.push(...itemsToAdd);
+    return {
+      items: changed && nextItems ? nextItems : items,
+      changed,
+      item: updateCount === 1 ? singleUpdatedItem : null,
+    };
+  }
+
+  private processUpserts(items: T[], newItemsMap: Map<string, T>, prepend: boolean): CollectionOperationResult<T> {
+    let changed = false;
+    let nextItems: T[] | undefined = undefined;
+    let updateCount = 0;
+    let singleUpdatedItem: T | null = null;
+
+    // 1. Update existing elements in place
+    for (let i = 0; i < items.length; i++) {
+      const existing = items[i];
+      const id = this.keyExtractor(existing);
+      const replacement = newItemsMap.get(id);
+
+      if (replacement !== undefined) {
+        newItemsMap.delete(id); // Mark as updated so it's not appended later
+
+        if (!fastDeepEqual(existing, replacement)) {
+          if (!nextItems) nextItems = [...items];
+          nextItems[i] = replacement;
+          changed = true;
+          updateCount++;
+          singleUpdatedItem = replacement;
         }
-        changed = true;
-        updateCount += itemsToAdd.length;
-        singleUpdatedItem = itemsToAdd[0];
       }
+    }
+
+    // 2. Add remaining completely new items
+    const itemsToAdd: T[] = Array.from(newItemsMap.values());
+    if (itemsToAdd.length > 0) {
+      if (!nextItems) nextItems = [...items];
+      if (prepend) {
+        nextItems.unshift(...itemsToAdd);
+      } else {
+        nextItems.push(...itemsToAdd);
+      }
+      changed = true;
+      updateCount += itemsToAdd.length;
+      singleUpdatedItem = itemsToAdd[0]; // If exactly 1 added and 0 updated, this returns it
     }
 
     return {
       items: changed && nextItems ? nextItems : items,
       changed,
-      item: updateCount === 1 && singleUpdatedItem !== undefined ? singleUpdatedItem : null
+      item: updateCount === 1 ? singleUpdatedItem : null,
     };
   }
 
@@ -75,7 +97,7 @@ export class MapCollection<T> implements ICollectionEngine<T> {
       updatesMap.set(update.id, existing ? { ...existing, ...update.changes } : update.changes);
     }
 
-    return this.applyMutations(items, updatesMap, false, false);
+    return this.processUpdates(items, updatesMap);
   }
 
   delete(items: T[], id: string): CollectionOperationResult<T> {
@@ -113,12 +135,12 @@ export class MapCollection<T> implements ICollectionEngine<T> {
   bulkUpsert(items: T[], newItems: T[], prepend = false): CollectionOperationResult<T> {
     if (!newItems || newItems.length === 0) return { items, changed: false, item: null };
 
-    const collapsedNewItems = new Map<string, Partial<T> | T>();
+    const collapsedNewItems = new Map<string, T>();
     for (const item of newItems) {
       const id = this.keyExtractor(item);
       collapsedNewItems.set(id, { ...item }); // collapse duplicates
     }
 
-    return this.applyMutations(items, collapsedNewItems, true, prepend);
+    return this.processUpserts(items, collapsedNewItems, prepend);
   }
 }
