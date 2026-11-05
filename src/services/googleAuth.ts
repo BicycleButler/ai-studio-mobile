@@ -1,6 +1,6 @@
 import { defaultTimeProvider, ITimeProvider } from "../utils/timeProvider";
 import { GoogleUser } from "../types";
-import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
+import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 import { IApiClient } from "../utils/apiClient";
 
@@ -65,7 +65,7 @@ export class GoogleAuthService implements IGoogleAuthService {
     if (config?.storageSingleton) {
         this.googleUserSingleton = config.storageSingleton;
     } else {
-        const factory = config?.storageFactory || defaultStorageFactory;
+        const factory = config?.storageFactory || new DefaultStorageFactory();
         this.googleUserSingleton = factory.createSingleton<GoogleUser | null>(
           STORAGE_KEYS.GOOGLE_USER,
           null

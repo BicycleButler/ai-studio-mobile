@@ -12,11 +12,10 @@ import { defaultPlatformService, IPlatformService } from "./platformService";
 
 import { extractSpokenText } from "../utils/speechExtractor";
 import { SpeechSettings, ISpeechVoicesService } from "./speechVoices";
-import { defaultSpeechVoicesService } from "./speechVoices"; // Default fallback if not injected
 
 export interface SentenceQueueOptions {
   speechSettings: SpeechSettings;
-  speechVoicesService?: ISpeechVoicesService;
+  speechVoicesService: ISpeechVoicesService;
 
   platformService?: IPlatformService;
   onSentenceStart?: (sentence: string, index: number) => void;
@@ -141,7 +140,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
       utterance.rate = Math.max(0.5, Math.min(2.0, settings.playbackRate || 1.0));
 
       // Resolve best natural or preferred voice
-      const service = this.options.speechVoicesService || defaultSpeechVoicesService;
+      const service = this.options.speechVoicesService;
       const bestVoice = service.getBestNaturalDeviceVoice(settings.deviceVoiceURI);
       if (bestVoice) {
         utterance.voice = bestVoice;

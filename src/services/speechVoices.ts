@@ -1,5 +1,5 @@
-import { IApiClient, defaultClient } from "../utils/apiClient";
-import { IAuthService, defaultAuthService } from "./auth";
+import { IApiClient } from "../utils/apiClient";
+import { IAuthService } from "./auth";
 /**
  * Voice definitions and speech playback engine
  * Supports:
@@ -7,7 +7,7 @@ import { IAuthService, defaultAuthService } from "./auth";
  * 2. Enhanced On-Device System Voices (with intelligent Natural/Neural voice prioritization)
  */
 
-import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
+import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 
 export interface GeminiVoiceOption {
@@ -131,7 +131,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
     if (config?.speechSettingsSingleton) {
       this.speechSettingsSingleton = config.speechSettingsSingleton;
     } else {
-      const factory = config?.storageFactory || defaultStorageFactory;
+      const factory = config?.storageFactory || new DefaultStorageFactory();
       this.speechSettingsSingleton = factory.createSingleton<SpeechSettings>(
         STORAGE_KEYS.SPEECH_SETTINGS,
         DEFAULT_SPEECH_SETTINGS,
@@ -262,4 +262,3 @@ export class SpeechVoicesService implements ISpeechVoicesService {
   }
 }
 
-export const defaultSpeechVoicesService: ISpeechVoicesService = new SpeechVoicesService({ apiClient: defaultClient, authService: defaultAuthService });

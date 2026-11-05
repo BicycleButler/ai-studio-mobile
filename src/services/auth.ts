@@ -5,7 +5,7 @@
  * or allows requests to rely on the server's configured GEMINI_API_KEY.
  */
 
-import { IApiClient, defaultClient } from "../utils/apiClient";
+import { IApiClient } from "../utils/apiClient";
 
 
 
@@ -56,4 +56,3 @@ export class AuthService implements IAuthService {
   }
 }
 
-export const defaultAuthService: IAuthService = new AuthService({ apiClient: defaultClient, loadStoredApiKeyFn: () => "" });

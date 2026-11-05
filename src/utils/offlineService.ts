@@ -1,12 +1,12 @@
 import { IObservable } from "./observable";
-import { AsyncStorage, IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from "./asyncStorage";
+import { AsyncStorage } from "./asyncStorage";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineQueueStore, IOfflineQueueStore } from "./offlineQueueStore";
 import { ISyncEngine, SyncEngine } from "./syncEngine";
 import { IIdGenerator, defaultIdGenerator } from "./idGenerator";
 import { ITimeProvider, defaultTimeProvider } from "./timeProvider";
-import { ICrossTabNotifierFactory, defaultCrossTabNotifierFactory } from "./crossTabNotifier";
-import { IPlatformService, defaultPlatformService } from "../services/platformService";
+import { ICrossTabNotifierFactory } from "./crossTabNotifier";
+import { IPlatformService } from "../services/platformService";
 
 export interface OfflineMutation {
   type: string;
@@ -144,8 +144,3 @@ export class OfflineService implements IOfflineService {
   }
 }
 
-export const defaultOfflineService: IOfflineService = new OfflineService({
-  storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()]),
-  crossTabNotifierFactory: defaultCrossTabNotifierFactory,
-  platformService: defaultPlatformService
-});

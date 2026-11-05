@@ -1,5 +1,3 @@
-import { defaultOfflineService } from "./offlineService";
-import { defaultClient } from "./apiClient";
 import { SyncOrchestrator, SyncHandlerConfig } from "./syncOrchestrator";
 
 import { IOfflineService } from "./offlineService";
@@ -11,7 +9,7 @@ export const DEFAULT_SYNC_HANDLERS: SyncHandlerConfig[] = [
   { mutationType: "projects", endpoint: "/api/projects", payloadWrapper: (payload: unknown) => ({ projects: payload }) }
 ];
 
-export function initializeSyncHandlers(offlineService: IOfflineService = defaultOfflineService, apiClient: IApiClient = defaultClient) {
+export function initializeSyncHandlers(offlineService: IOfflineService, apiClient: IApiClient) {
   const orchestrator = new SyncOrchestrator(offlineService, apiClient, DEFAULT_SYNC_HANDLERS);
   orchestrator.registerHandlers();
 }

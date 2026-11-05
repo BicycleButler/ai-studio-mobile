@@ -34,7 +34,7 @@ describe('testMobileIDEAndPromptModes', () => {
       id: "msg-1",
       role: "user",
       text: "Show me how to build a reactive stream in Kotlin",
-      timestamp: Date.now(),
+      timestamp: 1620000000000,
     },
   ];
 

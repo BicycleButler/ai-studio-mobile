@@ -1,6 +1,8 @@
 import { describe, test } from 'vitest';
 import { SentenceSpeechQueue } from "./sentenceSpeechQueue";
-import { DEFAULT_SPEECH_SETTINGS } from "./speechVoices";
+import { DEFAULT_SPEECH_SETTINGS, SpeechVoicesService } from "./speechVoices";
+import { ApiClient } from "../utils/apiClient";
+import { AuthService } from "./auth";
 
 describe('testSentenceSpeechQueue', () => {
   test('main', () => {
@@ -20,8 +22,13 @@ describe('testSentenceSpeechQueue', () => {
 
   // 2. Cancellation and buffer reset
   {
+    const client = new ApiClient();
+    const authService = new AuthService({ apiClient: client, loadStoredApiKeyFn: () => "" });
+    const speechVoicesService = new SpeechVoicesService({ apiClient: client, authService: authService });
+
     const queue = new SentenceSpeechQueue({
       speechSettings: DEFAULT_SPEECH_SETTINGS,
+      speechVoicesService: speechVoicesService,
     });
     queue.feed("First sentence here. Second sentence starts.", true);
     queue.cancel();

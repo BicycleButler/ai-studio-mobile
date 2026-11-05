@@ -1,6 +1,6 @@
 import { createDefaultStorageInstance } from "./core";
 
-import { defaultStorageFactory, IStorageFactory } from "./StorageFactory";
+import { DefaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeSetStorageString } from "./core";
 import { IMutableSingleton } from "./types";
@@ -29,7 +29,7 @@ export class GeneralSettingsService implements IGeneralSettingsService {
     if (config?.apiKeySingleton) {
         this.apiKeySingleton = config.apiKeySingleton;
     } else {
-        const factory = config?.storageFactory || defaultStorageFactory;
+        const factory = config?.storageFactory || new DefaultStorageFactory();
         this.apiKeySingleton = factory.createSingleton<string>(
           STORAGE_KEYS.API_KEY,
           "",
@@ -47,7 +47,7 @@ export class GeneralSettingsService implements IGeneralSettingsService {
     if (config?.flagSecureSingleton) {
         this.flagSecureSingleton = config.flagSecureSingleton;
     } else {
-        const factory = config?.storageFactory || defaultStorageFactory;
+        const factory = config?.storageFactory || new DefaultStorageFactory();
         this.flagSecureSingleton = factory.createSingleton<boolean>(
           STORAGE_KEYS.FLAG_SECURE_ENABLED,
           true

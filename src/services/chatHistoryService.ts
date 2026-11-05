@@ -1,5 +1,5 @@
 import { createDefaultStorageInstance } from "../utils/storage/core";
-import { safeGetStorageKeys, STORAGE_KEYS, IStorageRegistry, defaultStorageFactory, IStorageFactory } from "../utils/storage";
+import { safeGetStorageKeys, STORAGE_KEYS, IStorageRegistry, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { ChatMessage, ChatSession } from "../types";
 import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, defaultLogger } from "../utils/logger";
@@ -40,7 +40,7 @@ export class ChatHistoryService implements IChatHistoryService {
 
   constructor(config: ChatHistoryServiceConfig) {
     this.timeProvider = config?.timeProvider || defaultTimeProvider;
-    const factory = config?.storageFactory || defaultStorageFactory;
+    const factory = config?.storageFactory || new DefaultStorageFactory();
 
     this.config = {
       quotaObservable: config?.quotaObservable || defaultPlatformService.getStorageQuotaObservable(),

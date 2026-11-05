@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { OfflineQueueStore } from './offlineQueueStore';
 import { AsyncStorage } from './asyncStorage';
 import { NoOpLogger } from './logger';
-import { defaultCrossTabNotifierFactory } from './crossTabNotifier/CrossTabNotifierFactory';
+import { DefaultCrossTabNotifierFactory } from './crossTabNotifier/CrossTabNotifierFactory';
 import { defaultPlatformService } from '../services/platformService';
 
 class MockAsyncStorage implements AsyncStorage {
@@ -27,7 +27,7 @@ describe('OfflineQueueStore', () => {
             storageKey: 'test_queue',
             storageAdapter: mockStorage,
             logger: new NoOpLogger(),
-            crossTabNotifierFactory: defaultCrossTabNotifierFactory,
+            crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
             platformService: defaultPlatformService
         });
     });
@@ -117,7 +117,7 @@ describe('OfflineQueueStore Error Propagation', () => {
             storageKey: 'test_queue_error',
             storageAdapter: new FailingAsyncStorage(),
             logger: new NoOpLogger(),
-            crossTabNotifierFactory: defaultCrossTabNotifierFactory,
+            crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
             platformService: defaultPlatformService
         });
 
@@ -134,7 +134,7 @@ describe('OfflineQueueStore Error Propagation', () => {
             storageKey: 'test_queue_error_2',
             storageAdapter: new FailingAsyncStorage(),
             logger: new NoOpLogger(),
-            crossTabNotifierFactory: defaultCrossTabNotifierFactory,
+            crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
             platformService: defaultPlatformService
         });
 

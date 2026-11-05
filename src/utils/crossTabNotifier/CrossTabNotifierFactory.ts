@@ -18,8 +18,3 @@ export class DefaultCrossTabNotifierFactory implements ICrossTabNotifierFactory 
   }
 }
 
-export const defaultCrossTabNotifierFactory: ICrossTabNotifierFactory = new DefaultCrossTabNotifierFactory();
-
-export function createCrossTabNotifier(config: CrossTabNotifierConfig): ICrossTabNotifier {
-  return defaultCrossTabNotifierFactory.createCrossTabNotifier(config);
-}
