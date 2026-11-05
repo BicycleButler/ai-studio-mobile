@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { StorageEventNotifier } from './StorageEventNotifier';
-import { createCrossTabNotifier } from './CrossTabNotifierFactory';
+import { DefaultCrossTabNotifierFactory } from './CrossTabNotifierFactory';
 import { NoOpLogger } from '../logger';
 import { IPlatformService } from "../../services/platformService";
 import { StorageEventCtor } from '../testUtils/storageEvent';
@@ -61,7 +61,7 @@ describe('CrossTabNotifier', () => {
 
       // Simulate a storage event from another tab
       const message = 'SYNC';
-      const payload = JSON.stringify({ message, timestamp: Date.now() });
+      const payload = JSON.stringify({ message, timestamp: 1620000000000 });
 
       const event = new StorageEventCtor('storage', {
         key: '_sync_notify_test_channel',
@@ -92,7 +92,8 @@ describe('CrossTabNotifier', () => {
 
   describe('CrossTabNotifierFactory', () => {
       it('should prefer BroadcastChannel if available', () => {
-          const notifier = createCrossTabNotifier({ name: 'test', logger, platformService: mockPlatformService });
+          const factory = new DefaultCrossTabNotifierFactory();
+          const notifier = factory.createCrossTabNotifier({ name: 'test', logger, platformService: mockPlatformService });
           expect(notifier).toBeDefined();
           expect(typeof notifier.notify).toBe('function');
           expect(typeof notifier.onMessage).toBe('function');
@@ -107,7 +108,8 @@ describe('CrossTabNotifier', () => {
               mockPlatformService.getBroadcastChannel = () => null;
           }
 
-          const notifier = createCrossTabNotifier({ name: 'test', logger, platformService: mockPlatformService });
+          const factory = new DefaultCrossTabNotifierFactory();
+          const notifier = factory.createCrossTabNotifier({ name: 'test', logger, platformService: mockPlatformService });
           expect(notifier instanceof FallbackCrossTabNotifier).toBe(true);
           expect(((notifier as FallbackCrossTabNotifier) as unknown as { activeNotifier: unknown }).activeNotifier instanceof StorageEventNotifier).toBe(true);
       });

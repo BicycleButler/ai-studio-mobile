@@ -20,7 +20,7 @@ const mockMessages: ChatMessage[] = [
     id: "msg-1",
     role: "user",
     text: "How do I optimize Jetpack Compose on Android?",
-    timestamp: Date.now(),
+    timestamp: 1620000000000,
   },
 ];
 

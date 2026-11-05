@@ -1,6 +1,6 @@
 import { ActiveItemManager, IActiveItemManager } from "./ActiveItemManager";
 import { StorageCollectionOptions } from "./StorageCollection";
-import { defaultStorageFactory, IStorageFactory } from "./StorageFactory";
+import { DefaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { StorageSingletonOptions } from "./StorageSingleton";
 import { IMutableCollection, IMutableSingleton } from "./types";
 import { ISelectionStrategy, FirstItemSelectionStrategy, NoImplicitSelectionStrategy } from "./selectionStrategy";
@@ -26,7 +26,7 @@ export interface IActiveItemManagerFactory {
 
 export class DefaultActiveItemManagerFactory implements IActiveItemManagerFactory {
   public create<T>(options: CreateActiveItemManagerOptions<T>): IActiveItemManager<T> {
-    const factory = options.storageFactory || defaultStorageFactory;
+    const factory = options.storageFactory || new DefaultStorageFactory();
     const collection = options.collection || factory.createCollection<T>(options.collectionKey, options.collectionOptions);
     const activeIdSingleton = options.activeIdSingleton || factory.createSingleton<string | null>(options.activeIdKey, null, options.activeIdOptions);
 

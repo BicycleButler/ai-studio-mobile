@@ -5,7 +5,7 @@ import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
 import { IApiClient } from "../apiClient";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
-import { defaultStorageFactory, IStorageFactory } from "./StorageFactory";
+import { DefaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { ILogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
@@ -65,7 +65,7 @@ export class JulesStorageService implements IJulesStorageService {
     this.idGenerator = config.idGenerator || defaultIdGenerator;
     this.timeProvider = config.timeProvider || defaultTimeProvider;
 
-    const factory = config.storageFactory || defaultStorageFactory;
+    const factory = config.storageFactory || new DefaultStorageFactory();
     this.julesApiKeySingleton = config?.julesApiKeySingleton || factory.createSingleton<string>(
       STORAGE_KEYS.JULES_API_KEY,
       "",

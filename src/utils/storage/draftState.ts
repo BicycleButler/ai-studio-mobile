@@ -1,6 +1,6 @@
 import { PromptConfig, PromptType, StructuredExample, ChatMessage } from "../../types";
 import { DEFAULT_CONFIG } from "../../data/templates";
-import { defaultStorageFactory, IStorageFactory } from "./StorageFactory";
+import { DefaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { IStorageRegistry } from "./StorageRegistry";
 import { IMutableSingleton } from "./types";
 import { STORAGE_KEYS } from "./constants";
@@ -44,7 +44,7 @@ export class DraftStateService implements IDraftStateService {
     if (config?.draftRegistry) {
         this.draftRegistry = config.draftRegistry;
     } else {
-        const factory = config?.storageFactory || defaultStorageFactory;
+        const factory = config?.storageFactory || new DefaultStorageFactory();
         this.draftRegistry = factory.createRegistry<IMutableSingleton<DraftState | null>>((key) => {
           return factory.createSingleton<DraftState | null>(key, null);
         });

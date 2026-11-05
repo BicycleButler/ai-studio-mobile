@@ -1,6 +1,6 @@
 import { defaultTimeProvider, ITimeProvider } from "../utils/timeProvider";
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
-import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
+import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
 import { IIdGenerator, defaultIdGenerator } from "../utils/idGenerator";
 
@@ -101,7 +101,7 @@ export class PromptTemplateService implements IPromptTemplateService {
     if (config?.customTemplatesCollection) {
       this.customTemplatesCollection = config.customTemplatesCollection;
     } else {
-      const factory = config?.storageFactory || defaultStorageFactory;
+      const factory = config?.storageFactory || new DefaultStorageFactory();
       this.customTemplatesCollection = factory.createCollection<PromptTemplate>(STORAGE_KEYS.CUSTOM_PROMPT_TEMPLATES);
     }
   }

@@ -6,7 +6,7 @@ import { defaultPlatformService, IPlatformService } from "./platformService";
  * Adheres strictly to ADR 0020 (Color System Architecture) and ADR 0028 (Theming & Dark Mode)
  */
 
-import { STORAGE_KEYS, defaultStorageFactory, IStorageFactory } from "../utils/storage";
+import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 import { Observable, IObservable } from "../utils/observable";
 
@@ -65,7 +65,7 @@ export class ThemeService implements IThemeService {
     if (config?.themeModeSingleton) {
         this.themeModeSingleton = config.themeModeSingleton;
     } else {
-        const factory = config?.storageFactory || defaultStorageFactory;
+        const factory = config?.storageFactory || new DefaultStorageFactory();
         this.themeModeSingleton = factory.createSingleton<ThemeMode>(
           STORAGE_KEYS.THEME_MODE,
           "system",

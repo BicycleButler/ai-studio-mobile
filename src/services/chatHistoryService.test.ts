@@ -39,18 +39,19 @@ describe('testChatHistoryService', () => {
   }
 
   // 3. Test title generation
+  const now = 1620000000000;
   const realMessages: ChatMessage[] = [
     {
       id: "hist_msg_001",
       role: "user",
       text: "How do I implement dynamic Material You color themes in Android Compose?",
-      timestamp: Date.now() - 5000,
+      timestamp: now - 5000,
     },
     {
       id: "hist_msg_002",
       role: "model",
       text: "Use dynamicLightColorScheme and dynamicDarkColorScheme on Android 12+.",
-      timestamp: Date.now(),
+      timestamp: now,
     },
   ];
 
@@ -64,8 +65,8 @@ describe('testChatHistoryService', () => {
     id: "sess_material_theme_001",
     title: generatedTitle,
     messages: realMessages,
-    createdAt: Date.now() - 10000,
-    updatedAt: Date.now() - 10000,
+    createdAt: now - 10000,
+    updatedAt: now - 10000,
     projectId: activeProjectId,
     model: "gemini-2.5-flash",
   };
@@ -88,7 +89,7 @@ describe('testChatHistoryService', () => {
       id: "hist_msg_003",
       role: "user",
       text: "Can you provide the Kotlin snippet for the Theme composable?",
-      timestamp: Date.now(),
+      timestamp: now,
     },
   ];
 
