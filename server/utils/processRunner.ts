@@ -1,6 +1,7 @@
 import { spawn, SpawnOptionsWithoutStdio } from "node:child_process";
 import fs from "node:fs";
 import { EventEmitter } from "node:events";
+import { ITimeProvider, defaultTimeProvider } from "../../src/utils/timeProvider";
 
 export interface ProcessLogEvent {
   type: "start" | "stdout" | "stderr" | "error" | "exit";
@@ -19,6 +20,8 @@ export interface IProcessRunner {
 }
 
 export class ProcessRunner implements IProcessRunner {
+  constructor(private timeProvider: ITimeProvider = defaultTimeProvider) {}
+
   public async runCommand(
     executablePath: string,
     args: string[] = [],
@@ -31,7 +34,7 @@ export class ProcessRunner implements IProcessRunner {
           eventEmitter.emit("log", {
             type: "start",
             text: `\x1b[36m$ node ${executablePath} ${args.join(" ")}\x1b[0m`,
-            timestamp: Date.now(),
+            timestamp: this.timeProvider.now(),
           });
         }
 
@@ -50,7 +53,7 @@ export class ProcessRunner implements IProcessRunner {
             eventEmitter.emit("log", {
               type: "stdout",
               text,
-              timestamp: Date.now(),
+              timestamp: this.timeProvider.now(),
             });
           }
         });
@@ -62,7 +65,7 @@ export class ProcessRunner implements IProcessRunner {
             eventEmitter.emit("log", {
               type: "stderr",
               text,
-              timestamp: Date.now(),
+              timestamp: this.timeProvider.now(),
             });
           }
         });
@@ -73,7 +76,7 @@ export class ProcessRunner implements IProcessRunner {
               type: "exit",
               text: `[Process exited with code ${code}]`,
               code,
-              timestamp: Date.now(),
+              timestamp: this.timeProvider.now(),
             });
           }
           resolve({
@@ -88,7 +91,7 @@ export class ProcessRunner implements IProcessRunner {
             eventEmitter.emit("log", {
               type: "error",
               text: `[Execution error: ${err.message}]`,
-              timestamp: Date.now(),
+              timestamp: this.timeProvider.now(),
             });
           }
           reject(err);
@@ -99,7 +102,7 @@ export class ProcessRunner implements IProcessRunner {
           eventEmitter.emit("log", {
             type: "error",
             text: `[Execution error: ${errorMsg}]`,
-            timestamp: Date.now(),
+            timestamp: this.timeProvider.now(),
           });
         }
         reject(new Error(errorMsg));

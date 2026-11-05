@@ -37,7 +37,7 @@ dotenv.config();
 
 const app = express();
 
-const { julesClient: serverJulesClient, logger: defaultLogger } = defaultServerContext.services;
+const { julesClient: serverJulesClient, logger: defaultLogger, timeProvider } = defaultServerContext.services;
 
 
 const JULES_SESSIONS_FILE = path.join(process.cwd(), ".stubs", "jules_sessions.json");
@@ -242,7 +242,7 @@ app.get("/api/auth/url", (req: Request, res: Response): void => {
     clientId
   )}&redirect_uri=${encodeURIComponent(
     redirectUri
-  )}&response_type=token%20id_token&scope=${scope}&prompt=consent&nonce=ais_${Date.now()}`;
+  )}&response_type=token%20id_token&scope=${scope}&prompt=consent&nonce=ais_${timeProvider.now()}`;
 
   res.json({
     authUrl,
@@ -264,9 +264,9 @@ app.post("/api/auth/google", (req: Request, res: Response): void => {
     email: email.trim().toLowerCase(),
     name: name?.trim() || email.split("@")[0],
     picture: picture || undefined,
-    sub: sub || `g_${Date.now()}`,
+    sub: sub || `g_${timeProvider.now()}`,
     authSource: authSource || "google_account",
-    authenticatedAt: Date.now(),
+    authenticatedAt: timeProvider.now(),
     aiStudioSynced: true,
   };
 
@@ -354,7 +354,7 @@ app.post("/api/verify-key", async (req: Request, res: Response): Promise<void> =
       valid: true,
       model: testModel,
       totalTokens: result.totalTokens,
-      verifiedAt: Date.now(),
+      verifiedAt: timeProvider.now(),
     });
   } catch (err: unknown) {
     const msg = getErrorMessage(err);
@@ -369,7 +369,7 @@ app.post("/api/verify-key", async (req: Request, res: Response): Promise<void> =
 // Return live models list synced directly from Google AI Studio
 app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
   const forceRefresh = req.query.refresh === "true";
-  const now = Date.now();
+  const now = timeProvider.now();
 
   // Return cached models if fresh (within 5 minutes) and not forced
   if (!forceRefresh && cachedLiveModels && now - cachedLiveModelsTimestamp < 300_000) {
@@ -565,7 +565,7 @@ interface FormattedContent {
 app.post(
   "/api/generate",
   async (req: Request, res: Response): Promise<void> => {
-    const startTime = Date.now();
+    const startTime = timeProvider.now();
     try {
       const parseResult = GenerateRequestSchema.safeParse(req.body);
       if (!parseResult.success) {
@@ -664,7 +664,7 @@ app.post(
           res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
         }
 
-        const durationMs = Date.now() - startTime;
+        const durationMs = timeProvider.now() - startTime;
         res.write(
           `data: ${JSON.stringify({
             done: true,
@@ -681,7 +681,7 @@ app.post(
           config,
         });
 
-        const durationMs = Date.now() - startTime;
+        const durationMs = timeProvider.now() - startTime;
         res.json({
           text: response.text || "",
           durationMs,
@@ -1148,7 +1148,7 @@ app.get("/api/stubs/stream", (req: Request, res: Response): void => {
   stubsEvents.on("log", listener);
 
   // Initial connection heartbeat
-  res.write(`data: ${JSON.stringify({ type: "connect", text: "Connected to Stubs PWM event bus", timestamp: Date.now() })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: "connect", text: "Connected to Stubs PWM event bus", timestamp: timeProvider.now() })}\n\n`);
 
   req.on("close", () => {
     stubsEvents.off("log", listener);

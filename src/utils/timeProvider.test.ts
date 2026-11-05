@@ -47,7 +47,7 @@ describe('formatRelative', () => {
   it('should format correctly for older dates', () => {
     const provider = new DefaultTimeProvider();
     const now = provider.now();
-    const oldDate = new Date(now - 86400000 * 10);
+    const oldDate = provider.date(now - 86400000 * 10);
     const expectedString = oldDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     expect(provider.formatRelative(oldDate.getTime())).toBe(expectedString);
   });
