@@ -1,14 +1,14 @@
-import { DefaultUrlBuilder, IUrlBuilder } from "./urlUtils";
+import { IUrlBuilder } from "./urlUtils";
 import { BaseApiError, isAbortError, parseErrorResponse } from "./apiClientErrors";
-import { InterceptorManager, Interceptor, IInterceptorManager } from "./apiClientInterceptors";
+import { Interceptor, IInterceptorManager } from "./apiClientInterceptors";
 import { ExponentialBackoffRetryStrategy, IRetryStrategy, RetryConfig } from "./apiClientRetry";
-import { IResponseParser, DefaultResponseParser } from "./apiResponseParser";
+import { IResponseParser } from "./apiResponseParser";
 
 export interface ApiClientConfig {
+  interceptorManager: IInterceptorManager;
+  responseParser: IResponseParser;
+  urlBuilder: IUrlBuilder;
   retryConfig?: RetryConfig;
-  interceptorManager?: IInterceptorManager;
-  responseParser?: IResponseParser;
-  urlBuilder?: IUrlBuilder;
 }
 
 export interface IApiClient {
@@ -33,13 +33,11 @@ export class ApiClient implements IApiClient {
   private responseParser: IResponseParser;
   private urlBuilder: IUrlBuilder;
   public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
-
-  constructor(config: ApiClientConfig = {}) {
+  constructor(config: ApiClientConfig) {
     const retryConfig = config.retryConfig || {};
-    this.interceptorManager = config.interceptorManager || new InterceptorManager();
-    this.responseParser = config.responseParser || new DefaultResponseParser();
-    this.urlBuilder = config.urlBuilder || new DefaultUrlBuilder();
-
+    this.interceptorManager = config.interceptorManager;
+    this.responseParser = config.responseParser;
+    this.urlBuilder = config.urlBuilder;
     this.retryConfig = {
       retries: retryConfig.retries ?? 3,
       fetcher: retryConfig.fetcher ?? fetch,
@@ -47,15 +45,12 @@ export class ApiClient implements IApiClient {
       retryableStatusCodes: retryConfig.retryableStatusCodes,
     };
   }
-
   public addInterceptor(interceptor: Interceptor): void {
     this.interceptorManager.addInterceptor(interceptor);
   }
-
   public clearInterceptors(): void {
     this.interceptorManager.clearInterceptors();
   }
-
   private async prepareRequest(
     endpoint: string,
     options?: RequestInit,
@@ -63,10 +58,8 @@ export class ApiClient implements IApiClient {
   ): Promise<{ url: string; fetchOptions: RequestInit }> {
     let url = this.urlBuilder.build(endpoint, queryParams);
     let fetchOptions = options || {};
-
     return this.interceptorManager.applyInterceptors(url, fetchOptions);
   }
-
   private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
     return this.retryConfig.retryStrategy.execute(url, options, {
       retries: this.retryConfig.retries,
@@ -74,7 +67,6 @@ export class ApiClient implements IApiClient {
       retryableStatusCodes: this.retryConfig.retryableStatusCodes,
     });
   }
-
   private async executeRequest(
     endpoint: string,
     options?: RequestInit,
@@ -91,15 +83,12 @@ export class ApiClient implements IApiClient {
       const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : defaultErrorMessage;
       throw BaseApiError.fromResponse(msg, 0, undefined, endpoint, err);
     }
-
     if (!res.ok) {
       const { errorMessage, headers, rawData } = await parseErrorResponse(res, defaultErrorMessage);
       throw BaseApiError.fromResponse(errorMessage, res.status, headers, endpoint, rawData);
     }
-
     return res;
   }
-
   public async fetch<T>(
     endpoint: string,
     options?: RequestInit,
@@ -107,12 +96,9 @@ export class ApiClient implements IApiClient {
     queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<T> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
-
     const res = await this.executeRequest(url, fetchOptions, defaultErrorMessage);
-
     return this.responseParser.parse<T>(res, endpoint);
   }
-
   public async fetchStream(
     endpoint: string,
     options?: RequestInit,
@@ -120,12 +106,10 @@ export class ApiClient implements IApiClient {
     queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<Response> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
-
     const res = await this.executeRequest(url, fetchOptions, defaultErrorMessage);
     return this.responseParser.parseStream(res, endpoint);
   }
 }
-
 
 export * from "./apiClientErrors";
 export * from "./apiClientInterceptors";

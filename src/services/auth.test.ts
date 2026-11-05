@@ -1,8 +1,11 @@
+import { DefaultUrlBuilder } from "../utils/urlUtils";
+import { DefaultResponseParser } from "../utils/apiResponseParser";
+import { InterceptorManager } from "../utils/apiClientInterceptors";
 import { ApiClient } from "../utils/apiClient";
 import { defaultLogger } from "../utils/logger";
 import { describe, test } from 'vitest';
 import { GoogleAuthService } from './googleAuth';
-const defaultGoogleAuthService = new GoogleAuthService({ apiClient: new ApiClient(), logger: defaultLogger });
+const defaultGoogleAuthService = new GoogleAuthService({ apiClient: new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() }), logger: defaultLogger });
 
 // Test suite for authentication helpers & header builders
 
