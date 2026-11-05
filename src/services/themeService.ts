@@ -80,8 +80,8 @@ export class ThemeService implements IThemeService {
     if (!this.isBrowserEnv()) {
       return "dark"; // Default fallback
     }
-        if (!matchMedia) return "dark";
-    return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        if (!this.platformService.getMatchMedia()) return "dark";
+    return this.platformService.getMatchMedia()!("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
 
   public loadStoredThemeMode(): ThemeMode {
@@ -175,8 +175,8 @@ export class ThemeService implements IThemeService {
       this.applyThemeToDOM(this.currentResolved);
 
 
-      if (matchMedia) {
-        this.mediaQueryList = matchMedia("(prefers-color-scheme: dark)");
+      if (this.platformService.getMatchMedia()) {
+        this.mediaQueryList = this.platformService.getMatchMedia()!("(prefers-color-scheme: dark)");
       }
     }
 
