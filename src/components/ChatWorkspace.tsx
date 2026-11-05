@@ -1073,6 +1073,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               currentSessionId={currentSessionId || null}
               popoverRef={historyPopoverRef}
               getHistorySelectionState={getHistorySelectionState}
+              timeProvider={useServices().timeProvider}
 
 
             />
