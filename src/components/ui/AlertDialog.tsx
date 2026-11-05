@@ -93,7 +93,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
                 disabled={isConfirmDisabled}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                   confirmVariant === 'destructive'
-                    ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
+                    ? 'bg-muted/40 hover:bg-destructive/90 text-muted-foreground hover:text-destructive-foreground'
                     : 'bg-primary hover:bg-primary/90 text-primary-foreground'
                 }`}
               >

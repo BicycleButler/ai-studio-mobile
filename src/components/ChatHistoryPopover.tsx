@@ -9,7 +9,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { ChatSession } from "../types";
-import { formatRelativeTime } from "../utils/timeUtils";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
 
 export interface ChatHistoryPopoverProps {
@@ -156,7 +155,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
                           Active
                         </span>
                       )}
-                      <span>{formatRelativeTime(session.updatedAt, timeProvider)}</span>
+                      <span>{timeProvider.formatRelative(session.updatedAt)}</span>
                       <span>•</span>
                       <span>
                         {session.messages?.length || 0}{" "}

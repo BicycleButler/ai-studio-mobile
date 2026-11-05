@@ -1,5 +1,5 @@
 import { defaultTimeProvider, ITimeProvider } from "./timeProvider";
-import { IRandomProvider, defaultRandomProvider } from "./randomProvider";
+import { IRandomProvider, DefaultRandomProvider } from "./randomProvider";
 
 export interface IIdGenerator {
   generate(prefix: string, explicitSuffix?: string): string;
@@ -11,7 +11,7 @@ export class DefaultIdGenerator implements IIdGenerator {
 
   constructor(timeProvider?: ITimeProvider, randomProvider?: IRandomProvider) {
     this.timeProvider = timeProvider || defaultTimeProvider;
-    this.randomProvider = randomProvider || defaultRandomProvider;
+    this.randomProvider = randomProvider || new DefaultRandomProvider();
   }
 
   public generate(prefix: string, explicitSuffix?: string): string {

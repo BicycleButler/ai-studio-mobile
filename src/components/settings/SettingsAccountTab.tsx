@@ -352,7 +352,7 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
                         </button>
                         <button
                           onClick={() => onDeleteProject(p)}
-                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
+                          className="p-1.5 text-muted-foreground hover:text-destructive-foreground hover:bg-destructive/90 rounded"
                           title="Delete project"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

@@ -3,8 +3,13 @@ import { Observable, IObservable } from "./observable";
 import { ILogger, defaultLogger } from "./logger";
 import { OfflineMutation } from "./offlineService";
 import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./crossTabNotifier";
-import { AsyncStorage } from "./asyncStorage";
+
 import { IPlatformService } from "../services/platformService";
+
+export interface IAsyncStorageAdapter {
+  getItem<T>(key: string): Promise<T | null | undefined>;
+  setItem<T>(key: string, value: T): Promise<void>;
+}
 
 export interface IOfflineQueueStore {
   getObservable(): IObservable<OfflineMutation[]>;
@@ -21,7 +26,7 @@ export interface IOfflineQueueStore {
 
 export interface OfflineQueueStoreConfig {
   storageKey: string;
-  storageAdapter: AsyncStorage;
+  storageAdapter: IAsyncStorageAdapter;
   logger?: ILogger;
   crossTabNotifierFactory: ICrossTabNotifierFactory;
   mutex?: IMutex;
@@ -38,7 +43,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   private cachedQueue: OfflineMutation[] = [];
   private notifier?: ICrossTabNotifier;
   private storageKey: string;
-  private storageAdapter: AsyncStorage;
+  private storageAdapter: IAsyncStorageAdapter;
   private logger: ILogger;
 
   constructor(config: OfflineQueueStoreConfig) {
@@ -99,11 +104,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     await this.safeSetQueue(newQueue);
     this.cachedQueue = newQueue;
     this.notifyQueue(newQueue);
-    try {
-        this.notifier?.notify('SYNC');
-    } catch (err) {
-      this.logger.error("Failed to notify cross tab notifier", err);
-    }
+    this.notifier?.notify('SYNC');
   }
 
   private async withQueueLock(action: (queue: OfflineMutation[]) => OfflineMutation[] | Promise<OfflineMutation[]>): Promise<void> {

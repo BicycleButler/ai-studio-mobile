@@ -33,7 +33,7 @@ export const PromptToolActionDock: React.FC<PromptToolActionDockProps> = ({
             <button
               type="button"
               onClick={onInsert}
-              className="px-3 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+              className="px-3 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-sm active:scale-95"
             >
               {hasInserted ? <Check className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
               <span>{hasInserted ? "Inserted" : "Insert into Chat"}</span>

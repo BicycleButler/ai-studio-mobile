@@ -292,8 +292,8 @@ export const JulesActivityCard: React.FC<JulesActivityCardProps> = ({
 
       {/* Error Message */}
       {(activity.error || activity.errorMessage) && (
-        <div className="p-3 bg-muted/40 border-t border-destructive/20 text-destructive text-xs flex items-center gap-2 error-banner">
-          <AlertCircle className="w-4 h-4 shrink-0 text-destructive error-icon" />
+        <div className="p-3 bg-muted/40 border-t border-border/40 text-muted-foreground hover:text-destructive text-xs flex items-center gap-2 error-banner">
+          <AlertCircle className="w-4 h-4 shrink-0 text-muted-foreground hover:text-destructive error-icon" />
           <span>{activity.error || activity.errorMessage}</span>
         </div>
       )}

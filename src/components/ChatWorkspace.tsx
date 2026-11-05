@@ -40,7 +40,6 @@ import { ISentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { useStore } from "../hooks/useStore";
-import {  } from "../utils/timeUtils";
 import { JulesActivityCard } from "./JulesActivityCard";
 import { GoogleIcon } from "./GoogleIcon";
 import { PromptTemplateDrawer } from "./PromptTemplateDrawer";
@@ -1015,7 +1014,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             type="button"
             id="jules-switch-task-btn"
             onClick={onOpenJulesSessions}
-            className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-transparent border-0 shadow-none text-purple-400 hover:text-purple-300 hover:bg-muted/40 transition-colors cursor-pointer active:scale-95 focus:outline-none touch-manipulation"
+            className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-transparent border-0 text-purple-400 hover:text-purple-300 hover:bg-muted/40 transition-colors cursor-pointer active:scale-95 focus:outline-none touch-manipulation"
             title="Manage Jules Tasks & Sessions"
             aria-label="Manage Jules Tasks & Sessions"
           >
@@ -1037,8 +1036,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             onClick={() => setIsHistoryOpen((prev) => !prev)}
             className={`w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl transition cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${
               isHistoryOpen
-                ? "bg-muted text-foreground ring-1 ring-border shadow-xs"
-                : "bg-transparent border-0 shadow-none hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                ? "bg-muted text-foreground ring-1 ring-border shadow-sm"
+                : "bg-transparent border-0 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
             }`}
           >
             <Plus
@@ -1301,8 +1300,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               <div
                 className={`max-w-[95%] sm:max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed ${
                   msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-tr-none shadow-xs"
-                    : "bg-card text-card-foreground border border-border rounded-tl-none shadow-xs"
+                    ? "bg-primary text-primary-foreground rounded-tr-none shadow-sm"
+                    : "bg-card text-card-foreground border border-border rounded-tl-none shadow-sm"
                 }`}
               >
                 {/* Images preview if present */}
@@ -1593,7 +1592,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     type="button"
                     id="chat-voice-fab-interrupt-btn"
                     onClick={handleInterrupt}
-                    className="px-2.5 py-1 rounded-full bg-warning/15 text-warning  hover:bg-warning/25 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1 rounded-full bg-muted/40 text-muted-foreground hover:bg-warning/25 hover:text-warning text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                     title="Interrupt assistant speech"
                   >
                     <Square className="w-3 h-3 fill-current" />
@@ -1604,7 +1603,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   type="button"
                   id="chat-voice-fab-end-btn"
                   onClick={handleToggleVoiceMode}
-                  className="w-7 h-7 rounded-full bg-muted/40 text-destructive hover:bg-destructive/25 flex items-center justify-center cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-muted/40 text-muted-foreground hover:bg-destructive/25 hover:text-destructive flex items-center justify-center cursor-pointer"
                   title="End hands-free voice mode"
                   aria-label="End hands-free voice mode"
                 >
@@ -1640,7 +1639,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     handleToggleVoiceMode();
                   }
                 }}
-                className="w-full h-20 min-h-[80px] px-4 py-2.5 bg-gradient-to-r from-primary/15 via-background to-primary/10 hover:from-primary/25 hover:via-background/90 hover:to-primary/20 active:scale-[0.995] border-t border-border shadow-xs flex items-center justify-between gap-3 animate-in fade-in duration-[945ms] ease-in-out cursor-pointer select-none touch-manipulation group"
+                className="w-full h-20 min-h-[80px] px-4 py-2.5 bg-gradient-to-r from-primary/15 via-background to-primary/10 hover:from-primary/25 hover:via-background/90 hover:to-primary/20 active:scale-[0.995] border-t border-border shadow-sm flex items-center justify-between gap-3 animate-in fade-in duration-[945ms] ease-in-out cursor-pointer select-none touch-manipulation group"
                 title="Tap anywhere to exit hands-free voice mode"
                 aria-label="Exit hands-free voice mode (tap anywhere)"
               >
@@ -1690,7 +1689,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       )}
                     </div>
                     {speechError ? (
-                      <p className="text-[11px] text-destructive font-medium truncate toast-element">
+                      <p className="text-[11px] text-muted-foreground hover:text-destructive font-medium truncate toast-element">
                         {speechError}
                       </p>
                     ) : inputText.trim() ? (
@@ -1718,7 +1717,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                         e.stopPropagation();
                         handleInterrupt();
                       }}
-                      className="h-11 min-h-[44px] px-3.5 rounded-xl bg-warning/15 text-warning  hover:bg-warning/25 text-xs font-semibold flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
+                      className="h-11 min-h-[44px] px-3.5 rounded-xl bg-muted/40 text-muted-foreground hover:bg-warning/25 hover:text-warning text-xs font-semibold flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
                       title="Interrupt assistant speech"
                       aria-label="Interrupt assistant speech"
                     >
@@ -1844,7 +1843,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                           type="button"
                           id="chat-expand-height-btn"
                           onClick={() => setIsInputHeightExpanded(false)}
-                          className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors shadow-none touch-manipulation"
+                          className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors touch-manipulation"
                           title="Restore standard height"
                           aria-label="Restore standard height"
                         >
@@ -1856,7 +1855,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                             type="button"
                             id="chat-stop-btn"
                             onClick={onStopGeneration}
-                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-muted/40 hover:bg-destructive/90 text-muted-foreground hover:text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
+                            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-muted/40 hover:bg-destructive/90 text-muted-foreground hover:text-destructive-foreground transition-colors shrink-0 shadow-sm cursor-pointer touch-manipulation"
                             title="Stop generation"
                             aria-label="Stop generation"
                           >
@@ -1872,7 +1871,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                             }
                             className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 font-semibold touch-manipulation ${
                               inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
-                                ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
+                                ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm active:scale-95 cursor-pointer"
                                 : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                             }`}
                             title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
@@ -1891,7 +1890,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                         type="button"
                         id="chat-expand-height-btn"
                         onClick={() => setIsInputHeightExpanded(true)}
-                        className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors shadow-none touch-manipulation"
+                        className="w-10 h-10 min-w-[40px] min-h-[40px] border-0 bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors touch-manipulation"
                         title="Expand input height (250%)"
                         aria-label="Expand input height"
                       >
@@ -1904,7 +1903,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                           type="button"
                           id="chat-stop-btn"
                           onClick={onStopGeneration}
-                          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-muted/40 hover:bg-destructive/90 text-muted-foreground hover:text-destructive-foreground transition-colors shrink-0 shadow-xs cursor-pointer touch-manipulation"
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-muted/40 hover:bg-destructive/90 text-muted-foreground hover:text-destructive-foreground transition-colors shrink-0 shadow-sm cursor-pointer touch-manipulation"
                           title="Stop generation"
                           aria-label="Stop generation"
                         >
@@ -1920,7 +1919,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                           }
                           className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 font-semibold touch-manipulation ${
                             inputText.trim() || attachments.length > 0 || selectedTemplateIds.length > 0
-                              ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-95 cursor-pointer"
+                              ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm active:scale-95 cursor-pointer"
                               : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                           }`}
                           title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}

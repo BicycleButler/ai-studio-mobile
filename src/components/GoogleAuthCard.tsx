@@ -52,10 +52,10 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
   return (
     <div
       id="google-auth-card"
-      className={`rounded-2xl border transition-colors ${
+      className={`rounded-2xl transition-colors ${
         user
-          ? "bg-card border-primary/40 shadow-xl"
-          : "bg-card border-border hover:border-primary/50"
+          ? "bg-card shadow-xl"
+          : "bg-card shadow-xs"
       } ${compact ? "p-3.5" : "p-5"}`}
     >
       {user ? (
@@ -202,8 +202,8 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
       )}
 
       {error && (
-        <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-destructive/30 text-xs text-destructive flex items-start gap-2 validation-container">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+        <div className="mt-3 p-3 rounded-xl bg-muted/40 text-xs text-muted-foreground flex items-start gap-2 validation-container">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground" />
           <span>{error}</span>
         </div>
       )}

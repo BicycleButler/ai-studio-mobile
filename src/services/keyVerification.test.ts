@@ -1,3 +1,5 @@
+import { IApiClient } from "../utils/apiClient";
+import { ILogger } from "../utils/logger";
 import { createDefaultStorageInstance, DefaultStorageFactory } from "../utils/storage";
 import { ProjectService } from '../utils/storage/projects';
 import { GeneralSettingsService } from '../utils/storage/general';
@@ -22,7 +24,7 @@ function assert(condition: boolean, message: string): void {
 describe('testKeyVerificationSubsystem', () => {
   test('main', async () => {
 const defaultProjectService = new ProjectService({ generalSettingsService: new GeneralSettingsService({ storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()) }), storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()) });
-  const defaultKeyVerificationService = new KeyVerificationService({ apiClient: {} as any, logger: {} as any });
+  const defaultKeyVerificationService = new KeyVerificationService({ apiClient: {} as unknown as IApiClient, logger: {} as unknown as ILogger });
   // Test 1: Standard Google API Key pattern validation (AIza + 35 characters = 39 chars total)
   const validStandardKey = "AIzaSyD" + "A".repeat(32); // 4 + 35 = 39 chars
   assert(validStandardKey.length === 39, "Standard key must be 39 chars long");

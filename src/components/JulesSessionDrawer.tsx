@@ -281,7 +281,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             <button
               type="button"
               onClick={onOpenApiKeyModal}
-              className="px-2.5 py-1 rounded-lg bg-muted hover:bg-destructive/10 group-hover/alert:text-destructive text-muted-foreground text-[11px] font-semibold shrink-0 cursor-pointer transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-muted hover:bg-destructive/90 hover:text-destructive-foreground group-hover/alert:text-destructive text-muted-foreground text-[11px] font-semibold shrink-0 cursor-pointer transition-colors"
             >
               Configure
             </button>

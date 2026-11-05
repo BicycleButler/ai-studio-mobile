@@ -42,3 +42,20 @@ describe('ExponentialBackoffDelayStrategy', () => {
         expect(delay).toBeLessThan(2000 + jitterMax);
     });
 });
+
+describe('withBaseDelay mutator', () => {
+    it('should return a new strategy with the updated delay for FixedIntervalDelayStrategy', () => {
+        const strategy = new FixedIntervalDelayStrategy(1000);
+        const newStrategy = strategy.withBaseDelay(5000);
+        expect(strategy.getNextDelayMs(1)).toBe(1000);
+        expect(newStrategy.getNextDelayMs(1)).toBe(5000);
+    });
+
+    it('should return a new strategy with the updated delay for ExponentialBackoffDelayStrategy', () => {
+        const strategy = new ExponentialBackoffDelayStrategy(1000, 10000, 2, 0);
+        const newStrategy = strategy.withBaseDelay(5000);
+        expect(strategy.getNextDelayMs(1)).toBe(1000);
+        expect(newStrategy.getNextDelayMs(1)).toBe(5000);
+        expect(newStrategy.getNextDelayMs(2, new Error())).toBe(10000); // 5000 * 2^1 = 10000, max 10000
+    });
+});
