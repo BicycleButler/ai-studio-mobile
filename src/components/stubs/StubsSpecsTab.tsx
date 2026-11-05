@@ -46,9 +46,9 @@ export const StubsSpecsTab: React.FC<StubsSpecsTabProps> = ({
               <button
                 key={spec.path}
                 onClick={() => onSelectSpec(spec.path)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition-colors border ${
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition-colors shadow-none ${
                   isActive
-                    ? "bg-primary/10 border-primary/30 text-primary font-medium shadow-sm"
+                    ? "bg-primary/10 text-primary font-medium shadow-sm"
                     : "bg-transparent border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 }`}
               >

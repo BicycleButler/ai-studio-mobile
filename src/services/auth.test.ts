@@ -1,8 +1,8 @@
-import { defaultClient } from "../utils/apiClient";
+import { ApiClient } from "../utils/apiClient";
 import { defaultLogger } from "../utils/logger";
 import { describe, test } from 'vitest';
 import { GoogleAuthService } from './googleAuth';
-const defaultGoogleAuthService = new GoogleAuthService({ apiClient: defaultClient, logger: defaultLogger });
+const defaultGoogleAuthService = new GoogleAuthService({ apiClient: new ApiClient(), logger: defaultLogger });
 
 // Test suite for authentication helpers & header builders
 

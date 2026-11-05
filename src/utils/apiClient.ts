@@ -126,8 +126,6 @@ export class ApiClient implements IApiClient {
   }
 }
 
-// Expose the interface but keep the instance variable typed as ApiClient internally to avoid type issues with retryConfig.
-export const defaultClient = new ApiClient();
 
 export * from "./apiClientErrors";
 export * from "./apiClientInterceptors";

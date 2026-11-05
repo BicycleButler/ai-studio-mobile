@@ -131,7 +131,7 @@ export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsert
       </div>
 
       {/* Template Input */}
-      <div className="p-3 rounded-xl bg-card border border-border space-y-2 shadow-xs">
+      <div className="p-3 rounded-xl bg-card border border-border space-y-2 shadow-sm">
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-foreground">
             Template Skeleton
@@ -178,7 +178,7 @@ export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsert
             {detectedVariables.map((varName) => (
               <div
                 key={varName}
-                className="p-2.5 rounded-xl bg-card border border-border space-y-1 shadow-xs"
+                className="p-2.5 rounded-xl bg-card border border-border space-y-1 shadow-sm"
               >
                 <label className="block text-[11px] font-mono font-medium text-primary">
                   {`{{${varName}}}`}

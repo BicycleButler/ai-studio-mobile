@@ -1,21 +1,14 @@
 import { describe, expect, vi, beforeEach, it } from 'vitest';
-import { defaultClient } from "../utils/apiClient";
+import { ApiClient } from "../utils/apiClient";
 import { JulesClient } from "./julesService";
 
-vi.mock("../utils/apiClient", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../utils/apiClient")>();
-  return {
-    ...actual,
-    defaultClient: {
-       fetch: vi.fn(),
-    }
-  };
-});
-
 describe("julesService", () => {
-  const defaultJulesClient = new JulesClient({ getApiKey: () => "test-key", getSettings: () => ({ autoApprovePlans: false, defaultBranch: "main" }), apiClient: defaultClient });
+  let defaultClient: { fetch: import("vitest").Mock } & ApiClient;
+  let defaultJulesClient: JulesClient;
   beforeEach(() => {
     vi.resetAllMocks();
+    defaultClient = { fetch: vi.fn() } as unknown as { fetch: import("vitest").Mock } & ApiClient;
+    defaultJulesClient = new JulesClient({ getApiKey: () => "test-key", getSettings: () => ({ autoApprovePlans: false, defaultBranch: "main" }), apiClient: defaultClient });
     defaultJulesClient.setConfig({
       getApiKey: () => "test-jules-key",
       getSettings: () => ({ autoApprovePlans: false, defaultBranch: "main" }),

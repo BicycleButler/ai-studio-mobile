@@ -36,7 +36,7 @@ export const PromptTemplateItem: React.FC<PromptTemplateItemProps> = ({
       id={`template-card-${template.id}`}
       className={`p-3.5 rounded-2xl border transition-colors relative group ${
         isSelected
-          ? "bg-primary/5 border-primary/40 shadow-xs"
+          ? "bg-primary/5 border-primary/40 shadow-sm"
           : "bg-card border-border hover:border-border/80"
       }`}
     >
@@ -117,7 +117,7 @@ export const PromptTemplateItem: React.FC<PromptTemplateItemProps> = ({
             onClick={() => onToggleTemplate(template.id)}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer ${
               isSelected
-                ? "bg-primary text-primary-foreground shadow-xs active:scale-95"
+                ? "bg-primary text-primary-foreground shadow-sm active:scale-95"
                 : "bg-muted hover:bg-muted/80 text-foreground border border-border active:scale-95"
             }`}
           >
@@ -165,7 +165,7 @@ export const PromptTemplateItem: React.FC<PromptTemplateItemProps> = ({
             <button
               type="button"
               onClick={() => handleDelete(template.id)}
-              className="px-2 py-0.5 rounded text-[11px] bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground font-semibold cursor-pointer transition-colors"
+              className="px-2 py-0.5 rounded text-[11px] bg-muted/40 text-muted-foreground hover:bg-destructive/90 hover:text-destructive-foreground font-semibold cursor-pointer transition-colors"
             >
               Delete
             </button>

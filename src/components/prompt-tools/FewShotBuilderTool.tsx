@@ -191,7 +191,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
           examples.map((ex, idx) => (
             <div
               key={ex.id}
-              className="p-3 rounded-xl bg-card border border-border space-y-2 relative group shadow-xs"
+              className="p-3 rounded-xl bg-card border border-border space-y-2 relative group shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-mono font-medium text-primary">
@@ -238,7 +238,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
       </div>
 
       {/* Target Input Box */}
-      <div className="p-3 rounded-xl bg-card border border-border space-y-1.5 shadow-xs">
+      <div className="p-3 rounded-xl bg-card border border-border space-y-1.5 shadow-sm">
         <label className="block text-xs font-semibold text-foreground">
           Target Query to Solve (Optional)
         </label>

@@ -49,7 +49,7 @@ export const FloatingBatchActionBar: React.FC<FloatingBatchActionBarProps> = ({
               onClick={action.onClick}
               className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                 action.variant === 'destructive'
-                  ? 'text-destructive hover:bg-destructive/10'
+                  ? 'text-muted-foreground hover:bg-destructive/90 hover:text-destructive-foreground'
                   : 'text-foreground hover:bg-muted'
               }`}
             >
