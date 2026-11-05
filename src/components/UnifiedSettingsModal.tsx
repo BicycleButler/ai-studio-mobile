@@ -2,19 +2,12 @@ import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsS
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
+import { SETTINGS_TABS_CONFIG } from "./settings/SettingsTabsConfig";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   X,
-  Volume2,
-  Sliders,
-
-  FolderHeart,
-  Code2,
-  Compass,
-  Sun,
-  User,
   Layers,
   ArrowLeft,
 } from "lucide-react";
@@ -221,6 +214,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   const hasAnyAuth = Boolean(user || customApiKey.trim() || hasServerKey);
   const isJulesConfigured = Boolean(julesApiKey.trim());
 
+  const activeTabConfig = SETTINGS_TABS_CONFIG.find(t => t.id === activeTab) || SETTINGS_TABS_CONFIG[0];
+  const ActiveTabIcon = activeTabConfig.icon;
+
+  const activeTabTitle = activeTab === "account" ? "Profile & Account" : activeTab === "display" ? "Themes & Appearance" : activeTab === "security" ? "Settings & Security" : activeTab === "model" ? "Models & Tuners" : activeTab === "audio" ? "Voice & Audio" : activeTab === "library" ? "Prompt Library" : activeTab === "export" ? "Get Code" : "Companion & Guide";
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -270,41 +268,11 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             </button>
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                {activeTab === "account" ? (
-                  <User className="w-4 h-4" />
-                ) : activeTab === "display" ? (
-                  <Sun className="w-4 h-4" />
-                ) : activeTab === "security" ? (
-                  <Sliders className="w-4 h-4" />
-                ) : activeTab === "model" ? (
-                  <Layers className="w-4 h-4" />
-                ) : activeTab === "audio" ? (
-                  <Volume2 className="w-4 h-4" />
-                ) : activeTab === "library" ? (
-                  <FolderHeart className="w-4 h-4" />
-                ) : activeTab === "export" ? (
-                  <Code2 className="w-4 h-4" />
-                ) : (
-                  <Compass className="w-4 h-4" />
-                )}
+                <ActiveTabIcon className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <h2 className="text-sm sm:text-base font-semibold text-foreground tracking-tight truncate">
-                  {activeTab === "account"
-                    ? "Profile & Account"
-                    : activeTab === "display"
-                    ? "Themes & Appearance"
-                    : activeTab === "security"
-                    ? "Settings & Security"
-                    : activeTab === "model"
-                    ? "Models & Tuners"
-                    : activeTab === "audio"
-                    ? "Voice & Audio"
-                    : activeTab === "library"
-                    ? "Prompt Library"
-                    : activeTab === "export"
-                    ? "Get Code"
-                    : "Companion & Guide"}
+                  {activeTabTitle}
                 </h2>
                 <p className="text-[11px] text-muted-foreground hidden sm:block truncate">
                   Slide-out drawer configuration for your active workspace
