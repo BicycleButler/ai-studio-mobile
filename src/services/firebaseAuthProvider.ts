@@ -12,23 +12,28 @@ import {
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import firebaseConfig from "../../firebase-applet-config.json";
 import { ILogger, defaultLogger } from "../utils/logger";
-import { defaultPlatformService } from "./platformService";
+import { defaultPlatformService, IPlatformService } from "./platformService";
 
 export class FirebaseAuthProvider implements IAuthProvider {
   private firebaseAppInstance: FirebaseApp | null = null;
   private firebaseAuthInstance: Auth | null = null;
   private googleAuthProviderInstance: GoogleAuthProvider | null = null;
   private logger: ILogger;
+  private platformService: IPlatformService;
 
-  constructor(logger: ILogger = defaultLogger) {
+  constructor(
+    logger: ILogger = defaultLogger,
+    platformService: IPlatformService = defaultPlatformService
+  ) {
     this.logger = logger;
+    this.platformService = platformService;
   }
 
   public getFirebaseAuth(): Auth | null {
     if (this.firebaseAuthInstance) return this.firebaseAuthInstance;
 
     try {
-      if (!defaultPlatformService.isBrowserEnv()) {
+      if (!this.platformService.isBrowserEnv()) {
         return null;
       }
 

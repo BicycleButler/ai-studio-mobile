@@ -13,6 +13,7 @@ import { formatRelativeTime } from "../utils/timeUtils";
 import { BatchSelectionHeader } from "./BatchSelectionHeader";
 
 export interface ChatHistoryPopoverProps {
+  timeProvider: import("../utils/timeProvider").ITimeProvider;
   isJulesMode: boolean;
   historySessions?: ChatSession[];
   validHistorySessions: ChatSession[];
@@ -28,6 +29,7 @@ export interface ChatHistoryPopoverProps {
 }
 
 export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
+
   isJulesMode,
   validHistorySessions,
   selectedHistoryIds,
@@ -36,7 +38,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
   handleStartNewChat,
   handleSelectSession,
   handleDeleteSession,
-  currentSessionId,
+  currentSessionId, timeProvider,
   popoverRef,
   getHistorySelectionState,
 }) => {
@@ -154,7 +156,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
                           Active
                         </span>
                       )}
-                      <span>{formatRelativeTime(session.updatedAt)}</span>
+                      <span>{formatRelativeTime(session.updatedAt, timeProvider)}</span>
                       <span>•</span>
                       <span>
                         {session.messages?.length || 0}{" "}
