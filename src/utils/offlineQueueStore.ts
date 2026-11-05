@@ -5,6 +5,7 @@ import { OfflineMutation } from "./offlineService";
 import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./crossTabNotifier";
 
 import { IPlatformService } from "../services/platformService";
+import { deepFreeze } from "./storage/helpers";
 
 export interface IAsyncStorageAdapter {
   getItem<T>(key: string): Promise<T | null | undefined>;
@@ -66,11 +67,11 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   }
 
   private notifyQueue(queue: OfflineMutation[]) {
-    this._queueObservable.notify(queue);
+    this._queueObservable.notify(deepFreeze(queue));
   }
 
   private async syncCacheFromStorage(): Promise<void> {
-    this.cachedQueue = await this.safeGetQueue();
+    this.cachedQueue = deepFreeze(await this.safeGetQueue());
     this.notifyQueue(this.cachedQueue);
   }
 
@@ -102,7 +103,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
 
   private async applyQueueUpdate(newQueue: OfflineMutation[]): Promise<void> {
     await this.safeSetQueue(newQueue);
-    this.cachedQueue = newQueue;
+    this.cachedQueue = deepFreeze(newQueue);
     this.notifyQueue(newQueue);
     this.notifier?.notify('SYNC');
   }

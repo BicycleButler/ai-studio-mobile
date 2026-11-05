@@ -1,4 +1,5 @@
 import { Observable, IObservable } from "./observable";
+import { deepFreeze } from "./storage/helpers";
 
 export type SelectionState = 'none' | 'some' | 'all';
 
@@ -21,7 +22,7 @@ export interface IBatchSelectionManager extends IObservable<BatchSelectionState>
 
 export class BatchSelectionManager extends Observable<BatchSelectionState> implements IBatchSelectionManager {
   constructor() {
-    super({ selectedIds: new Set<string>(), lastSelectedId: null });
+    super(deepFreeze({ selectedIds: new Set<string>(), lastSelectedId: null }));
   }
 
   public get selectedIds(): Set<string> {
@@ -34,7 +35,7 @@ export class BatchSelectionManager extends Observable<BatchSelectionState> imple
 
   public clearSelection(): void {
     if (this.selectedIds.size === 0 && this.lastSelectedId === null) return;
-    this.notify({ selectedIds: new Set<string>(), lastSelectedId: null });
+    this.notify(deepFreeze({ selectedIds: new Set<string>(), lastSelectedId: null }));
   }
 
   public toggleSelection(id: string, isShiftDown: boolean, index: number, itemIds: string[]): void {
@@ -50,7 +51,7 @@ export class BatchSelectionManager extends Observable<BatchSelectionState> imple
         for (let i = start; i <= end; i++) {
           nextIds.add(itemIds[i]);
         }
-        this.notify({ selectedIds: nextIds, lastSelectedId: nextLastId });
+        this.notify(deepFreeze({ selectedIds: nextIds, lastSelectedId: nextLastId }));
         return;
       }
     }
@@ -61,7 +62,7 @@ export class BatchSelectionManager extends Observable<BatchSelectionState> imple
       nextIds.add(id);
     }
 
-    this.notify({ selectedIds: nextIds, lastSelectedId: nextLastId });
+    this.notify(deepFreeze({ selectedIds: nextIds, lastSelectedId: nextLastId }));
   }
 
   public toggleSelectAll(filteredIds: string[]): void {
@@ -91,7 +92,7 @@ export class BatchSelectionManager extends Observable<BatchSelectionState> imple
 
     // Only notify if something actually changed
     if (nextIds.size !== prev.selectedIds.size || !allFilteredSelected) {
-        this.notify({ selectedIds: nextIds, lastSelectedId: prev.lastSelectedId });
+        this.notify(deepFreeze({ selectedIds: nextIds, lastSelectedId: prev.lastSelectedId }));
     }
   }
 
@@ -100,7 +101,7 @@ export class BatchSelectionManager extends Observable<BatchSelectionState> imple
     if (!prev.selectedIds.has(id)) return;
     const nextIds = new Set(prev.selectedIds);
     nextIds.delete(id);
-    this.notify({ selectedIds: nextIds, lastSelectedId: prev.lastSelectedId === id ? null : prev.lastSelectedId });
+    this.notify(deepFreeze({ selectedIds: nextIds, lastSelectedId: prev.lastSelectedId === id ? null : prev.lastSelectedId }));
   }
 
   public getSelectionState(filteredIds: string[]): SelectionState {
