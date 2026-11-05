@@ -1,3 +1,6 @@
+import { DefaultUrlBuilder } from "../utils/urlUtils";
+import { DefaultResponseParser } from "../utils/apiResponseParser";
+import { InterceptorManager } from "../utils/apiClientInterceptors";
 import { describe, test } from 'vitest';
 import { SentenceSpeechQueue } from "./sentenceSpeechQueue";
 import { DEFAULT_SPEECH_SETTINGS, SpeechVoicesService } from "./speechVoices";
@@ -22,7 +25,7 @@ describe('testSentenceSpeechQueue', () => {
 
   // 2. Cancellation and buffer reset
   {
-    const client = new ApiClient();
+    const client = new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() });
     const authService = new AuthService({ apiClient: client, loadStoredApiKeyFn: () => "" });
     const speechVoicesService = new SpeechVoicesService({ apiClient: client, authService: authService });
 

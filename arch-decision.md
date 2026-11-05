@@ -1299,3 +1299,24 @@ Add the required dependencies (like `ITimeProvider`) to the configuration interf
 
 **Recommendation:**
 **Path 2 (Constructor-level Injection with Default Fallbacks)** was implemented. It properly encapsulates dependencies within the class instance and ensures full testability by allowing mocked providers to be injected at instantiation, while maintaining backward compatibility for existing instantiations via the fallback mechanism.
+
+## Architectural Decision: Full API Client DI Encapsulation
+
+**Context:**
+The `ApiClient` orchestrator previously initialized a default `InterceptorManager`, `DefaultResponseParser`, and `DefaultUrlBuilder` if its configuration arguments did not explicitly provide one. This instantiation of concrete utilities inside the domain constructor bypasses the Dependency Inversion Principle, which strictly mandates using abstractions that resolve instances through a top-down explicit configuration provider.
+
+**Path 1: Standardize with Composition Root Container (Service Context)**
+Refactor the `ApiClient` constructor to require `interceptorManager`, `responseParser`, and `urlBuilder` natively without fallback initializations. Move the instantiation logic upstream into the application’s core providers (`ServiceContext` and `ServerContext`).
+
+**Path 2: Pure Optional Properties (Defacto Class Injection)**
+Continue to permit the fallback logic locally inside the class constructor by maintaining its optional properties.
+
+**Recommendation:**
+**Path 1 (Standardize with Composition Root Container)** was implemented. Ensuring full inversion of control within `ApiClient` ensures all dependencies explicitly declare the exact underlying utilities responsible for payload and endpoint processing, allowing comprehensive mock tests across both server and UI boundaries, maximizing robustness and predictability.
+
+## Architectural Decision: Full System Time Decoupling
+**Context:**
+Various tests and utilities such as `timeProvider.test.ts` invoked system time operations dynamically. While standard DOM code had been refactored in previous tasks, unit tests were continuing to reference node system time abstractions explicitly.
+
+**Decision:**
+Implemented comprehensive test refactoring to eliminate implicit fallback references to `Date.now()` within the test layer itself, standardizing usage strictly with the newly established `ITimeProvider` boundaries.

@@ -1,3 +1,6 @@
+import { DefaultUrlBuilder } from "../utils/urlUtils";
+import { DefaultResponseParser } from "../utils/apiResponseParser";
+import { InterceptorManager } from "../utils/apiClientInterceptors";
 import { describe, test, expect } from 'vitest';
 import {
   DEFAULT_SPEECH_SETTINGS,
@@ -12,7 +15,7 @@ describe('testSpeechSettingsSuite', () => {
   test('main', () => {
     // We instantiate a local service for isolated testing without hitting globals if desired
     // For this exact parity test, we can just use the service to emulate what was happening globally.
-    const client = new ApiClient();
+    const client = new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() });
     const authService = new AuthService({ apiClient: client, loadStoredApiKeyFn: () => "" });
     const service = new SpeechVoicesService({ apiClient: client, authService: authService });
 

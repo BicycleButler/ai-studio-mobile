@@ -1,3 +1,6 @@
+import { DefaultUrlBuilder } from "../utils/urlUtils";
+import { DefaultResponseParser } from "../utils/apiResponseParser";
+import { InterceptorManager } from "../utils/apiClientInterceptors";
 import { IAppAuthManager, AppAuthManager } from "./appAuthManager";
 import { IPlatformService, BrowserPlatformService } from "./platformService";
 import React, { createContext, useContext, ReactNode } from "react";
@@ -90,6 +93,9 @@ const explicitlyInjectedStorageInstance = createDefaultStorageInstance();
 const explicitlyInjectedStorageFactory = new DefaultStorageFactory(explicitlyInjectedStorageInstance);
 
 const explicitlyInjectedApiClient = new ApiClient({
+  interceptorManager: new InterceptorManager(),
+  responseParser: new DefaultResponseParser(),
+  urlBuilder: new DefaultUrlBuilder(),
   retryConfig: {
     retryStrategy: new ExponentialBackoffRetryStrategy(undefined, explicitlyInjectedPlatformService),
   }
