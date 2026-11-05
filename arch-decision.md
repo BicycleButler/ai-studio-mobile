@@ -1320,3 +1320,17 @@ Various tests and utilities such as `timeProvider.test.ts` invoked system time o
 
 **Decision:**
 Implemented comprehensive test refactoring to eliminate implicit fallback references to `Date.now()` within the test layer itself, standardizing usage strictly with the newly established `ITimeProvider` boundaries.
+
+## Architectural Decision: Domain-Level Clone/Freeze Requirements
+
+**Context:**
+The core generic reactive container `Observable<T>` effectively published UI state snapshots to React elements correctly but neglected to clone or freeze these snapshots before yielding them in `getSnapshot()`. This omission permitted downstream UI features (e.g. nested lists reading arrays) to accidentally mutate domain state directly. Several stores (like `StorageBase`) attempted to mitigate this by implementing manual deep copies before notifying `Observable`, but stores utilizing native arrays or maps (like `BatchSelectionManager` and `OfflineQueueStore`) remained vulnerable.
+
+**Path 1: Enforce deepFreeze in Observable**
+Modify the base `Observable.notify` and `Observable.notifySync` methods (along with the constructor) to invoke a `deepFreeze` operation on incoming state payloads prior to assigning them to `currentState`.
+
+**Path 2: Domain-Level Clone/Freeze Requirements**
+Leave `Observable<T>` untouched but require domain models specifically interacting with complex JSON shapes to manually `deepFreeze` objects before broadcasting them.
+
+**Recommendation:**
+**Path 2 (Domain-Level Clone/Freeze Requirements)** was implemented. Enforcing `deepFreeze` at the core `Observable<T>` level introduces unacceptable risks of severe performance regressions and functional breakage for non-POJO (Plain Old JavaScript Object) states. Immutability guarantees are better maintained at the specific domain boundaries rather than enforced blindly on all primitives.
