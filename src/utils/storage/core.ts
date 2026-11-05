@@ -7,17 +7,19 @@ import { ILogger, defaultLogger } from "../logger";
 import { ISerializer, JsonSerializer } from "./serializer";
 const defaultSerializer = new JsonSerializer();
 
-export function createDefaultStorageInstance(): Storage {
+import { IPlatformService } from "../../services/platformService";
+
+export function createDefaultStorageInstance(platformService: IPlatformService = defaultPlatformService): Storage {
   try {
-    if (defaultPlatformService.isBrowserEnv()) {
-      const localStorage = defaultPlatformService.getLocalStorage();
+    if (platformService.isBrowserEnv()) {
+      const localStorage = platformService.getLocalStorage();
       if (localStorage) {
         const testKey = "__storage_test__";
         localStorage.setItem(testKey, testKey);
         localStorage.removeItem(testKey);
         const wrapper = new FallbackStorageWrapper(localStorage);
         wrapper.quotaExceededEvent.subscribe(() => {
-            defaultPlatformService.getStorageQuotaObservable().emit();
+            platformService.getStorageQuotaObservable().emit();
         });
         return wrapper;
       }

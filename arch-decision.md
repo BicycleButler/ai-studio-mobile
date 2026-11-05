@@ -1334,3 +1334,17 @@ Leave `Observable<T>` untouched but require domain models specifically interacti
 
 **Recommendation:**
 **Path 2 (Domain-Level Clone/Freeze Requirements)** was implemented. Enforcing `deepFreeze` at the core `Observable<T>` level introduces unacceptable risks of severe performance regressions and functional breakage for non-POJO (Plain Old JavaScript Object) states. Immutability guarantees are better maintained at the specific domain boundaries rather than enforced blindly on all primitives.
+
+## Architectural Decision: Platform Service Decoupling in Core Storage Utilities & Services
+
+**Context:**
+Functions and services like `createDefaultStorageInstance` and `ChatHistoryService` directly imported and utilized the global singleton `defaultPlatformService` inside their bodies (e.g., `defaultPlatformService.isBrowserEnv()`). This implicit, hardcoded dependency violates the Dependency Inversion Principle, tying domain and core utility logic strictly to a concrete platform implementation, complicating testability and abstraction.
+
+**Path 1: Enforce Strict Composition Root Injection**
+Modify functions and service constructors to explicitly require `IPlatformService` (or specific observables/capabilities) without any default fallbacks. This would mandate every caller up the chain, including React components and test files, to provide the exact platform abstraction.
+
+**Path 2: Constructor-level / Parameter-level Injection with Default Fallbacks**
+Update the configurations or function parameters to optionally accept `platformService` (or specific platform capabilities), defaulting them to `defaultPlatformService` (or its specific methods) if omitted.
+
+**Recommendation:**
+**Path 2 (Constructor-level / Parameter-level Injection with Default Fallbacks)** was implemented. It brings the utilities and services into compliance with the established "Hybrid Dependency Injection" pattern. It enables strict overriding of platform behavior for isolated unit tests without requiring a massive refactoring of every downstream consumer that currently relies on the zero-argument initialization behavior.

@@ -3,7 +3,7 @@ import { safeGetStorageKeys, STORAGE_KEYS, IStorageRegistry, DefaultStorageFacto
 import { ChatMessage, ChatSession } from "../types";
 import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, defaultLogger } from "../utils/logger";
-import { defaultPlatformService } from "./platformService";
+import { IPlatformService, defaultPlatformService } from "./platformService";
 import { isMockSession } from "../utils/mockDefinitions";
 import { ITimeProvider, defaultTimeProvider } from "../utils/timeProvider";
 
@@ -24,6 +24,7 @@ export interface IChatHistoryService {
 
 export interface ChatHistoryServiceConfig {
   timeProvider?: ITimeProvider;
+  platformService?: IPlatformService;
   quotaObservable?: import("../utils/eventEmitter").EventEmitter<void>;
   storageKeys?: typeof STORAGE_KEYS;
   logger: ILogger;
@@ -40,15 +41,16 @@ export class ChatHistoryService implements IChatHistoryService {
 
   constructor(config: ChatHistoryServiceConfig) {
     this.timeProvider = config?.timeProvider || defaultTimeProvider;
+    const platformService = config?.platformService || defaultPlatformService;
     const factory = config?.storageFactory || new DefaultStorageFactory();
 
     this.config = {
       storageFactory: factory,
-      quotaObservable: config?.quotaObservable || defaultPlatformService.getStorageQuotaObservable(),
+      quotaObservable: config?.quotaObservable || platformService.getStorageQuotaObservable(),
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
       timeProvider: this.timeProvider,
-      isBrowserEnv: config?.isBrowserEnv || (() => defaultPlatformService.isBrowserEnv()),
+      isBrowserEnv: config?.isBrowserEnv || (() => platformService.isBrowserEnv()),
       collectionRegistry: config?.collectionRegistry || factory.createRegistry<IMutableCollection<ChatSession>>((key) => {
         return factory.createCollection<ChatSession>(key, {
           keyExtractor: (item) => String(item.id || ""),
