@@ -10,10 +10,15 @@ export interface IStorageFactory {
   createCollection<T>(key: string, options?: StorageCollectionOptions<T>): IMutableCollection<T>;
   createSingleton<T>(key: string, fallback: T, options?: StorageSingletonOptions<T>): IMutableSingleton<T>;
   createRegistry<TStore>(factory: (key: string) => TStore, disposer?: (store: TStore) => void): IStorageRegistry<TStore>;
+  getStorageInstance(): Storage;
 }
 
 export class DefaultStorageFactory implements IStorageFactory {
   constructor(private storageInstance: Storage = createDefaultStorageInstance()) {}
+
+  public getStorageInstance(): Storage {
+    return this.storageInstance;
+  }
   public createCollection<T>(key: string, options?: StorageCollectionOptions<T>): IMutableCollection<T> {
     const keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
     const engine = options?.engine || new MapCollection<T>(keyExtractor);

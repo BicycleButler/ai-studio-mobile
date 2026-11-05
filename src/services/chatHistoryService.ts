@@ -34,7 +34,7 @@ export interface ChatHistoryServiceConfig {
 
 export class ChatHistoryService implements IChatHistoryService {
   private unsubscribeQuota: () => void;
-  private config: Required<Omit<ChatHistoryServiceConfig, 'timeProvider' | 'storageFactory'>> & { timeProvider: ITimeProvider };
+  private config: Required<Omit<ChatHistoryServiceConfig, 'timeProvider' | 'storageFactory'>> & { timeProvider: ITimeProvider, storageFactory: IStorageFactory };
   private collectionRegistry: IStorageRegistry<IMutableCollection<ChatSession>>;
   private timeProvider: ITimeProvider;
 
@@ -43,6 +43,7 @@ export class ChatHistoryService implements IChatHistoryService {
     const factory = config?.storageFactory || new DefaultStorageFactory();
 
     this.config = {
+      storageFactory: factory,
       quotaObservable: config?.quotaObservable || defaultPlatformService.getStorageQuotaObservable(),
       storageKeys: config?.storageKeys || STORAGE_KEYS,
       logger: config?.logger || defaultLogger,
@@ -65,7 +66,8 @@ export class ChatHistoryService implements IChatHistoryService {
   private handleQuotaExceeded(): void {
     this.config.logger.warn("ChatHistoryService: Storage quota exceeded. Evicting old chat histories to recover space.");
     try {
-      const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX, (this.config as unknown as { storageFactory?: { storageInstance?: Storage } }).storageFactory?.storageInstance || createDefaultStorageInstance?.());
+      const storageInstance = this.config.storageFactory?.getStorageInstance() || createDefaultStorageInstance?.();
+      const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX, storageInstance);
       if (keysToClean.length === 0) {
         // Fallback for tests or environments where safeGetStorageKeys might not work as expected
         // Check the registry directly
@@ -120,7 +122,8 @@ export class ChatHistoryService implements IChatHistoryService {
   public purgeMockSessionsFromStorage(): void {
     try {
       if (this.config.isBrowserEnv()) {
-        const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX, (this.config as unknown as { storageFactory?: { storageInstance?: Storage } }).storageFactory?.storageInstance || createDefaultStorageInstance?.());
+        const storageInstance = this.config.storageFactory?.getStorageInstance() || createDefaultStorageInstance?.();
+        const keysToClean = safeGetStorageKeys(this.config.storageKeys.CHAT_SESSIONS_PREFIX, storageInstance);
 
         keysToClean.forEach((key) => {
           const collection = this.getChatCollectionByKey(key);
