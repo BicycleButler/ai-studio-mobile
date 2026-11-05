@@ -1,4 +1,3 @@
-import { createDefaultStorageInstance } from "./core";
 import { ProjectInfo } from "../../types";
 import { IIdGenerator, defaultIdGenerator } from "../idGenerator";
 import { STORAGE_KEYS } from "./constants";
@@ -30,6 +29,8 @@ export interface ProjectServiceConfig {
   storageFactory?: IStorageFactory;
 }
 
+import { DefaultStorageFactory } from "./StorageFactory";
+
 export class ProjectService implements IProjectService {
   public projectsManager: IActiveItemManager<ProjectInfo>;
   private timeProvider: ITimeProvider;
@@ -38,8 +39,9 @@ export class ProjectService implements IProjectService {
   constructor(config: ProjectServiceConfig) {
     this.timeProvider = config?.timeProvider || defaultTimeProvider;
     this.idGenerator = config?.idGenerator || defaultIdGenerator;
+    const factory = config?.storageFactory || new DefaultStorageFactory();
     this.projectsManager = config?.projectsManager || createActiveItemManager<ProjectInfo>({
-      storageFactory: config?.storageFactory,
+      storageFactory: factory,
       collectionKey: STORAGE_KEYS.PROJECTS,
       collectionOptions: {
         transformIn: (p) => ({ ...p, apiKey: encryptSecret(p.apiKey) }),
@@ -49,17 +51,17 @@ export class ProjectService implements IProjectService {
       activeIdOptions: {
         adapter: {
           get: (key: string, fallback: string | null) => {
-            const val = safeGetStorageString(key, "", (config?.storageFactory?.getStorageInstance() || createDefaultStorageInstance()));
+            const val = safeGetStorageString(key, "", factory.getStorageInstance());
             return val ? val : fallback;
           },
           set: (key: string, value: string | null) => {
             if (value) {
-              safeSetStorageString(key, value, (config?.storageFactory?.getStorageInstance() || createDefaultStorageInstance()));
+              safeSetStorageString(key, value, factory.getStorageInstance());
             } else {
-              safeRemoveStorage(key, (config?.storageFactory?.getStorageInstance() || createDefaultStorageInstance()));
+              safeRemoveStorage(key, factory.getStorageInstance());
             }
           },
-          remove: (key: string) => safeRemoveStorage(key, (config?.storageFactory?.getStorageInstance() || createDefaultStorageInstance())),
+          remove: (key: string) => safeRemoveStorage(key, factory.getStorageInstance()),
         }
       },
       getId: (p) => p.id,

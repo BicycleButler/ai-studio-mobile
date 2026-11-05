@@ -1,5 +1,3 @@
-import { createDefaultStorageInstance } from "./core";
-
 import { DefaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeSetStorageString } from "./core";
@@ -36,9 +34,9 @@ export class GeneralSettingsService implements IGeneralSettingsService {
           {
             transformIn: (key) => key.trim(),
             adapter: {
-              get: (k, f) => safeGetStorageString(k, f as string, factory.getStorageInstance() || createDefaultStorageInstance()),
-              set: (k, v) => safeSetStorageString(k, v, factory.getStorageInstance() || createDefaultStorageInstance()),
-              remove: (k) => safeSetStorageString(k, "", factory.getStorageInstance() || createDefaultStorageInstance()),
+              get: (k, f) => safeGetStorageString(k, f as string, factory.getStorageInstance()),
+              set: (k, v) => safeSetStorageString(k, v, factory.getStorageInstance()),
+              remove: (k) => safeSetStorageString(k, "", factory.getStorageInstance()),
             }
           }
         );
