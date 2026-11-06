@@ -3,7 +3,7 @@ import { OfflineQueueStore } from './offlineQueueStore';
 import { AsyncStorage } from './asyncStorage';
 import { NoOpLogger } from './logger';
 import { DefaultCrossTabNotifierFactory } from './crossTabNotifier/CrossTabNotifierFactory';
-import { defaultPlatformService } from '../services/platformService';
+import { BrowserPlatformService } from '../services/platformService';
 
 class MockAsyncStorage implements AsyncStorage {
   private store = new Map<string, unknown>();
@@ -28,7 +28,7 @@ describe('OfflineQueueStore', () => {
             storageAdapter: mockStorage,
             logger: new NoOpLogger(),
             crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
-            platformService: defaultPlatformService
+            platformService: new BrowserPlatformService()
         });
     });
 
@@ -118,7 +118,7 @@ describe('OfflineQueueStore Error Propagation', () => {
             storageAdapter: new FailingAsyncStorage(),
             logger: new NoOpLogger(),
             crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
-            platformService: defaultPlatformService
+            platformService: new BrowserPlatformService()
         });
 
         await new Promise(r => setTimeout(r, 0)); // wait for initial load
@@ -135,7 +135,7 @@ describe('OfflineQueueStore Error Propagation', () => {
             storageAdapter: new FailingAsyncStorage(),
             logger: new NoOpLogger(),
             crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
-            platformService: defaultPlatformService
+            platformService: new BrowserPlatformService()
         });
 
         await new Promise(r => setTimeout(r, 0)); // wait for initial load

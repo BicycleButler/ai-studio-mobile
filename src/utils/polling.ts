@@ -1,5 +1,5 @@
 import { IDelayStrategy, FixedIntervalDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
-import { IPlatformService, defaultPlatformService } from "../services/platformService";
+import { IPlatformService, BrowserPlatformService } from "../services/platformService";
 
 export interface IPollingStrategy extends IDelayStrategy {}
 
@@ -19,7 +19,7 @@ export function startPolling<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
   options: PollingOptions<T>
 ): { stop: () => void } {
-  const { strategy, onUpdate, onError, isComplete, platformService = defaultPlatformService } = options;
+  const { strategy, onUpdate, onError, isComplete, platformService = new BrowserPlatformService() } = options;
 
   let stopped = false;
   let abortController = platformService.createAbortController();

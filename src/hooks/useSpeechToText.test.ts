@@ -1,13 +1,13 @@
 import { describe, test } from 'vitest';
-import { defaultPlatformService } from "../services/platformService";
+import { BrowserPlatformService } from "../services/platformService";
 import { extractSpokenText } from "../utils/speechExtractor";
 import { SentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 
 describe('testSpeechToText', () => {
   test('main', () => {
   // Test 1: Window without speech recognition returns safe fallback
-  const win = defaultPlatformService.getWindow() as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } | null;
-  const isSupportedInNode = defaultPlatformService.isBrowserEnv() && Boolean(
+  const win = new BrowserPlatformService().getWindow() as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown } | null;
+  const isSupportedInNode = new BrowserPlatformService().isBrowserEnv() && Boolean(
     win?.SpeechRecognition || win?.webkitSpeechRecognition
   );
   if (isSupportedInNode !== false) {

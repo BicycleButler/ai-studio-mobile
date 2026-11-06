@@ -1,10 +1,10 @@
 import { IMutex, Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
-import { ILogger, defaultLogger } from "./logger";
+import { ILogger, DefaultLoggerFactory } from "./logger";
 import { OfflineMutation } from "./offlineService";
 import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./crossTabNotifier";
 
-import { IPlatformService } from "../services/platformService";
+import { IPlatformService, BrowserPlatformService } from "../services/platformService";
 import { deepFreeze } from "./storage/helpers";
 import { AsyncStorage } from "./asyncStorage";
 
@@ -47,7 +47,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   constructor(config: OfflineQueueStoreConfig) {
     this.storageKey = config.storageKey;
     this.storageAdapter = config.storageAdapter;
-    this.logger = config.logger || defaultLogger;
+    this.logger = config.logger || new DefaultLoggerFactory().createLogger();
     const notifierFactory = config.crossTabNotifierFactory;
     this.queueMutex = config.mutex || new Mutex(this.logger);
     try {

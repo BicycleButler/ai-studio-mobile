@@ -1,6 +1,6 @@
 import { ICrossTabNotifier, CrossTabNotifierConfig } from "./types";
-import { ILogger, defaultLogger } from "../logger";
-import { IPlatformService } from "../../services/platformService";
+import { ILogger, DefaultLoggerFactory } from "../logger";
+import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
 
 export class BroadcastChannelNotifier implements ICrossTabNotifier {
   private channel: BroadcastChannel | null = null;
@@ -8,7 +8,7 @@ export class BroadcastChannelNotifier implements ICrossTabNotifier {
   private platformService: IPlatformService;
 
   constructor(config: CrossTabNotifierConfig) {
-    this.logger = config.logger || defaultLogger;
+    this.logger = config.logger || new DefaultLoggerFactory().createLogger();
     if (!config.platformService) throw new Error("platformService is required");
     this.platformService = config.platformService;
 

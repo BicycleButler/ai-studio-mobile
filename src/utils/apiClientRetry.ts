@@ -1,6 +1,6 @@
 import { RETRYABLE_STATUS_CODES, BaseApiError, isAbortError } from "./apiClientErrors";
 import { IDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
-import { IPlatformService, defaultPlatformService } from "../services/platformService";
+import { IPlatformService, BrowserPlatformService } from "../services/platformService";
 
 export interface RetryConfig {
   retryableStatusCodes?: Set<number>;
@@ -21,7 +21,7 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
   private delayStrategy: IDelayStrategy;
   private platformService: IPlatformService;
 
-  constructor(delayStrategy?: IDelayStrategy, platformService: IPlatformService = defaultPlatformService) {
+  constructor(delayStrategy?: IDelayStrategy, platformService: IPlatformService = new BrowserPlatformService()) {
     // By default, start with base delay, max limit isn't strictly needed for small retry counts
     // but the strategy takes base, max, multiplier.
     this.delayStrategy = delayStrategy || new ExponentialBackoffDelayStrategy(1000, 10000, 2, 500);

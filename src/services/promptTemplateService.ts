@@ -1,8 +1,8 @@
-import { defaultTimeProvider, ITimeProvider } from "../utils/timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
 import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "../types";
 import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
-import { IIdGenerator, defaultIdGenerator } from "../utils/idGenerator";
+import { IIdGenerator, DefaultIdGenerator } from "../utils/idGenerator";
 
 export interface IPromptTemplateService {
   getBuiltinTemplates(): PromptTemplate[];
@@ -95,8 +95,8 @@ export class PromptTemplateService implements IPromptTemplateService {
 
   constructor(config: PromptTemplateServiceConfig) {
     this.builtinTemplates = config?.builtinTemplates || BUILTIN_PROMPT_TEMPLATES;
-    this.idGenerator = config?.idGenerator || defaultIdGenerator;
-    this.timeProvider = config?.timeProvider || defaultTimeProvider;
+    this.idGenerator = config?.idGenerator || new DefaultIdGenerator();
+    this.timeProvider = config?.timeProvider || new DefaultTimeProvider();
 
     if (config?.customTemplatesCollection) {
       this.customTemplatesCollection = config.customTemplatesCollection;

@@ -1,5 +1,5 @@
 import { Observable, IObservable } from "./observable";
-import { IPlatformService, defaultPlatformService } from "../services/platformService";
+import { IPlatformService, BrowserPlatformService } from "../services/platformService";
 
 export interface NetworkStatus {
   isOnline: boolean;
@@ -17,7 +17,7 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
   private platformService: IPlatformService;
 
   constructor(platformService?: IPlatformService) {
-    this.platformService = platformService || defaultPlatformService;
+    this.platformService = platformService || new BrowserPlatformService();
 
     const initialIsOnline = (() => {
       if (this.platformService.isBrowserEnv()) {

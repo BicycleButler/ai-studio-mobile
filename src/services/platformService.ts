@@ -15,7 +15,7 @@ import {
   safeAddMatchMediaListener,
   safeAddVisualViewportListener
 } from "../utils/platform";
-import { ILogger, defaultLogger } from "../utils/logger";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { ISpeechRecognitionInstance } from "../types/speechRecognition";
 
 import { EventEmitter } from "../utils/eventEmitter";
@@ -68,7 +68,7 @@ export class BrowserPlatformService implements IPlatformService {
   private storageEventObservable = new EventEmitter<StorageEvent>();
   private storageQuotaObservable = new EventEmitter<void>();
 
-  constructor(private logger: ILogger = defaultLogger) {
+  constructor(private logger: ILogger = new DefaultLoggerFactory().createLogger()) {
     if (this.isBrowserEnv()) {
       const win = this.getWindow();
       if (win) {
@@ -284,4 +284,3 @@ export class BrowserPlatformService implements IPlatformService {
   }
 }
 
-export const defaultPlatformService: IPlatformService = new BrowserPlatformService();

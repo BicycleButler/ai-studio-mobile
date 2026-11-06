@@ -1,4 +1,4 @@
-import { ILogger } from "../utils/logger";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { IPlatformService } from "./platformService";
 
 export interface IClipboardService {

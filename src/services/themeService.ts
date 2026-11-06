@@ -1,5 +1,5 @@
 
-import { defaultPlatformService, IPlatformService } from "./platformService";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 /**
  * Theme Service for Google AI Studio Mobile
@@ -56,7 +56,7 @@ export class ThemeService implements IThemeService {
 
 
   constructor(config?: ThemeServiceConfig) {
-    this.platformService = config?.platformService || defaultPlatformService;
+    this.platformService = config?.platformService || new BrowserPlatformService();
     this.isBrowserEnv = config?.isBrowserEnv || (() => this.platformService.isBrowserEnv());
 
     this.addMatchMediaListener = config?.addMatchMediaListener || this.platformService.addMatchMediaListener.bind(this.platformService);

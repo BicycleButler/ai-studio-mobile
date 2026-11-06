@@ -112,7 +112,7 @@ export interface SpeechVoicesServiceConfig {
   storageFactory?: IStorageFactory;
 }
 
-import { IPlatformService, defaultPlatformService } from "./platformService";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 export class SpeechVoicesService implements ISpeechVoicesService {
   private platformService: IPlatformService;
   private speechSettingsSingleton: IMutableSingleton<SpeechSettings>;
@@ -122,7 +122,7 @@ export class SpeechVoicesService implements ISpeechVoicesService {
   private apiClient: IApiClient;
 
   constructor(config: SpeechVoicesServiceConfig, platformService?: IPlatformService) {
-    this.platformService = platformService || defaultPlatformService;
+    this.platformService = platformService || new BrowserPlatformService();
 
     this.getNavigatorLanguage = config?.getNavigatorLanguage || (() => this.platformService.getNavigator()?.language || "en-US");
     this.authService = config.authService;

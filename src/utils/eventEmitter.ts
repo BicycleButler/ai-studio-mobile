@@ -1,4 +1,4 @@
-import { ILogger, defaultLogger } from "./logger";
+import { ILogger, DefaultLoggerFactory } from "./logger";
 
 export type EventListener<T> = (payload: T) => void;
 
@@ -12,7 +12,7 @@ export class EventEmitter<T> implements IEventEmitter<T> {
   protected logger: ILogger;
   protected listeners = new Set<EventListener<T>>();
 
-  constructor(logger: ILogger = defaultLogger) {
+  constructor(logger: ILogger = new DefaultLoggerFactory().createLogger()) {
     this.logger = logger;
   }
 

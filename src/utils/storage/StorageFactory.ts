@@ -4,7 +4,7 @@ import { StorageSingleton, StorageSingletonOptions } from "./StorageSingleton";
 import { StorageRegistry, IStorageRegistry } from "./StorageRegistry";
 import { MapCollection } from "./MapCollection";
 import { DefaultStorageAdapter, createDefaultStorageInstance } from "./core";
-import { defaultLogger } from "../logger";
+import { DefaultLoggerFactory } from "../logger";
 
 export interface IStorageFactory {
   createCollection<T>(key: string, options?: StorageCollectionOptions<T>): IMutableCollection<T>;
@@ -22,13 +22,13 @@ export class DefaultStorageFactory implements IStorageFactory {
   public createCollection<T>(key: string, options?: StorageCollectionOptions<T>): IMutableCollection<T> {
     const keyExtractor = options?.keyExtractor || ((item: unknown) => String((item as Record<string, unknown>).id));
     const engine = options?.engine || new MapCollection<T>(keyExtractor);
-    const logger = options?.logger || defaultLogger;
+    const logger = options?.logger || new DefaultLoggerFactory().createLogger();
     const adapter = options?.adapter || new DefaultStorageAdapter<T[]>(options?.storageAdapter || this.storageInstance, logger, options?.serializer);
     return new StorageCollection<T>(key, { ...options, keyExtractor, engine, adapter, logger });
   }
 
   public createSingleton<T>(key: string, fallback: T, options?: StorageSingletonOptions<T>): IMutableSingleton<T> {
-    const logger = options?.logger || defaultLogger;
+    const logger = options?.logger || new DefaultLoggerFactory().createLogger();
     const adapter = options?.adapter || new DefaultStorageAdapter<T>(options?.storageAdapter || this.storageInstance, logger, options?.serializer);
     return new StorageSingleton<T>(key, fallback, { ...options, adapter, logger });
   }

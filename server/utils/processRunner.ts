@@ -1,7 +1,7 @@
 import { spawn, SpawnOptionsWithoutStdio } from "node:child_process";
 import fs from "node:fs";
 import { EventEmitter } from "node:events";
-import { ITimeProvider, defaultTimeProvider } from "../../src/utils/timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "../../src/utils/timeProvider";
 
 export interface ProcessLogEvent {
   type: "start" | "stdout" | "stderr" | "error" | "exit";
@@ -20,7 +20,7 @@ export interface IProcessRunner {
 }
 
 export class ProcessRunner implements IProcessRunner {
-  constructor(private timeProvider: ITimeProvider = defaultTimeProvider) {}
+  constructor(private timeProvider: ITimeProvider = new DefaultTimeProvider()) {}
 
   public async runCommand(
     executablePath: string,

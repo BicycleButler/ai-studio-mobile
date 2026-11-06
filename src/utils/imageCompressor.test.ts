@@ -41,6 +41,7 @@ describe('ImageCompressor Utils', () => {
 
         beforeEach(() => {
             mockPlatformService = {
+                setTimeout: globalThis.setTimeout,
                 getDocument: () => null, // Stub just enough for testing init
                 createFileReader: () => null,
                 createImage: () => null,
@@ -63,11 +64,12 @@ describe('ImageCompressor Utils', () => {
         it('should fail compression gracefully if Image API is unavailable', async () => {
             const fileReaderMock = {
                 readAsDataURL: vi.fn(function(this: FileReader) {
-                    setTimeout(() => this.onload?.({ target: { result: 'data:image/png;base64,abc' } } as unknown as ProgressEvent<FileReader>), 0);
+                    mockPlatformService.setTimeout(() => this.onload?.({ target: { result: 'data:image/png;base64,abc' } } as unknown as ProgressEvent<FileReader>), 0);
                 })
             };
 
             mockPlatformService = {
+                setTimeout: globalThis.setTimeout,
                 getDocument: () => null,
                 createFileReader: () => (fileReaderMock as unknown as FileReader),
                 createImage: () => null,

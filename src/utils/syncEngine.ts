@@ -1,5 +1,5 @@
 import { IOfflineQueueStore } from "./offlineQueueStore";
-import { ILogger, defaultLogger } from "./logger";
+import { ILogger, DefaultLoggerFactory } from "./logger";
 import { ConflictData, SyncHandler } from "./offlineService";
 import { IQueueProcessingStrategy, StrictFifoQueueProcessingStrategy } from "./syncEngineStrategy";
 
@@ -16,7 +16,7 @@ export class SyncEngine implements ISyncEngine {
 
   constructor(
     queueStore: IOfflineQueueStore,
-    logger: ILogger = defaultLogger,
+    logger: ILogger = new DefaultLoggerFactory().createLogger(),
     processingStrategy?: IQueueProcessingStrategy
   ) {
     this.queueStore = queueStore;

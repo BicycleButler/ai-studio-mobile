@@ -1,5 +1,5 @@
 
-import { defaultPlatformService, IPlatformService } from "./platformService";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 /**
  * Sentence-Pipelined Speech Queue
  * Delivers ultra-low-latency voice playback for AI streaming responses:
@@ -50,7 +50,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
   constructor(options: SentenceQueueOptions) {
     this.options = options;
 
-    this.platformService = options.platformService || defaultPlatformService;
+    this.platformService = options.platformService || new BrowserPlatformService();
   }
 
   public updateSettings(settings: SpeechSettings): void {

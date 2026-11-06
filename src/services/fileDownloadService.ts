@@ -1,5 +1,5 @@
-import { ILogger } from "../utils/logger";
-import { defaultPlatformService, IPlatformService } from "./platformService";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 export interface IFileDownloadService {
   downloadText(filename: string, content: string): Promise<boolean>;
@@ -8,7 +8,7 @@ export interface IFileDownloadService {
 export class BrowserFileDownloadService implements IFileDownloadService {
   constructor(
     private logger: ILogger,
-    private platformService: IPlatformService = defaultPlatformService
+    private platformService: IPlatformService = new BrowserPlatformService()
   ) {}
 
   public async downloadText(filename: string, content: string): Promise<boolean> {

@@ -1,7 +1,7 @@
 import { DefaultUrlBuilder } from "../utils/urlUtils";
 import { DefaultResponseParser } from "../utils/apiResponseParser";
 import { InterceptorManager } from "../utils/apiClientInterceptors";
-import { defaultLogger } from "../utils/logger";
+import { DefaultLoggerFactory } from "../utils/logger";
 import { ApiClient } from "../utils/apiClient";
 import { describe, test } from 'vitest';
 import { GeminiStreamService } from './geminiStreamService';
@@ -12,7 +12,7 @@ import {
 
 describe('testStreamService', () => {
   test('main', () => {
-  const defaultGeminiStreamService = new GeminiStreamService({ apiClient: new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() }), logger: defaultLogger });
+  const defaultGeminiStreamService = new GeminiStreamService({ apiClient: new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() }), logger: new DefaultLoggerFactory().createLogger() });
   // 1. Test buildHeaders
   const defaultHeaders = defaultGeminiStreamService.buildHeaders();
   if (defaultHeaders["Content-Type"] !== "application/json") {

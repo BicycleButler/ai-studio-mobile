@@ -1,14 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { generateUniqueId, DefaultIdGenerator } from './idGenerator';
+import { DefaultIdGenerator } from './idGenerator';
 
-describe('generateUniqueId', () => {
+describe('DefaultIdGenerator', () => {
   it('should generate an id with the given prefix', () => {
-    const id = generateUniqueId('test_prefix');
+    const generator = new DefaultIdGenerator();
+    const id = generator.generate('test_prefix');
     expect(id.startsWith('test_prefix_')).toBe(true);
   });
 
   it('should include the timestamp and random string', () => {
-    const id = generateUniqueId('test');
+    const generator = new DefaultIdGenerator();
+    const id = generator.generate('test');
     const parts = id.split('_');
     expect(parts.length).toBe(3); // prefix, timestamp, randomSuffix
 
@@ -17,7 +19,8 @@ describe('generateUniqueId', () => {
   });
 
   it('should include explicit suffix if provided', () => {
-    const id = generateUniqueId('test', 'explicit');
+    const generator = new DefaultIdGenerator();
+    const id = generator.generate('test', 'explicit');
     const parts = id.split('_');
     // test_timestamp_explicit_random
     expect(parts.length).toBe(4);
@@ -25,16 +28,9 @@ describe('generateUniqueId', () => {
   });
 
   it('should generate unique ids on subsequent calls', () => {
-    const id1 = generateUniqueId('test');
-    const id2 = generateUniqueId('test');
-    expect(id1).not.toBe(id2);
-  });
-});
-
-describe('DefaultIdGenerator', () => {
-  it('should generate an id with the given prefix', () => {
     const generator = new DefaultIdGenerator();
-    const id = generator.generate('test_prefix');
-    expect(id.startsWith('test_prefix_')).toBe(true);
+    const id1 = generator.generate('test');
+    const id2 = generator.generate('test');
+    expect(id1).not.toBe(id2);
   });
 });

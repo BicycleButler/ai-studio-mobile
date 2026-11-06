@@ -1,12 +1,12 @@
 import { IObservable } from "./observable";
 import { AsyncStorage } from "./asyncStorage";
-import { ILogger, defaultLogger } from "./logger";
+import { ILogger, DefaultLoggerFactory } from "./logger";
 import { OfflineQueueStore, IOfflineQueueStore } from "./offlineQueueStore";
 import { ISyncEngine, SyncEngine } from "./syncEngine";
-import { IIdGenerator, defaultIdGenerator } from "./idGenerator";
-import { ITimeProvider, defaultTimeProvider } from "./timeProvider";
+import { IIdGenerator, DefaultIdGenerator } from "./idGenerator";
+import { ITimeProvider, DefaultTimeProvider } from "./timeProvider";
 import { ICrossTabNotifierFactory } from "./crossTabNotifier";
-import { IPlatformService } from "../services/platformService";
+import { IPlatformService, BrowserPlatformService } from "../services/platformService";
 
 export interface OfflineMutation {
   type: string;
@@ -60,9 +60,9 @@ export class OfflineService implements IOfflineService {
   private timeProvider: ITimeProvider;
 
   constructor(config: OfflineServiceConfig) {
-    this.logger = config.logger || defaultLogger;
-    this.idGenerator = config.idGenerator || defaultIdGenerator;
-    this.timeProvider = config.timeProvider || defaultTimeProvider;
+    this.logger = config.logger || new DefaultLoggerFactory().createLogger();
+    this.idGenerator = config.idGenerator || new DefaultIdGenerator();
+    this.timeProvider = config.timeProvider || new DefaultTimeProvider();
 
     if (config.queueStore) {
       this.queueStore = config.queueStore;
