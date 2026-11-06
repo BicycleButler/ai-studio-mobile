@@ -146,7 +146,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
       <div
         id="tuner-auth-card"
         onClick={onOpenAuth}
-        className="p-3.5 rounded-xl border border-border bg-card hover:bg-muted/50 flex items-center justify-between gap-3 cursor-pointer transition-colors"
+        className="p-3.5 rounded-xl bg-card hover:bg-muted/50 flex items-center justify-between gap-3 cursor-pointer transition-colors"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="p-1.5 rounded-lg bg-muted text-foreground shrink-0">
@@ -167,7 +167,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
             </span>
           </div>
         </div>
-        <span className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border border-border bg-muted text-foreground shrink-0 font-mono">
+        <span className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground shrink-0 font-mono">
           {hasApiKey ? "Connected" : "Authenticate"}
         </span>
       </div>
@@ -218,7 +218,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                 key={m.id}
                 type="button"
                 onClick={() => updateField("model", m.id)}
-                className={`text-start p-3 rounded-xl border transition relative cursor-pointer group ${
+                className={`text-start p-3 rounded-xl border transition-colors relative cursor-pointer group ${
                   isSelected
                     ? "bg-primary/10 border-primary ring-1 ring-primary/30 text-foreground"
                     : "bg-card border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:border-muted-foreground/30"
@@ -272,7 +272,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
       </div>
 
       {/* 2. System Instruction */}
-      <div className="space-y-1.5 bg-card border border-border rounded-xl p-3">
+      <div className="space-y-1.5 bg-card rounded-xl p-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-foreground">
             System Instructions
@@ -301,12 +301,12 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
           onChange={(e) => updateField("systemInstruction", e.target.value)}
           placeholder="You are an intelligent, concise AI assistant inside Google AI Studio..."
           rows={3}
-          className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none font-mono"
+          className="w-full bg-background rounded-lg p-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none font-mono"
         />
       </div>
 
       {/* 3. Temperature Slider & Presets */}
-      <div className="space-y-2 bg-card border border-border rounded-xl p-3">
+      <div className="space-y-2 bg-card rounded-xl p-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-foreground">
             Temperature
@@ -360,7 +360,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
       {/* 4. Top P and Top K */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Top P */}
-        <div className="bg-card border border-border rounded-xl p-3 space-y-2">
+        <div className="bg-card rounded-xl p-3 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-foreground">Top P</label>
             <span className="text-xs font-mono font-bold text-foreground">
@@ -382,7 +382,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
         </div>
 
         {/* Top K */}
-        <div className="bg-card border border-border rounded-xl p-3 space-y-2">
+        <div className="bg-card rounded-xl p-3 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-foreground">Top K</label>
             <span className="text-xs font-mono font-bold text-foreground">
@@ -405,7 +405,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
       </div>
 
       {/* 5. Max Output Tokens */}
-      <div className="bg-card border border-border rounded-xl p-3 space-y-2">
+      <div className="bg-card rounded-xl p-3 space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-foreground">
             Max Output Tokens
@@ -453,7 +453,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
       </div>
 
       {/* 6. Structured Output (JSON Schema Mode) */}
-      <div className="bg-card border border-border rounded-xl p-3 space-y-3">
+      <div className="bg-card rounded-xl p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -519,7 +519,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
               onChange={(e) => updateField("responseSchemaText", e.target.value)}
               placeholder='{\n  "type": "object",\n  "properties": {\n    "name": { "type": "string" }\n  }\n}'
               rows={5}
-              className="w-full bg-background border border-border rounded-lg p-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none font-mono"
+              className="w-full bg-background rounded-lg p-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none font-mono"
             />
           </div>
         )}

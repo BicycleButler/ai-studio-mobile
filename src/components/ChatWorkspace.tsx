@@ -1034,14 +1034,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             aria-expanded={isHistoryOpen}
             aria-controls="chat-window-history-popover"
             onClick={() => setIsHistoryOpen((prev) => !prev)}
-            className={`w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl transition cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${
+            className={`w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl transition-colors cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${
               isHistoryOpen
                 ? "bg-muted text-foreground ring-1 ring-border shadow-sm"
                 : "bg-transparent border-0 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
             }`}
           >
             <Plus
-              className={`w-4 h-4 transition-transform duration-200 ${
+              className={`w-4 h-4 transition-colors-transform duration-200 ${
                 isHistoryOpen ? "rotate-45 text-foreground" : ""
               }`}
             />
@@ -1051,7 +1051,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           {!isHistoryOpen && (
             <div
               role="tooltip"
-              className="absolute end-full me-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover/95 backdrop-blur-sm border border-border text-foreground text-[11px] font-medium rounded-lg whitespace-nowrap shadow-md pointer-events-none opacity-0 group-hover/newchat:opacity-100 transition-opacity duration-150 z-20"
+              className="absolute end-full me-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover/95 backdrop-blur-sm text-foreground text-[11px] font-medium rounded-lg whitespace-nowrap shadow-md pointer-events-none opacity-0 group-hover/newchat:opacity-100 transition-colors-opacity duration-150 z-20"
             >
               {isJulesMode ? "New task or history" : "New chat or history"}
             </div>
@@ -1115,7 +1115,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         {messages.length === 0 ? (
           isJulesMode ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-md mx-auto">
-              <div className="w-12 h-12 rounded-2xl bg-muted/40 border border-border flex items-center justify-center mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-muted/40 flex items-center justify-center mb-3">
                 <Bot className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-base font-semibold text-foreground mb-1">
@@ -1126,7 +1126,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               </p>
 
               {activeJulesSession ? (
-                <div className="w-full mb-3.5 p-3 rounded-xl bg-muted/40 border border-border text-start flex items-center justify-between">
+                <div className="w-full mb-3.5 p-3 rounded-xl bg-muted/40 text-start flex items-center justify-between">
                   <div className="min-w-0">
                     <span className="text-[10px] uppercase font-mono tracking-wider text-primary">
                       Active Repository
@@ -1142,14 +1142,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     <button
                       type="button"
                       onClick={onOpenJulesSessions}
-                      className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-medium border border-border transition-colors shrink-0 cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-medium transition-colors shrink-0 cursor-pointer"
                     >
                       Change
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card border border-border text-start shadow-sm">
+                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card text-start shadow-sm">
                   <div className="flex items-center gap-2 mb-1.5">
                     <FolderGit2 className="w-4 h-4 text-primary" />
                     <span className="font-semibold text-xs text-foreground">
@@ -1177,10 +1177,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   <button
                     key={idx}
                     onClick={() => onSendMessage(chip)}
-                    className="p-2.5 rounded-xl bg-card hover:bg-muted border border-border text-xs text-muted-foreground hover:text-foreground transition-colors text-start flex items-center justify-between group cursor-pointer"
+                    className="p-2.5 rounded-xl bg-card hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition-colors text-start flex items-center justify-between group cursor-pointer"
                   >
                     <span className="truncate">{chip}</span>
-                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity ms-2 shrink-0">
+                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-colors-opacity ms-2 shrink-0">
                       →
                     </span>
                   </button>
@@ -1198,7 +1198,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 
               {/* Authentication prompt card if not authenticated */}
               {!hasApiKey ? (
-                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card border border-border text-start shadow-sm">
+                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card text-start shadow-sm">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-5 h-5 rounded-full bg-card flex items-center justify-center p-0.5 shrink-0 border border-border">
                       <GoogleIcon className="w-full h-full" />
@@ -1222,7 +1222,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   )}
                 </div>
               ) : googleUser ? (
-                <div className="w-full mb-3 p-2.5 rounded-xl bg-card border border-border flex items-center justify-between gap-2 text-start">
+                <div className="w-full mb-3 p-2.5 rounded-xl bg-card flex items-center justify-between gap-2 text-start">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] uppercase font-mono tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">
                       Live
@@ -1246,10 +1246,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   <button
                     key={idx}
                     onClick={() => onSendMessage(chip)}
-                    className="p-2.5 rounded-xl bg-card hover:bg-muted border border-border text-xs text-muted-foreground hover:text-foreground transition-colors text-start flex items-center justify-between group cursor-pointer"
+                    className="p-2.5 rounded-xl bg-card hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition-colors text-start flex items-center justify-between group cursor-pointer"
                   >
                     <span className="truncate">{chip}</span>
-                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity ms-2 shrink-0">
+                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-colors-opacity ms-2 shrink-0">
                       →
                     </span>
                   </button>
@@ -1301,7 +1301,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 className={`max-w-[95%] sm:max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed ${
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground rounded-tr-none shadow-sm"
-                    : "bg-card text-card-foreground border border-border rounded-tl-none shadow-sm"
+                    : "bg-card text-card-foreground rounded-tl-none shadow-sm"
                 }`}
               >
                 {/* Images preview if present */}
@@ -1310,7 +1310,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     {msg.images.map((img) => (
                       <div
                         key={img.id}
-                        className="relative rounded-lg overflow-hidden border border-border max-w-[160px] max-h-[160px]"
+                        className="relative rounded-lg overflow-hidden max-w-[160px] max-h-[160px]"
                       >
                         <img
                           src={img.previewUrl}
@@ -1457,7 +1457,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           {attachments.map((att) => (
             <div
               key={att.id}
-              className="relative flex items-center gap-2 bg-muted border border-border rounded-lg p-1.5 shrink-0"
+              className="relative flex items-center gap-2 bg-muted rounded-lg p-1.5 shrink-0"
             >
               <img
                 src={att.previewUrl}
@@ -1516,7 +1516,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             type="button"
             id="tray-add-template-btn"
             onClick={handleOpenTemplateDrawer}
-            className="h-8 min-h-[32px] px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 shrink-0 transition-colors cursor-pointer touch-manipulation relative after:absolute after:-inset-1.5"
+            className="h-8 min-h-[32px] px-2.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-medium flex items-center gap-1 shrink-0 transition-colors cursor-pointer touch-manipulation relative after:absolute after:-inset-1.5"
             title="Add or configure templates"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -1547,13 +1547,13 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
+                transition-colors={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
               >
                 <button
                   type="button"
                   id="chat-handsfree-fab-btn"
                   onClick={handleToggleVoiceMode}
-                  className="h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition duration-[945ms] active:scale-95 cursor-pointer touch-manipulation group"
+                  className="h-12 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl flex items-center gap-2.5 text-xs font-semibold transition-colors duration-[945ms] active:scale-95 cursor-pointer touch-manipulation group"
                   title="Start hands-free continuous two-way voice conversation"
                   aria-label="Start hands-free continuous two-way voice conversation"
                 >
@@ -1570,7 +1570,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
+                transition-colors={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
                 className="flex items-center gap-2 bg-card border border-primary/50 shadow-xl rounded-full p-1.5 ps-3 text-xs animate-in fade-in duration-[945ms]"
               >
                 <div className="flex items-center gap-2">
@@ -1625,7 +1625,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
+              transition-colors={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
               className="w-full"
             >
               <div
@@ -1645,7 +1645,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Dynamic Voice Visualizer */}
-                  <div className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-colors-transform">
                     {voiceState === "listening" && (
                       <div className="flex items-center gap-1 h-5">
                         <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:-0.3s] h-3" />
@@ -1742,13 +1742,13 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
+              transition-colors={{ duration: 0.945, ease: [0.4, 0, 0.2, 1] }}
               className="w-full"
             >
               {isInputExpanded ? (
                 /* Case B: Expanded 100% Full-Width Text Input Dock */
                 <div
-                  className={`w-full bg-background border-t border-border transition duration-[945ms] ease-in-out flex ${
+                  className={`w-full bg-background border-t border-border transition-colors duration-[945ms] ease-in-out flex ${
                     isInputHeightExpanded ? "flex-col justify-between" : "items-end"
                   } gap-2 px-3 py-2 ${
                     isInputHeightExpanded ? "h-[200px] min-h-[200px]" : "h-20 min-h-[80px]"
@@ -1955,7 +1955,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     }}
                     className={`flex-1 ${
                       speechSettings.voiceButtonPlacement === "fab" ? "w-full" : "w-1/2 border-e border-border"
-                    } h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition duration-[945ms] ease-in-out select-none group touch-manipulation`}
+                    } h-20 min-h-[80px] bg-background hover:bg-muted/30 focus-visible:border-primary px-4 py-3 flex flex-col justify-center cursor-pointer transition-colors duration-[945ms] ease-in-out select-none group touch-manipulation`}
                     title="Tap to type message (expands full width)"
                     aria-label="Tap to open chat text input"
                   >
@@ -1979,11 +1979,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       type="button"
                       id="chat-handsfree-primary-btn"
                       onClick={handleToggleVoiceMode}
-                      className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition duration-[945ms] ease-in-out cursor-pointer touch-manipulation group"
+                      className="flex-1 w-1/2 h-20 min-h-[80px] bg-gradient-to-br from-primary/15 via-primary/10 to-primary/20 hover:from-primary/25 hover:via-primary/15 hover:to-primary/25 active:scale-[0.99] text-primary flex items-center justify-center transition-colors duration-[945ms] ease-in-out cursor-pointer touch-manipulation group"
                       title="Start hands-free voice mode"
                       aria-label="Start hands-free voice mode"
                     >
-                      <Mic className="w-6 h-6 text-primary group-hover:scale-110 active:scale-95 transition-transform" />
+                      <Mic className="w-6 h-6 text-primary group-hover:scale-110 active:scale-95 transition-colors-transform" />
                     </button>
                   )}
                 </div>

@@ -56,7 +56,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
       </div>
 
       {/* Language Selector Tabs */}
-      <div className="flex rounded-lg bg-muted p-1 border border-border gap-1 overflow-x-auto">
+      <div className="flex rounded-lg bg-muted p-1 gap-1 overflow-x-auto">
         {langs.map((l) => {
           const Icon = l.icon;
           const isSelected = selectedLang === l.id;
@@ -78,7 +78,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
       </div>
 
       {/* Code Display Area */}
-      <div className="relative bg-muted/30 border border-border rounded-xl overflow-hidden">
+      <div className="relative bg-muted/30 rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 bg-muted/60 border-b border-border text-[11px] text-muted-foreground">
           <span className="font-mono">{generator?.name || `${selectedLang}.txt`}</span>
           <button
@@ -111,7 +111,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
           id="export-modal-open-ide-btn"
           type="button"
           onClick={onOpenMobileIDE}
-          className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-card hover:bg-muted text-foreground border border-border text-xs font-semibold transition-colors shadow-sm cursor-pointer"
+          className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors shadow-sm cursor-pointer"
         >
           <Code2 className="w-4 h-4 text-primary" />
           <span>Launch Full Mobile IDE (Code Editor & Runner Console)</span>
@@ -120,7 +120,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
 
       {/* Android SDK Note */}
       {selectedLang === "kotlin" && (
-        <div className="p-3 rounded-xl bg-card border border-border text-xs text-muted-foreground">
+        <div className="p-3 rounded-xl bg-card text-xs text-muted-foreground">
           <div className="font-semibold mb-1 flex items-center gap-1 text-foreground">
             <Smartphone className="w-3.5 h-3.5 text-primary" />
             <span>Android Developer Tip:</span>

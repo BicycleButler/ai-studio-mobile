@@ -180,7 +180,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
       {toastMessage && (
         <div
           id="stubs-toast-notification"
-          className="absolute top-3 start-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-xl bg-card border border-border text-foreground text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
+          className="absolute top-3 start-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-xl bg-card border border-border text-foreground text-xs shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
         >
           <Sparkles className="w-3.5 h-3.5 text-primary" />
           <span>{toastMessage}</span>

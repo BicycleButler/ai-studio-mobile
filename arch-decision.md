@@ -1392,3 +1392,27 @@ A number of unit tests (e.g. `keyVerification.test.ts`, `auth.test.ts`, `julesSe
 
 **Decision:**
 Renamed these testing singletons to `testXService` (e.g., `testProjectService`, `testKeyVerificationService`). This clarifies intent, removing ambiguity between production-grade global fallbacks and isolated test instances, and strictly aligns the test suites with the Dependency Inversion Principle.
+
+## Architectural Decision: No Linear Easing Enforcements
+
+**Context:**
+Several files were using `transition` instead of specific targets like `transition-colors` violating the invariant "No Linear Easing / No transition: all".
+
+**Decision:**
+Replaced usages across UI components like `GoogleAuthCard.tsx`, `tunerConfigPanel.tsx`, `ChatWorkspace.tsx` and others to adhere strictly to the established rule.
+
+## Architectural Decision: Subsystem Container Borders Removal
+
+**Context:**
+Several components utilized the `border` properties at rest in combination with shadows, which is in violation of the design system where cards and panels are elevated via shadow scale without resting borders.
+
+**Decision:**
+Removed resting container borders across elements like `JulesActivityCard.tsx`, `tunerConfigPanel.tsx`, `ImportProjectSheet.tsx`, etc to be compliant with ADR 0041 "Surface Tier System".
+
+## Architectural Decision: BrowserNetworkStatusProvider Dependency Injection Enforcement
+
+**Context:**
+`ServiceContext.tsx` previously fell back to instantiating a new `BrowserNetworkStatusProvider` internally without explicitly injecting its platform service dependency, which breaks the strict composition root strategy of the context.
+
+**Decision:**
+Explicitly passed the `explicitlyInjectedPlatformService` into the `BrowserNetworkStatusProvider` instantiations within `ServiceContext.tsx`, aligning the final utility with the DI pattern established for API and Offline services.
