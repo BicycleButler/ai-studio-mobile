@@ -12,9 +12,9 @@ import {
 
 describe('testStreamService', () => {
   test('main', () => {
-  const defaultGeminiStreamService = new GeminiStreamService({ apiClient: new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() }), logger: new DefaultLoggerFactory().createLogger() });
+  const testGeminiStreamService = new GeminiStreamService({ apiClient: new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() }), logger: new DefaultLoggerFactory().createLogger() });
   // 1. Test buildHeaders
-  const defaultHeaders = defaultGeminiStreamService.buildHeaders();
+  const defaultHeaders = testGeminiStreamService.buildHeaders();
   if (defaultHeaders["Content-Type"] !== "application/json") {
     throw new Error("Default headers missing application/json content type");
   }
@@ -22,7 +22,7 @@ describe('testStreamService', () => {
     throw new Error("Default headers should not have api key when none provided");
   }
 
-  const customHeaders = defaultGeminiStreamService.buildHeaders("test-custom-key-123");
+  const customHeaders = testGeminiStreamService.buildHeaders("test-custom-key-123");
   if (customHeaders["x-gemini-api-key"] !== "test-custom-key-123") {
     throw new Error("Custom headers did not include custom key correctly");
   }
@@ -46,7 +46,7 @@ describe('testStreamService', () => {
   // 3. Test formatStreamError
   const abortErr = new Error("AbortError");
   abortErr.name = "AbortError";
-  const formattedAbort = defaultGeminiStreamService.formatStreamError(abortErr);
+  const formattedAbort = testGeminiStreamService.formatStreamError(abortErr);
   if (!formattedAbort.message.includes("stopped by user")) {
     throw new Error("Expected abort error to format friendly message");
   }

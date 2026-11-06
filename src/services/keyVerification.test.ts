@@ -23,13 +23,13 @@ function assert(condition: boolean, message: string): void {
 
 describe('testKeyVerificationSubsystem', () => {
   test('main', async () => {
-const defaultProjectService = new ProjectService({ generalSettingsService: new GeneralSettingsService({ storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()) }), storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()) });
-  const defaultKeyVerificationService = new KeyVerificationService({ apiClient: {} as unknown as IApiClient, logger: {} as unknown as ILogger });
+const testProjectService = new ProjectService({ generalSettingsService: new GeneralSettingsService({ storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()) }), storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()) });
+  const testKeyVerificationService = new KeyVerificationService({ apiClient: {} as unknown as IApiClient, logger: {} as unknown as ILogger });
   // Test 1: Standard Google API Key pattern validation (AIza + 35 characters = 39 chars total)
   const validStandardKey = "AIzaSyD" + "A".repeat(32); // 4 + 35 = 39 chars
   assert(validStandardKey.length === 39, "Standard key must be 39 chars long");
   assert(STANDARD_GOOGLE_KEY_REGEX.test(validStandardKey), "Valid standard key must match regex");
-  assert(defaultKeyVerificationService.isValidGoogleApiKeyFormat(validStandardKey), "isValidGoogleApiKeyFormat must return true for standard key");
+  assert(testKeyVerificationService.isValidGoogleApiKeyFormat(validStandardKey), "isValidGoogleApiKeyFormat must return true for standard key");
 
   const invalidStandardShort = "AIzaSyD123";
   assert(!STANDARD_GOOGLE_KEY_REGEX.test(invalidStandardShort), "Short key must fail standard regex");
@@ -40,34 +40,34 @@ const defaultProjectService = new ProjectService({ generalSettingsService: new G
   // Test 2: AI Studio project key pattern validation (AQ. + alphanumeric/dash/underscore)
   const validAiStudioKey = "AQ.abcdef1234567890_-xyz";
   assert(AISTUDIO_PROJECT_KEY_REGEX.test(validAiStudioKey), "Valid AI Studio project key must match regex");
-  assert(defaultKeyVerificationService.isValidGoogleApiKeyFormat(validAiStudioKey), "isValidGoogleApiKeyFormat must return true for AI Studio key");
+  assert(testKeyVerificationService.isValidGoogleApiKeyFormat(validAiStudioKey), "isValidGoogleApiKeyFormat must return true for AI Studio key");
 
   const invalidAiStudioKey = "AQ#invalid_chars!";
   assert(!AISTUDIO_PROJECT_KEY_REGEX.test(invalidAiStudioKey), "Special characters must fail AI Studio regex");
 
   // Test 3: Key sniffing & embedded pattern detection
   const rawCopiedKey = "AIzaSyB_123456789012345678901234567890Z";
-  assert(defaultKeyVerificationService.detectGoogleApiKey(rawCopiedKey) === rawCopiedKey, "detectGoogleApiKey must extract raw key");
+  assert(testKeyVerificationService.detectGoogleApiKey(rawCopiedKey) === rawCopiedKey, "detectGoogleApiKey must extract raw key");
 
   const embeddedText = `export GEMINI_API_KEY="AIzaSyB_123456789012345678901234567890Z"; // comment`;
   assert(
-    defaultKeyVerificationService.detectGoogleApiKey(embeddedText) === rawCopiedKey,
+    testKeyVerificationService.detectGoogleApiKey(embeddedText) === rawCopiedKey,
     "detectGoogleApiKey must extract embedded standard key"
   );
 
   const embeddedAiStudio = `Here is my key AQ.alpha1234567890_test for testing`;
   assert(
-    defaultKeyVerificationService.detectGoogleApiKey(embeddedAiStudio) === "AQ.alpha1234567890_test",
+    testKeyVerificationService.detectGoogleApiKey(embeddedAiStudio) === "AQ.alpha1234567890_test",
     "detectGoogleApiKey must extract embedded AI Studio key"
   );
 
-  assert(defaultKeyVerificationService.detectGoogleApiKey("Random text without keys") === null, "detectGoogleApiKey must return null for unrelated text");
+  assert(testKeyVerificationService.detectGoogleApiKey("Random text without keys") === null, "detectGoogleApiKey must return null for unrelated text");
 
   // Test 4: Masked key preview (first 4 and last 4 characters)
-  const masked = defaultKeyVerificationService.maskApiKey("AIzaSyB_123456789012345678901234567890Z");
+  const masked = testKeyVerificationService.maskApiKey("AIzaSyB_123456789012345678901234567890Z");
   assert(masked === "AIza...890Z", `Masked preview expected 'AIza...890Z', got '${masked}'`);
 
-  const maskedAiStudio = defaultKeyVerificationService.maskApiKey("AQ.projectKey12345_xyz");
+  const maskedAiStudio = testKeyVerificationService.maskApiKey("AQ.projectKey12345_xyz");
   assert(maskedAiStudio === "AQ.p..._xyz", `Masked AI Studio key preview expected 'AQ.p..._xyz', got '${maskedAiStudio}'`);
 
   // Test 5: Local encryption envelope
@@ -79,7 +79,7 @@ const defaultProjectService = new ProjectService({ generalSettingsService: new G
   assert(decrypted === plainSecret, "Decrypted secret must match original plain text");
 
   // Test 6: Project persistence & active activation
-  const testProject = defaultProjectService.saveAndActivateProject({
+  const testProject = testProjectService.saveAndActivateProject({
     name: "Automated Test Project",
     apiKey: validStandardKey,
     defaultModel: "gemini-2.5-flash",
@@ -90,16 +90,16 @@ const defaultProjectService = new ProjectService({ generalSettingsService: new G
   assert(testProject.defaultModel === "gemini-2.5-flash", "Project default model must be gemini-2.5-flash");
 
   await Promise.resolve();
-  const active = defaultProjectService.projectsManager.getActiveItem();
+  const active = testProjectService.projectsManager.getActiveItem();
   assert(active !== null, "Active project must exist");
   assert(active?.id === testProject.id, "Active project ID must match newly activated project");
   assert(active?.apiKey === validStandardKey, "Active project decrypted API key must match");
 
-  const projects = defaultProjectService.loadStoredProjects();
+  const projects = testProjectService.loadStoredProjects();
   assert(projects.some((p) => p.id === testProject.id), "Project must be present in stored projects list");
 
   // Cleanup test project
-  defaultProjectService.projectsManager.collection.delete(testProject.id);
+  testProjectService.projectsManager.collection.delete(testProject.id);
   await Promise.resolve(); // wait for cleanup
 
 

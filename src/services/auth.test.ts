@@ -5,7 +5,7 @@ import { ApiClient } from "../utils/apiClient";
 import { DefaultLoggerFactory } from "../utils/logger";
 import { describe, test } from 'vitest';
 import { GoogleAuthService } from './googleAuth';
-const defaultGoogleAuthService = new GoogleAuthService({ apiClient: new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() }), logger: new DefaultLoggerFactory().createLogger() });
+const testGoogleAuthService = new GoogleAuthService({ apiClient: new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() }), logger: new DefaultLoggerFactory().createLogger() });
 
 // Test suite for authentication helpers & header builders
 
@@ -65,12 +65,12 @@ describe('testAuthHelpers', () => {
   const encodedPayload = btoa(JSON.stringify(mockPayload));
   const mockToken = `${encodedHeader}.${encodedPayload}.mockSignature`;
 
-  const parsed = defaultGoogleAuthService.parseGoogleJwtPayload(mockToken);
+  const parsed = testGoogleAuthService.parseGoogleJwtPayload(mockToken);
   if (!parsed || parsed.email !== "developer@example.com" || parsed.name !== "Developer Name") {
     throw new Error("Google JWT parser failed to decode token payload accurately");
   }
 
-  const invalidTokenResult = defaultGoogleAuthService.parseGoogleJwtPayload("invalid.token");
+  const invalidTokenResult = testGoogleAuthService.parseGoogleJwtPayload("invalid.token");
   if (invalidTokenResult !== null) {
     throw new Error("Expected invalid token to return null");
   }
