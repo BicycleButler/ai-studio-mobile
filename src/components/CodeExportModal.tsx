@@ -80,7 +80,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
       {/* Code Display Area */}
       <div className="relative bg-muted/30 border border-border rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 bg-muted/60 border-b border-border text-[11px] text-muted-foreground">
-          <span className="font-mono">{selectedLang}.txt</span>
+          <span className="font-mono">{generator?.name || `${selectedLang}.txt`}</span>
           <button
             id="copy-code-btn"
             onClick={handleCopy}

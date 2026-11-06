@@ -8,13 +8,13 @@ export class CurlGenerator extends BaseCodeGenerator {
   readonly language: string = "bash";
 
   generate(config: PromptConfig, messages: ChatMessage[]): string {
-    const { promptText } = this.extractPromptContext(config, messages);
+    const { promptText, sysInst } = this.extractPromptContext(config, messages);
 
     return `curl "https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=\${GEMINI_API_KEY}" \\
   -H "Content-Type: application/json" \\
   -X POST \\
   -d '{
-    "contents": [{
+    ${sysInst ? `"systemInstruction": { "parts": [{ "text": "${sysInst}" }] },\n    ` : ""}"contents": [{
       "parts": [{"text": "${promptText}"}]
     }],
     "generationConfig": {
