@@ -1384,3 +1384,11 @@ Implement a dedicated routing hook (e.g. `useSettingsRouter`) to manage tab stat
 
 **Recommendation:**
 **Path 1 (Extend Settings Configuration)** was implemented. It colocates all tab metadata (id, label, title, icon, aliases) in a single source of truth, eliminating inline switch statements and string matching within the modal. This drastically cleans up `UnifiedSettingsModal` and strictly adheres to the Open/Closed Principle for adding future tabs.
+
+## Architectural Decision: Extraneous Unit Test Singletons Renaming
+
+**Context:**
+A number of unit tests (e.g. `keyVerification.test.ts`, `auth.test.ts`, `julesService.test.ts`) used local variables named `defaultXService` to instantiate services used strictly for testing. While functional, this naming convention conflicted with the semantic meaning of `defaultXService` established elsewhere in the codebase, which refers specifically to production fallback singletons intended for legacy bootstrapping or `ServiceContext` initialization.
+
+**Decision:**
+Renamed these testing singletons to `testXService` (e.g., `testProjectService`, `testKeyVerificationService`). This clarifies intent, removing ambiguity between production-grade global fallbacks and isolated test instances, and strictly aligns the test suites with the Dependency Inversion Principle.
