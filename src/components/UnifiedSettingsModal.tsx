@@ -2,7 +2,7 @@ import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsS
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
-import { SETTINGS_TABS_CONFIG } from "./settings/SettingsTabsConfig";
+import { SETTINGS_TABS_CONFIG, resolveSettingsTab } from "./settings/SettingsTabsConfig";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -145,24 +145,12 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   };
 
 
-  // Normalize initialTab to canonical tabs
-  const resolveTab = (
-    tab?: SettingsTab
-  ): "account" | "display" | "security" | "model" | "audio" | "library" | "export" | "companion" => {
-    if (!tab) return "account";
-    if (tab === "auth" || tab === "key" || tab === "profile") return "account";
-    if (tab === "display" || tab === "theme" || tab === "themes") return "display";
-    if (tab === "settings") return "security";
-    if (tab === "tune" || tab === "model" || tab === "models") return "model";
-    return tab as "account" | "display" | "security" | "model" | "audio" | "library" | "export" | "companion";
-  };
-
-  const [activeTab, setActiveTab] = useState<SettingsTab>(resolveTab(initialTab));
+  const [activeTab, setActiveTab] = useState<SettingsTab>(resolveSettingsTab(initialTab));
 
   // Sync initial tab when modal opens
   useEffect(() => {
     if (isOpen) {
-      setActiveTab(resolveTab(initialTab));
+      setActiveTab(resolveSettingsTab(initialTab));
     }
   }, [isOpen, initialTab]);
 
@@ -216,8 +204,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   const activeTabConfig = SETTINGS_TABS_CONFIG.find(t => t.id === activeTab) || SETTINGS_TABS_CONFIG[0];
   const ActiveTabIcon = activeTabConfig.icon;
-
-  const activeTabTitle = activeTab === "account" ? "Profile & Account" : activeTab === "display" ? "Themes & Appearance" : activeTab === "security" ? "Settings & Security" : activeTab === "model" ? "Models & Tuners" : activeTab === "audio" ? "Voice & Audio" : activeTab === "library" ? "Prompt Library" : activeTab === "export" ? "Get Code" : "Companion & Guide";
+  const activeTabTitle = activeTabConfig.title;
 
   return (
     <AnimatePresence>

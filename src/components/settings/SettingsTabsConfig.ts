@@ -14,17 +14,26 @@ import { SettingsTab } from "../../types";
 export interface SettingsTabConfig {
   id: SettingsTab;
   label: string;
+  title: string;
   icon: LucideIcon;
   requiresAuthWarning?: boolean;
+  aliases?: string[];
 }
 
 export const SETTINGS_TABS_CONFIG: SettingsTabConfig[] = [
-  { id: "account", label: "Profile", icon: User, requiresAuthWarning: true },
-  { id: "display", label: "Themes", icon: Sun },
-  { id: "security", label: "Settings", icon: Sliders },
-  { id: "model", label: "Models", icon: Layers },
-  { id: "audio", label: "Audio", icon: Volume2 },
-  { id: "library", label: "Library", icon: FolderHeart },
-  { id: "export", label: "Code", icon: Code2 },
-  { id: "companion", label: "Guide", icon: Compass },
+  { id: "account", label: "Profile", title: "Profile & Account", icon: User, requiresAuthWarning: true, aliases: ["auth", "key", "profile"] },
+  { id: "display", label: "Themes", title: "Themes & Appearance", icon: Sun, aliases: ["theme", "themes"] },
+  { id: "security", label: "Settings", title: "Settings & Security", icon: Sliders, aliases: ["settings"] },
+  { id: "model", label: "Models", title: "Models & Tuners", icon: Layers, aliases: ["tune", "models"] },
+  { id: "audio", label: "Audio", title: "Voice & Audio", icon: Volume2 },
+  { id: "library", label: "Library", title: "Prompt Library", icon: FolderHeart },
+  { id: "export", label: "Code", title: "Get Code", icon: Code2 },
+  { id: "companion", label: "Guide", title: "Companion & Guide", icon: Compass },
 ];
+
+export function resolveSettingsTab(tab?: string): SettingsTab {
+  if (!tab) return "account";
+
+  const found = SETTINGS_TABS_CONFIG.find(t => t.id === tab || t.aliases?.includes(tab));
+  return found ? found.id : "account";
+}

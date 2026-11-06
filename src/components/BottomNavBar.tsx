@@ -1,21 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { MessageSquare, Code2, Bot, Ticket } from "lucide-react";
 import { PromptType } from "../types";
 
 import { Drawer } from "./ui/Drawer";
+import { WORKSPACE_NAV_CONFIG } from "./WorkspaceNavConfig";
 
 interface BottomNavBarProps {
   activeWorkspace: PromptType;
   onSelectWorkspace: (workspace: PromptType) => void;
   isOpen?: boolean;
   onClose?: () => void;
-}
-
-interface WorkspaceItem {
-  id: PromptType;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  tooltip: string;
 }
 
 import { useServices } from "../services/ServiceContext";
@@ -36,33 +29,6 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       setInternalIsOpen(false);
     }
   };
-
-  const workspaces: WorkspaceItem[] = [
-    {
-      id: "chat",
-      label: "Chat",
-      icon: MessageSquare,
-      tooltip: "Conversational multimodal chat & prompt tools",
-    },
-    {
-      id: "code",
-      label: "Mobile IDE",
-      icon: Code2,
-      tooltip: "Execute code snippets & prompt payloads",
-    },
-    {
-      id: "jules",
-      label: "Jules",
-      icon: Bot,
-      tooltip: "Autonomous GitHub coding agent",
-    },
-    {
-      id: "stubs",
-      label: "Stubs",
-      icon: Ticket,
-      tooltip: "Architecture-as-Code PWM Portal",
-    },
-  ];
 
   // Close on Escape key
   useEffect(() => {
@@ -94,7 +60,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       <nav role="navigation" aria-label="Workspace navigation" aria-expanded={true}>
         {/* 4-Slot Workspace layout with generous touch ergonomics */}
         <div className="grid grid-cols-4 max-w-lg mx-auto mt-0.5 gap-1">
-          {workspaces.map((ws) => {
+          {WORKSPACE_NAV_CONFIG.map((ws) => {
             const Icon = ws.icon;
             const isActive = activeWorkspace === ws.id;
 
