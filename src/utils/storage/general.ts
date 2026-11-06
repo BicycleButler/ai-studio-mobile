@@ -4,6 +4,8 @@ import { safeGetStorageString, safeSetStorageString } from "./core";
 import { IMutableSingleton } from "./types";
 import { Observable, IObservable } from "../observable";
 
+const defaultSharedStorageFactory = new DefaultStorageFactory();
+
 export interface IGeneralSettingsService {
   flagSecureObservable: IObservable<boolean>;
   loadStoredApiKey(): string;
@@ -23,11 +25,11 @@ export class GeneralSettingsService implements IGeneralSettingsService {
   private flagSecureSingleton: IMutableSingleton<boolean>;
   public flagSecureObservable: IObservable<boolean>;
 
-  constructor(config: GeneralSettingsServiceConfig) {
+  constructor(config?: GeneralSettingsServiceConfig) {
     if (config?.apiKeySingleton) {
         this.apiKeySingleton = config.apiKeySingleton;
     } else {
-        const factory = config?.storageFactory || new DefaultStorageFactory();
+        const factory = config?.storageFactory || defaultSharedStorageFactory;
         this.apiKeySingleton = factory.createSingleton<string>(
           STORAGE_KEYS.API_KEY,
           "",
@@ -45,7 +47,7 @@ export class GeneralSettingsService implements IGeneralSettingsService {
     if (config?.flagSecureSingleton) {
         this.flagSecureSingleton = config.flagSecureSingleton;
     } else {
-        const factory = config?.storageFactory || new DefaultStorageFactory();
+        const factory = config?.storageFactory || defaultSharedStorageFactory;
         this.flagSecureSingleton = factory.createSingleton<boolean>(
           STORAGE_KEYS.FLAG_SECURE_ENABLED,
           true
@@ -60,25 +62,20 @@ export class GeneralSettingsService implements IGeneralSettingsService {
   }
 
   public saveStoredApiKey(key: string): void {
-    if (key.trim()) {
-      this.apiKeySingleton.save(key);
+    if (key && key.trim()) {
+      this.apiKeySingleton.save(key.trim());
     } else {
       this.apiKeySingleton.clear();
     }
   }
 
   public isFlagSecureEnabled(): boolean {
-    return this.flagSecureSingleton.load();
+    return this.flagSecureObservable.getSnapshot();
   }
 
   public setFlagSecureEnabled(enabled: boolean): void {
+    if (this.isFlagSecureEnabled() === enabled) return;
     this.flagSecureSingleton.save(enabled);
     this.flagSecureObservable.notify(enabled);
   }
 }
-
-
-
-
-
-

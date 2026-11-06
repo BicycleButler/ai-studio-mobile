@@ -4,11 +4,14 @@ import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 import { ILogger, DefaultLoggerFactory } from "../logger";
 
 import { ISerializer, JsonSerializer } from "./serializer";
-const defaultSerializer = new JsonSerializer();
 
 import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
 
-export function createDefaultStorageInstance(platformService: IPlatformService = new BrowserPlatformService()): Storage {
+const defaultSharedLogger = new DefaultLoggerFactory().createLogger();
+const defaultSharedPlatformService = new BrowserPlatformService();
+const defaultSharedSerializer = new JsonSerializer();
+
+export function createDefaultStorageInstance(platformService: IPlatformService = defaultSharedPlatformService): Storage {
   try {
     if (platformService.isBrowserEnv()) {
       const localStorage = platformService.getLocalStorage();
@@ -74,8 +77,8 @@ export function safeParseStorageItem<T>(
   fallback: T,
   storage: Storage,
   isArray: boolean,
-  logger: ILogger = new DefaultLoggerFactory().createLogger(),
-  serializer: ISerializer = defaultSerializer
+  logger: ILogger = defaultSharedLogger,
+  serializer: ISerializer = defaultSharedSerializer
 ): T {
   try {
     const parsed = serializer.deserialize(raw);
@@ -92,7 +95,7 @@ export function safeParseStorageItem<T>(
   }
 }
 
-export function safeGetStorage<T>(key: string, fallback: T, storageInstance: Storage, logger: ILogger = new DefaultLoggerFactory().createLogger(), serializer: ISerializer = defaultSerializer): T {
+export function safeGetStorage<T>(key: string, fallback: T, storageInstance: Storage, logger: ILogger = defaultSharedLogger, serializer: ISerializer = defaultSharedSerializer): T {
   try {
     const storage = storageInstance;
     const raw = storage.getItem(key);
@@ -105,7 +108,7 @@ export function safeGetStorage<T>(key: string, fallback: T, storageInstance: Sto
   }
 }
 
-export function safeGetStorageKeys(prefix: string, storageInstance: Storage, logger: ILogger = new DefaultLoggerFactory().createLogger()): string[] {
+export function safeGetStorageKeys(prefix: string, storageInstance: Storage, logger: ILogger = defaultSharedLogger): string[] {
   const keys: string[] = [];
   try {
     const storage = storageInstance;
@@ -122,7 +125,7 @@ export function safeGetStorageKeys(prefix: string, storageInstance: Storage, log
   return keys;
 }
 
-export function safeSetStorage<T>(key: string, value: T, storageInstance: Storage, logger: ILogger = new DefaultLoggerFactory().createLogger(), serializer: ISerializer = defaultSerializer): boolean {
+export function safeSetStorage<T>(key: string, value: T, storageInstance: Storage, logger: ILogger = defaultSharedLogger, serializer: ISerializer = defaultSharedSerializer): boolean {
   try {
     const serialized = serializer.serialize(value);
     return safeSetStorageString(key, serialized, storageInstance, logger);
@@ -141,7 +144,7 @@ export function safeGetStorageString(key: string, fallback: string = "", storage
   }
 }
 
-export function safeSetStorageString(key: string, value: string, storageInstance: Storage, logger: ILogger = new DefaultLoggerFactory().createLogger()): boolean {
+export function safeSetStorageString(key: string, value: string, storageInstance: Storage, logger: ILogger = defaultSharedLogger): boolean {
   try {
     const storage = storageInstance;
     storage.setItem(key, value);
@@ -152,7 +155,7 @@ export function safeSetStorageString(key: string, value: string, storageInstance
   }
 }
 
-export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance: Storage, logger: ILogger = new DefaultLoggerFactory().createLogger()): void {
+export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance: Storage, logger: ILogger = defaultSharedLogger): void {
   try {
     const storage = storageInstance;
     const keysToRemove = safeGetStorageKeys(prefix, storage, logger);
@@ -164,7 +167,7 @@ export function safeRemoveStorageKeysWithPrefix(prefix: string, storageInstance:
   }
 }
 
-export function safeRemoveStorage(key: string, storageInstance: Storage, logger: ILogger = new DefaultLoggerFactory().createLogger()): boolean {
+export function safeRemoveStorage(key: string, storageInstance: Storage, logger: ILogger = defaultSharedLogger): boolean {
   try {
     const storage = storageInstance;
     storage.removeItem(key);
@@ -176,7 +179,7 @@ export function safeRemoveStorage(key: string, storageInstance: Storage, logger:
 }
 
 export class DefaultStorageAdapter<T> implements IStorageAdapter<T> {
-  constructor(private storageInstance: Storage, private logger: ILogger = new DefaultLoggerFactory().createLogger(), private serializer: ISerializer = defaultSerializer) {}
+  constructor(private storageInstance: Storage, private logger: ILogger = defaultSharedLogger, private serializer: ISerializer = defaultSharedSerializer) {}
 
   get(key: string, fallback: T): T {
     return safeGetStorage(key, fallback, this.storageInstance, this.logger, this.serializer);

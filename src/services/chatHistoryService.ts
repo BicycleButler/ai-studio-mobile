@@ -1,4 +1,3 @@
-
 import { safeGetStorageKeys, STORAGE_KEYS, IStorageRegistry, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { ChatMessage, ChatSession } from "../types";
 import { IMutableCollection } from "../utils/storage/types";
@@ -6,6 +5,11 @@ import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { IPlatformService, BrowserPlatformService } from "./platformService";
 import { isMockSession } from "../utils/mockDefinitions";
 import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
+
+const defaultSharedStorageFactory = new DefaultStorageFactory();
+const defaultSharedLogger = new DefaultLoggerFactory().createLogger();
+const defaultSharedTimeProvider = new DefaultTimeProvider();
+const defaultSharedPlatformService = new BrowserPlatformService();
 
 export interface IChatHistoryService {
   getChatSessionsStorageKey(projectId?: string): string;
@@ -27,7 +31,7 @@ export interface ChatHistoryServiceConfig {
   platformService?: IPlatformService;
   quotaObservable?: import("../utils/eventEmitter").EventEmitter<void>;
   storageKeys?: typeof STORAGE_KEYS;
-  logger: ILogger;
+  logger?: ILogger;
   collectionRegistry?: IStorageRegistry<IMutableCollection<ChatSession>>;
   isBrowserEnv?: () => boolean;
   storageFactory?: IStorageFactory;
@@ -39,16 +43,16 @@ export class ChatHistoryService implements IChatHistoryService {
   private collectionRegistry: IStorageRegistry<IMutableCollection<ChatSession>>;
   private timeProvider: ITimeProvider;
 
-  constructor(config: ChatHistoryServiceConfig) {
-    this.timeProvider = config?.timeProvider || new DefaultTimeProvider();
-    const platformService = config?.platformService || new BrowserPlatformService();
-    const factory = config?.storageFactory || new DefaultStorageFactory();
+  constructor(config?: ChatHistoryServiceConfig) {
+    this.timeProvider = config?.timeProvider || defaultSharedTimeProvider;
+    const platformService = config?.platformService || defaultSharedPlatformService;
+    const factory = config?.storageFactory || defaultSharedStorageFactory;
 
     this.config = {
       storageFactory: factory,
       quotaObservable: config?.quotaObservable || platformService.getStorageQuotaObservable(),
       storageKeys: config?.storageKeys || STORAGE_KEYS,
-      logger: config?.logger || new DefaultLoggerFactory().createLogger(),
+      logger: config?.logger || defaultSharedLogger,
       timeProvider: this.timeProvider,
       platformService,
       isBrowserEnv: config?.isBrowserEnv || (() => platformService.isBrowserEnv()),
@@ -222,4 +226,3 @@ export class ChatHistoryService implements IChatHistoryService {
     return filtered.length !== itemsBefore;
   }
 }
-
