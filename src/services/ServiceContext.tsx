@@ -156,7 +156,7 @@ const explicitlyInjectedJulesStorageService = new JulesStorageService({
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
-    networkStatusProvider: new BrowserNetworkStatusProvider(),
+    networkStatusProvider: new BrowserNetworkStatusProvider(explicitlyInjectedPlatformService),
     retryStrategy: new DefaultOfflineRetryStrategy(),
     logger: explicitlyInjectedLogger,
     endpoint: "/api/jules/sessions"
@@ -191,7 +191,7 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
-    networkStatusProvider: new BrowserNetworkStatusProvider(),
+    networkStatusProvider: new BrowserNetworkStatusProvider(explicitlyInjectedPlatformService),
     retryStrategy: new DefaultOfflineRetryStrategy(),
     logger: explicitlyInjectedLogger,
     endpoint: "/api/prompts"
@@ -252,7 +252,7 @@ const defaultServices: IServices = {
   offlineService: explicitlyInjectedOfflineService,
   apiClient: explicitlyInjectedApiClient,
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
-  networkStatusProvider: new BrowserNetworkStatusProvider(),
+  networkStatusProvider: new BrowserNetworkStatusProvider(explicitlyInjectedPlatformService),
   chatHistoryService: new ChatHistoryService({ logger: explicitlyInjectedLogger, storageFactory: explicitlyInjectedStorageFactory }),
   projectService: explicitlyInjectedProjectService,
   savedPromptsService: explicitlyInjectedSavedPromptsService,
