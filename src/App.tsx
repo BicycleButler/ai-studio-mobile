@@ -64,7 +64,6 @@ export default function App() {
     setIsTemplateDrawerOpen,
     selectedTemplateIds,
     models,
-    googleUser,
     hasServerKey,
     customApiKey,
     hasApiKey,
@@ -308,7 +307,6 @@ export default function App() {
         onOpenSettings={handleOpenSettings}
         onOpenBottomNav={() => setShowBottomNav(true)}
         hasApiKey={promptType === "jules" ? Boolean(julesApiKey.trim()) : hasApiKey}
-        googleUser={googleUser}
         totalTokens={totalTokensEstimate}
         maxTokens={1_000_000}
         systemInstruction={config.systemInstruction}

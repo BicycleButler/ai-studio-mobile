@@ -6,7 +6,7 @@ import { ISyncEngine, SyncEngine } from "./syncEngine";
 import { IIdGenerator, DefaultIdGenerator } from "./idGenerator";
 import { ITimeProvider, DefaultTimeProvider } from "./timeProvider";
 import { ICrossTabNotifierFactory } from "./crossTabNotifier";
-import { IPlatformService, BrowserPlatformService } from "../services/platformService";
+import { IPlatformService } from "../services/platformService";
 
 export interface OfflineMutation {
   type: string;

@@ -1,6 +1,6 @@
-import { ILogger, DefaultLoggerFactory } from "../logger";
-import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
-import { ITimeProvider, DefaultTimeProvider } from "../timeProvider";
+import { ILogger } from "../logger";
+import { IPlatformService } from "../../services/platformService";
+import { ITimeProvider } from "../timeProvider";
 import { ISerializer } from "../storage/serializer/types";
 
 export interface ICrossTabNotifier {

@@ -1,6 +1,6 @@
 import { ICrossTabNotifier, CrossTabNotifierConfig } from "./types";
 import { ILogger, DefaultLoggerFactory } from "../logger";
-import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
+import { IPlatformService } from "../../services/platformService";
 
 export class BroadcastChannelNotifier implements ICrossTabNotifier {
   private channel: BroadcastChannel | null = null;

@@ -2,7 +2,7 @@ import { GoogleUser } from "../types";
 import { IGoogleAuthService } from "./googleAuth";
 import { IAuthService } from "./auth";
 import { IGeneralSettingsService } from "../utils/storage/general";
-import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { ILogger } from "../utils/logger";
 
 export interface IAppAuthManager {
   getGoogleUser(): GoogleUser | null;

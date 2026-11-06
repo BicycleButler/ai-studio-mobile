@@ -2,7 +2,7 @@ import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
 import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
 import { IApiClient } from "../utils/apiClient";
-import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { ILogger } from "../utils/logger";
 import { IClipboardService } from "./clipboardService";
 
 // Base string patterns for dynamic regex composition
