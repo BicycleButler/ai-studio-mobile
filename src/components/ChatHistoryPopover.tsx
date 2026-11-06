@@ -47,7 +47,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
       id="chat-window-history-popover"
       role="dialog"
       aria-label={isJulesMode ? "New task and history menu" : "New chat and history menu"}
-      className="absolute end-0 top-full mt-2 z-40 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover/98 border border-border shadow-xl overflow-hidden backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
+      className="absolute end-0 top-full mt-2 z-40 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover/98 shadow-xl overflow-hidden backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
     >
       {/* Arrow Indicator pointing up to Plus button */}
       <div className="absolute -top-1.5 end-3 w-3 h-3 rotate-45 bg-popover border-t border-s border-border pointer-events-none" />
@@ -70,7 +70,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
             {isJulesMode ? "Create a clean task workspace" : "Fresh conversation & clean context"}
           </div>
         </div>
-        <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:rtl:-translate-x-0.5 transition" />
+        <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:rtl:-translate-x-0.5 transition-[color,transform]" />
       </button>
 
       <div className="border-t border-border" />

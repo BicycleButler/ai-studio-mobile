@@ -221,7 +221,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                 className={`text-start p-3 rounded-xl border transition-colors relative cursor-pointer group ${
                   isSelected
                     ? "bg-primary/10 border-primary ring-1 ring-primary/30 text-foreground"
-                    : "bg-card border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:border-muted-foreground/30"
+                    : "bg-card border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:border-muted-foreground/30"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1 gap-1.5">
