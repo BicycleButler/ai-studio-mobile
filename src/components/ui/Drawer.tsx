@@ -63,10 +63,10 @@ export const Drawer: React.FC<DrawerProps> = ({
               transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }} // smooth, non-linear easing
               className={`pointer-events-auto bg-background flex flex-col ${
                 position === 'bottom'
-                  ? 'w-full max-w-lg border-t border-x border-border rounded-t-2xl shadow-2xl px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
+                  ? 'w-full max-w-lg border-t border-x border-border rounded-t-2xl shadow-xl px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]'
                   : position === 'right'
-                  ? 'w-full max-w-md h-full h-[100dvh] border-s border-border shadow-2xl'
-                  : 'w-full h-full h-[100dvh] border-none shadow-2xl' // full
+                  ? 'w-full max-w-md h-full h-[100dvh] border-s border-border shadow-xl'
+                  : 'w-full h-full h-[100dvh] border-none shadow-xl' // full
               } ${className}`}
             >
               {/* Header */}

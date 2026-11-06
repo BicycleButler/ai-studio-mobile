@@ -21,7 +21,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   if (isInstalled || isCapacitor) {
     if (variant === "card") {
       return (
-        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/40 border border-border text-muted-foreground text-xs font-medium">
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/40 text-muted-foreground text-xs font-medium">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>
             {isCapacitor
@@ -122,7 +122,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         <button
           type="button"
           onClick={handleInstallClick}
-          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition text-xs shrink-0 cursor-pointer"
+          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors text-xs shrink-0 cursor-pointer"
         >
           {isIOS ? "How to Install" : "Install"}
         </button>
@@ -149,7 +149,7 @@ const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose })
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-sm rounded-2xl bg-card border border-border p-5 shadow-2xl text-foreground">
+      <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl text-foreground">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             {isIOS ? (
@@ -164,7 +164,7 @@ const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose })
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center justify-center cursor-pointer"
+            className="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center cursor-pointer"
             aria-label="Close guide"
           >
             <X className="w-4 h-4" />
@@ -236,7 +236,7 @@ const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose })
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition cursor-pointer"
+          className="mt-4 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
         >
           Got It
         </button>

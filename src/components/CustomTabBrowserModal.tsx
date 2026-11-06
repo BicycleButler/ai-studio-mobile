@@ -128,7 +128,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.27, ease: [0.32, 0.72, 0, 1] }}
-            className="flex-1 flex flex-col max-w-xl w-full mx-auto bg-card border-x border-b border-border shadow-2xl overflow-hidden rounded-b-2xl sm:my-4 sm:rounded-2xl sm:border-t"
+            className="flex-1 flex flex-col max-w-xl w-full mx-auto bg-card border-x border-b border-border shadow-xl overflow-hidden rounded-b-2xl sm:my-4 sm:rounded-2xl sm:border-t"
           >
         {/* Chrome Custom Tab Top Toolbar */}
         <div className="bg-muted border-b border-border px-3 py-2 flex items-center justify-between gap-2 select-none">

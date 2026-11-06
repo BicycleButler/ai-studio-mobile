@@ -363,7 +363,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             return (
               <div
                 key={file.id}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-colors cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
                   isActive
                     ? "bg-primary/10 text-primary border-primary/30 font-semibold shadow-xs"
                     : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted border-border/50"
@@ -378,7 +378,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                       e.stopPropagation();
                       handleDeleteFile(file.id, file.name);
                     }}
-                    className="opacity-60 group-hover:opacity-100 p-0.5 hover:text-destructive transition-opacity cursor-pointer"
+                    className="opacity-60 group-hover:opacity-100 p-0.5 hover:text-destructive transition-colors-opacity cursor-pointer"
                     title="Delete scratchpad"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -673,7 +673,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
 
         {/* Mobile Collapsible Bottom-Sheet Console Drawer (sm:hidden) */}
         {activeView === "editor" && isConsoleDrawerOpen && (
-          <div className="sm:hidden absolute inset-x-0 bottom-0 max-h-[55%] flex flex-col bg-card/95 backdrop-blur-md border-t-2 border-primary shadow-2xl z-30 font-mono animate-in slide-in-from-bottom duration-200">
+          <div className="sm:hidden absolute inset-x-0 bottom-0 max-h-[55%] flex flex-col bg-card/95 backdrop-blur-md border-t-2 border-primary shadow-xl z-30 font-mono animate-in slide-in-from-bottom duration-200">
             {/* Drawer Drag Bar & Header */}
             <div className="flex items-center justify-between px-3 py-1.5 bg-muted/60 border-b border-border text-[11px] shrink-0">
               <div
