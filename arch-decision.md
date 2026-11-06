@@ -1356,3 +1356,31 @@ Update the configurations or function parameters to optionally accept `platformS
 
 **Decision:**
 Refactored `ServiceContext.tsx` to declare `explicitlyInjectedLogger`, `explicitlyInjectedTimeProvider`, and `explicitlyInjectedIdGenerator` strictly once at the top of the file, then cascaded these unified instances down to all injected configuration blocks. This enforces perfect strict singleton injection across the default production graph, reducing heap allocations and ensuring true uniformity.
+
+## Architectural Decision: Workspace Navigation Configuration Abstraction
+
+**Context:**
+The `BottomNavBar` component previously hardcoded an array of `WorkspaceItem` configurations (id, label, icon, tooltip) directly inside its render function. This violated the DRY principle, made the component overly long, and tangled the navigation data structure with the presentation logic.
+
+**Path 1: Extract Array Configuration and Interface (Data-driven Configuration)**
+Move the `WorkspaceItem` interface and the array of configurations (`WORKSPACE_NAV_CONFIG`) into a dedicated `WorkspaceNavConfig.ts` file. The `BottomNavBar` then iterates over this imported array. Adding or modifying a workspace navigation item only requires updating the data structure.
+
+**Path 2: Injectable Navigation Components via Provider**
+Use a React Context provider or dependency injection system to allow different parts of the application to dynamically register workspace navigation tabs.
+
+**Recommendation:**
+**Path 1 (Extract Array Configuration)** was implemented. It perfectly solves the boilerplate problem by abstracting the navigation logic into data without over-engineering an injection system. It adheres to the Open/Closed Principle and improves maintainability and reusability.
+
+## Architectural Decision: Settings Tab Resolution and Header Abstraction
+
+**Context:**
+`UnifiedSettingsModal` previously contained a hardcoded `resolveTab` function with inline string alias checks (e.g. mapping "auth" to "account") and a deeply nested ternary operator to derive the `activeTabTitle`. This logic was not reusable, bloated the component, and violated the Single Responsibility Principle.
+
+**Path 1: Extend Settings Configuration (Data-driven Routing)**
+Extend the existing `SettingsTabConfig` interface in `src/components/settings/SettingsTabsConfig.ts` to include `title` and `aliases`. Create a shared `resolveSettingsTab` utility function in the same file. `UnifiedSettingsModal` then uses this utility and accesses the title directly from the matched configuration object.
+
+**Path 2: React Router / Hooks Abstraction**
+Implement a dedicated routing hook (e.g. `useSettingsRouter`) to manage tab state, alias resolution, and title generation.
+
+**Recommendation:**
+**Path 1 (Extend Settings Configuration)** was implemented. It colocates all tab metadata (id, label, title, icon, aliases) in a single source of truth, eliminating inline switch statements and string matching within the modal. This drastically cleans up `UnifiedSettingsModal` and strictly adheres to the Open/Closed Principle for adding future tabs.
