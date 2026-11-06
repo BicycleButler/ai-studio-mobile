@@ -6,7 +6,7 @@ import { cleanMockData } from "./helpers";
 import { IApiClient } from "../apiClient";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { DefaultStorageFactory, IStorageFactory } from "./StorageFactory";
-import { ILogger, DefaultLoggerFactory } from "../logger";
+import { ILogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";

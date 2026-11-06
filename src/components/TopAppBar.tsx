@@ -10,9 +10,10 @@ import {
   Layers,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { PromptType, GoogleUser, ProjectInfo, JulesSession } from "../types";
+import { PromptType, ProjectInfo, JulesSession } from "../types";
 import { SettingsTab } from "../types";
 import { useTheme } from "../hooks/useTheme";
+import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { TokenCounterVisualization } from "./TokenCounterVisualization";
 import { useServices } from "../services/ServiceContext";
 import { PWAInstallButton } from "./PWAInstallButton";
@@ -26,7 +27,6 @@ export interface TopAppBarProps {
   onOpenSettings: (tab?: SettingsTab) => void;
   onOpenBottomNav: () => void;
   hasApiKey: boolean;
-  googleUser?: GoogleUser | null;
   totalTokens?: number;
   maxTokens?: number;
   systemInstruction?: string;
@@ -51,7 +51,6 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   onOpenSettings,
   onOpenBottomNav,
   hasApiKey,
-  googleUser = null,
   totalTokens = 0,
   maxTokens = 1_000_000,
   activeProjectName,
@@ -62,6 +61,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   selectedTemplateCount = 0,
 }) => {
   const { resolvedTheme } = useTheme();
+  const { user: googleUser } = useGoogleAuth();
   const { platformService } = useServices();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

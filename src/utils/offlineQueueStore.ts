@@ -4,7 +4,7 @@ import { ILogger, DefaultLoggerFactory } from "./logger";
 import { OfflineMutation } from "./offlineService";
 import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./crossTabNotifier";
 
-import { IPlatformService, BrowserPlatformService } from "../services/platformService";
+import { IPlatformService } from "../services/platformService";
 import { deepFreeze } from "./storage/helpers";
 import { AsyncStorage } from "./asyncStorage";
 
@@ -49,7 +49,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || new DefaultLoggerFactory().createLogger();
     const notifierFactory = config.crossTabNotifierFactory;
-    this.queueMutex = config.mutex || new Mutex(this.logger);
+    this.queueMutex = config.mutex || new Mutex(this.logger, config.platformService);
     try {
         this.notifier = notifierFactory.createCrossTabNotifier({ name: `${this.storageKey}_channel`, logger: this.logger, platformService: config.platformService });
         this.notifier.onMessage((message) => {

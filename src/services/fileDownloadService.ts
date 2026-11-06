@@ -1,4 +1,4 @@
-import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { ILogger } from "../utils/logger";
 import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 export interface IFileDownloadService {

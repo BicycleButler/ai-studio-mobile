@@ -88,6 +88,11 @@ export interface IServices {
 }
 
 
+
+
+const explicitlyInjectedLogger = new DefaultLoggerFactory().createLogger();
+const explicitlyInjectedIdGenerator = new DefaultIdGenerator();
+const explicitlyInjectedTimeProvider = new DefaultTimeProvider();
 const explicitlyInjectedPlatformService = new BrowserPlatformService();
 const explicitlyInjectedStorageInstance = createDefaultStorageInstance();
 const explicitlyInjectedStorageFactory = new DefaultStorageFactory(explicitlyInjectedStorageInstance);
@@ -104,13 +109,13 @@ const explicitlyInjectedApiClient = new ApiClient({
 const explicitlyInjectedOfflineService = new OfflineService({
   queueStore: new OfflineQueueStore({
     storageKey: 'ai_studio_offline_mutations',
-    storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], new DefaultLoggerFactory().createLogger()),
-    logger: new DefaultLoggerFactory().createLogger(),
+    storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], explicitlyInjectedLogger),
+    logger: explicitlyInjectedLogger,
     platformService: explicitlyInjectedPlatformService,
     crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
-    mutex: new Mutex(new DefaultLoggerFactory().createLogger(), explicitlyInjectedPlatformService),
+    mutex: new Mutex(explicitlyInjectedLogger, explicitlyInjectedPlatformService),
   }),
-  idGenerator: new DefaultIdGenerator()
+  idGenerator: explicitlyInjectedIdGenerator
 });
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
@@ -126,7 +131,7 @@ const explicitlyInjectedAuthService = new AuthService({
 
 const explicitlyInjectedGoogleAuthService = new GoogleAuthService({
   apiClient: explicitlyInjectedApiClient,
-  logger: new DefaultLoggerFactory().createLogger(),
+  logger: explicitlyInjectedLogger,
   storageFactory: explicitlyInjectedStorageFactory
 });
 
@@ -138,22 +143,22 @@ const explicitlyInjectedSpeechVoicesService = new SpeechVoicesService({
 
 const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
   apiClient: explicitlyInjectedApiClient,
-  logger: new DefaultLoggerFactory().createLogger()
+  logger: explicitlyInjectedLogger
 });
 
 
 const explicitlyInjectedJulesStorageService = new JulesStorageService({
-  logger: new DefaultLoggerFactory().createLogger(),
+  logger: explicitlyInjectedLogger,
   apiClient: explicitlyInjectedApiClient,
   julesSessionsManager: undefined,
   storageFactory: explicitlyInjectedStorageFactory,
-  idGenerator: new DefaultIdGenerator(),
+  idGenerator: explicitlyInjectedIdGenerator,
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: new BrowserNetworkStatusProvider(),
     retryStrategy: new DefaultOfflineRetryStrategy(),
-    logger: new DefaultLoggerFactory().createLogger(),
+    logger: explicitlyInjectedLogger,
     endpoint: "/api/jules/sessions"
   }),
 });
@@ -167,16 +172,16 @@ const explicitlyInjectedJulesClient = new JulesClient({
 const explicitlyInjectedJulesSessionOrchestrator = new JulesSessionOrchestrator({
   julesClient: explicitlyInjectedJulesClient,
   julesStorageService: explicitlyInjectedJulesStorageService,
-  timeProvider: new DefaultTimeProvider(),
-  idGenerator: new DefaultIdGenerator(),
-  logger: new DefaultLoggerFactory().createLogger(),
+  timeProvider: explicitlyInjectedTimeProvider,
+  idGenerator: explicitlyInjectedIdGenerator,
+  logger: explicitlyInjectedLogger,
 });
 
-const explicitlyInjectedStubsClient = new StubsClient({ apiClient: explicitlyInjectedApiClient, logger: new DefaultLoggerFactory().createLogger() });
+const explicitlyInjectedStubsClient = new StubsClient({ apiClient: explicitlyInjectedApiClient, logger: explicitlyInjectedLogger });
 
 const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
   apiClient: explicitlyInjectedApiClient,
-  logger: new DefaultLoggerFactory().createLogger()
+  logger: explicitlyInjectedLogger
 });
 
 
@@ -188,7 +193,7 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: new BrowserNetworkStatusProvider(),
     retryStrategy: new DefaultOfflineRetryStrategy(),
-    logger: new DefaultLoggerFactory().createLogger(),
+    logger: explicitlyInjectedLogger,
     endpoint: "/api/prompts"
   }),
 });
@@ -201,7 +206,7 @@ const explicitlyInjectedAppAuthManager = new AppAuthManager({
   googleAuthService: explicitlyInjectedGoogleAuthService,
   authService: explicitlyInjectedAuthService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
-  logger: new DefaultLoggerFactory().createLogger()
+  logger: explicitlyInjectedLogger
 });
 
 const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
@@ -211,19 +216,19 @@ const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
 
 const explicitlyInjectedProjectService = new ProjectService({
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
-  idGenerator: new DefaultIdGenerator()
+  idGenerator: explicitlyInjectedIdGenerator
 });
 
-const explicitlyInjectedDraftStateService = new DraftStateService({ logger: new DefaultLoggerFactory().createLogger(), storageFactory: explicitlyInjectedStorageFactory });
+const explicitlyInjectedDraftStateService = new DraftStateService({ logger: explicitlyInjectedLogger, storageFactory: explicitlyInjectedStorageFactory });
 
 const explicitlyInjectedImageCompressor = new ImageCompressor({
-  strategy: new CanvasImageCompressionStrategy({ idGenerator: new DefaultIdGenerator() })
+  strategy: new CanvasImageCompressionStrategy({ idGenerator: explicitlyInjectedIdGenerator })
 });
 
 const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
   builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
   storageFactory: explicitlyInjectedStorageFactory,
-  idGenerator: new DefaultIdGenerator()
+  idGenerator: explicitlyInjectedIdGenerator
 });
 
 const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
@@ -235,8 +240,8 @@ const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
   ]
 });
 
-const explicitlyInjectedClipboardService = new BrowserClipboardService(new DefaultLoggerFactory().createLogger(), explicitlyInjectedPlatformService);
-const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(new DefaultLoggerFactory().createLogger());
+const explicitlyInjectedClipboardService = new BrowserClipboardService(explicitlyInjectedLogger, explicitlyInjectedPlatformService);
+const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(explicitlyInjectedLogger);
 
 const defaultServices: IServices = {
   themeService: new ThemeService({ storageFactory: explicitlyInjectedStorageFactory }),
@@ -248,7 +253,7 @@ const defaultServices: IServices = {
   apiClient: explicitlyInjectedApiClient,
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
   networkStatusProvider: new BrowserNetworkStatusProvider(),
-  chatHistoryService: new ChatHistoryService({ logger: new DefaultLoggerFactory().createLogger(), storageFactory: explicitlyInjectedStorageFactory }),
+  chatHistoryService: new ChatHistoryService({ logger: explicitlyInjectedLogger, storageFactory: explicitlyInjectedStorageFactory }),
   projectService: explicitlyInjectedProjectService,
   savedPromptsService: explicitlyInjectedSavedPromptsService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
@@ -266,13 +271,13 @@ const defaultServices: IServices = {
   codeGeneratorService: explicitlyInjectedCodeGeneratorService,
   pwaInstallService: new PwaInstallService({ platformService: explicitlyInjectedPlatformService }),
   windowSecurityService: explicitlyInjectedWindowSecurityService,
-  logger: new DefaultLoggerFactory().createLogger(),
+  logger: explicitlyInjectedLogger,
   imageCompressor: explicitlyInjectedImageCompressor,
   clipboardService: explicitlyInjectedClipboardService,
   fileDownloadService: explicitlyInjectedFileDownloadService,
   platformService: explicitlyInjectedPlatformService,
-  timeProvider: new DefaultTimeProvider(),
-  idGenerator: new DefaultIdGenerator(),
+  timeProvider: explicitlyInjectedTimeProvider,
+  idGenerator: explicitlyInjectedIdGenerator,
 };
 
 

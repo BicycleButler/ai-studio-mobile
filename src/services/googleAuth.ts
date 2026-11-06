@@ -5,7 +5,7 @@ import { IMutableSingleton } from "../utils/storage/types";
 import { IApiClient } from "../utils/apiClient";
 
 import { IAuthProvider } from "./authProvider";
-import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { ILogger } from "../utils/logger";
 import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 export interface GoogleAuthServiceConfig {

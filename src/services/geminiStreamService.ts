@@ -1,7 +1,7 @@
 import { GenerateRequestBody } from "../types";
 import { IApiClient, BaseApiError, isAbortError } from "../utils/apiClient";
 import { SSEStreamParser, ISSEStreamParser, SSEEventCallback } from "../utils/sseParser";
-import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { ILogger } from "../utils/logger";
 import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 

@@ -2,7 +2,7 @@ import { IOfflineService } from "../offlineService";
 import { IApiClient } from "../apiClient";
 import { INetworkStatusProvider } from "../networkStatus";
 import { IOfflineRetryStrategy } from "./offlineRetryStrategy";
-import { ILogger, DefaultLoggerFactory } from "../logger";
+import { ILogger } from "../logger";
 
 export interface IStorageSyncAdapter<T> {
   syncItem(item: T, mutationType: string, endpoint?: string, method?: string): void;

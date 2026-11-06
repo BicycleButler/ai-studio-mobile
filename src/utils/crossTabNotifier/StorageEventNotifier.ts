@@ -1,7 +1,7 @@
 import { ITimeProvider, DefaultTimeProvider } from "../timeProvider";
 import { ICrossTabNotifier, CrossTabNotifierConfig } from "./types";
 import { ILogger, DefaultLoggerFactory } from "../logger";
-import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
+import { IPlatformService } from "../../services/platformService";
 import { JsonSerializer } from "../storage/serializer/JsonSerializer";
 import { ISerializer } from "../storage/serializer/types";
 

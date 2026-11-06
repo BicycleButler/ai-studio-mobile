@@ -1,5 +1,5 @@
 import { IApiClient } from "../utils/apiClient";
-import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { ILogger } from "../utils/logger";
 import { createDefaultStorageInstance, DefaultStorageFactory } from "../utils/storage";
 import { ProjectService } from '../utils/storage/projects';
 import { GeneralSettingsService } from '../utils/storage/general';

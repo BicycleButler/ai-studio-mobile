@@ -1348,3 +1348,11 @@ Update the configurations or function parameters to optionally accept `platformS
 
 **Recommendation:**
 **Path 2 (Constructor-level / Parameter-level Injection with Default Fallbacks)** was implemented. It brings the utilities and services into compliance with the established "Hybrid Dependency Injection" pattern. It enables strict overriding of platform behavior for isolated unit tests without requiring a massive refactoring of every downstream consumer that currently relies on the zero-argument initialization behavior.
+
+## Architectural Decision: ServiceContext Global Factory Abstraction
+
+**Context:**
+`src/services/ServiceContext.tsx` historically explicitly instantiated multiple fallback classes inline across its initialization code (like `new DefaultLoggerFactory().createLogger()`, `new DefaultIdGenerator()`, `new DefaultTimeProvider()`). This resulted in the creation of many disjointed instances across default configuration boundaries, violating DRY and fragmenting the provider singletons.
+
+**Decision:**
+Refactored `ServiceContext.tsx` to declare `explicitlyInjectedLogger`, `explicitlyInjectedTimeProvider`, and `explicitlyInjectedIdGenerator` strictly once at the top of the file, then cascaded these unified instances down to all injected configuration blocks. This enforces perfect strict singleton injection across the default production graph, reducing heap allocations and ensuring true uniformity.
