@@ -1,4 +1,4 @@
-import { defaultPlatformService, IPlatformService } from "../services/platformService";
+import { IPlatformService, BrowserPlatformService } from "../services/platformService";
 
 export interface IUrlBuilder {
   build(
@@ -8,7 +8,7 @@ export interface IUrlBuilder {
 }
 
 export class DefaultUrlBuilder implements IUrlBuilder {
-  constructor(private platformService: IPlatformService = defaultPlatformService) {}
+  constructor(private platformService: IPlatformService = new BrowserPlatformService()) {}
 
   public build(
     endpoint: string,
@@ -48,7 +48,7 @@ export class DefaultUrlBuilder implements IUrlBuilder {
 export function buildUrlWithParams(
   endpoint: string,
   queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>,
-  platformService: IPlatformService = defaultPlatformService
+  platformService: IPlatformService = new BrowserPlatformService()
 ): string {
   return new DefaultUrlBuilder(platformService).build(endpoint, queryParams);
 }

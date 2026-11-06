@@ -2,10 +2,10 @@
 import { safeGetStorageKeys, STORAGE_KEYS, IStorageRegistry, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { ChatMessage, ChatSession } from "../types";
 import { IMutableCollection } from "../utils/storage/types";
-import { ILogger, defaultLogger } from "../utils/logger";
-import { IPlatformService, defaultPlatformService } from "./platformService";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 import { isMockSession } from "../utils/mockDefinitions";
-import { ITimeProvider, defaultTimeProvider } from "../utils/timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
 
 export interface IChatHistoryService {
   getChatSessionsStorageKey(projectId?: string): string;
@@ -40,16 +40,17 @@ export class ChatHistoryService implements IChatHistoryService {
   private timeProvider: ITimeProvider;
 
   constructor(config: ChatHistoryServiceConfig) {
-    this.timeProvider = config?.timeProvider || defaultTimeProvider;
-    const platformService = config?.platformService || defaultPlatformService;
+    this.timeProvider = config?.timeProvider || new DefaultTimeProvider();
+    const platformService = config?.platformService || new BrowserPlatformService();
     const factory = config?.storageFactory || new DefaultStorageFactory();
 
     this.config = {
       storageFactory: factory,
       quotaObservable: config?.quotaObservable || platformService.getStorageQuotaObservable(),
       storageKeys: config?.storageKeys || STORAGE_KEYS,
-      logger: config?.logger || defaultLogger,
+      logger: config?.logger || new DefaultLoggerFactory().createLogger(),
       timeProvider: this.timeProvider,
+      platformService,
       isBrowserEnv: config?.isBrowserEnv || (() => platformService.isBrowserEnv()),
       collectionRegistry: config?.collectionRegistry || factory.createRegistry<IMutableCollection<ChatSession>>((key) => {
         return factory.createCollection<ChatSession>(key, {

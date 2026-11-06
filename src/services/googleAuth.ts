@@ -1,12 +1,12 @@
-import { defaultTimeProvider, ITimeProvider } from "../utils/timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
 import { GoogleUser } from "../types";
 import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableSingleton } from "../utils/storage/types";
 import { IApiClient } from "../utils/apiClient";
 
 import { IAuthProvider } from "./authProvider";
-import { ILogger } from "../utils/logger";
-import { defaultPlatformService, IPlatformService } from "./platformService";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 export interface GoogleAuthServiceConfig {
   apiClient: IApiClient;
@@ -60,7 +60,7 @@ export class GoogleAuthService implements IGoogleAuthService {
     this.apiClient = config.apiClient;
     this.currentAuthProvider = config?.authProvider || null;
     this.logger = config.logger;
-    this.timeProvider = config.timeProvider || defaultTimeProvider;
+    this.timeProvider = config.timeProvider || new DefaultTimeProvider();
 
     if (config?.storageSingleton) {
         this.googleUserSingleton = config.storageSingleton;
@@ -71,7 +71,7 @@ export class GoogleAuthService implements IGoogleAuthService {
           null
         );
     }
-    this.platformService = config?.platformService || defaultPlatformService;
+    this.platformService = config?.platformService || new BrowserPlatformService();
     this.isBrowserEnv = config?.isBrowserEnv || (() => this.platformService.isBrowserEnv());
 
   }

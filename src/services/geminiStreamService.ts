@@ -1,8 +1,8 @@
 import { GenerateRequestBody } from "../types";
 import { IApiClient, BaseApiError, isAbortError } from "../utils/apiClient";
 import { SSEStreamParser, ISSEStreamParser, SSEEventCallback } from "../utils/sseParser";
-import { ILogger } from "../utils/logger";
-import { IPlatformService, defaultPlatformService } from "./platformService";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 
 export interface StreamCallbacks {
@@ -114,7 +114,7 @@ export class GeminiStreamService implements IGeminiStreamService {
     this.apiClient = config.apiClient;
     this.logger = config.logger;
     this.createSSEStreamParser = config.createSSEStreamParser || ((onEvent) => new SSEStreamParser(onEvent));
-    this.platformService = config.platformService || defaultPlatformService;
+    this.platformService = config.platformService || new BrowserPlatformService();
   }
 
   public sanitizeLogMessage(message: string): string {

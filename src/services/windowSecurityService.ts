@@ -1,6 +1,6 @@
 import { Observable, IObservable } from "../utils/observable";
 import { IGeneralSettingsService } from "../utils/storage/general";
-import { defaultPlatformService, IPlatformService } from "./platformService";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 export interface ShieldState {
   isShieldActive: boolean;
@@ -27,7 +27,7 @@ export class WindowSecurityService implements IWindowSecurityService {
 
   constructor(config: WindowSecurityServiceConfig) {
     this.generalSettingsService = config.generalSettingsService;
-    this.platformService = config.platformService || defaultPlatformService;
+    this.platformService = config.platformService || new BrowserPlatformService();
 
     this.shieldStore = new Observable<ShieldState>({ isShieldActive: false });
     this.flagSecureEnabled = this.generalSettingsService.flagSecureObservable.getSnapshot() || false;

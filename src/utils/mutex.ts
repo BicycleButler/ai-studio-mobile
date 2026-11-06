@@ -1,5 +1,5 @@
-import { ILogger, defaultLogger } from "./logger";
-import { IPlatformService, defaultPlatformService } from "../services/platformService";
+import { ILogger, DefaultLoggerFactory } from "./logger";
+import { IPlatformService, BrowserPlatformService } from "../services/platformService";
 
 export interface IMutex {
   acquire(timeoutMs?: number): Promise<() => void>;
@@ -11,7 +11,7 @@ export class Mutex implements IMutex {
   private logger: ILogger;
   private platformService: IPlatformService;
 
-  constructor(logger: ILogger = defaultLogger, platformService: IPlatformService = defaultPlatformService) {
+  constructor(logger: ILogger = new DefaultLoggerFactory().createLogger(), platformService: IPlatformService = new BrowserPlatformService()) {
     this.logger = logger;
     this.platformService = platformService;
   }

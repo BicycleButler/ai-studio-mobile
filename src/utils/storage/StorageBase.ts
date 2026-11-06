@@ -1,7 +1,7 @@
 
 import { IStorageAdapter, IStorageBase } from "./types";
 import { Observable } from "../observable";
-import { ILogger, defaultLogger } from "../logger";
+import { ILogger, DefaultLoggerFactory } from "../logger";
 import { deepFreeze } from "./helpers";
 import { IEventEmitter } from "../eventEmitter";
 import { ISerializer } from "./serializer";
@@ -32,7 +32,7 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
     super(options.fallback);
     this.key = key;
     this.options = options;
-    this.logger = options.logger || defaultLogger;
+    this.logger = options.logger || new DefaultLoggerFactory().createLogger();
     if (!options.adapter) {
       throw new Error("IStorageAdapter is required for StorageBase");
     }

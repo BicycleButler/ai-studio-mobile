@@ -1,4 +1,4 @@
-import { ILogger, defaultLogger } from "./logger";
+import { ILogger, DefaultLoggerFactory } from "./logger";
 import { OfflineMutation, ConflictData, SyncHandler } from "./offlineService";
 
 export interface IQueueProcessingStrategy {
@@ -13,7 +13,7 @@ export class StrictFifoQueueProcessingStrategy implements IQueueProcessingStrate
   async process(
     queue: OfflineMutation[],
     syncRegistry: Record<string, SyncHandler>,
-    logger: ILogger = defaultLogger
+    logger: ILogger = new DefaultLoggerFactory().createLogger()
   ): Promise<{ success: boolean; conflicts: ConflictData[]; successfulIds: string[] }> {
     if (queue.length === 0) {
       return { success: true, conflicts: [], successfulIds: [] };

@@ -1,12 +1,12 @@
 import { ProjectInfo } from "../../types";
-import { IIdGenerator, defaultIdGenerator } from "../idGenerator";
+import { IIdGenerator, DefaultIdGenerator } from "../idGenerator";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { IGeneralSettingsService } from "./general";
 import { IActiveItemManager } from "./ActiveItemManager";
-import { ITimeProvider, defaultTimeProvider } from "../timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "../timeProvider";
 
 export interface IProjectService {
   projectsManager: IActiveItemManager<ProjectInfo>;
@@ -37,8 +37,8 @@ export class ProjectService implements IProjectService {
   private idGenerator: IIdGenerator;
 
   constructor(config: ProjectServiceConfig) {
-    this.timeProvider = config?.timeProvider || defaultTimeProvider;
-    this.idGenerator = config?.idGenerator || defaultIdGenerator;
+    this.timeProvider = config?.timeProvider || new DefaultTimeProvider();
+    this.idGenerator = config?.idGenerator || new DefaultIdGenerator();
     const factory = config?.storageFactory || new DefaultStorageFactory();
     this.projectsManager = config?.projectsManager || createActiveItemManager<ProjectInfo>({
       storageFactory: factory,

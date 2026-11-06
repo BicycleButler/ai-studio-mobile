@@ -6,12 +6,12 @@ import { cleanMockData } from "./helpers";
 import { IApiClient } from "../apiClient";
 import { createActiveItemManager } from "./ActiveItemManagerFactory";
 import { DefaultStorageFactory, IStorageFactory } from "./StorageFactory";
-import { ILogger } from "../logger";
+import { ILogger, DefaultLoggerFactory } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
-import { IIdGenerator, defaultIdGenerator } from "../idGenerator";
-import { ITimeProvider, defaultTimeProvider } from "../timeProvider";
+import { IIdGenerator, DefaultIdGenerator } from "../idGenerator";
+import { ITimeProvider, DefaultTimeProvider } from "../timeProvider";
 
 export interface IJulesStorageService {
   julesSessionsManager: IActiveItemManager<JulesSession>;
@@ -62,8 +62,8 @@ export class JulesStorageService implements IJulesStorageService {
   constructor(config: JulesStorageServiceConfig) {
     this.logger = config.logger;
     this.apiClient = config.apiClient;
-    this.idGenerator = config.idGenerator || defaultIdGenerator;
-    this.timeProvider = config.timeProvider || defaultTimeProvider;
+    this.idGenerator = config.idGenerator || new DefaultIdGenerator();
+    this.timeProvider = config.timeProvider || new DefaultTimeProvider();
 
     const factory = config.storageFactory || new DefaultStorageFactory();
     this.julesApiKeySingleton = config?.julesApiKeySingleton || factory.createSingleton<string>(

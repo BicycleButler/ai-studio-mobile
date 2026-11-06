@@ -1,4 +1,4 @@
-import { defaultLogger } from "./logger";
+import { DefaultLoggerFactory } from "./logger";
 
 import { describe, test, expect } from 'vitest';
 import { safeGetStorage, safeSetStorage, createDefaultStorageInstance } from "./storage/core";
@@ -17,7 +17,7 @@ describe('storage', () => {
     expect(fetched.valid).toBe(true);
 
     // Test draft state initialization
-    const draftStateService = new DraftStateService({ logger: defaultLogger });
+    const draftStateService = new DraftStateService({ logger: new DefaultLoggerFactory().createLogger() });
     const draft = draftStateService.loadDraftState();
     expect(draft.config).toBeTruthy();
     expect(draft.promptType).toBeTruthy();

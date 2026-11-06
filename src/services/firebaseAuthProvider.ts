@@ -11,8 +11,8 @@ import {
 } from "firebase/auth";
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import firebaseConfig from "../../firebase-applet-config.json";
-import { ILogger, defaultLogger } from "../utils/logger";
-import { defaultPlatformService, IPlatformService } from "./platformService";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 export class FirebaseAuthProvider implements IAuthProvider {
   private firebaseAppInstance: FirebaseApp | null = null;
@@ -22,8 +22,8 @@ export class FirebaseAuthProvider implements IAuthProvider {
   private platformService: IPlatformService;
 
   constructor(
-    logger: ILogger = defaultLogger,
-    platformService: IPlatformService = defaultPlatformService
+    logger: ILogger = new DefaultLoggerFactory().createLogger(),
+    platformService: IPlatformService = new BrowserPlatformService()
   ) {
     this.logger = logger;
     this.platformService = platformService;

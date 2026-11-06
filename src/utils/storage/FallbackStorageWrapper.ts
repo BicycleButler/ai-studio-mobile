@@ -1,7 +1,7 @@
 import { MemoryStorage } from "./core";
-import { IPlatformService, defaultPlatformService } from "../../services/platformService";
+import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
 import { EventEmitter } from "../eventEmitter";
-import { ILogger, defaultLogger } from "../logger";
+import { ILogger, DefaultLoggerFactory } from "../logger";
 
 export class FallbackStorageWrapper implements Storage {
   private activeStorage: Storage;
@@ -11,7 +11,7 @@ export class FallbackStorageWrapper implements Storage {
   private logger: ILogger;
   private platformService: IPlatformService;
 
-  constructor(primaryStorage: Storage, logger: ILogger = defaultLogger, platformService: IPlatformService = defaultPlatformService) {
+  constructor(primaryStorage: Storage, logger: ILogger = new DefaultLoggerFactory().createLogger(), platformService: IPlatformService = new BrowserPlatformService()) {
     this.platformService = platformService;
     this.logger = logger;
     this.activeStorage = primaryStorage;

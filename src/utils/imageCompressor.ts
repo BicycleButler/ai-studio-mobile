@@ -1,6 +1,6 @@
 import { MessageAttachment } from "../types";
-import { IIdGenerator, defaultIdGenerator } from "./idGenerator";
-import { IPlatformService, defaultPlatformService } from "../services/platformService";
+import { IIdGenerator, DefaultIdGenerator } from "./idGenerator";
+import { IPlatformService, BrowserPlatformService } from "../services/platformService";
 
 export interface CompressionOptions {
   maxDimension?: number;
@@ -39,8 +39,8 @@ export class CanvasImageCompressionStrategy implements IImageCompressionStrategy
   private idGenerator: IIdGenerator;
 
   constructor(config?: CanvasImageCompressionStrategyConfig) {
-    this.platformService = config?.platformService || defaultPlatformService;
-    this.idGenerator = config?.idGenerator || defaultIdGenerator;
+    this.platformService = config?.platformService || new BrowserPlatformService();
+    this.idGenerator = config?.idGenerator || new DefaultIdGenerator();
   }
   private isWebPSupported(): boolean {
     const canvas = this.platformService.createElement("canvas");

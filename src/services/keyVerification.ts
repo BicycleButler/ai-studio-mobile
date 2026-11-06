@@ -1,8 +1,8 @@
-import { defaultTimeProvider, ITimeProvider } from "../utils/timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
 import { getErrorMessage } from "../utils/errorHandling";
 import { KeyVerificationResult } from "../types";
 import { IApiClient } from "../utils/apiClient";
-import { ILogger } from "../utils/logger";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { IClipboardService } from "./clipboardService";
 
 // Base string patterns for dynamic regex composition
@@ -67,7 +67,7 @@ export class KeyVerificationService implements IKeyVerificationService {
     this.apiClient = config.apiClient;
     this.logger = config.logger;
     this.clipboardService = config.clipboardService;
-    this.timeProvider = config.timeProvider || defaultTimeProvider;
+    this.timeProvider = config.timeProvider || new DefaultTimeProvider();
   }
 
   public isValidJulesApiKeyFormat(key: string): boolean {

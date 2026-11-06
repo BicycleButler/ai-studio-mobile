@@ -1,4 +1,4 @@
-import { defaultTimeProvider } from "../utils/timeProvider";
+import { DefaultTimeProvider } from "../utils/timeProvider";
 import { SavedPrompt } from "../types";
 
 export const DEFAULT_CONFIG = {
@@ -12,7 +12,7 @@ export const DEFAULT_CONFIG = {
   responseSchemaText: "",
 };
 
-export const getStarterTemplates = (timeProvider = defaultTimeProvider): SavedPrompt[] => [
+export const getStarterTemplates = (timeProvider = new DefaultTimeProvider()): SavedPrompt[] => [
   {
     id: "template-chat-code",
     title: "Full-Stack Code Assistant",

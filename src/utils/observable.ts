@@ -1,4 +1,4 @@
-import { ILogger, defaultLogger } from "./logger";
+import { ILogger, DefaultLoggerFactory } from "./logger";
 
 export type Listener<T> = (state: T) => void;
 
@@ -19,7 +19,7 @@ export class Observable<T> implements IObservable<T> {
   protected currentState: T;
   private isNotificationPending = false;
 
-  constructor(initialState: T, logger: ILogger = defaultLogger) {
+  constructor(initialState: T, logger: ILogger = new DefaultLoggerFactory().createLogger()) {
     this.logger = logger;
     this.currentState = initialState;
   }

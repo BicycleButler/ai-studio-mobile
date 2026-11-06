@@ -1,7 +1,7 @@
-import { defaultTimeProvider, ITimeProvider } from "../timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "../timeProvider";
 import { ICrossTabNotifier, CrossTabNotifierConfig } from "./types";
-import { ILogger, defaultLogger } from "../logger";
-import { IPlatformService } from "../../services/platformService";
+import { ILogger, DefaultLoggerFactory } from "../logger";
+import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
 import { JsonSerializer } from "../storage/serializer/JsonSerializer";
 import { ISerializer } from "../storage/serializer/types";
 
@@ -19,10 +19,10 @@ export class StorageEventNotifier implements ICrossTabNotifier {
 
   constructor(config: CrossTabNotifierConfig) {
     this.key = `_sync_notify_${config.name}`;
-    this.logger = config.logger || defaultLogger;
+    this.logger = config.logger || new DefaultLoggerFactory().createLogger();
     if (!config.platformService) throw new Error("platformService is required");
     this.platformService = config.platformService;
-    this.timeProvider = config.timeProvider || defaultTimeProvider;
+    this.timeProvider = config.timeProvider || new DefaultTimeProvider();
     this.serializer = config.serializer || new JsonSerializer();
     this.boundListener = this.handleStorageEvent.bind(this);
   }

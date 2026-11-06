@@ -1,5 +1,5 @@
 import { get, set } from "idb-keyval";
-import { ILogger, defaultLogger } from "./logger";
+import { ILogger, DefaultLoggerFactory } from "./logger";
 
 export interface AsyncStorage {
   getItem<T>(key: string): Promise<T | undefined>;
@@ -44,7 +44,7 @@ export class FallbackAsyncStorage implements AsyncStorage {
   private adapters: AsyncStorage[];
   private logger: ILogger;
 
-  constructor(adapters: AsyncStorage[], logger: ILogger = defaultLogger) {
+  constructor(adapters: AsyncStorage[], logger: ILogger = new DefaultLoggerFactory().createLogger()) {
     this.adapters = adapters;
     this.logger = logger;
   }

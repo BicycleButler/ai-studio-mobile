@@ -1,5 +1,5 @@
 import { Observable, IObservable } from "../utils/observable";
-import { IPlatformService, defaultPlatformService } from "./platformService";
+import { IPlatformService, BrowserPlatformService } from "./platformService";
 
 export interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -32,7 +32,7 @@ export class PwaInstallService implements IPwaInstallService {
   private platformService: IPlatformService;
 
   constructor(config?: PwaInstallServiceConfig) {
-    this.platformService = config?.platformService || defaultPlatformService;
+    this.platformService = config?.platformService || new BrowserPlatformService();
 
     const caps = this.platformService.getPlatformCaps();
     this.stateObservable = new Observable<PWAInstallState>({

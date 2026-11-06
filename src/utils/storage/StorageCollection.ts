@@ -2,7 +2,7 @@
 import { StorageBase, StorageBaseOptions } from "./StorageBase";
 import { IMutableCollection, ICollectionEngine, IStorageAdapter } from "./types";
 import { IEventEmitter } from "../eventEmitter";
-import { ILogger, defaultLogger } from "../logger";
+import { ILogger, DefaultLoggerFactory } from "../logger";
 import { ISerializer } from "./serializer";
 
 export interface StorageCollectionOptions<T> {
@@ -36,7 +36,7 @@ export class StorageCollection<T> extends StorageBase<T[]> implements IMutableCo
       return processed;
     };
 
-    const logger = options?.logger || defaultLogger;
+    const logger = options?.logger || new DefaultLoggerFactory().createLogger();
     const arrayTransformOut = (options?.transformOut || options?.validate)
       ? (items: T[]) => {
           const result: T[] = [];

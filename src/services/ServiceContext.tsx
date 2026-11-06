@@ -11,10 +11,10 @@ import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
 import { createDefaultStorageInstance, DefaultStorageFactory } from "../utils/storage";
 import { DefaultCrossTabNotifierFactory } from "../utils/crossTabNotifier/CrossTabNotifierFactory";
-import { defaultLogger, ILogger } from "../utils/logger";
-import { IIdGenerator, defaultIdGenerator } from "../utils/idGenerator";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
+import { IIdGenerator, DefaultIdGenerator } from "../utils/idGenerator";
 
-import { ITimeProvider, defaultTimeProvider } from "../utils/timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
 import { IThemeService, ThemeService } from "./themeService";
 import { IPromptTemplateService, PromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
 import { IAuthService, AuthService } from "./auth";
@@ -104,13 +104,13 @@ const explicitlyInjectedApiClient = new ApiClient({
 const explicitlyInjectedOfflineService = new OfflineService({
   queueStore: new OfflineQueueStore({
     storageKey: 'ai_studio_offline_mutations',
-    storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], defaultLogger),
-    logger: defaultLogger,
+    storageAdapter: new FallbackAsyncStorage([new IndexedDbAsyncStorage(), new MemoryAsyncStorage()], new DefaultLoggerFactory().createLogger()),
+    logger: new DefaultLoggerFactory().createLogger(),
     platformService: explicitlyInjectedPlatformService,
     crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
-    mutex: new Mutex(defaultLogger, explicitlyInjectedPlatformService),
+    mutex: new Mutex(new DefaultLoggerFactory().createLogger(), explicitlyInjectedPlatformService),
   }),
-  idGenerator: defaultIdGenerator
+  idGenerator: new DefaultIdGenerator()
 });
 
 const explicitlyInjectedSyncOrchestrator = new SyncOrchestrator(
@@ -126,7 +126,7 @@ const explicitlyInjectedAuthService = new AuthService({
 
 const explicitlyInjectedGoogleAuthService = new GoogleAuthService({
   apiClient: explicitlyInjectedApiClient,
-  logger: defaultLogger,
+  logger: new DefaultLoggerFactory().createLogger(),
   storageFactory: explicitlyInjectedStorageFactory
 });
 
@@ -138,22 +138,22 @@ const explicitlyInjectedSpeechVoicesService = new SpeechVoicesService({
 
 const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
   apiClient: explicitlyInjectedApiClient,
-  logger: defaultLogger
+  logger: new DefaultLoggerFactory().createLogger()
 });
 
 
 const explicitlyInjectedJulesStorageService = new JulesStorageService({
-  logger: defaultLogger,
+  logger: new DefaultLoggerFactory().createLogger(),
   apiClient: explicitlyInjectedApiClient,
   julesSessionsManager: undefined,
   storageFactory: explicitlyInjectedStorageFactory,
-  idGenerator: defaultIdGenerator,
+  idGenerator: new DefaultIdGenerator(),
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: new BrowserNetworkStatusProvider(),
     retryStrategy: new DefaultOfflineRetryStrategy(),
-    logger: defaultLogger,
+    logger: new DefaultLoggerFactory().createLogger(),
     endpoint: "/api/jules/sessions"
   }),
 });
@@ -167,16 +167,16 @@ const explicitlyInjectedJulesClient = new JulesClient({
 const explicitlyInjectedJulesSessionOrchestrator = new JulesSessionOrchestrator({
   julesClient: explicitlyInjectedJulesClient,
   julesStorageService: explicitlyInjectedJulesStorageService,
-  timeProvider: defaultTimeProvider,
-  idGenerator: defaultIdGenerator,
-  logger: defaultLogger,
+  timeProvider: new DefaultTimeProvider(),
+  idGenerator: new DefaultIdGenerator(),
+  logger: new DefaultLoggerFactory().createLogger(),
 });
 
-const explicitlyInjectedStubsClient = new StubsClient({ apiClient: explicitlyInjectedApiClient, logger: defaultLogger });
+const explicitlyInjectedStubsClient = new StubsClient({ apiClient: explicitlyInjectedApiClient, logger: new DefaultLoggerFactory().createLogger() });
 
 const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
   apiClient: explicitlyInjectedApiClient,
-  logger: defaultLogger
+  logger: new DefaultLoggerFactory().createLogger()
 });
 
 
@@ -188,7 +188,7 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
     offlineService: explicitlyInjectedOfflineService,
     networkStatusProvider: new BrowserNetworkStatusProvider(),
     retryStrategy: new DefaultOfflineRetryStrategy(),
-    logger: defaultLogger,
+    logger: new DefaultLoggerFactory().createLogger(),
     endpoint: "/api/prompts"
   }),
 });
@@ -201,7 +201,7 @@ const explicitlyInjectedAppAuthManager = new AppAuthManager({
   googleAuthService: explicitlyInjectedGoogleAuthService,
   authService: explicitlyInjectedAuthService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
-  logger: defaultLogger
+  logger: new DefaultLoggerFactory().createLogger()
 });
 
 const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
@@ -211,19 +211,19 @@ const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
 
 const explicitlyInjectedProjectService = new ProjectService({
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
-  idGenerator: defaultIdGenerator
+  idGenerator: new DefaultIdGenerator()
 });
 
-const explicitlyInjectedDraftStateService = new DraftStateService({ logger: defaultLogger, storageFactory: explicitlyInjectedStorageFactory });
+const explicitlyInjectedDraftStateService = new DraftStateService({ logger: new DefaultLoggerFactory().createLogger(), storageFactory: explicitlyInjectedStorageFactory });
 
 const explicitlyInjectedImageCompressor = new ImageCompressor({
-  strategy: new CanvasImageCompressionStrategy({ idGenerator: defaultIdGenerator })
+  strategy: new CanvasImageCompressionStrategy({ idGenerator: new DefaultIdGenerator() })
 });
 
 const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
   builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
   storageFactory: explicitlyInjectedStorageFactory,
-  idGenerator: defaultIdGenerator
+  idGenerator: new DefaultIdGenerator()
 });
 
 const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
@@ -235,8 +235,8 @@ const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
   ]
 });
 
-const explicitlyInjectedClipboardService = new BrowserClipboardService(defaultLogger, explicitlyInjectedPlatformService);
-const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(defaultLogger);
+const explicitlyInjectedClipboardService = new BrowserClipboardService(new DefaultLoggerFactory().createLogger(), explicitlyInjectedPlatformService);
+const explicitlyInjectedFileDownloadService = new BrowserFileDownloadService(new DefaultLoggerFactory().createLogger());
 
 const defaultServices: IServices = {
   themeService: new ThemeService({ storageFactory: explicitlyInjectedStorageFactory }),
@@ -248,7 +248,7 @@ const defaultServices: IServices = {
   apiClient: explicitlyInjectedApiClient,
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
   networkStatusProvider: new BrowserNetworkStatusProvider(),
-  chatHistoryService: new ChatHistoryService({ logger: defaultLogger, storageFactory: explicitlyInjectedStorageFactory }),
+  chatHistoryService: new ChatHistoryService({ logger: new DefaultLoggerFactory().createLogger(), storageFactory: explicitlyInjectedStorageFactory }),
   projectService: explicitlyInjectedProjectService,
   savedPromptsService: explicitlyInjectedSavedPromptsService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
@@ -266,13 +266,13 @@ const defaultServices: IServices = {
   codeGeneratorService: explicitlyInjectedCodeGeneratorService,
   pwaInstallService: new PwaInstallService({ platformService: explicitlyInjectedPlatformService }),
   windowSecurityService: explicitlyInjectedWindowSecurityService,
-  logger: defaultLogger,
+  logger: new DefaultLoggerFactory().createLogger(),
   imageCompressor: explicitlyInjectedImageCompressor,
   clipboardService: explicitlyInjectedClipboardService,
   fileDownloadService: explicitlyInjectedFileDownloadService,
   platformService: explicitlyInjectedPlatformService,
-  timeProvider: defaultTimeProvider,
-  idGenerator: defaultIdGenerator,
+  timeProvider: new DefaultTimeProvider(),
+  idGenerator: new DefaultIdGenerator(),
 };
 
 

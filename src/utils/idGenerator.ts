@@ -1,4 +1,4 @@
-import { defaultTimeProvider, ITimeProvider } from "./timeProvider";
+import { ITimeProvider, DefaultTimeProvider } from "./timeProvider";
 import { IRandomProvider, DefaultRandomProvider } from "./randomProvider";
 
 export interface IIdGenerator {
@@ -10,7 +10,7 @@ export class DefaultIdGenerator implements IIdGenerator {
   private randomProvider: IRandomProvider;
 
   constructor(timeProvider?: ITimeProvider, randomProvider?: IRandomProvider) {
-    this.timeProvider = timeProvider || defaultTimeProvider;
+    this.timeProvider = timeProvider || new DefaultTimeProvider();
     this.randomProvider = randomProvider || new DefaultRandomProvider();
   }
 
@@ -20,10 +20,4 @@ export class DefaultIdGenerator implements IIdGenerator {
     const suffixToUse = explicitSuffix ? `${explicitSuffix}_${randomSuffix}` : randomSuffix;
     return `${prefix}_${now}_${suffixToUse}`;
   }
-}
-
-export const defaultIdGenerator: IIdGenerator = new DefaultIdGenerator();
-
-export function generateUniqueId(prefix: string, explicitSuffix?: string): string {
-  return defaultIdGenerator.generate(prefix, explicitSuffix);
 }

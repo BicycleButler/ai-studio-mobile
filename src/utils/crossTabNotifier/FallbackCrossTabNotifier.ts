@@ -1,5 +1,5 @@
 import { ICrossTabNotifier } from "./types";
-import { ILogger, defaultLogger } from "../logger";
+import { ILogger, DefaultLoggerFactory } from "../logger";
 
 export class FallbackCrossTabNotifier implements ICrossTabNotifier {
   private activeNotifier: ICrossTabNotifier | null = null;
@@ -7,7 +7,7 @@ export class FallbackCrossTabNotifier implements ICrossTabNotifier {
 
   constructor(
     notifiers: ICrossTabNotifier[],
-    logger: ILogger = defaultLogger
+    logger: ILogger = new DefaultLoggerFactory().createLogger()
   ) {
     this.logger = logger;
 

@@ -5,8 +5,8 @@ import { IStorageRegistry } from "./StorageRegistry";
 import { IMutableSingleton } from "./types";
 import { STORAGE_KEYS } from "./constants";
 import { cleanMockData, getNestedValue } from "./helpers";
-import { ILogger, defaultLogger } from "../logger";
-import { ITimeProvider, defaultTimeProvider } from "../timeProvider";
+import { ILogger, DefaultLoggerFactory } from "../logger";
+import { ITimeProvider, DefaultTimeProvider } from "../timeProvider";
 
 export interface DraftState {
   promptType: PromptType;
@@ -38,8 +38,8 @@ export class DraftStateService implements IDraftStateService {
   private timeProvider: ITimeProvider;
 
   constructor(config: DraftStateServiceConfig) {
-    this.logger = config?.logger || defaultLogger;
-    this.timeProvider = config?.timeProvider || defaultTimeProvider;
+    this.logger = config?.logger || new DefaultLoggerFactory().createLogger();
+    this.timeProvider = config?.timeProvider || new DefaultTimeProvider();
 
     if (config?.draftRegistry) {
         this.draftRegistry = config.draftRegistry;

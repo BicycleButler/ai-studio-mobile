@@ -1,9 +1,9 @@
 import { JulesSession, ChatMessage, MessageAttachment } from "../types";
 import { IJulesClient, JulesTaskPayload } from "./julesService";
 import { IJulesStorageService } from "../utils/storage/jules";
-import { ITimeProvider } from "../utils/timeProvider";
-import { IIdGenerator } from "../utils/idGenerator";
-import { ILogger } from "../utils/logger";
+import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
+import { IIdGenerator, DefaultIdGenerator } from "../utils/idGenerator";
+import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { getErrorMessage } from "../utils/errorHandling";
 import { Observable, IObservable, IReadableStore } from "../utils/observable";
 
