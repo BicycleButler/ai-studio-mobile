@@ -3,7 +3,7 @@ import { IIdGenerator, DefaultIdGenerator } from "../idGenerator";
 import { STORAGE_KEYS } from "./constants";
 import { safeGetStorageString, safeRemoveStorage, safeSetStorageString } from "./core";
 import { encryptSecret, decryptSecret } from "./encryption";
-import { createActiveItemManager } from "./ActiveItemManagerFactory";
+import { IActiveItemManagerFactory, DefaultActiveItemManagerFactory } from "./ActiveItemManagerFactory";
 import { IGeneralSettingsService } from "./general";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { ITimeProvider, DefaultTimeProvider } from "../timeProvider";
@@ -27,6 +27,7 @@ export interface ProjectServiceConfig {
   projectsManager?: IActiveItemManager<ProjectInfo>;
   idGenerator?: IIdGenerator;
   storageFactory?: IStorageFactory;
+  activeItemManagerFactory?: IActiveItemManagerFactory;
 }
 
 import { DefaultStorageFactory } from "./StorageFactory";
@@ -40,7 +41,7 @@ export class ProjectService implements IProjectService {
     this.timeProvider = config?.timeProvider || new DefaultTimeProvider();
     this.idGenerator = config?.idGenerator || new DefaultIdGenerator();
     const factory = config?.storageFactory || new DefaultStorageFactory();
-    this.projectsManager = config?.projectsManager || createActiveItemManager<ProjectInfo>({
+    this.projectsManager = config?.projectsManager || (config?.activeItemManagerFactory || new DefaultActiveItemManagerFactory()).create<ProjectInfo>({
       storageFactory: factory,
       collectionKey: STORAGE_KEYS.PROJECTS,
       collectionOptions: {

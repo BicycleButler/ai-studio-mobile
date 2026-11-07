@@ -1416,3 +1416,11 @@ Removed resting container borders across elements like `JulesActivityCard.tsx`, 
 
 **Decision:**
 Explicitly passed the `explicitlyInjectedPlatformService` into the `BrowserNetworkStatusProvider` instantiations within `ServiceContext.tsx`, aligning the final utility with the DI pattern established for API and Offline services.
+
+## Architectural Decision: ActiveItemManager Factory Extrusion
+
+**Context:**
+`createActiveItemManager` was exported as a bare proxy function in `ActiveItemManagerFactory.ts` and directly imported and executed within services like `ProjectService`, `SavedPromptsService`, and `JulesStorageService`. This tightly coupled these domain services to a specific instantiation method instead of relying strictly on an injected `IActiveItemManagerFactory`.
+
+**Decision:**
+The `createActiveItemManager` proxy function was removed completely. We modified the configurations for services using it to explicitly accept an `activeItemManagerFactory?: IActiveItemManagerFactory` dependency. In `ServiceContext.tsx`, we created a single `explicitlyInjectedActiveItemManagerFactory = new DefaultActiveItemManagerFactory()` and passed it down to the dependent services. This aligns perfectly with the Dependency Inversion Principle and the "Hybrid Dependency Injection" pattern used elsewhere in the application, ensuring full testability of the domain services.
