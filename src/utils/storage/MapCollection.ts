@@ -1,11 +1,13 @@
 import { CollectionOperationResult, ICollectionEngine } from "./types";
-import { fastDeepEqual } from "./helpers";
+import { IObjectUtils, DefaultObjectUtils } from "../objectUtils";
 
 export class MapCollection<T> implements ICollectionEngine<T> {
+  private objectUtils: IObjectUtils;
   private keyExtractor: (item: T) => string;
 
-  constructor(keyExtractor: (item: T) => string) {
+  constructor(keyExtractor: (item: T) => string, objectUtils: IObjectUtils = new DefaultObjectUtils()) {
     this.keyExtractor = keyExtractor;
+    this.objectUtils = objectUtils;
   }
 
   update(items: T[], id: string, updates: Partial<T>): CollectionOperationResult<T> {
@@ -25,7 +27,7 @@ export class MapCollection<T> implements ICollectionEngine<T> {
 
       if (changes !== undefined) {
         const mutated = { ...existing, ...changes };
-        if (!fastDeepEqual(existing, mutated)) {
+        if (!this.objectUtils.fastDeepEqual(existing, mutated)) {
           if (!nextItems) nextItems = [...items];
           nextItems[i] = mutated;
           changed = true;
@@ -57,7 +59,7 @@ export class MapCollection<T> implements ICollectionEngine<T> {
       if (replacement !== undefined) {
         newItemsMap.delete(id); // Mark as updated so it's not appended later
 
-        if (!fastDeepEqual(existing, replacement)) {
+        if (!this.objectUtils.fastDeepEqual(existing, replacement)) {
           if (!nextItems) nextItems = [...items];
           nextItems[i] = replacement;
           changed = true;

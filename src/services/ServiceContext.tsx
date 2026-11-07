@@ -15,6 +15,7 @@ import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { IIdGenerator, DefaultIdGenerator } from "../utils/idGenerator";
 
 import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
+import { IObjectUtils, DefaultObjectUtils } from "../utils/objectUtils";
 import { IThemeService, ThemeService } from "./themeService";
 import { IPromptTemplateService, PromptTemplateService, BUILTIN_PROMPT_TEMPLATES } from "./promptTemplateService";
 import { IAuthService, AuthService } from "./auth";
@@ -84,6 +85,7 @@ export interface IServices {
   fileDownloadService: IFileDownloadService;
   platformService: IPlatformService;
   timeProvider: ITimeProvider;
+  objectUtils: IObjectUtils;
   idGenerator: IIdGenerator;
 }
 
@@ -93,6 +95,7 @@ export interface IServices {
 const explicitlyInjectedLogger = new DefaultLoggerFactory().createLogger();
 const explicitlyInjectedIdGenerator = new DefaultIdGenerator();
 const explicitlyInjectedTimeProvider = new DefaultTimeProvider();
+const explicitlyInjectedObjectUtils = new DefaultObjectUtils();
 const explicitlyInjectedPlatformService = new BrowserPlatformService();
 const explicitlyInjectedStorageInstance = createDefaultStorageInstance();
 const explicitlyInjectedStorageFactory = new DefaultStorageFactory(explicitlyInjectedStorageInstance);
@@ -282,6 +285,7 @@ const defaultServices: IServices = {
   platformService: explicitlyInjectedPlatformService,
   timeProvider: explicitlyInjectedTimeProvider,
   idGenerator: explicitlyInjectedIdGenerator,
+  objectUtils: explicitlyInjectedObjectUtils,
 };
 
 

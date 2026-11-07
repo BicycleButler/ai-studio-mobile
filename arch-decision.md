@@ -1432,3 +1432,11 @@ A bug where `transition-colors` was erroneously passed to standard components li
 
 **Decision:**
 Renamed the `transition-colors` attribute back to the standard React/framer-motion `transition` property across affected components (`UnifiedSettingsModal.tsx`, `ChatWorkspace.tsx`) to maintain specification compliance without altering runtime logic.
+
+## Architectural Decision: Object Utilities Interface Abstraction
+
+**Context:**
+Functions such as `deepFreeze` and `fastDeepEqual` inside `src/utils/storage/helpers.ts` were strictly exported functions imported globally across multiple domains including `OfflineQueueStore`, `StorageBase`, and `MapCollection`. This hardcoded coupling to standard static functional utilities violates the Dependency Inversion Principle, which makes testability limited and requires global module interception to modify base data evaluation strategies.
+
+**Decision:**
+We extracted `deepFreeze` and `fastDeepEqual` into a strict interface abstraction `IObjectUtils` accompanied by a `DefaultObjectUtils` class. Domain classes and storage layers (`MapCollection`, `StorageBase`, `OfflineQueueStore`, `BatchSelectionManager`) were successfully refactored to require the injection of an `IObjectUtils` in their constructors or configurations, matching the system-wide Dependency Injection pattern and fully resolving global function coupling across the storage pipeline.
