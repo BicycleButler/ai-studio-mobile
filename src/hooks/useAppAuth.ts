@@ -9,7 +9,7 @@ export function useAppAuth() {
   const [hasServerKey, setHasServerKey] = useState<boolean>(() => appAuthManager.hasServerKey());
   const [customApiKey, setCustomApiKey] = useState<string>(() => appAuthManager.getCustomApiKey());
 
-  const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
+  const hasApiKey = appAuthManager.hasAnyApiKey();
 
   const handleSaveApiKey = (key: string) => {
     appAuthManager.saveCustomApiKey(key);
