@@ -1,3 +1,4 @@
+import { useWorkspace } from "../contexts/WorkspaceContext";
 import { ChatHistoryPopover } from "./ChatHistoryPopover";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import React, { useState, useRef, useEffect, useMemo , useCallback} from "react";
@@ -27,8 +28,6 @@ import { BatchDeleteOverlay } from "./BatchDeleteOverlay";
 import {
   ChatMessage,
   MessageAttachment,
-  PromptConfig,
-  GoogleUser,
   ChatSession,
   JulesSession,
 } from "../types";
@@ -37,7 +36,6 @@ import {
   SpeechSettings,
 } from "../services/speechVoices";
 import { ISentenceSpeechQueue } from "../services/sentenceSpeechQueue";
-import { SettingsTab } from "../types";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { useStore } from "../hooks/useStore";
 import { JulesActivityCard } from "./JulesActivityCard";
@@ -59,16 +57,6 @@ interface ChatWorkspaceProps {
   onRegenerate: () => void;
   onStopGeneration: () => void;
   isGenerating: boolean;
-  config: PromptConfig;
-  onUpdateSystemInstruction: (inst: string) => void;
-  onOpenParameters: () => void;
-  hasApiKey?: boolean;
-  googleUser?: GoogleUser | null;
-  onOpenAuth?: () => void;
-  speechSettings?: SpeechSettings;
-  onSaveSpeechSettings?: (settings: SpeechSettings) => void;
-  onOpenSettings?: (tab?: SettingsTab) => void;
-  activeProjectId?: string;
   currentSessionId?: string | null;
   onSelectSession?: (session: ChatSession) => void;
   onNewChat?: () => void;
@@ -78,14 +66,6 @@ interface ChatWorkspaceProps {
   onApproveJulesPlan?: (taskId: string) => void;
   onRejectJulesPlan?: (taskId: string) => void;
   isApprovingJulesPlan?: boolean;
-  onOpenBottomNav?: () => void;
-  isTemplateDrawerOpen?: boolean;
-  onOpenTemplateDrawer?: () => void;
-  onCloseTemplateDrawer?: () => void;
-  selectedTemplateIds?: string[];
-  onToggleTemplate?: (templateId: string) => void;
-  onRemoveTemplate?: (templateId: string) => void;
-  onClearAllTemplates?: () => void;
 }
 
 export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
@@ -95,16 +75,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   onRegenerate,
   onStopGeneration,
   isGenerating,
-  config: _config,
-  onUpdateSystemInstruction: _onUpdateSystemInstruction,
-  onOpenParameters: _onOpenParameters,
-  hasApiKey = true,
-  googleUser = null,
-  onOpenAuth,
-  speechSettings: propSpeechSettings,
-  onSaveSpeechSettings,
-  onOpenSettings,
-  activeProjectId,
   currentSessionId,
   onSelectSession,
   onNewChat,
@@ -114,15 +84,28 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   onApproveJulesPlan,
   onRejectJulesPlan,
   isApprovingJulesPlan = false,
-  onOpenBottomNav: _onOpenBottomNav,
-  isTemplateDrawerOpen: propIsTemplateDrawerOpen,
-  onOpenTemplateDrawer: propOnOpenTemplateDrawer,
-  onCloseTemplateDrawer: propOnCloseTemplateDrawer,
-  selectedTemplateIds: propSelectedTemplateIds,
-  onToggleTemplate: propOnToggleTemplate,
-  onRemoveTemplate: propOnRemoveTemplate,
-  onClearAllTemplates: propOnClearAllTemplates,
 }) => {
+  const {
+    config: _config,
+    onUpdateSystemInstruction: _onUpdateSystemInstruction,
+    onOpenParameters: _onOpenParameters,
+    hasApiKey,
+    onOpenAuth,
+    onOpenSettings,
+    activeProjectId,
+    onOpenBottomNav: _onOpenBottomNav,
+    isTemplateDrawerOpen: propIsTemplateDrawerOpen,
+    onOpenTemplateDrawer: propOnOpenTemplateDrawer,
+    onCloseTemplateDrawer: propOnCloseTemplateDrawer,
+    selectedTemplateIds: propSelectedTemplateIds,
+    onToggleTemplate: propOnToggleTemplate,
+    onRemoveTemplate: propOnRemoveTemplate,
+    onClearAllTemplates: propOnClearAllTemplates,
+    speechSettings: propSpeechSettings,
+    onSaveSpeechSettings,
+  } = useWorkspace();
+  const googleUser: { email: string } | null = null;
+
   const [inputText, setInputText] = useState("");
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [isOptimizingImage, setIsOptimizingImage] = useState(false);
@@ -1221,14 +1204,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     </button>
                   )}
                 </div>
-              ) : googleUser ? (
+              ) : googleUser && (googleUser as { email: string }).email ? (
                 <div className="w-full mb-3 p-2.5 rounded-xl bg-card flex items-center justify-between gap-2 text-start">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] uppercase font-mono tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">
                       Live
                     </span>
                     <span className="text-[11px] text-muted-foreground truncate">
-                      Synced: <span className="font-semibold text-foreground">{googleUser.email}</span>
+                      Synced: <span className="font-semibold text-foreground">{(googleUser as { email: string }).email}</span>
                     </span>
                   </div>
                   <button

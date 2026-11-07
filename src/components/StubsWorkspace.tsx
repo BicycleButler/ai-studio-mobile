@@ -33,17 +33,16 @@ import { useStubsData } from "../hooks/stubs/useStubsData";
 import { useStubsSpecs } from "../hooks/stubs/useStubsSpecs";
 import { useServices } from "../services/ServiceContext";
 
-import { SharedWorkspaceProps } from "./WorkspaceRouter";
+import { useWorkspace } from "../contexts/WorkspaceContext";
 
-export interface StubsWorkspaceProps extends Partial<SharedWorkspaceProps> {
-  onOpenBottomNav?: () => void;
-  onOpenParameters?: () => void;
+export interface StubsWorkspaceProps {
 }
 
 type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal";
 
 
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
+  const { onOpenBottomNav: _onOpenBottomNav, onOpenParameters: _onOpenParameters } = useWorkspace();
   const { julesClient, logger, clipboardService, platformService } = useServices();
     // Navigation & Sub-views
   const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
