@@ -1,5 +1,4 @@
 import { useSettingsProjectsState } from "../hooks/settings/useSettingsProjectsState";
-import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { SettingsAudioTab } from "./settings/SettingsAudioTab";
 import { SettingsSidebar } from "./settings/SettingsSidebar";
 import { SETTINGS_TABS_CONFIG, resolveSettingsTab } from "./settings/SettingsTabsConfig";
@@ -198,8 +197,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   // Audio state
 
 
-  const { user } = useGoogleAuth();
-  const hasAnyAuth = Boolean(user || customApiKey.trim() || hasServerKey);
+  const { appAuthManager } = useServices();
+  const hasAnyAuth = appAuthManager.hasAnyApiKey();
   const isJulesConfigured = Boolean(julesApiKey.trim());
 
   const activeTabConfig = SETTINGS_TABS_CONFIG.find(t => t.id === activeTab) || SETTINGS_TABS_CONFIG[0];

@@ -1,5 +1,6 @@
 import { useServices } from "../services/ServiceContext";
 import { useState, useEffect } from "react";
+import { useAppAuth } from "./useAppAuth";
 import { usePromptTemplates } from "./usePromptTemplates";
 
 import { useChatSession } from "./useChatSession";
@@ -12,7 +13,7 @@ import { PromptType, ChatMessage, ChatSession, SavedPrompt } from "../types";
 
 export function useAppState() {
   // External Services
-  const { chatHistoryService, appAuthManager, promptTemplateService, generalSettingsService, draftStateService, projectService, platformService, timeProvider } = useServices();
+  const { chatHistoryService, appAuthManager, promptTemplateService, draftStateService, projectService, platformService, timeProvider } = useServices();
 
   // Load initial app draft safely before deriving other states
   const initialActiveProjectId = projectService.getActiveProjectId();
@@ -21,12 +22,18 @@ export function useAppState() {
 
   const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
 
-  // Auth state (could use useAppAuth instead but keeping logic unified here for compatibility if needed,
-  // or refactoring completely)
-  const [googleUser, setGoogleUser] = useState(() => appAuthManager.getGoogleUser());
-  const [hasServerKey, setHasServerKey] = useState(() => appAuthManager.hasServerKey());
-  const [customApiKey, setCustomApiKey] = useState(() => generalSettingsService.loadStoredApiKey());
-  const hasApiKey = Boolean(googleUser || customApiKey.trim() || hasServerKey);
+  // Auth state
+  const {
+    googleUser,
+    setGoogleUser,
+    hasServerKey,
+    setHasServerKey,
+    customApiKey,
+    setCustomApiKey,
+    hasApiKey,
+    handleSaveApiKey,
+    refreshServerAuth,
+  } = useAppAuth();
 
 
   const promptTemplates = usePromptTemplates(initialDraft.selectedTemplateIds || []);
@@ -72,20 +79,14 @@ export function useAppState() {
     }
   };
 
-  const handleSaveApiKey = (key: string) => {
-    setCustomApiKey(key);
-    generalSettingsService.saveStoredApiKey(key);
+  const handleSaveApiKeyWithModels = (key: string) => {
+    handleSaveApiKey(key);
     if (key.trim()) {
       modelConfig.refreshModels(key.trim(), true);
     }
   };
 
-  const refreshServerAuth = async (): Promise<boolean> => {
-    await appAuthManager.refreshServerAuth();
-    const hasKey = appAuthManager.hasServerKey();
-    setHasServerKey(hasKey);
-    return hasKey;
-  };
+
 
 
   const handleSelectChatSession = (session: ChatSession, onStopStream?: () => void) => {
@@ -144,18 +145,7 @@ export function useAppState() {
   useEffect(() => {
     chatHistoryService.purgeMockSessionsFromStorage();
 
-    const unsubscribeAuth = appAuthManager.initializeAuth(
-      (serverKeyStatus) => {
-        setHasServerKey(serverKeyStatus);
-      },
-      (user) => {
-        setGoogleUser(user);
-      }
-    );
 
-    return () => {
-      unsubscribeAuth();
-    };
   }, [appAuthManager, chatHistoryService]);
 
 
@@ -186,7 +176,7 @@ export function useAppState() {
     customApiKey,
     setCustomApiKey,
     hasApiKey,
-    handleSaveApiKey,
+    handleSaveApiKey: handleSaveApiKeyWithModels,
     refreshServerAuth,
 
     currentSessionId: chatSession.currentSessionId,
