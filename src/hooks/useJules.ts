@@ -36,6 +36,10 @@ export function useJules() {
     julesSessionOrchestrator.clearMessages();
   }, []);
 
+  const handleRegenerateJulesTask = useCallback(async () => {
+    return julesSessionOrchestrator.regenerateTask();
+  }, []);
+
   const handleSendJulesMessage = useCallback(
     async (
       text: string,
@@ -92,6 +96,7 @@ export function useJules() {
     handleApproveJulesPlan,
     handleRejectJulesPlan,
     handleSelectSession,
-    handleBulkDeleteJulesSessions
+    handleBulkDeleteJulesSessions,
+    handleRegenerateJulesTask
   };
 }

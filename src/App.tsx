@@ -111,7 +111,8 @@ export default function App() {
     handleApproveJulesPlan,
     handleRejectJulesPlan,
     handleSelectSession: handleSelectJulesSession,
-    handleBulkDeleteJulesSessions
+    handleBulkDeleteJulesSessions,
+    handleRegenerateJulesTask
   } = useJules();
 
   // Dedicated resilient streaming hook
@@ -436,7 +437,7 @@ export default function App() {
             isGenerating: _isJulesExecuting,
             hasJulesApiKey: Boolean(julesApiKey.trim()),
             onSelectJulesSession: handleSelectJulesSession,
-            onRegenerate: () => {}, // TODO
+            onRegenerate: () => void handleRegenerateJulesTask(),
           }}
         />
       </WorkspaceProvider>
