@@ -48,6 +48,10 @@ export function useJules() {
     []
   );
 
+  const handleRegenerateJulesMessage = useCallback(() => {
+    void julesSessionOrchestrator.regenerateLastTask();
+  }, []);
+
   const handleApproveJulesPlan = useCallback(
     async (taskId: string) => {
       await julesSessionOrchestrator.approvePlan(taskId);
@@ -87,6 +91,7 @@ export function useJules() {
     isJulesExecuting,
     isApprovingJulesPlan,
     handleSendJulesMessage,
+    handleRegenerateJulesMessage,
     handleClearJulesMessages,
     handleStopJulesPolling,
     handleApproveJulesPlan,
