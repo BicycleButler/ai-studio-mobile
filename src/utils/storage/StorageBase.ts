@@ -2,11 +2,12 @@
 import { IStorageAdapter, IStorageBase } from "./types";
 import { Observable } from "../observable";
 import { ILogger, DefaultLoggerFactory } from "../logger";
-import { deepFreeze } from "./helpers";
+import { IObjectUtils, DefaultObjectUtils } from "../objectUtils";
 import { IEventEmitter } from "../eventEmitter";
 import { ISerializer } from "./serializer";
 
 export interface StorageBaseOptions<T> {
+  objectUtils?: IObjectUtils;
   fallback: T;
   transformIn?: (item: T) => T;
   transformOut?: (item: T) => T;
@@ -20,6 +21,7 @@ export interface StorageBaseOptions<T> {
 }
 
 export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
+  protected objectUtils: IObjectUtils;
   protected key: string;
   protected options: StorageBaseOptions<T>;
   protected adapter: IStorageAdapter<T>;
@@ -33,6 +35,7 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
     this.key = key;
     this.options = options;
     this.logger = options.logger || new DefaultLoggerFactory().createLogger();
+    this.objectUtils = options.objectUtils || new DefaultObjectUtils();
     if (!options.adapter) {
       throw new Error("IStorageAdapter is required for StorageBase");
     }
@@ -51,11 +54,11 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
     if (this.options.validate) {
       try {
         if (!this.options.validate(raw)) {
-          return deepFreeze(this.options.fallback);
+          return this.objectUtils.deepFreeze(this.options.fallback);
         }
       } catch (err) {
         this.logger.warn(`StorageBase[${this.key}]: validation error`, err);
-        return deepFreeze(this.options.fallback);
+        return this.objectUtils.deepFreeze(this.options.fallback);
       }
     }
 
@@ -65,11 +68,11 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
         result = this.options.transformOut(valid);
       } catch (err) {
         this.logger.warn(`StorageBase[${this.key}]: transformOut error`, err);
-        return deepFreeze(this.options.fallback);
+        return this.objectUtils.deepFreeze(this.options.fallback);
       }
     }
 
-    return deepFreeze(result);
+    return this.objectUtils.deepFreeze(result);
   }
 
   protected handleStorageEvent(e: StorageEvent): void {
@@ -93,7 +96,7 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
       return this.cachedSnapshot;
     } catch (err) {
       this.logger.error(`StorageBase[${this.key}]: unhandled load error`, err);
-      const frozenFallback = deepFreeze(this.options.fallback);
+      const frozenFallback = this.objectUtils.deepFreeze(this.options.fallback);
       this.cachedSnapshot = frozenFallback;
       return frozenFallback;
     }

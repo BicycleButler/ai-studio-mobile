@@ -5,7 +5,7 @@ import { OfflineMutation } from "./offlineService";
 import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./crossTabNotifier";
 
 import { IPlatformService } from "../services/platformService";
-import { deepFreeze } from "./storage/helpers";
+import { IObjectUtils, DefaultObjectUtils } from "./objectUtils";
 import { AsyncStorage } from "./asyncStorage";
 
 
@@ -23,6 +23,7 @@ export interface IOfflineQueueStore {
 
 
 export interface OfflineQueueStoreConfig {
+  objectUtils?: IObjectUtils;
   storageKey: string;
   storageAdapter: AsyncStorage;
   logger?: ILogger;
@@ -32,6 +33,7 @@ export interface OfflineQueueStoreConfig {
 }
 
 export class OfflineQueueStore implements IOfflineQueueStore {
+  private objectUtils: IObjectUtils;
   private queueMutex: IMutex;
   private _queueObservable: IObservable<OfflineMutation[]> = new Observable<OfflineMutation[]>([]);
 
@@ -48,6 +50,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     this.storageKey = config.storageKey;
     this.storageAdapter = config.storageAdapter;
     this.logger = config.logger || new DefaultLoggerFactory().createLogger();
+    this.objectUtils = config.objectUtils || new DefaultObjectUtils();
     const notifierFactory = config.crossTabNotifierFactory;
     this.queueMutex = config.mutex || new Mutex(this.logger, config.platformService);
     try {
@@ -64,11 +67,11 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   }
 
   private notifyQueue(queue: OfflineMutation[]) {
-    this._queueObservable.notify(deepFreeze(queue));
+    this._queueObservable.notify(this.objectUtils.deepFreeze(queue));
   }
 
   private async syncCacheFromStorage(): Promise<void> {
-    this.cachedQueue = deepFreeze(await this.safeGetQueue());
+    this.cachedQueue = this.objectUtils.deepFreeze(await this.safeGetQueue());
     this.notifyQueue(this.cachedQueue);
   }
 
@@ -100,7 +103,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
 
   private async applyQueueUpdate(newQueue: OfflineMutation[]): Promise<void> {
     await this.safeSetQueue(newQueue);
-    this.cachedQueue = deepFreeze(newQueue);
+    this.cachedQueue = this.objectUtils.deepFreeze(newQueue);
     this.notifyQueue(newQueue);
     this.notifier?.notify('SYNC');
   }

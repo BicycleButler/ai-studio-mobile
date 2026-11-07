@@ -1,8 +1,8 @@
 {
   "targetDir": "src",
-  "totalFiles": 256,
+  "totalFiles": 258,
   "filesWithViolationsCount": 0,
-  "cleanFilesCount": 256,
+  "cleanFilesCount": 258,
   "totalViolations": 0,
   "byRule": {},
   "byDir": [],
