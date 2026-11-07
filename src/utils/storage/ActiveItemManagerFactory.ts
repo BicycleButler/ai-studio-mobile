@@ -16,7 +16,6 @@ export interface CreateActiveItemManagerOptions<T> {
   activeIdSingleton?: IMutableSingleton<string | null>;
 
   getId: (item: T) => string;
-  allowImplicitSelection?: boolean; // Deprecated, use implicitSelectionStrategy
   implicitSelectionStrategy?: ISelectionStrategy<T>;
 }
 
@@ -33,18 +32,13 @@ export class DefaultActiveItemManagerFactory implements IActiveItemManagerFactor
     let implicitSelectionStrategy = options.implicitSelectionStrategy;
 
     if (!implicitSelectionStrategy) {
-        if (options.allowImplicitSelection === false) {
-             implicitSelectionStrategy = new NoImplicitSelectionStrategy<T>();
-        } else {
-             implicitSelectionStrategy = new FirstItemSelectionStrategy<T>();
-        }
+        implicitSelectionStrategy = new FirstItemSelectionStrategy<T>();
     }
 
     return new ActiveItemManager<T>({
       collection,
       activeIdSingleton,
       getId: options.getId,
-      allowImplicitSelection: options.allowImplicitSelection,
       implicitSelectionStrategy,
     });
   }
