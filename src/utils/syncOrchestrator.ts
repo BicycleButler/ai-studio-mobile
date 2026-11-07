@@ -1,5 +1,6 @@
 import { IOfflineService, SyncHandler, OfflineMutation } from "./offlineService";
 import { IApiClient, BaseApiError } from "./apiClient";
+import { ISerializer } from "./storage/serializer";
 
 export interface SyncHandlerConfig {
   mutationType: string;
@@ -7,6 +8,7 @@ export interface SyncHandlerConfig {
   method?: string;
   payloadWrapper?: (payload: unknown) => unknown;
   requestBuilder?: (payload: unknown, method: string) => RequestInit;
+  serializer?: ISerializer;
 }
 
 export interface ISyncOrchestrator {
@@ -14,7 +16,8 @@ export interface ISyncOrchestrator {
     endpoint: string,
     payloadWrapper?: (payload: unknown) => unknown,
     method?: string,
-    requestBuilder?: (payload: unknown, method: string) => RequestInit
+    requestBuilder?: (payload: unknown, method: string) => RequestInit,
+    serializer?: ISerializer
   ): SyncHandler;
   registerHandlers(): void;
 }
@@ -30,15 +33,17 @@ export class SyncOrchestrator implements ISyncOrchestrator {
     endpoint: string,
     payloadWrapper?: (payload: unknown) => unknown,
     method: string = "POST",
-    requestBuilder?: (payload: unknown, method: string) => RequestInit
+    requestBuilder?: (payload: unknown, method: string) => RequestInit,
+    serializer?: ISerializer
   ): SyncHandler {
     return async (mutation: OfflineMutation) => {
       try {
         const bodyPayload = payloadWrapper ? payloadWrapper(mutation.payload) : mutation.payload;
+
         const requestInit = requestBuilder ? requestBuilder(bodyPayload, method) : {
           method,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bodyPayload),
+          body: serializer ? serializer.serialize(bodyPayload) : JSON.stringify(bodyPayload),
         };
         await this.apiClient.fetch(endpoint, requestInit);
         return { success: true };
@@ -70,7 +75,7 @@ export class SyncOrchestrator implements ISyncOrchestrator {
     this.handlersConfig.forEach((config) => {
       this.offlineService.registerSyncHandler(
         config.mutationType,
-        this.createGenericSyncHandler(config.endpoint, config.payloadWrapper, config.method, config.requestBuilder)
+        this.createGenericSyncHandler(config.endpoint, config.payloadWrapper, config.method, config.requestBuilder, config.serializer)
       );
     });
   }

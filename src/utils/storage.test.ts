@@ -12,8 +12,9 @@ describe('storage', () => {
     expect(res.test).toBe(123);
 
     // Test set and get
-    safeSetStorage("test_key_abc", { valid: true }, createDefaultStorageInstance());
-    const fetched = safeGetStorage<{ valid: boolean }>("test_key_abc", { valid: false }, createDefaultStorageInstance());
+    const memoryStorage = createDefaultStorageInstance();
+    safeSetStorage("test_key_abc", { valid: true }, memoryStorage);
+    const fetched = safeGetStorage<{ valid: boolean }>("test_key_abc", { valid: false }, memoryStorage);
     expect(fetched.valid).toBe(true);
 
     // Test draft state initialization
