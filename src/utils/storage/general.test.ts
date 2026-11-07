@@ -41,7 +41,7 @@ describe('GeneralSettingsService', () => {
       flagSecureSingleton: mockFlagSecureSingleton,
     });
     service.saveStoredApiKey('  new-key  ');
-    expect(mockApiKeySingleton.save).toHaveBeenCalledWith('  new-key  ');
+    expect(mockApiKeySingleton.save).toHaveBeenCalledWith('new-key');
   });
 
   it('clears API key when empty or whitespace is provided', () => {
