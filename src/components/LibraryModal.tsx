@@ -14,7 +14,7 @@ import {
   Square,
   } from "lucide-react";
 import { SavedPrompt } from "../types";
-import { useOfflineQueue } from "../hooks/useOfflineQueue";
+import { usePendingSyncIds } from "../hooks/usePendingSyncIds";
 import { getStarterTemplates } from "../data/templates";
 import { useBatchSelection } from "../hooks/useBatchSelection";
 import { useServices } from "../services/ServiceContext";
@@ -41,16 +41,8 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
   const [newTitle, setNewTitle] = useState(currentTitle);
   const [showSaveForm, setShowSaveForm] = useState(false);
 
-  const offlineQueue = useOfflineQueue();
+  const pendingPromptIds = usePendingSyncIds("saved_prompts", "prompts");
   const { timeProvider } = useServices();
-  const pendingPromptIds = new Set(
-    offlineQueue.filter(m => m.type === "saved_prompts").flatMap(m => {
-      if (typeof m.payload === "object" && m.payload !== null && "prompts" in m.payload && Array.isArray((m.payload as Record<string, unknown>).prompts)) {
-          return ((m.payload as Record<string, unknown>).prompts as Record<string, unknown>[]).map(p => p.id as string);
-      }
-      return [];
-    })
-  );
 
 
   const {

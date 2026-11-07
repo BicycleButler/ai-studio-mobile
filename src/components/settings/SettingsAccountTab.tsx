@@ -1,6 +1,6 @@
 import React from "react";
 import { ProjectInfo } from "../../types";
-import { useOfflineQueue } from "../../hooks/useOfflineQueue";
+import { usePendingSyncIds } from "../../hooks/usePendingSyncIds";
 import { GoogleAuthCard } from "../GoogleAuthCard";
 import { useServices } from "../../services/ServiceContext";
 import { ServerConfigSection } from "./ServerConfigSection";
@@ -58,16 +58,8 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
   getProjectSelectionState,
   handleBulkDeleteProjects,
 }) => {
-  const offlineQueue = useOfflineQueue();
+  const pendingProjectIds = usePendingSyncIds("projects", "projects");
   const { timeProvider } = useServices();
-  const pendingProjectIds = new Set(
-    offlineQueue.filter(m => m.type === "projects").flatMap(m => {
-      if (typeof m.payload === "object" && m.payload !== null && "projects" in m.payload && Array.isArray((m.payload as Record<string, unknown>).projects)) {
-          return ((m.payload as Record<string, unknown>).projects as Record<string, unknown>[]).map(p => p.id as string);
-      }
-      return [];
-    })
-  );
 
   return (
     <div className="space-y-4">
