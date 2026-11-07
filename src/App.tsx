@@ -106,6 +106,7 @@ export default function App() {
     isJulesExecuting: _isJulesExecuting,
     isApprovingJulesPlan,
     handleSendJulesMessage,
+    handleRegenerateJulesMessage,
     handleClearJulesMessages,
     handleStopJulesPolling,
     handleApproveJulesPlan,
@@ -436,7 +437,7 @@ export default function App() {
             isGenerating: _isJulesExecuting,
             hasJulesApiKey: Boolean(julesApiKey.trim()),
             onSelectJulesSession: handleSelectJulesSession,
-            onRegenerate: () => {}, // TODO
+            onRegenerate: handleRegenerateJulesMessage,
           }}
         />
       </WorkspaceProvider>

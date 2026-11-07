@@ -20,6 +20,7 @@ export interface IJulesSessionOrchestrator {
     templateIds?: string[],
     rawUserText?: string
   ): Promise<boolean>;
+  regenerateLastTask(): Promise<boolean>;
   approvePlan(taskId: string): Promise<void>;
   rejectPlan(taskId: string): Promise<void>;
   stopPolling(): void;
@@ -80,6 +81,30 @@ export class JulesSessionOrchestrator implements IJulesSessionOrchestrator {
       const updated = { ...activeSession, messages: [], updatedAt: this.timeProvider.now() };
       this.julesStorageService.julesSessionsManager.collection.upsert(updated);
     }
+  }
+
+  public async regenerateLastTask(): Promise<boolean> {
+    const currentSession = this.julesStorageService.julesSessionsManager.getActiveItem();
+    if (!currentSession || !currentSession.messages || currentSession.messages.length === 0) return false;
+
+    if (this.stateObservable.getSnapshot().isExecuting) return false;
+
+    const messages = currentSession.messages;
+    const lastUserIdx = messages.map((m) => m.role).lastIndexOf("user");
+
+    if (lastUserIdx === -1) return false;
+
+    const trimmed = messages.slice(0, lastUserIdx + 1);
+    const lastUserMsg = trimmed[trimmed.length - 1];
+
+    const sessionWithTrimmedMessages = {
+      ...currentSession,
+      messages: trimmed.slice(0, -1),
+      updatedAt: this.timeProvider.now()
+    };
+    this.julesStorageService.julesSessionsManager.collection.upsert(sessionWithTrimmedMessages);
+
+    return this.dispatchTask(lastUserMsg.text, lastUserMsg.images, lastUserMsg.templateIds, lastUserMsg.rawUserText);
   }
 
   public async dispatchTask(
