@@ -25,7 +25,7 @@ export interface IChatHistoryService {
 export interface ChatHistoryServiceConfig {
   timeProvider?: ITimeProvider;
   platformService?: IPlatformService;
-  quotaObservable?: import("../utils/eventEmitter").EventEmitter<void>;
+  quotaObservable?: import("../utils/eventEmitter").IEventEmitter<void>;
   storageKeys?: typeof STORAGE_KEYS;
   logger: ILogger;
   collectionRegistry?: IStorageRegistry<IMutableCollection<ChatSession>>;

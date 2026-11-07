@@ -7,7 +7,6 @@ export interface ActiveItemManagerOptions<T> {
   collection: IMutableCollection<T>;
   activeIdSingleton: IMutableSingleton<string | null>;
   getId: (item: T) => string;
-  allowImplicitSelection?: boolean; // Deprecated, use implicitSelectionStrategy
   implicitSelectionStrategy?: ISelectionStrategy<T>;
 }
 

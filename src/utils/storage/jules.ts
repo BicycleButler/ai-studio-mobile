@@ -10,6 +10,7 @@ import { ILogger } from "../logger";
 import { IMutableSingleton } from "./types";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
+import { NoImplicitSelectionStrategy } from "./selectionStrategy";
 import { IIdGenerator, DefaultIdGenerator } from "../idGenerator";
 import { ITimeProvider, DefaultTimeProvider } from "../timeProvider";
 
@@ -95,7 +96,7 @@ export class JulesStorageService implements IJulesStorageService {
       },
       activeIdKey: STORAGE_KEYS.ACTIVE_JULES_SESSION_ID,
       getId: (s) => s.id,
-      allowImplicitSelection: false,
+      implicitSelectionStrategy: new NoImplicitSelectionStrategy(),
     });
   }
 

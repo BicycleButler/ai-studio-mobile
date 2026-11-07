@@ -17,11 +17,11 @@ import {
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { ISpeechRecognitionInstance } from "../types/speechRecognition";
 
-import { EventEmitter } from "../utils/eventEmitter";
+import { EventEmitter, IEventEmitter } from "../utils/eventEmitter";
 
 export interface IPlatformService {
-  getStorageEventObservable(): EventEmitter<StorageEvent>;
-  getStorageQuotaObservable(): EventEmitter<void>;
+  getStorageEventObservable(): IEventEmitter<StorageEvent>;
+  getStorageQuotaObservable(): IEventEmitter<void>;
 
   isInputFocused(): boolean;
   blurActiveElement(): void;
@@ -79,11 +79,11 @@ export class BrowserPlatformService implements IPlatformService {
     }
   }
 
-  public getStorageEventObservable(): EventEmitter<StorageEvent> {
+  public getStorageEventObservable(): IEventEmitter<StorageEvent> {
     return this.storageEventObservable;
   }
 
-  public getStorageQuotaObservable(): EventEmitter<void> {
+  public getStorageQuotaObservable(): IEventEmitter<void> {
     return this.storageQuotaObservable;
   }
 

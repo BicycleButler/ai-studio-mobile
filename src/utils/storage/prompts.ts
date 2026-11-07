@@ -3,6 +3,7 @@ import { IActiveItemManagerFactory, DefaultActiveItemManagerFactory } from "./Ac
 import { STORAGE_KEYS } from "./constants";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
+import { NoImplicitSelectionStrategy } from "./selectionStrategy";
 
 export interface ISavedPromptsService {
   savedPromptsManager: IActiveItemManager<SavedPrompt>;
@@ -47,7 +48,7 @@ export class SavedPromptsService implements ISavedPromptsService {
       },
       activeIdKey: STORAGE_KEYS.SAVED_PROMPTS + "_activeId",
       getId: (s) => s.id,
-      allowImplicitSelection: false,
+      implicitSelectionStrategy: new NoImplicitSelectionStrategy(),
     });
   }
 

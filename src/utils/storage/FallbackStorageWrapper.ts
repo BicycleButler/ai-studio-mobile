@@ -1,12 +1,12 @@
 import { MemoryStorage } from "./core";
 import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
-import { EventEmitter } from "../eventEmitter";
+import { EventEmitter, IEventEmitter } from "../eventEmitter";
 import { ILogger, DefaultLoggerFactory } from "../logger";
 
 export class FallbackStorageWrapper implements Storage {
   private activeStorage: Storage;
   private memoryFallback: MemoryStorage | null = null;
-  public quotaExceededEvent = new EventEmitter<void>();
+  public quotaExceededEvent: IEventEmitter<void> = new EventEmitter<void>();
 
   private logger: ILogger;
   private platformService: IPlatformService;
