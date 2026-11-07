@@ -15,13 +15,17 @@ export interface ISyncTransport<T> {
 export class ApiClientSyncTransport<T> implements ISyncTransport<T> {
   constructor(
     private apiClient: IApiClient,
-    private requestBuilder?: (item: T, method: string) => RequestInit
+    private requestBuilder?: (item: T, method: string) => RequestInit,
+    private serializer?: import("./serializer").ISerializer
   ) {
-    this.requestBuilder = requestBuilder || ((item: T, method: string) => ({
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(item),
-    }));
+    this.requestBuilder = requestBuilder || ((item: T, method: string) => {
+      const bodyString = this.serializer ? this.serializer.serialize(item) : JSON.stringify(item);
+      return {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: bodyString,
+      };
+    });
   }
 
   public async transmit(endpoint: string, item: T, method: string): Promise<void> {
