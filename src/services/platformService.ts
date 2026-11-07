@@ -11,7 +11,6 @@ import {
   PlatformCapabilities,
   safeAddEventListener,
   safeAddDocumentListener,
-  getSafeBroadcastChannel,
   safeAddMatchMediaListener,
   safeAddVisualViewportListener
 } from "../utils/platform";
@@ -37,6 +36,7 @@ export interface IPlatformService {
   getDocument(): Document | null;
   getWindow(): Window | null;
   getNavigator(): Navigator | null;
+  getLanguage(fallback?: string): string;
   getLocalStorage(): Storage | null;
   setTimeout(handler: TimerHandler, timeout?: number, ...args: unknown[]): unknown;
   clearTimeout(id: unknown): void;
@@ -166,6 +166,14 @@ export class BrowserPlatformService implements IPlatformService {
      return getSafeNavigator();
   }
 
+  public getLanguage(fallback: string = "en-US"): string {
+    const nav = this.getNavigator();
+    if (nav && nav.language) {
+      return nav.language;
+    }
+    return fallback;
+  }
+
   public getLocalStorage(): Storage | null {
       return getSafeLocalStorage();
   }
@@ -211,7 +219,11 @@ export class BrowserPlatformService implements IPlatformService {
   }
 
   public getBroadcastChannel(name: string): BroadcastChannel | null {
-    return getSafeBroadcastChannel(name);
+    const win = this.getWindow() as Window & { BroadcastChannel?: typeof BroadcastChannel } | null;
+    if (win && typeof win.BroadcastChannel !== "undefined") {
+      return new win.BroadcastChannel(name);
+    }
+    return null;
   }
 
   public createAudio(url?: string): HTMLAudioElement | null {

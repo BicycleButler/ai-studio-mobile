@@ -35,14 +35,6 @@ export function getSafeLocalStorage(): Storage | null {
   return win ? win.localStorage || null : null;
 }
 
-export function getSafeBroadcastChannel(name: string): BroadcastChannel | null {
-  const win = getSafeWindow() as WindowWithBroadcastChannel | null;
-  if (win && typeof win.BroadcastChannel !== "undefined") {
-    return new win.BroadcastChannel(name);
-  }
-  return null;
-}
-
 export function getSafeDocument(): Document | null {
   return isBrowserEnvironment() ? document : null;
 }
@@ -75,20 +67,6 @@ export function getSafeNavigator(): Navigator | null {
   const win = getSafeWindow();
   return win ? win.navigator || null : null;
 }
-
-export function getSafeNavigatorLanguage(fallback: string = "en-US"): string {
-  const win = getSafeWindow();
-  if (win && win.navigator && win.navigator.language) {
-    return win.navigator.language;
-  }
-  return fallback;
-}
-
-export function getSafeNavigatorClipboard(): Clipboard | null {
-  const win = getSafeWindow();
-  return win && win.navigator && (win.navigator as NavigatorWithClipboard).clipboard ? (win.navigator as NavigatorWithClipboard).clipboard! : null;
-}
-
 
 export interface PlatformCapabilities {
   runtime: AppRuntime;
