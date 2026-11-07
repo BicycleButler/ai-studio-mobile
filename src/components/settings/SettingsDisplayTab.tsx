@@ -34,7 +34,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           <button
             type="button"
             onClick={() => setThemeMode("light")}
-            className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
+            className={`p-3 rounded-xl border text-start transition cursor-pointer ${
               themeMode === "light"
                 ? "bg-primary/20 border-primary ring-1 ring-primary"
                 : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -59,7 +59,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           <button
             type="button"
             onClick={() => setThemeMode("dark")}
-            className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
+            className={`p-3 rounded-xl border text-start transition cursor-pointer ${
               themeMode === "dark"
                 ? "bg-primary/20 border-primary ring-1 ring-primary"
                 : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -84,7 +84,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           <button
             type="button"
             onClick={() => setThemeMode("system")}
-            className={`p-3 rounded-xl border text-start transition-colors cursor-pointer ${
+            className={`p-3 rounded-xl border text-start transition cursor-pointer ${
               themeMode === "system"
                 ? "bg-primary/20 border-primary ring-1 ring-primary"
                 : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -117,7 +117,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           <button
             type="button"
             onClick={() => onSelectDeviceMode("responsive")}
-            className={`p-4 rounded-xl border text-start transition-colors cursor-pointer ${
+            className={`p-4 rounded-xl border text-start transition cursor-pointer ${
               deviceMode === "responsive"
                 ? "bg-primary/20 border-primary ring-1 ring-primary"
                 : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -142,7 +142,7 @@ export const SettingsDisplayTab: React.FC<SettingsDisplayTabProps> = ({
           <button
             type="button"
             onClick={() => onSelectDeviceMode("pixel")}
-            className={`p-4 rounded-xl border text-start transition-colors cursor-pointer ${
+            className={`p-4 rounded-xl border text-start transition cursor-pointer ${
               deviceMode === "pixel"
                 ? "bg-primary/20 border-primary ring-1 ring-primary"
                 : "bg-card border-border hover:border-primary/50 hover:bg-muted"

@@ -69,26 +69,26 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                 key={ws.id}
                 id={`nav-workspace-${ws.id}`}
                 onClick={() => handleSelect(ws.id)}
-                className="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-colors relative group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-12"
+                className="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition relative group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-12"
                 title={ws.tooltip}
                 aria-label={ws.label}
               >
                 {/* Material You rounded pill highlight */}
                 <div
-                  className={`flex items-center justify-center w-14 h-7.5 rounded-full transition-colors duration-200 relative ${
+                  className={`flex items-center justify-center w-14 h-7.5 rounded-full transition duration-200 relative ${
                     isActive
                       ? "bg-primary/20 text-primary"
                       : "text-muted-foreground group-hover:text-foreground group-hover:bg-muted/70"
                   }`}
                 >
                   <Icon
-                    className={`w-4 h-4 transition-transform duration-150 ${
+                    className={`w-4 h-4 transition duration-150 ${
                       isActive ? "scale-110 stroke-[2.2]" : "stroke-[1.8]"
                     }`}
                   />
                 </div>
                 <span
-                  className={`text-[11px] mt-0.5 tracking-tight transition-colors truncate max-w-[72px] text-center ${
+                  className={`text-[11px] mt-0.5 tracking-tight transition truncate max-w-[72px] text-center ${
                     isActive
                       ? "text-primary font-semibold"
                       : "text-muted-foreground group-hover:text-foreground"

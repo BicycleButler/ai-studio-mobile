@@ -194,7 +194,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             type="button"
             id="stubs-tab-graph"
             onClick={() => setActiveTab("graph")}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${
               activeTab === "graph"
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
@@ -213,7 +213,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
           type="button"
           id="stubs-tab-diagram"
           onClick={() => setActiveTab("diagram")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${
             activeTab === "diagram"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
@@ -227,7 +227,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
           type="button"
           id="stubs-tab-lint"
           onClick={() => setActiveTab("lint")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${
             activeTab === "lint"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
@@ -250,7 +250,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
           type="button"
           id="stubs-tab-impact"
           onClick={() => setActiveTab("impact")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${
             activeTab === "impact"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
@@ -264,7 +264,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
           type="button"
           id="stubs-tab-specs"
           onClick={() => setActiveTab("specs")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${
             activeTab === "specs"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
@@ -281,7 +281,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
           type="button"
           id="stubs-tab-terminal"
           onClick={() => setActiveTab("terminal")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${
             activeTab === "terminal"
               ? "bg-primary text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
@@ -322,7 +322,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             id="stubs-header-scan-btn"
             onClick={() => handleRunCommand("scan")}
             disabled={isExecutingCommand || isLoadingGraph}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-medium transition cursor-pointer disabled:opacity-50"
             title="Scan physical source code AST & update graph database"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoadingGraph || isExecutingCommand ? "animate-spin" : ""}`} />

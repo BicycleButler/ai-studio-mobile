@@ -263,7 +263,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="template-drawer-back-btn"
             onClick={onClose}
-            className="p-2 -ms-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-11 min-h-11"
+            className="p-2 -ms-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-11 min-h-11"
             title="Close drawer"
             aria-label="Back / Close drawer"
           >
@@ -314,7 +314,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                     type="button"
                     id="template-drawer-create-btn"
                     onClick={handleStartCreate}
-                    className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer touch-manipulation"
+                    className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition cursor-pointer touch-manipulation"
                     title="Create custom template"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -325,7 +325,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                       type="button"
                       id="template-drawer-preview-toggle-btn"
                       onClick={() => setViewMode("preview")}
-                      className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer touch-manipulation"
+                      className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium flex items-center gap-1 transition cursor-pointer touch-manipulation"
                       title="Preview composite message"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -337,7 +337,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                 <button
                   type="button"
                   onClick={() => setViewMode("browse")}
-                  className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium transition-colors cursor-pointer touch-manipulation"
+                  className="min-h-11 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-medium transition cursor-pointer touch-manipulation"
                 >
                   Back to list
                 </button>
@@ -349,7 +349,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="template-drawer-close-btn"
             onClick={onClose}
-            className="w-11 h-11 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="w-11 h-11 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             title="Close drawer"
             aria-label="Close templates drawer"
           >
@@ -365,7 +365,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="tab-prompt-directives"
             onClick={() => setActiveToolTab("directives")}
-            className={`flex-1 py-1 px-2.5 rounded-lg transition-colors text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-1 px-2.5 rounded-lg transition text-center flex items-center justify-center gap-1.5 cursor-pointer ${
               activeToolTab === "directives"
                 ? "bg-background text-foreground shadow-xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -378,7 +378,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="tab-prompt-few-shot"
             onClick={() => setActiveToolTab("few-shot")}
-            className={`flex-1 py-1 px-2.5 rounded-lg transition-colors text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-1 px-2.5 rounded-lg transition text-center flex items-center justify-center gap-1.5 cursor-pointer ${
               activeToolTab === "few-shot"
                 ? "bg-background text-foreground shadow-xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -391,7 +391,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
             type="button"
             id="tab-prompt-variables"
             onClick={() => setActiveToolTab("variables")}
-            className={`flex-1 py-1 px-2.5 rounded-lg transition-colors text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-1 px-2.5 rounded-lg transition text-center flex items-center justify-center gap-1.5 cursor-pointer ${
               activeToolTab === "variables"
                 ? "bg-background text-foreground shadow-xs font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -503,14 +503,14 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                   type="button"
                   id="template-form-cancel-btn"
                   onClick={() => setViewMode("browse")}
-                  className="px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-medium transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-medium transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   id="template-form-save-btn"
-                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs active:scale-95 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs active:scale-95 transition cursor-pointer"
                 >
                   {editingTemplateId ? "Save Changes" : "Create Template"}
                 </button>
@@ -569,7 +569,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
               <button
                 type="button"
                 onClick={onClearAllTemplates}
-                className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                className="text-xs text-muted-foreground hover:text-destructive transition cursor-pointer"
               >
                 Clear all selected templates
               </button>
@@ -577,7 +577,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                 type="button"
                 id="template-preview-done-btn"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs active:scale-95 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs active:scale-95 transition cursor-pointer"
               >
                 Done & Return to Chat
               </button>
@@ -619,7 +619,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                       key={cat.id}
                       type="button"
                       onClick={() => setActiveCategory(cat.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer ${
                         isActive
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
@@ -712,7 +712,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
                 type="button"
                 id="template-clear-selection-btn"
                 onClick={onClearAllTemplates}
-                className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-xs font-medium transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-xs font-medium transition cursor-pointer"
               >
                 Clear
               </button>
@@ -721,7 +721,7 @@ export const PromptTemplateDrawer: React.FC<PromptTemplateDrawerProps> = ({
               type="button"
               id="template-done-btn"
               onClick={onClose}
-              className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
+              className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs flex items-center gap-1 transition cursor-pointer active:scale-95"
             >
               <span>Done</span>
               <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />

@@ -102,7 +102,7 @@ export function SegmentedControlItem({
       tabIndex={isActive ? 0 : -1}
       onClick={() => context.setActiveValue(value)}
       className={`
-        relative flex items-center justify-center px-3 py-1 text-xs font-medium rounded-md transition-colors duration-200 z-10
+        relative flex items-center justify-center px-3 py-1 text-xs font-medium rounded-md transition duration-200 z-10
         focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background outline-none
         ${isActive ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}
         ${Icon && children ? "gap-1.5" : ""}

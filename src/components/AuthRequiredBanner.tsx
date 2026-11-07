@@ -25,7 +25,7 @@ export const AuthRequiredBanner: React.FC<AuthRequiredBannerProps> = ({
       <button
         id="banner-auth-btn"
         onClick={onOpenSettings}
-        className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-[11px] shadow-sm flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+        className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-[11px] shadow-sm flex items-center gap-1 shrink-0 transition cursor-pointer"
       >
         <Key className="w-3 h-3" />
         <span>Connect</span>

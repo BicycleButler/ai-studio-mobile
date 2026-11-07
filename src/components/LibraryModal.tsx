@@ -103,7 +103,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
         </div>
         <button
           onClick={() => setShowSaveForm(!showSaveForm)}
-          className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+          className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium flex items-center gap-1 shadow-sm transition cursor-pointer"
         >
           <BookmarkPlus className="w-3.5 h-3.5" />
           <span>Save Current</span>
@@ -147,14 +147,14 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
             <div
               key={tmpl.id}
               onClick={() => onLoadPrompt(tmpl)}
-              className="group p-3 rounded-xl bg-card hover:bg-muted border border-border hover:border-border cursor-pointer transition-colors flex flex-col justify-between"
+              className="group p-3 rounded-xl bg-card hover:bg-muted border border-border hover:border-border cursor-pointer transition flex flex-col justify-between"
             >
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center">
                     <Sparkles className="w-3.5 h-3.5 text-primary" />
                   </div>
-                  <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                  <span className="text-xs font-semibold text-foreground group-hover:text-primary transition">
                     {tmpl.title}
                   </span>
                 </div>
@@ -172,7 +172,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                   <Layers className="w-3 h-3 text-muted-foreground" />
                   <span>{tmpl.config.model}</span>
                 </div>
-                <span className="text-primary flex items-center gap-0.5 group-hover:translate-x-0.5 group-hover:rtl:-translate-x-0.5 transition-transform">
+                <span className="text-primary flex items-center gap-0.5 group-hover:translate-x-0.5 group-hover:rtl:-translate-x-0.5 transition">
                   Load Template <ArrowRight className="rtl:rotate-180 w-3 h-3" />
                 </span>
               </div>
@@ -212,7 +212,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
               return (
               <div
                 key={item.id}
-                className={`p-3 rounded-xl border transition-colors flex items-center justify-between ${
+                className={`p-3 rounded-xl border transition flex items-center justify-between ${
                   isSelected ? "bg-primary/5 border-primary/30" : "bg-card border-border hover:border-border"
                 }`}
               >
@@ -255,7 +255,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => onLoadPrompt(item)}
-                    className="px-2.5 py-1 text-xs rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground text-foreground transition-colors cursor-pointer border border-border"
+                    className="px-2.5 py-1 text-xs rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground text-foreground transition cursor-pointer border border-border"
                   >
                     Open
                   </button>
@@ -265,7 +265,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
                       onDeletePrompt(item.id);
                       removeFromSelection(item.id);
                     }}
-                    className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-muted/40 transition-colors cursor-pointer"
+                    className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-muted/40 transition cursor-pointer"
                     title="Delete prompt"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
