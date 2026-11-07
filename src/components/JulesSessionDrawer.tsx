@@ -22,7 +22,7 @@ import {
   Square,
   } from "lucide-react";
 import { JulesSession, JulesRepository, JulesTaskStatus } from "../types";
-import { useOfflineQueue } from "../hooks/useOfflineQueue";
+import { usePendingSyncIds } from "../hooks/usePendingSyncIds";
 import { useServices } from "../services/ServiceContext";
 
 import { Combobox } from "./Combobox";
@@ -59,14 +59,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  const offlineQueue = useOfflineQueue();
-  const pendingIds = new Set(
-    offlineQueue.filter(m => m.type === "jules_sessions").flatMap(m => {
-      if (Array.isArray(m.payload)) return m.payload.map(s => s.id);
-      return [];
-    })
-  );
-
+  const pendingIds = usePendingSyncIds("jules_sessions");
 
   const [isCreating, setIsCreating] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);

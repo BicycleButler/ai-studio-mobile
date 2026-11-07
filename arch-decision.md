@@ -1432,3 +1432,11 @@ A bug where `transition-colors` was erroneously passed to standard components li
 
 **Decision:**
 Renamed the `transition-colors` attribute back to the standard React/framer-motion `transition` property across affected components (`UnifiedSettingsModal.tsx`, `ChatWorkspace.tsx`) to maintain specification compliance without altering runtime logic.
+
+## Architectural Decision: Offline Queue Pending Ids Abstraction
+
+**Context:**
+Multiple UI components (`SettingsAccountTab`, `LibraryModal`, `JulesSessionDrawer`) that managed lists of offline-capable entities contained duplicated boilerplate logic to determine which items were currently pending synchronization in the offline queue. This involved manually invoking `useOfflineQueue().filter().flatMap()` with complex optional chaining and conditional array parsing on the raw payload structure. This violated the DRY (Don't Repeat Yourself) principle and leaked the underlying payload structure details into the presentation components.
+
+**Decision:**
+Extracted this logic into a reusable `usePendingSyncIds` custom hook. The hook encapsulates the parsing logic for both flat arrays and nested object payloads, returning a simple `Set<string>`. UI components now only need a single line (e.g., `const pendingIds = usePendingSyncIds("jules_sessions");`) to get the synchronized IDs. This improves Reusability, simplifies the React component logic, and safely abstracts the internal payload mechanics away from the presentation layer.
