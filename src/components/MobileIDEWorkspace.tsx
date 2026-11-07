@@ -20,6 +20,7 @@ import {
 
 
 import { IDEWorkspaceProps } from "./WorkspaceRouter";
+import { useWorkspace } from "../contexts/WorkspaceContext";
 import { useServices } from "../services/ServiceContext";
 
 interface MobileIDEWorkspaceProps extends IDEWorkspaceProps {
@@ -41,16 +42,13 @@ interface ConsoleLog {
 }
 
 export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
-  config,
   messages,
   freeformText = "",
   structuredExamples = [],
-  hasApiKey,
-  onOpenAuth,
   onSwitchToPrompt: _onSwitchToPrompt,
-  onOpenParameters,
 }) => {
   const { codeGeneratorService, geminiStreamService, logger, clipboardService, fileDownloadService, platformService, idGenerator, timeProvider } = useServices();
+  const { config, hasApiKey, onOpenAuth, onOpenParameters } = useWorkspace();
 
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [

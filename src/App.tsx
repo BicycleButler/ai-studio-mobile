@@ -17,6 +17,7 @@ import { JulesSessionDrawer } from "./components/JulesSessionDrawer";
 import { ClipboardKeyBanner } from "./components/ClipboardKeyBanner";
 import { AuthRequiredBanner } from "./components/AuthRequiredBanner";
 import { StreamErrorBanner } from "./components/StreamErrorBanner";
+import { WorkspaceProvider } from "./contexts/WorkspaceContext";
 import { useGeminiStream } from "./hooks/useGeminiStream";
 import { useJules } from "./hooks/useJules";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
@@ -381,9 +382,7 @@ export default function App() {
       />
 
       {/* Main Content Area: Primary Active Workspace */}
-      <WorkspaceRouter
-        promptType={promptType}
-        sharedProps={{
+      <WorkspaceProvider value={{
           config,
           onUpdateSystemInstruction: (inst) => setConfig((prev) => ({ ...prev, systemInstruction: inst })),
           onOpenParameters: () => setShowTunerSheet(true),
@@ -405,38 +404,42 @@ export default function App() {
             speechVoicesService.saveSpeechSettings(newSettings);
           }
         }}
-        chatProps={{
-          messages,
-          onSendMessage: (text, atts, tplIds, rawText) => void handleSendMessage(text, atts, tplIds, rawText),
-          onClearMessages: () => handleStartNewChat(stopStream),
-          onRegenerate: handleRegenerate,
-          onStopGeneration: stopStream,
-          isGenerating,
-          currentSessionId,
-          onSelectSession: (s) => handleSelectChatSession(s as import("./types").ChatSession, stopStream),
-          onNewChat: () => handleStartNewChat(stopStream)
-        }}
-        ideProps={{
-          messages,
-          freeformText,
-          structuredExamples,
-          onSwitchToPrompt: () => { setPromptType("chat"); }
-        }}
-        stubsProps={{}}
-        julesProps={{
-          activeJulesSession,
-          onOpenJulesSessions: () => setShowJulesDrawer(true),
-          onApproveJulesPlan: (taskId) => void handleApproveJulesPlan(taskId),
-          onRejectJulesPlan: (taskId) => void handleRejectJulesPlan(taskId),
-          isApprovingJulesPlan, messages: _julesMessages, onSendMessage: (text, atts, tplIds, rawUserText) => handleSendJulesMessage(text, atts, tplIds, rawUserText),
-          onClearMessages: handleClearJulesMessages,
-          onStopGeneration: handleStopJulesPolling,
-           isGenerating: _isJulesExecuting,
-          hasJulesApiKey: Boolean(julesApiKey.trim()),
-          onSelectJulesSession: handleSelectJulesSession,
-          onRegenerate: () => {},
-        }}
-      />
+      >
+        <WorkspaceRouter
+          promptType={promptType}
+          chatProps={{
+            messages,
+            onSendMessage: (text, atts, tplIds, rawText) => void handleSendMessage(text, atts, tplIds, rawText),
+            onClearMessages: () => handleStartNewChat(stopStream),
+            onRegenerate: handleRegenerate,
+            onStopGeneration: stopStream,
+            isGenerating,
+            currentSessionId,
+            onSelectSession: (s) => handleSelectChatSession(s as import("./types").ChatSession, stopStream),
+            onNewChat: () => handleStartNewChat(stopStream)
+          }}
+          ideProps={{
+            messages,
+            freeformText,
+            structuredExamples,
+            onSwitchToPrompt: () => { setPromptType("chat"); }
+          }}
+          stubsProps={{}}
+          julesProps={{
+            activeJulesSession,
+            onOpenJulesSessions: () => setShowJulesDrawer(true),
+            onApproveJulesPlan: (taskId) => void handleApproveJulesPlan(taskId),
+            onRejectJulesPlan: (taskId) => void handleRejectJulesPlan(taskId),
+            isApprovingJulesPlan, messages: _julesMessages, onSendMessage: (text, atts, tplIds, rawUserText) => handleSendJulesMessage(text, atts, tplIds, rawUserText),
+            onClearMessages: handleClearJulesMessages,
+            onStopGeneration: handleStopJulesPolling,
+            isGenerating: _isJulesExecuting,
+            hasJulesApiKey: Boolean(julesApiKey.trim()),
+            onSelectJulesSession: handleSelectJulesSession,
+            onRegenerate: () => {}, // TODO
+          }}
+        />
+      </WorkspaceProvider>
 
       {/* Primary Android Workspace Bottom Navigation Bar */}
       <BottomNavBar

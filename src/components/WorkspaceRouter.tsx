@@ -1,13 +1,10 @@
 import React from "react";
-import { SettingsTab } from "../types";
-import { SpeechSettings } from "../services/speechVoices";
 import { ChatWorkspace } from "./ChatWorkspace";
 import { MobileIDEWorkspace } from "./MobileIDEWorkspace";
 import { StubsWorkspace } from "./StubsWorkspace";
 import {
   PromptType,
   ChatMessage,
-  PromptConfig,
   StructuredExample,
   MessageAttachment,
   JulesSession,
@@ -15,31 +12,7 @@ import {
   ChatSession,
 } from "../types";
 
-export interface SharedWorkspaceProps {
-  config: PromptConfig;
-  onUpdateSystemInstruction: (inst: string) => void;
-  onOpenParameters: () => void;
-  hasApiKey: boolean;
-  onOpenAuth: () => void;
-  onOpenSettings: (tab?: SettingsTab) => void;
-  activeProjectId?: string;
-  onOpenBottomNav: () => void;
-
-  // Template props
-  isTemplateDrawerOpen: boolean;
-  onOpenTemplateDrawer: () => void;
-  onCloseTemplateDrawer: () => void;
-  selectedTemplateIds: string[];
-  onToggleTemplate: (id: string) => void;
-  onRemoveTemplate: (id: string) => void;
-  onClearAllTemplates: () => void;
-
-  // Speech Settings
-  speechSettings: SpeechSettings;
-  onSaveSpeechSettings: (newSettings: SpeechSettings) => void;
-}
-
-export interface ChatWorkspaceProps extends SharedWorkspaceProps {
+export interface ChatWorkspaceProps {
   messages: ChatMessage[];
   onSendMessage: (text: string, atts?: MessageAttachment[], tplIds?: string[], rawText?: string) => Promise<void> | void;
   onClearMessages: () => void;
@@ -51,14 +24,14 @@ export interface ChatWorkspaceProps extends SharedWorkspaceProps {
   onNewChat: () => void;
 }
 
-export interface IDEWorkspaceProps extends SharedWorkspaceProps {
+export interface IDEWorkspaceProps {
   messages: ChatMessage[];
   freeformText?: string;
   structuredExamples?: StructuredExample[];
   onSwitchToPrompt: () => void;
 }
 
-export interface JulesWorkspaceProps extends SharedWorkspaceProps {
+export interface JulesWorkspaceProps {
   activeJulesSession: JulesSession | null;
   onOpenJulesSessions: () => void;
   onApproveJulesPlan: (taskId: string) => Promise<void> | void;
@@ -78,16 +51,14 @@ import { StubsWorkspaceProps } from "./StubsWorkspace";
 
 export interface WorkspaceRouterProps {
   promptType: PromptType;
-  sharedProps: SharedWorkspaceProps;
-  chatProps: Omit<ChatWorkspaceProps, keyof SharedWorkspaceProps>;
-  ideProps: Omit<IDEWorkspaceProps, keyof SharedWorkspaceProps>;
-  julesProps: Omit<JulesWorkspaceProps, keyof SharedWorkspaceProps>;
-  stubsProps?: Omit<StubsWorkspaceProps, keyof SharedWorkspaceProps>;
+  chatProps: ChatWorkspaceProps;
+  ideProps: IDEWorkspaceProps;
+  julesProps: JulesWorkspaceProps;
+  stubsProps?: StubsWorkspaceProps;
 }
 
 export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
   promptType,
-  sharedProps,
   chatProps,
   ideProps,
   julesProps,
@@ -96,16 +67,16 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
   return (
     <main className="flex-1 flex flex-col overflow-hidden relative">
       {promptType === "chat" && (
-        <ChatWorkspace {...sharedProps} {...chatProps} />
+        <ChatWorkspace {...chatProps} />
       )}
       {promptType === "code" && (
-        <MobileIDEWorkspace {...sharedProps} {...ideProps} />
+        <MobileIDEWorkspace {...ideProps} />
       )}
       {promptType === "jules" && (
-        <ChatWorkspace isJulesMode={true} {...sharedProps} {...julesProps} />
+        <ChatWorkspace isJulesMode={true} {...julesProps} />
       )}
       {promptType === "stubs" && (
-        <StubsWorkspace {...(stubsProps as StubsWorkspaceProps)} {...sharedProps} />
+        <StubsWorkspace {...(stubsProps as StubsWorkspaceProps)} />
       )}
     </main>
   );
