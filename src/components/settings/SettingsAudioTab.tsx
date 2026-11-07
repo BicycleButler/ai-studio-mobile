@@ -51,7 +51,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
             type="button"
             id="settings-engine-gemini"
             onClick={() => handleSelectAudioEngine("gemini")}
-            className={`p-3.5 rounded-xl border text-start transition-colors cursor-pointer ${
+            className={`p-3.5 rounded-xl border text-start transition cursor-pointer ${
               currentSpeechSettings.engine === "gemini"
                 ? "bg-primary/20 border-primary ring-1 ring-primary"
                 : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -77,7 +77,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
             type="button"
             id="settings-engine-device"
             onClick={() => handleSelectAudioEngine("device")}
-            className={`p-3.5 rounded-xl border text-start transition-colors cursor-pointer ${
+            className={`p-3.5 rounded-xl border text-start transition cursor-pointer ${
               currentSpeechSettings.engine === "device"
                 ? "bg-primary/20 border-primary ring-1 ring-primary"
                 : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -114,7 +114,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
                 <div
                   key={v.id}
                   onClick={() => handleSelectGeminiVoice(v.id)}
-                  className={`flex items-center justify-between p-3 rounded-xl border transition-colors cursor-pointer ${
+                  className={`flex items-center justify-between p-3 rounded-xl border transition cursor-pointer ${
                     isSelected
                       ? "bg-primary/15 border-primary ring-1 ring-primary/40"
                       : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -165,7 +165,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
                 <div
                   key={v.voiceURI}
                   onClick={() => handleSelectDeviceVoice(v.voiceURI)}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-colors cursor-pointer ${
+                  className={`flex items-center justify-between p-2.5 rounded-xl border transition cursor-pointer ${
                     isSelected
                       ? "bg-primary/15 border-primary ring-1 ring-primary/40"
                       : "bg-card border-border hover:border-primary/50 hover:bg-muted"
@@ -209,7 +209,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
               key={rate}
               type="button"
               onClick={() => handleSelectRate(rate)}
-              className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
+              className={`py-2 px-3 rounded-xl border text-xs font-semibold transition cursor-pointer ${
                 currentSpeechSettings.playbackRate === rate
                   ? "bg-primary border-primary text-primary-foreground shadow-sm"
                   : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted"

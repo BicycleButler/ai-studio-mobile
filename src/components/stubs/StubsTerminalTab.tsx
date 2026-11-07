@@ -34,19 +34,19 @@ export const StubsTerminalTab: React.FC<StubsTerminalTabProps> = ({
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none w-full sm:w-auto">
           <button
             onClick={() => onExecuteCommand("npm run test")}
-            className="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-mono text-foreground whitespace-nowrap transition-colors"
+            className="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-mono text-foreground whitespace-nowrap transition"
           >
             $ npm run test
           </button>
           <button
             onClick={() => onExecuteCommand("npm run lint")}
-            className="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-mono text-foreground whitespace-nowrap transition-colors"
+            className="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-mono text-foreground whitespace-nowrap transition"
           >
             $ npm run lint
           </button>
           <button
             onClick={() => onExecuteCommand("stubs sync --dry-run")}
-            className="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-mono text-foreground whitespace-nowrap transition-colors"
+            className="px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-[11px] font-mono text-foreground whitespace-nowrap transition"
           >
             $ stubs sync
           </button>
@@ -64,7 +64,7 @@ export const StubsTerminalTab: React.FC<StubsTerminalTabProps> = ({
           </div>
           <button
             onClick={onClearTerminal}
-            className="p-1.5 text-white/40 hover:text-white/80 hover:bg-white/10 rounded-md transition-colors cursor-pointer"
+            className="p-1.5 text-white/40 hover:text-white/80 hover:bg-white/10 rounded-md transition cursor-pointer"
             title="Clear Terminal Output"
           >
             <Trash2 className="w-3.5 h-3.5" />

@@ -83,7 +83,7 @@ export const Drawer: React.FC<DrawerProps> = ({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="w-8 h-8 -mr-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+                    className="w-8 h-8 -mr-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition cursor-pointer"
                     title="Close"
                     aria-label="Close"
                   >

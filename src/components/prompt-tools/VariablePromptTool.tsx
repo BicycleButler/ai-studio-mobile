@@ -122,7 +122,7 @@ export const VariablePromptTool: React.FC<VariablePromptToolProps> = ({ onInsert
               key={preset.name}
               type="button"
               onClick={() => handleLoadPreset(preset)}
-              className="px-2 py-1 rounded-lg bg-background hover:bg-muted text-[11px] font-medium text-foreground border border-border transition-colors cursor-pointer"
+              className="px-2 py-1 rounded-lg bg-background hover:bg-muted text-[11px] font-medium text-foreground border border-border transition cursor-pointer"
             >
               {preset.name}
             </button>

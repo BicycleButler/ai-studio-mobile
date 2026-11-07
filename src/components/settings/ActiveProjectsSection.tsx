@@ -52,7 +52,7 @@ export const ActiveProjectsSection: React.FC<ActiveProjectsSectionProps> = ({
             <span>Active Projects</span>
             <button
               onClick={onOpenImportProject}
-              className="text-[10px] uppercase font-bold tracking-wide text-blue-500 hover:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded transition-colors"
+              className="text-[10px] uppercase font-bold tracking-wide text-blue-500 hover:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded transition"
             >
               Import New
             </button>
@@ -78,7 +78,7 @@ export const ActiveProjectsSection: React.FC<ActiveProjectsSectionProps> = ({
             return (
               <div
                 key={p.id}
-                className={`p-3 rounded-lg border transition-colors flex items-center justify-between ${
+                className={`p-3 rounded-lg border transition flex items-center justify-between ${
                   isSelected ? "bg-primary/5 border-primary/30" : activeProject?.id === p.id
                     ? "bg-blue-500/5 border-blue-500/30"
                     : "bg-muted/50 border-border/50 hover:border-border"

@@ -59,7 +59,7 @@ export const StreamErrorBanner: React.FC<StreamErrorBannerProps> = ({
             type="button"
             id="banner-update-ai-studio-btn"
             onClick={onUpdateInAIStudio}
-            className="px-2.5 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold flex items-center gap-1 text-[11px] shadow-sm transition-colors"
+            className="px-2.5 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold flex items-center gap-1 text-[11px] shadow-sm transition"
           >
             <ExternalLink className="w-3 h-3" />
             <span>Update in AI Studio</span>
@@ -90,7 +90,7 @@ export const StreamErrorBanner: React.FC<StreamErrorBannerProps> = ({
         )}
         <button
           onClick={onClearError}
-          className="p-1 text-zinc-400 hover:text-white rounded transition-colors"
+          className="p-1 text-zinc-400 hover:text-white rounded transition"
           title="Dismiss error"
         >
           <X className="w-3.5 h-3.5" />

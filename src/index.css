@@ -286,35 +286,6 @@
   transition-duration: 500ms;
 }
 
-.duration-600 {
-  --animation-duration: 600ms;
-  animation-duration: 600ms;
-  transition-duration: 600ms;
-}
-
-.duration-700, [class*="duration-[700ms]"], [class*="duration-[630ms]"] {
-  --animation-duration: 630ms;
-  animation-duration: 630ms;
-  transition-duration: 630ms;
-}
-
-.duration-1050, [class*="duration-[1050ms]"], .duration-945, [class*="duration-[945ms]"] {
-  --animation-duration: 945ms;
-  animation-duration: 945ms;
-  transition-duration: 945ms;
-}
-
-.duration-1400, [class*="duration-[1400ms]"], .duration-1260, [class*="duration-[1260ms]"] {
-  --animation-duration: 1260ms;
-  animation-duration: 1260ms;
-  transition-duration: 1260ms;
-}
-
-.duration-2100, [class*="duration-[2100ms]"], .duration-1890, [class*="duration-[1890ms]"] {
-  --animation-duration: 1890ms;
-  animation-duration: 1890ms;
-  transition-duration: 1890ms;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-in, .animate-out {

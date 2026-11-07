@@ -361,7 +361,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             return (
               <div
                 key={file.id}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-colors cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
                   isActive
                     ? "bg-primary/10 text-primary border-primary/30 font-semibold shadow-xs"
                     : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted border-border/50"
@@ -376,7 +376,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                       e.stopPropagation();
                       handleDeleteFile(file.id, file.name);
                     }}
-                    className="opacity-60 group-hover:opacity-100 p-0.5 hover:text-destructive transition-colors-opacity cursor-pointer"
+                    className="opacity-60 group-hover:opacity-100 p-0.5 hover:text-destructive transition cursor-pointer"
                     title="Delete scratchpad"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -389,7 +389,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
           <button
             type="button"
             onClick={handleCreateScratchpad}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted border border-dashed border-border rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted border border-dashed border-border rounded-xl transition whitespace-nowrap shrink-0 cursor-pointer"
             title="Create new scratchpad file"
             aria-label="Create scratchpad"
           >
@@ -404,7 +404,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
           <button
             type="button"
             onClick={() => setIsConsoleDrawerOpen((prev) => !prev)}
-            className="sm:hidden flex items-center gap-1 min-h-[38px] px-2.5 py-1 rounded-xl bg-muted/60 hover:bg-muted text-foreground border border-border text-[11px] font-mono transition-colors cursor-pointer touch-manipulation"
+            className="sm:hidden flex items-center gap-1 min-h-[38px] px-2.5 py-1 rounded-xl bg-muted/60 hover:bg-muted text-foreground border border-border text-[11px] font-mono transition cursor-pointer touch-manipulation"
             title="Toggle console logs drawer"
             aria-label="Toggle console drawer"
           >
@@ -422,7 +422,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setActiveView("editor")}
-              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${
+              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition cursor-pointer touch-manipulation flex items-center justify-center ${
                 activeView === "editor" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Editor only view"
@@ -432,7 +432,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setActiveView("split")}
-              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${
+              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition cursor-pointer touch-manipulation flex items-center justify-center ${
                 activeView === "split" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Split editor & console view"
@@ -442,7 +442,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setActiveView("console")}
-              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer touch-manipulation flex items-center justify-center ${
+              className={`min-h-[36px] px-2.5 py-1 rounded-lg transition cursor-pointer touch-manipulation flex items-center justify-center ${
                 activeView === "console" ? "bg-card text-foreground font-medium shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
               title="Console terminal view"
@@ -457,7 +457,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             id="mobile-ide-run-btn"
             onClick={handleRunScript}
             disabled={isRunning}
-            className={`flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-colors active:scale-95 cursor-pointer touch-manipulation ${
+            className={`flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer touch-manipulation ${
               isRunning
                 ? "bg-muted text-foreground cursor-wait"
                 : "bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -499,7 +499,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setWordWrap((prev) => !prev)}
-                  className={`p-1 rounded transition-colors cursor-pointer ${
+                  className={`p-1 rounded transition cursor-pointer ${
                     wordWrap ? "bg-muted text-primary" : "text-muted-foreground hover:text-foreground"
                   }`}
                   title="Toggle Word Wrap"
@@ -510,7 +510,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={handleResetActiveFile}
-                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="p-1 rounded text-muted-foreground hover:text-foreground transition cursor-pointer"
                   title="Reset file to latest generated prompt code"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -519,7 +519,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyFile}
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground transition cursor-pointer"
                   title="Copy code to clipboard"
                 >
                   {copied ? (
@@ -538,7 +538,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={handleDownloadFile}
-                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="p-1 rounded text-muted-foreground hover:text-foreground transition cursor-pointer"
                   title="Download file"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -588,7 +588,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                   key={item.label}
                   type="button"
                   onClick={() => handleInsertSymbol(item.insert)}
-                  className="px-2 py-0.5 rounded bg-card hover:bg-muted active:bg-primary/20 text-xs font-mono text-foreground border border-border transition-colors whitespace-nowrap active:scale-95 shadow-xs cursor-pointer"
+                  className="px-2 py-0.5 rounded bg-card hover:bg-muted active:bg-primary/20 text-xs font-mono text-foreground border border-border transition whitespace-nowrap active:scale-95 shadow-xs cursor-pointer"
                 >
                   {item.label}
                 </button>
@@ -619,7 +619,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setConsoleLogs([])}
-                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition cursor-pointer"
                   title="Clear Console"
                 >
                   Clear
@@ -631,7 +631,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                     const text = consoleLogs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
                     await clipboardService.writeText(text);
                   }}
-                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition cursor-pointer"
                   title="Copy Console Logs"
                 >
                   Copy Logs
@@ -694,7 +694,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setConsoleLogs([])}
-                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition cursor-pointer px-1.5 py-0.5"
                   title="Clear Console"
                 >
                   Clear
@@ -706,7 +706,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                     const text = consoleLogs.map((l) => `[${l.timestamp}] ${l.message}`).join("\n");
                     await clipboardService.writeText(text);
                   }}
-                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition cursor-pointer px-1.5 py-0.5"
                   title="Copy Console Logs"
                 >
                   Copy
@@ -715,7 +715,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsConsoleDrawerOpen(false)}
-                  className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="p-1 text-muted-foreground hover:text-foreground transition cursor-pointer"
                   title="Close Console Drawer"
                   aria-label="Close Console Drawer"
                 >
@@ -785,7 +785,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             <button
               type="button"
               onClick={onOpenParameters}
-              className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+              className="flex items-center gap-1 hover:text-foreground transition cursor-pointer"
               title="Tune parameters"
             >
               <Sliders className="w-3 h-3 text-primary" />

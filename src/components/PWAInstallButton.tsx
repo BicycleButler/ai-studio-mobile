@@ -59,7 +59,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           id="pwa-header-install-btn"
           onClick={handleInstallClick}
           disabled={isInstalling}
-          className={`p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${className}`}
+          className={`p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation ${className}`}
           title="Install Progressive Web App (PWA)"
           aria-label="Install Progressive Web App (PWA)"
         >
@@ -94,7 +94,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             id="pwa-settings-install-btn"
             onClick={handleInstallClick}
             disabled={isInstalling}
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation"
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation"
           >
             <Download className="w-4 h-4" />
             <span>{isIOS ? "Install on iOS" : "Install PWA"}</span>
@@ -122,7 +122,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         <button
           type="button"
           onClick={handleInstallClick}
-          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors text-xs shrink-0 cursor-pointer"
+          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition text-xs shrink-0 cursor-pointer"
         >
           {isIOS ? "How to Install" : "Install"}
         </button>
@@ -164,7 +164,7 @@ const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose })
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center cursor-pointer"
+            className="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center justify-center cursor-pointer"
             aria-label="Close guide"
           >
             <X className="w-4 h-4" />
@@ -236,7 +236,7 @@ const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose })
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
+          className="mt-4 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition cursor-pointer"
         >
           Got It
         </button>
