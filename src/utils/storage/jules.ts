@@ -4,7 +4,7 @@ import { encryptSecret, decryptSecret } from "./encryption";
 import { isMockSession } from "../mockDefinitions";
 import { cleanMockData } from "./helpers";
 import { IApiClient } from "../apiClient";
-import { createActiveItemManager } from "./ActiveItemManagerFactory";
+import { IActiveItemManagerFactory, DefaultActiveItemManagerFactory } from "./ActiveItemManagerFactory";
 import { DefaultStorageFactory, IStorageFactory } from "./StorageFactory";
 import { ILogger } from "../logger";
 import { IMutableSingleton } from "./types";
@@ -42,6 +42,7 @@ export interface JulesStorageServiceConfig {
   logger: ILogger;
   idGenerator?: IIdGenerator;
   storageFactory?: IStorageFactory;
+  activeItemManagerFactory?: IActiveItemManagerFactory;
 }
 
 const DEFAULT_JULES_SETTINGS: JulesSettings = {
@@ -83,7 +84,7 @@ export class JulesStorageService implements IJulesStorageService {
     if (!config?.syncAdapter) { throw new Error("syncAdapter is required for JulesStorageService"); }
     this.syncAdapter = config.syncAdapter;
 
-    this.julesSessionsManager = config?.julesSessionsManager || createActiveItemManager<JulesSession>({
+    this.julesSessionsManager = config?.julesSessionsManager || (config?.activeItemManagerFactory || new DefaultActiveItemManagerFactory()).create<JulesSession>({
       storageFactory: config?.storageFactory,
       collectionKey: STORAGE_KEYS.JULES_SESSIONS,
       collectionOptions: {

@@ -52,7 +52,3 @@ export class DefaultActiveItemManagerFactory implements IActiveItemManagerFactor
 
 
 
-// Kept for backwards compatibility
-export function createActiveItemManager<T>(options: CreateActiveItemManagerOptions<T>): IActiveItemManager<T> {
-  return new DefaultActiveItemManagerFactory().create(options);
-}

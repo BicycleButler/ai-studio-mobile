@@ -9,7 +9,7 @@ import { IApiClient, ApiClient } from "../utils/apiClient";
 import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
-import { createDefaultStorageInstance, DefaultStorageFactory } from "../utils/storage";
+import { createDefaultStorageInstance, DefaultStorageFactory, DefaultActiveItemManagerFactory } from "../utils/storage";
 import { DefaultCrossTabNotifierFactory } from "../utils/crossTabNotifier/CrossTabNotifierFactory";
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { IIdGenerator, DefaultIdGenerator } from "../utils/idGenerator";
@@ -96,6 +96,7 @@ const explicitlyInjectedTimeProvider = new DefaultTimeProvider();
 const explicitlyInjectedPlatformService = new BrowserPlatformService();
 const explicitlyInjectedStorageInstance = createDefaultStorageInstance();
 const explicitlyInjectedStorageFactory = new DefaultStorageFactory(explicitlyInjectedStorageInstance);
+const explicitlyInjectedActiveItemManagerFactory = new DefaultActiveItemManagerFactory();
 
 const explicitlyInjectedApiClient = new ApiClient({
   interceptorManager: new InterceptorManager(),
@@ -148,6 +149,7 @@ const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
 
 
 const explicitlyInjectedJulesStorageService = new JulesStorageService({
+  activeItemManagerFactory: explicitlyInjectedActiveItemManagerFactory,
   logger: explicitlyInjectedLogger,
   apiClient: explicitlyInjectedApiClient,
   julesSessionsManager: undefined,
@@ -187,6 +189,7 @@ const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
 
 
 const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
+  activeItemManagerFactory: explicitlyInjectedActiveItemManagerFactory,
   savedPromptsManager: undefined,
   syncAdapter: new NetworkStorageSyncAdapter({
     transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
@@ -215,6 +218,7 @@ const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
 });
 
 const explicitlyInjectedProjectService = new ProjectService({
+  activeItemManagerFactory: explicitlyInjectedActiveItemManagerFactory,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
   idGenerator: explicitlyInjectedIdGenerator
 });

@@ -1,5 +1,5 @@
 import { SavedPrompt } from "../../types";
-import { createActiveItemManager } from "./ActiveItemManagerFactory";
+import { IActiveItemManagerFactory, DefaultActiveItemManagerFactory } from "./ActiveItemManagerFactory";
 import { STORAGE_KEYS } from "./constants";
 import { IActiveItemManager } from "./ActiveItemManager";
 import { IStorageSyncAdapter } from "./syncAdapter";
@@ -16,6 +16,7 @@ export interface SavedPromptsServiceConfig {
   savedPromptsManager?: IActiveItemManager<SavedPrompt>;
   syncAdapter?: IStorageSyncAdapter<SavedPrompt[]>;
   storageFactory?: IStorageFactory;
+  activeItemManagerFactory?: IActiveItemManagerFactory;
 }
 
 export class SavedPromptsService implements ISavedPromptsService {
@@ -26,7 +27,7 @@ export class SavedPromptsService implements ISavedPromptsService {
     if (!config?.syncAdapter) { throw new Error("syncAdapter is required for SavedPromptsService"); }
     this.syncAdapter = config.syncAdapter;
 
-    this.savedPromptsManager = config?.savedPromptsManager || createActiveItemManager<SavedPrompt>({
+    this.savedPromptsManager = config?.savedPromptsManager || (config?.activeItemManagerFactory || new DefaultActiveItemManagerFactory()).create<SavedPrompt>({
       storageFactory: config?.storageFactory,
       collectionKey: STORAGE_KEYS.SAVED_PROMPTS,
       collectionOptions: {
