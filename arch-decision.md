@@ -1424,3 +1424,11 @@ Explicitly passed the `explicitlyInjectedPlatformService` into the `BrowserNetwo
 
 **Decision:**
 The `createActiveItemManager` proxy function was removed completely. We modified the configurations for services using it to explicitly accept an `activeItemManagerFactory?: IActiveItemManagerFactory` dependency. In `ServiceContext.tsx`, we created a single `explicitlyInjectedActiveItemManagerFactory = new DefaultActiveItemManagerFactory()` and passed it down to the dependent services. This aligns perfectly with the Dependency Inversion Principle and the "Hybrid Dependency Injection" pattern used elsewhere in the application, ensuring full testability of the domain services.
+
+## Architectural Decision: Component Property Restructuring (Non-Functional)
+
+**Context:**
+A bug where `transition-colors` was erroneously passed to standard components like `<motion.div>` resulting in unknown prop warnings.
+
+**Decision:**
+Renamed the `transition-colors` attribute back to the standard React/framer-motion `transition` property across affected components (`UnifiedSettingsModal.tsx`, `ChatWorkspace.tsx`) to maintain specification compliance without altering runtime logic.

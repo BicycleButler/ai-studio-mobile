@@ -214,7 +214,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition-colors={{ duration: 0.2, ease: "easeOut" }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -232,7 +232,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition-colors={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             className="fixed inset-0 z-70 w-full h-full h-[100dvh] bg-background border-none shadow-xl flex flex-col overflow-hidden text-foreground"
           >
         {/* Top Drawer Header with Back button */}
