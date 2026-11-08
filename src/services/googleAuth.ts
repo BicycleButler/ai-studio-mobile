@@ -1,3 +1,4 @@
+import { IPlatformService } from "./IPlatformService";
 import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
 import { GoogleUser } from "../types";
 import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
@@ -6,7 +7,8 @@ import { IApiClient } from "../utils/apiClient";
 
 import { IAuthProvider } from "./authProvider";
 import { ILogger } from "../utils/logger";
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface GoogleAuthServiceConfig {
   apiClient: IApiClient;

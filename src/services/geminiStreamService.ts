@@ -1,8 +1,10 @@
+import { IPlatformService } from "./IPlatformService";
 import { GenerateRequestBody } from "../types";
 import { IApiClient, BaseApiError, isAbortError } from "../utils/apiClient";
-import { SSEStreamParser, ISSEStreamParser, SSEEventCallback } from "../utils/sseParser";
+import { SSEStreamParser, ISSEStreamParserFactory } from "../utils/sseParser";
 import { ILogger } from "../utils/logger";
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 
 export interface StreamCallbacks {
@@ -100,20 +102,22 @@ export interface IGeminiStreamService {
 export interface GeminiStreamServiceConfig {
   apiClient: IApiClient;
   logger: ILogger;
-  createSSEStreamParser?: (onEvent: SSEEventCallback) => ISSEStreamParser;
+  sseStreamParserFactory?: ISSEStreamParserFactory;
   platformService?: IPlatformService;
 }
 
 export class GeminiStreamService implements IGeminiStreamService {
   private apiClient: IApiClient;
   private logger: ILogger;
-  private createSSEStreamParser: (onEvent: SSEEventCallback) => ISSEStreamParser;
+  private sseStreamParserFactory: ISSEStreamParserFactory;
   private platformService: IPlatformService;
 
   constructor(config: GeminiStreamServiceConfig) {
     this.apiClient = config.apiClient;
     this.logger = config.logger;
-    this.createSSEStreamParser = config.createSSEStreamParser || ((onEvent) => new SSEStreamParser(onEvent));
+    this.sseStreamParserFactory = config.sseStreamParserFactory || {
+      create: (onEvent) => new SSEStreamParser(onEvent)
+    };
     this.platformService = config.platformService || new BrowserPlatformService();
   }
 
@@ -258,7 +262,7 @@ export class GeminiStreamService implements IGeminiStreamService {
       }
     };
 
-    const sseParser = this.createSSEStreamParser((eventName, dataStr) => {
+    const sseParser = this.sseStreamParserFactory.create((eventName, dataStr) => {
       handleData(dataStr);
     });
 

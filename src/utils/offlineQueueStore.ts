@@ -1,10 +1,11 @@
+import { IPlatformService } from "../services/IPlatformService";
 import { IMutex, Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
 import { ILogger, DefaultLoggerFactory } from "./logger";
 import { OfflineMutation } from "./offlineService";
 import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./crossTabNotifier";
 
-import { IPlatformService } from "../services/platformService";
+
 import { deepFreeze } from "./storage/helpers";
 import { AsyncStorage } from "./asyncStorage";
 

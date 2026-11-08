@@ -1,5 +1,7 @@
+import { IPlatformService } from "./IPlatformService";
 
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 /**
  * Sentence-Pipelined Speech Queue
  * Delivers ultra-low-latency voice playback for AI streaming responses:

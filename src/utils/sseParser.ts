@@ -10,6 +10,10 @@ export interface ISSEStreamParser {
   flush(): void;
 }
 
+export interface ISSEStreamParserFactory {
+  create(onEvent: SSEEventCallback): ISSEStreamParser;
+}
+
 export class SSEStreamParser implements ISSEStreamParser {
   private buffer: string = "";
   private onEvent: SSEEventCallback;

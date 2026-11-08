@@ -1,6 +1,8 @@
+import { IPlatformService } from "../services/IPlatformService";
 import { RETRYABLE_STATUS_CODES, BaseApiError, isAbortError } from "./apiClientErrors";
 import { IDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
-import { IPlatformService, BrowserPlatformService } from "../services/platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface RetryConfig {
   retryableStatusCodes?: Set<number>;

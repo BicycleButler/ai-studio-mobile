@@ -1,8 +1,10 @@
+import { IPlatformService } from "./IPlatformService";
 import { DefaultUrlBuilder } from "../utils/urlUtils";
 import { DefaultResponseParser } from "../utils/apiResponseParser";
 import { InterceptorManager } from "../utils/apiClientInterceptors";
 import { IAppAuthManager, AppAuthManager } from "./appAuthManager";
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 import React, { createContext, useContext, ReactNode } from "react";
 
 import { IApiClient, ApiClient } from "../utils/apiClient";
@@ -68,7 +70,7 @@ export interface IServices {
   julesSessionOrchestrator: IJulesSessionOrchestrator;
   speechVoicesService: ISpeechVoicesService;
   createSentenceSpeechQueue: (options: SentenceQueueOptions) => ISentenceSpeechQueue;
-  createSSEStreamParser: (onEvent: import("../utils/sseParser").SSEEventCallback) => import("../utils/sseParser").ISSEStreamParser;
+  sseStreamParserFactory: import("../utils/sseParser").ISSEStreamParserFactory;
   createBatchSelectionManager: () => IBatchSelectionManager;
   geminiStreamService: IGeminiStreamService;
   keyVerificationService: IKeyVerificationService;
@@ -267,7 +269,7 @@ const defaultServices: IServices = {
   julesSessionOrchestrator: explicitlyInjectedJulesSessionOrchestrator,
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
   createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
-  createSSEStreamParser: (onEvent) => new SSEStreamParser(onEvent),
+  sseStreamParserFactory: { create: (onEvent) => new SSEStreamParser(onEvent) },
   createBatchSelectionManager: () => new BatchSelectionManager(),
   geminiStreamService: explicitlyInjectedGeminiStreamService,
   keyVerificationService: explicitlyInjectedKeyVerificationService,

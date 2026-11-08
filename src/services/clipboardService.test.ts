@@ -1,3 +1,4 @@
+import { IPlatformService } from "./IPlatformService";
 import { describe, it, expect, vi } from 'vitest';
 import { BrowserClipboardService } from './clipboardService';
 import { NoOpLogger } from '../utils/logger';
@@ -8,7 +9,7 @@ describe('BrowserClipboardService', () => {
         const mockClipboard = { writeText: mockWriteText } as unknown as Clipboard;
 
         const mockPlatformService = {
-            ...({} as unknown as import("./platformService").IPlatformService),
+            ...({} as unknown as import("./IPlatformService").IPlatformService),
             getNavigator: () => ({ clipboard: mockClipboard }) as unknown as Navigator,
         };
         const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);
@@ -23,7 +24,7 @@ describe('BrowserClipboardService', () => {
         const mockClipboard = { writeText: mockWriteText } as unknown as Clipboard;
 
         const mockPlatformService = {
-            ...({} as unknown as import("./platformService").IPlatformService),
+            ...({} as unknown as import("./IPlatformService").IPlatformService),
             getNavigator: () => ({ clipboard: mockClipboard }) as unknown as Navigator,
         };
         const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);
@@ -34,7 +35,7 @@ describe('BrowserClipboardService', () => {
 
     it('should return false if clipboard is not available', async () => {
         const mockPlatformService = {
-            ...({} as unknown as import("./platformService").IPlatformService),
+            ...({} as unknown as import("./IPlatformService").IPlatformService),
             getNavigator: () => ({ clipboard: null }) as unknown as Navigator,
         };
         const service = new BrowserClipboardService(new NoOpLogger(), mockPlatformService);

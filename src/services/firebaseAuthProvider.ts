@@ -1,3 +1,4 @@
+import { IPlatformService } from "./IPlatformService";
 import { AuthSignInResult, IAuthProvider } from "./authProvider";
 import { GoogleUser } from "../types";
 import {
@@ -12,7 +13,8 @@ import {
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import firebaseConfig from "../../firebase-applet-config.json";
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export class FirebaseAuthProvider implements IAuthProvider {
   private firebaseAppInstance: FirebaseApp | null = null;

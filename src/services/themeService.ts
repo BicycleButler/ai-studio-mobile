@@ -1,5 +1,7 @@
+import { IPlatformService } from "./IPlatformService";
 
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 /**
  * Theme Service for Google AI Studio Mobile

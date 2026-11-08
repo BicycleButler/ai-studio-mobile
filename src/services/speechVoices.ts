@@ -1,3 +1,4 @@
+import { IPlatformService } from "./IPlatformService";
 import { IApiClient } from "../utils/apiClient";
 import { IAuthService } from "./auth";
 /**
@@ -112,7 +113,8 @@ export interface SpeechVoicesServiceConfig {
   storageFactory?: IStorageFactory;
 }
 
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 export class SpeechVoicesService implements ISpeechVoicesService {
   private platformService: IPlatformService;
   private speechSettingsSingleton: IMutableSingleton<SpeechSettings>;

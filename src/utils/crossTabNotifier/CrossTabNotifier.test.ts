@@ -1,8 +1,9 @@
+import { IPlatformService } from "../../services/IPlatformService";
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { StorageEventNotifier } from './StorageEventNotifier';
 import { DefaultCrossTabNotifierFactory } from './CrossTabNotifierFactory';
 import { NoOpLogger } from '../logger';
-import { IPlatformService } from "../../services/platformService";
+
 import { StorageEventCtor } from '../testUtils/storageEvent';
 import { FallbackCrossTabNotifier } from './FallbackCrossTabNotifier';
 import { BroadcastChannelNotifier } from './BroadcastChannelNotifier';

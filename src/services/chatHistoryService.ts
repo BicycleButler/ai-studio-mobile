@@ -1,9 +1,11 @@
+import { IPlatformService } from "./IPlatformService";
 
 import { safeGetStorageKeys, STORAGE_KEYS, IStorageRegistry, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { ChatMessage, ChatSession } from "../types";
 import { IMutableCollection } from "../utils/storage/types";
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 import { isMockSession } from "../utils/mockDefinitions";
 import { ITimeProvider, DefaultTimeProvider } from "../utils/timeProvider";
 

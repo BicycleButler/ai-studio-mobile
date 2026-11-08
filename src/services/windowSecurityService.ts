@@ -1,6 +1,8 @@
+import { IPlatformService } from "./IPlatformService";
 import { Observable, IObservable } from "../utils/observable";
 import { IGeneralSettingsService } from "../utils/storage/general";
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface ShieldState {
   isShieldActive: boolean;
