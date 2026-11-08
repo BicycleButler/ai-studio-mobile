@@ -1,3 +1,4 @@
+import { IPlatformService } from "./IPlatformService";
 import { IApiClient } from "../utils/apiClient";
 import {
   StubsGraphData,
@@ -6,7 +7,8 @@ import {
   StubsSidecarSpec,
 } from "../types";
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface StubsDiagramResponse {
   mermaid: string;

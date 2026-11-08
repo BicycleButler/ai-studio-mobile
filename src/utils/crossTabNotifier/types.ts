@@ -1,5 +1,6 @@
+import { IPlatformService } from "../../services/IPlatformService";
 import { ILogger } from "../logger";
-import { IPlatformService } from "../../services/platformService";
+
 import { ITimeProvider } from "../timeProvider";
 import { ISerializer } from "../storage/serializer/types";
 

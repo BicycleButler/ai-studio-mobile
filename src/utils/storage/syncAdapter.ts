@@ -3,6 +3,7 @@ import { IApiClient } from "../apiClient";
 import { INetworkStatusProvider } from "../networkStatus";
 import { IOfflineRetryStrategy } from "./offlineRetryStrategy";
 import { ILogger } from "../logger";
+import { SyncAdapterError } from "./syncAdapterErrors";
 
 export interface IStorageSyncAdapter<T> {
   syncItem(item: T, mutationType: string, endpoint?: string, method?: string): void;
@@ -63,7 +64,7 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
     const finalMethod = method || this.defaultMethod;
 
     if (!finalEndpoint) {
-        throw new Error(`NetworkStorageSyncAdapter: Cannot sync item, no endpoint provided and no default endpoint configured for mutation type ${mutationType}.`);
+        throw new SyncAdapterError(`NetworkStorageSyncAdapter: Cannot sync item, no endpoint provided and no default endpoint configured for mutation type ${mutationType}.`, endpoint);
     }
 
     if (this.networkStatusProvider.isOnline()) {

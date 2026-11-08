@@ -1,4 +1,6 @@
-import { IPlatformService, BrowserPlatformService } from "../services/platformService";
+import { IPlatformService } from "../services/IPlatformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface IUrlBuilder {
   build(

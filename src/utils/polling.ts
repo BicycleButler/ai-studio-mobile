@@ -1,5 +1,7 @@
+import { IPlatformService } from "../services/IPlatformService";
 import { IDelayStrategy, FixedIntervalDelayStrategy, ExponentialBackoffDelayStrategy } from "./delayStrategy";
-import { IPlatformService, BrowserPlatformService } from "../services/platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface IPollingStrategy extends IDelayStrategy {}
 

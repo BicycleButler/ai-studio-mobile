@@ -1,3 +1,4 @@
+import { IPlatformService } from "../../services/IPlatformService";
 import { IStorageAdapter } from "./types";
 import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
 
@@ -6,7 +7,8 @@ import { ILogger, DefaultLoggerFactory } from "../logger";
 import { ISerializer, JsonSerializer } from "./serializer";
 const defaultSerializer = new JsonSerializer();
 
-import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
+import { BrowserPlatformService } from "../../services/platformService"
+
 
 export function createDefaultStorageInstance(platformService: IPlatformService = new BrowserPlatformService()): Storage {
   try {

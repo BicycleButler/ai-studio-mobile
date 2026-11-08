@@ -1,5 +1,6 @@
+import { IPlatformService } from "./IPlatformService";
 import { ILogger } from "../utils/logger";
-import { IPlatformService } from "./platformService";
+
 
 export interface IClipboardService {
   writeText(text: string): Promise<boolean>;

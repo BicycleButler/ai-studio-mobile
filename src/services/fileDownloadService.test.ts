@@ -1,8 +1,9 @@
+import { IPlatformService } from "./IPlatformService";
 import { describe, it, expect } from 'vitest';
 import { BrowserFileDownloadService } from './fileDownloadService';
 import { NoOpLogger } from '../utils/logger';
 
-import { BrowserPlatformService } from './platformService';
+import { BrowserPlatformService } from '../services/platformService';
 
 describe('BrowserFileDownloadService', () => {
     it('should return false if document is not available', async () => {
@@ -11,7 +12,7 @@ describe('BrowserFileDownloadService', () => {
             getDocument: () => null
         };
         const service = new BrowserFileDownloadService(new NoOpLogger(), {
-            ...({} as unknown as import("./platformService").IPlatformService),
+            ...({} as unknown as import("./IPlatformService").IPlatformService),
             ...mockPlatformService,
         });
         const result = await service.downloadText('test.txt', 'content');

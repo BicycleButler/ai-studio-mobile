@@ -130,4 +130,15 @@ describe('NetworkStorageSyncAdapter', () => {
         expect(mockRetryStrategy.shouldEnqueue).toHaveBeenCalledWith(testError);
         expect(mockOfflineService.enqueueOfflineMutation).not.toHaveBeenCalled();
     });
+
+    it('should throw SyncAdapterError when endpoint is missing', () => {
+        const mockNetworkStatusProvider: INetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true),
+            getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
+        };
+        const transport = new ApiClientSyncTransport(mockApiClient);
+        const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger });
+
+        expect(() => adapter.syncItem({ id: 1 }, 'test_mutation')).toThrowError(/NetworkStorageSyncAdapter: Cannot sync item, no endpoint provided/);
+    });
 });

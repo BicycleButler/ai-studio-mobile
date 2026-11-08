@@ -1,5 +1,7 @@
+import { IPlatformService } from "../services/IPlatformService";
 import { Observable, IObservable } from "./observable";
-import { IPlatformService, BrowserPlatformService } from "../services/platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface NetworkStatus {
   isOnline: boolean;

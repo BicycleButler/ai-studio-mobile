@@ -1,3 +1,4 @@
+import { IPlatformService } from "../services/IPlatformService";
 import { IObservable } from "./observable";
 import { AsyncStorage } from "./asyncStorage";
 import { ILogger, DefaultLoggerFactory } from "./logger";
@@ -6,7 +7,7 @@ import { ISyncEngine, SyncEngine } from "./syncEngine";
 import { IIdGenerator, DefaultIdGenerator } from "./idGenerator";
 import { ITimeProvider, DefaultTimeProvider } from "./timeProvider";
 import { ICrossTabNotifierFactory } from "./crossTabNotifier";
-import { IPlatformService } from "../services/platformService";
+
 
 export interface OfflineMutation {
   type: string;

@@ -1,5 +1,7 @@
+import { IPlatformService } from "./IPlatformService";
 import { ILogger } from "../utils/logger";
-import { IPlatformService, BrowserPlatformService } from "./platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface IFileDownloadService {
   downloadText(filename: string, content: string): Promise<boolean>;

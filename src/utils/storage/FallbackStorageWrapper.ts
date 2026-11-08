@@ -1,5 +1,7 @@
+import { IPlatformService } from "../../services/IPlatformService";
 import { MemoryStorage } from "./core";
-import { IPlatformService, BrowserPlatformService } from "../../services/platformService";
+import { BrowserPlatformService } from "../../services/platformService"
+
 import { EventEmitter } from "../eventEmitter";
 import { ILogger, DefaultLoggerFactory } from "../logger";
 

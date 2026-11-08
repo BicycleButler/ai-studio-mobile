@@ -1,6 +1,8 @@
+import { IPlatformService } from "../services/IPlatformService";
 import { MessageAttachment } from "../types";
 import { IIdGenerator, DefaultIdGenerator } from "./idGenerator";
-import { IPlatformService, BrowserPlatformService } from "../services/platformService";
+import { BrowserPlatformService } from "../services/platformService"
+
 
 export interface CompressionOptions {
   maxDimension?: number;
