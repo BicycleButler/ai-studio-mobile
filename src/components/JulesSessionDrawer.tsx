@@ -228,7 +228,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               type="button"
               id="jules-drawer-back-btn"
               onClick={onClose}
-              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
+              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
               title="Close drawer"
               aria-label="Back / Close drawer"
             >
@@ -252,7 +252,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             <button
               type="button"
               onClick={() => setIsCreating(!isCreating)}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:text-primary/80 hover:bg-muted rounded-xl transition cursor-pointer touch-manipulation"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:text-primary/80 hover:bg-muted rounded-xl transition-colors cursor-pointer touch-manipulation"
               title="New Jules Task Session"
               aria-label="New Jules Session"
             >
@@ -262,7 +262,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               type="button"
               id="jules-drawer-close-btn"
               onClick={onClose}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               title="Close drawer"
               aria-label="Close Jules sessions"
             >
@@ -281,7 +281,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
             <button
               type="button"
               onClick={onOpenApiKeyModal}
-              className="px-2.5 py-1 rounded-lg bg-muted hover:bg-destructive/90 hover:text-destructive-foreground group-hover/alert:text-destructive text-muted-foreground text-[11px] font-semibold shrink-0 cursor-pointer transition"
+              className="px-2.5 py-1 rounded-lg bg-muted hover:bg-destructive/90 hover:text-destructive-foreground group-hover/alert:text-destructive text-muted-foreground text-[11px] font-semibold shrink-0 cursor-pointer transition-colors"
             >
               Configure
             </button>
@@ -368,7 +368,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
 
             <button
               type="submit"
-              className="w-full py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold shadow-md active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold shadow-md active:scale-95 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Bot className="w-3.5 h-3.5" />
               <span>Create Task Workspace</span>
@@ -414,7 +414,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCreating(true)}
-                className="mt-3 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-medium hover:bg-primary/20 transition flex items-center gap-1 cursor-pointer"
+                className="mt-3 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-medium hover:bg-primary/20 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Create First Task</span>
@@ -432,7 +432,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                     onSelectSession(session);
                     onClose();
                   }}
-                  className={`p-3 rounded-xl border transition cursor-pointer group flex items-start gap-3 ${
+                  className={`p-3 rounded-xl border transition-colors cursor-pointer group flex items-start gap-3 ${
                     isActive
                       ? "bg-primary/10 border-primary/40 shadow-sm"
                       : isSelected
@@ -455,7 +455,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition">
+                      <h4 className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                         {session.title || "Untitled Jules Task"}
                       </h4>
                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
@@ -472,7 +472,7 @@ export const JulesSessionDrawer: React.FC<JulesSessionDrawerProps> = ({
                         <button
                           type="button"
                           onClick={(e) => handleDelete(session.id, e)}
-                          className="p-1 text-muted-foreground hover:text-destructive rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                          className="p-1 text-muted-foreground hover:text-destructive rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                           title="Delete Session"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

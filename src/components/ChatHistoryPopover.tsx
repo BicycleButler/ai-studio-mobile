@@ -57,9 +57,9 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
         type="button"
         id="chat-popover-new-chat-btn"
         onClick={handleStartNewChat}
-        className="w-full p-3 flex items-center gap-3 text-start text-xs font-semibold text-foreground hover:bg-muted/70 active:bg-muted transition group border-0 bg-transparent cursor-pointer"
+        className="w-full p-3 flex items-center gap-3 text-start text-xs font-semibold text-foreground hover:bg-muted/70 active:bg-muted transition-colors group border-0 bg-transparent cursor-pointer"
       >
-        <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition">
+        <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
           <Plus className="w-4 h-4 stroke-[2.5]" />
         </div>
         <div className="flex-1 min-w-0">
@@ -112,7 +112,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
             return (
               <div
                 key={session.id}
-                className={`flex items-center justify-between gap-2 p-2.5 transition group ${
+                className={`flex items-center justify-between gap-2 p-2.5 transition-colors group ${
                   isActive ? "bg-primary/10 hover:bg-primary/15" :
                   isSelected ? "bg-primary/5" : "hover:bg-muted/70"
                 }`}
@@ -174,7 +174,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
                     e.stopPropagation();
                     handleDeleteSession(session.id);
                   }}
-                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-muted/40 rounded-lg transition shrink-0 opacity-60 group-hover:opacity-100 border-0 bg-transparent cursor-pointer"
+                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-muted/40 rounded-lg transition-colors shrink-0 opacity-60 group-hover:opacity-100 border-0 bg-transparent cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

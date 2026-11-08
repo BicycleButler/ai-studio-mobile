@@ -24,7 +24,7 @@ export const StubsLintTab: React.FC<StubsLintTabProps> = ({
         <p className="text-sm">No linting data available.</p>
         <button
           onClick={onRefreshLint}
-          className="mt-4 px-4 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition"
+          className="mt-4 px-4 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
         >
           Run Linter
         </button>
@@ -73,7 +73,7 @@ export const StubsLintTab: React.FC<StubsLintTabProps> = ({
         <button
           onClick={onRefreshLint}
           disabled={isLoading}
-          className="px-3 py-1.5 rounded-lg bg-background/50 border border-border hover:bg-background text-xs font-medium text-foreground transition disabled:opacity-50"
+          className="px-3 py-1.5 rounded-lg bg-background/50 border border-border hover:bg-background text-xs font-medium text-foreground transition-colors disabled:opacity-50"
         >
           {isLoading ? "Running..." : "Re-Run"}
         </button>
@@ -137,7 +137,7 @@ export const StubsLintTab: React.FC<StubsLintTabProps> = ({
             {lintViolations.map((v, i) => (
               <div
                 key={i}
-                className="p-3 hover:bg-muted/30 transition flex items-start gap-3"
+                className="p-3 hover:bg-muted/30 transition-colors flex items-start gap-3"
               >
                 <div className="mt-0.5">
                   {v.severity === "error" ? (
@@ -166,7 +166,7 @@ export const StubsLintTab: React.FC<StubsLintTabProps> = ({
                 </div>
                 <button
                   type="button"
-                  className="p-1.5 text-muted-foreground hover:text-primary bg-background hover:bg-primary/10 border border-border hover:border-primary/30 rounded cursor-pointer transition"
+                  className="p-1.5 text-muted-foreground hover:text-primary bg-background hover:bg-primary/10 border border-border hover:border-primary/30 rounded cursor-pointer transition-colors"
                   title="View Source"
                 >
                   <Eye className="w-3.5 h-3.5" />

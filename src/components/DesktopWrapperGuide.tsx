@@ -55,14 +55,14 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
         <div className="flex flex-wrap gap-2 pt-1">
           <button
             onClick={openDesktopAiStudio}
-            className="flex-1 min-w-[140px] px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer"
+            className="flex-1 min-w-[140px] px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-colors cursor-pointer"
           >
             <span>Open Desktop Site</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={openApiKeyPage}
-            className="px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+            className="px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Key className="w-3.5 h-3.5 text-primary" />
             <span>Get API Key</span>
@@ -164,7 +164,7 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
         </div>
         <button
           onClick={onOpenApiKeyModal}
-          className="px-2.5 py-1 text-xs rounded-lg bg-muted hover:bg-muted/80 text-foreground transition cursor-pointer"
+          className="px-2.5 py-1 text-xs rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
         >
           Configure
         </button>

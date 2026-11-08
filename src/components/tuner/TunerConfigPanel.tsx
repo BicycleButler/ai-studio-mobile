@@ -146,7 +146,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
       <div
         id="tuner-auth-card"
         onClick={onOpenAuth}
-        className="p-3.5 rounded-xl bg-card hover:bg-muted/50 flex items-center justify-between gap-3 cursor-pointer transition"
+        className="p-3.5 rounded-xl bg-card hover:bg-muted/50 flex items-center justify-between gap-3 cursor-pointer transition-colors"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="p-1.5 rounded-lg bg-muted text-foreground shrink-0">
@@ -196,7 +196,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                   key={cat}
                   type="button"
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -218,7 +218,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                 key={m.id}
                 type="button"
                 onClick={() => updateField("model", m.id)}
-                className={`text-start p-3 rounded-xl border transition relative cursor-pointer group ${
+                className={`text-start p-3 rounded-xl border transition-colors relative cursor-pointer group ${
                   isSelected
                     ? "bg-primary/10 border-primary ring-1 ring-primary/30 text-foreground"
                     : "bg-card border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:border-muted-foreground/30"
@@ -282,7 +282,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
               <button
                 type="button"
                 onClick={() => updateField("systemInstruction", "")}
-                className="text-[10px] text-muted-foreground hover:text-foreground transition cursor-pointer"
+                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 Clear
               </button>
@@ -340,7 +340,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                 key={preset.label}
                 type="button"
                 onClick={() => updateField("temperature", preset.val)}
-                className={`text-[10px] px-2 py-0.5 rounded-md border transition cursor-pointer ${
+                className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
                   isPresetActive
                     ? "bg-primary text-primary-foreground border-primary font-medium"
                     : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
@@ -439,7 +439,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                 key={preset.label}
                 type="button"
                 onClick={() => updateField("maxOutputTokens", preset.val)}
-                className={`text-[10px] px-2 py-0.5 rounded-md border transition cursor-pointer ${
+                className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
                   isPresetActive
                     ? "bg-primary text-primary-foreground border-primary font-medium"
                     : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
@@ -474,7 +474,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                   : "application/json"
               )
             }
-            className={`w-11 h-6 flex items-center rounded-full p-1 transition cursor-pointer ${
+            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
               config.responseMimeType === "application/json"
                 ? "bg-primary justify-end"
                 : "bg-muted justify-start"

@@ -137,7 +137,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
             type="button"
             id="custom-tab-back-btn"
             onClick={onClose}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/80 transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/80 transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             title="Back / Close"
             aria-label="Back"
           >
@@ -164,7 +164,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
             <button
               type="button"
               onClick={handleCopyUrl}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition cursor-pointer touch-manipulation"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation"
               title="Copy URL"
             >
               {copiedUrl ? (
@@ -176,7 +176,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
             <button
               type="button"
               onClick={handleOpenSystemBrowser}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:text-primary/80 rounded-xl hover:bg-muted transition cursor-pointer touch-manipulation"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:text-primary/80 rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation"
               title="Open in System Browser"
             >
               <ExternalLink className="w-4 h-4" />
@@ -185,7 +185,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
               type="button"
               id="custom-tab-close-btn"
               onClick={onClose}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               title="Close browser"
               aria-label="Close browser"
             >
@@ -202,7 +202,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
               setActiveService("aistudio");
               setDetectedKey(null);
             }}
-            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
               !isJules
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -218,7 +218,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
               setActiveService("jules");
               setDetectedKey(null);
             }}
-            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
               isJules
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -250,7 +250,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
               <button
                 type="button"
                 onClick={handleProceedWithDetectedKey}
-                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-1 shrink-0 transition shadow-sm cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-1 shrink-0 transition-colors shadow-sm cursor-pointer"
               >
                 <span>Import Key</span>
                 <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
@@ -283,7 +283,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                 type="button"
                 id="launch-aistudio-system-btn"
                 onClick={handleOpenSystemBrowser}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 mx-auto transition shadow-lg active:scale-95 bg-primary text-primary-foreground cursor-pointer"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 mx-auto transition-colors shadow-lg active:scale-95 bg-primary text-primary-foreground cursor-pointer"
               >
                 <span>{isJules ? "Open Google Jules Settings Tab" : "Open Google AI Studio Tab"}</span>
                 <ExternalLink className="w-4 h-4" />
@@ -365,7 +365,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                 type="button"
                 onClick={checkClipboard}
                 disabled={isCheckingClipboard}
-                className="px-3.5 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-medium border border-border flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-medium border border-border flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${
@@ -383,7 +383,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                   onImportKey("", activeService);
                   onClose();
                 }}
-                className="px-3.5 py-1.5 rounded-lg bg-card hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium border border-border flex items-center gap-1.5 transition cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-card hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium border border-border flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ClipboardPaste className="w-3.5 h-3.5" />
                 <span>Manual Paste</span>

@@ -59,7 +59,7 @@ export const JulesKeySection: React.FC<JulesKeySectionProps> = ({
           <div className="mt-3">
             <button
               onClick={() => onOpenCustomTabBrowser("jules")}
-              className="w-full px-3 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium transition"
+              className="w-full px-3 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium transition-colors"
             >
               Replace Agent Key
             </button>
@@ -69,7 +69,7 @@ export const JulesKeySection: React.FC<JulesKeySectionProps> = ({
         <button
           type="button"
           onClick={() => onOpenCustomTabBrowser("jules")}
-          className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2.5 px-4 rounded-xl transition shadow-sm active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2.5 px-4 rounded-xl transition-colors shadow-sm active:scale-[0.98]"
         >
           <span>Authorize Jules Agent</span>
           <ExternalLink className="w-4 h-4" />

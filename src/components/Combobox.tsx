@@ -150,7 +150,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   return (
     <div className="relative w-full" ref={containerRef}>
       <div
-        className="relative flex items-center w-full bg-background border border-border rounded-lg px-3 py-2 text-xs focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition cursor-text"
+        className="relative flex items-center w-full bg-background border border-border rounded-lg px-3 py-2 text-xs focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-colors cursor-text"
         onClick={() => {
           setIsOpen(true);
           inputRef.current?.focus();
@@ -221,7 +221,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                   onChange(option.id);
                   setIsOpen(false);
                 }}
-                className={`flex flex-col px-3 py-2 text-xs cursor-pointer transition border-b border-border/40 last:border-0 ${
+                className={`flex flex-col px-3 py-2 text-xs cursor-pointer transition-colors border-b border-border/40 last:border-0 ${
                   highlightedIndex === index
                     ? "bg-muted"
                     : value === option.id
@@ -252,7 +252,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                   onCreateNew(debouncedQuery);
                   setIsOpen(false);
                 }}
-                className={`flex items-center px-3 py-2 text-xs cursor-pointer text-primary font-medium transition border-t border-border/40 ${
+                className={`flex items-center px-3 py-2 text-xs cursor-pointer text-primary font-medium transition-colors border-t border-border/40 ${
                   highlightedIndex === slicedOptions.length ? "bg-muted" : "hover:bg-muted/50"
                 }`}
               >

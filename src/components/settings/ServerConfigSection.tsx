@@ -46,7 +46,7 @@ export const ServerConfigSection: React.FC<ServerConfigSectionProps> = ({
       ) : (
         <button
           onClick={onRefreshServerAuth}
-          className="text-xs px-3 py-1.5 bg-muted hover:bg-muted-foreground/20 rounded-md transition"
+          className="text-xs px-3 py-1.5 bg-muted hover:bg-muted-foreground/20 rounded-md transition-colors"
         >
           Refresh
         </button>

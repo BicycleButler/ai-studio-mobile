@@ -218,7 +218,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               type="button"
               id="import-sheet-back-btn"
               onClick={() => void handleDismiss()}
-              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
+              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[44px] min-h-[44px]"
               title="Close sheet"
               aria-label="Back / Close sheet"
             >
@@ -241,7 +241,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             type="button"
             id="import-sheet-close-btn"
             onClick={() => void handleDismiss()}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
             title="Close sheet"
             aria-label="Close"
           >
@@ -263,7 +263,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="e.g. Production Gemini Assistant"
               required
-              className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition"
+              className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </div>
 
@@ -279,7 +279,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                   onClick={async () => {
                     await keyVerificationService.clearClipboardSafe();
                   }}
-                  className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-1 transition cursor-pointer"
+                  className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors cursor-pointer"
                   title="Erase sensitive key from device clipboard"
                 >
                   <Trash2 className="w-2.5 h-2.5" />
@@ -305,7 +305,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowRawKey(!showRawKey)}
-                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition cursor-pointer"
+                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors cursor-pointer"
                   title={showRawKey ? "Hide raw key" : "Show raw key"}
                 >
                   {showRawKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -314,7 +314,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                   type="button"
                   onClick={() => performVerification(apiKey, selectedModel)}
                   disabled={validationState === "validating" || !apiKey.trim()}
-                  className="p-1.5 text-primary hover:text-primary/80 rounded-lg hover:bg-muted transition disabled:opacity-40 cursor-pointer"
+                  className="p-1.5 text-primary hover:text-primary/80 rounded-lg hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer"
                   title="Re-verify key with Google"
                 >
                   <RefreshCw
@@ -353,7 +353,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
                 id="project-default-model-select"
                 value={selectedModel}
                 onChange={handleModelChange}
-                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-xs text-foreground appearance-none focus:outline-none focus:border-primary transition pe-8 cursor-pointer"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-xs text-foreground appearance-none focus:outline-none focus:border-primary transition-colors pe-8 cursor-pointer"
               >
                 {availableModels
                   .filter((m) => !isDeprecatedOrUnusableModel(m.id))
@@ -426,7 +426,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             <button
               type="button"
               onClick={() => void handleDismiss()}
-              className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer touch-manipulation flex items-center justify-center"
+              className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer touch-manipulation flex items-center justify-center"
             >
               Cancel
             </button>
@@ -434,7 +434,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
               type="submit"
               id="save-and-activate-btn"
               disabled={isSaving || validationState === "validating" || validationState === "invalid" || !apiKey.trim()}
-              className="min-h-[44px] px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation"
+              className="min-h-[44px] px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-colors disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation"
             >
               {isSaving ? (
                 <>

@@ -27,7 +27,7 @@ export const StubsDiagramTab: React.FC<StubsDiagramTabProps> = ({
               <button
                 key={mode}
                 onClick={() => onSetDiagramGroupBy(mode as "folder" | "type" | "none" | "domain" | "layer")}
-                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition ${
+                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-colors ${
                   diagramGroupBy === mode
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"

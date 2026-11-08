@@ -48,7 +48,7 @@ export const ClipboardKeyBanner: React.FC<ClipboardKeyBannerProps> = ({
           type="button"
           id="dismiss-clipboard-banner-btn"
           onClick={onDismiss}
-          className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition"
+          className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
           title="Dismiss and wipe clipboard"
         >
           <X className="w-3.5 h-3.5" />
@@ -57,7 +57,7 @@ export const ClipboardKeyBanner: React.FC<ClipboardKeyBannerProps> = ({
           type="button"
           id="import-detected-key-btn"
           onClick={onImport}
-          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1 transition shadow-sm active:scale-95"
+          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1 transition-colors shadow-sm active:scale-95"
         >
           <span>Import</span>
           <ArrowRight className="w-3 h-3" />
