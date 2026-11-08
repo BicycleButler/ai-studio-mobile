@@ -52,7 +52,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
   return (
     <div
       id="google-auth-card"
-      className={`rounded-2xl transition ${
+      className={`rounded-2xl transition-colors ${
         user
           ? "bg-card shadow-xl"
           : "bg-card shadow-xs"
@@ -103,7 +103,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               id="google-sign-out-btn"
               onClick={handleSignOut}
               disabled={isLoading}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-muted/40 border border-transparent hover:border-destructive/20 transition cursor-pointer"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-muted/40 border border-transparent hover:border-destructive/20 transition-colors cursor-pointer"
               title="Sign out of Google Account"
             >
               {isLoading ? (
@@ -148,7 +148,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               href="https://aistudio.google.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] text-primary hover:underline flex items-center gap-1 transition"
+              className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors"
             >
               <span>Manage in Google AI Studio</span>
               <ExternalLink className="w-3 h-3" />
@@ -158,7 +158,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
               type="button"
               onClick={handleRefreshSync}
               disabled={isLoading}
-              className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition cursor-pointer"
+              className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
               <span>Refresh Sync</span>
@@ -189,7 +189,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
             id="primary-google-sign-in-btn"
             onClick={handleSignIn}
             disabled={isLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-lg transition flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-primary/20 hover:bg-primary/90"
+            className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-lg transition-colors flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-75 cursor-pointer border border-primary/20 hover:bg-primary/90"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />

@@ -46,7 +46,7 @@ export const StubsSpecsTab: React.FC<StubsSpecsTabProps> = ({
               <button
                 key={spec.path}
                 onClick={() => onSelectSpec(spec.path)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition shadow-none ${
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition-colors shadow-none ${
                   isActive
                     ? "bg-primary/10 text-primary font-medium shadow-sm"
                     : "bg-transparent border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -89,7 +89,7 @@ export const StubsSpecsTab: React.FC<StubsSpecsTabProps> = ({
               </div>
               <button
                 onClick={() => onCopySpec(activeSpec.path, (activeSpec.content || ""))}
-                className="ml-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[#c9d1d9] transition border border-white/10 flex items-center gap-1.5 shrink-0"
+                className="ml-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-[#c9d1d9] transition-colors border border-white/10 flex items-center gap-1.5 shrink-0"
                 title="Copy Specification"
               >
                 {copiedSpecId === activeSpec.path ? (

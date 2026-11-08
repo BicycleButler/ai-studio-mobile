@@ -64,7 +64,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
             <button
               key={l.id}
               onClick={() => setSelectedLang(l.id)}
-              className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+              className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap cursor-pointer ${
                 isSelected
                   ? "bg-card text-foreground shadow-sm font-semibold border border-border"
                   : "text-muted-foreground hover:text-foreground"
@@ -84,7 +84,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
           <button
             id="copy-code-btn"
             onClick={handleCopy}
-            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition cursor-pointer"
+            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-colors cursor-pointer"
           >
             {copied ? (
               <>
@@ -111,7 +111,7 @@ export const CodeExportModal: React.FC<CodeExportModalProps> = ({
           id="export-modal-open-ide-btn"
           type="button"
           onClick={onOpenMobileIDE}
-          className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-card hover:bg-muted text-foreground text-xs font-semibold transition shadow-sm cursor-pointer"
+          className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-card hover:bg-muted text-foreground text-xs font-semibold transition-colors shadow-sm cursor-pointer"
         >
           <Code2 className="w-4 h-4 text-primary" />
           <span>Launch Full Mobile IDE (Code Editor & Runner Console)</span>

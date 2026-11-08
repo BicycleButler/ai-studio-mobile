@@ -73,7 +73,7 @@ export const StubsGraphTab: React.FC<StubsGraphTabProps> = ({
               placeholder="Search components, files, or exports..."
               value={searchQuery}
               onChange={(e) => onSetSearchQuery(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
+              className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>
         </div>
@@ -89,7 +89,7 @@ export const StubsGraphTab: React.FC<StubsGraphTabProps> = ({
               {graphData.nodes.map((node) => (
                 <div
                   key={node.id}
-                  className="p-3 rounded-lg border border-border hover:border-primary/40 bg-background transition group cursor-default"
+                  className="p-3 rounded-lg border border-border hover:border-primary/40 bg-background transition-colors group cursor-default"
                 >
                   <div className="flex items-start gap-2.5">
                     <div className="mt-0.5">

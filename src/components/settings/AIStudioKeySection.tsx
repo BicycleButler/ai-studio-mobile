@@ -56,13 +56,13 @@ export const AIStudioKeySection: React.FC<AIStudioKeySectionProps> = ({
           <div className="mt-3 flex gap-2">
             <button
               onClick={() => onOpenCustomTabBrowser("aistudio")}
-              className="flex-1 px-3 py-2 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition"
+              className="flex-1 px-3 py-2 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition-colors"
             >
               Replace Key
             </button>
             <button
               onClick={onOpenImportProject}
-              className="flex-1 px-3 py-2 rounded-md bg-muted hover:bg-muted-foreground/20 text-foreground text-xs font-medium transition flex items-center justify-center gap-1.5"
+              className="flex-1 px-3 py-2 rounded-md bg-muted hover:bg-muted-foreground/20 text-foreground text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
             >
               <FolderPlus className="w-3.5 h-3.5" />
               Load Project
@@ -74,7 +74,7 @@ export const AIStudioKeySection: React.FC<AIStudioKeySectionProps> = ({
           type="button"
           id="link-aistudio-btn"
           onClick={() => onOpenCustomTabBrowser("aistudio")}
-          className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium py-2.5 px-4 rounded-xl transition shadow-sm active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium py-2.5 px-4 rounded-xl transition-colors shadow-sm active:scale-[0.98]"
         >
           <span>Link AI Studio Account</span>
           <ExternalLink className="w-4 h-4" />

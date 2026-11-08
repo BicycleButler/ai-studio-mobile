@@ -47,7 +47,7 @@ export const FloatingBatchActionBar: React.FC<FloatingBatchActionBarProps> = ({
               key={index}
               type="button"
               onClick={action.onClick}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                 action.variant === 'destructive'
                   ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
                   : 'text-foreground hover:bg-muted'
@@ -63,7 +63,7 @@ export const FloatingBatchActionBar: React.FC<FloatingBatchActionBarProps> = ({
           <button
             type="button"
             onClick={onClearSelection}
-            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:bg-muted rounded-full transition cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:bg-muted rounded-full transition-colors cursor-pointer"
             aria-label="Clear selection"
             title="Deselect all (Esc)"
           >

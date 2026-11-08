@@ -121,7 +121,7 @@ export function TabTrigger({
       onClick={() => context.setActiveTab(value)}
       ref={(el) => context.registerTab(value, el)}
       className={`
-        relative px-4 py-2.5 text-sm font-medium whitespace-nowrap outline-none transition duration-150
+        relative px-4 py-2.5 text-sm font-medium whitespace-nowrap outline-none transition-colors duration-150
         focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background
         ${isActive ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}
         ${className}
@@ -135,7 +135,7 @@ export function TabTrigger({
       )}
       {isActive && (
         <div
-          className="absolute bottom-0 start-0 end-0 h-[2px] bg-primary rounded-full transition duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          className="absolute bottom-0 start-0 end-0 h-[2px] bg-primary rounded-full transition-colors duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
         />
       )}
     </button>

@@ -49,7 +49,7 @@ export const TokenCounterVisualization: React.FC<TokenCounterVisualizationProps>
       type="button"
       id="header-token-counter-viz"
       onClick={onClick}
-      className={`h-9 flex items-center gap-2 px-2.5 rounded-lg text-start transition active:scale-[0.98] group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+      className={`h-9 flex items-center gap-2 px-2.5 rounded-lg text-start transition-colors active:scale-[0.98] group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         borderless
           ? "bg-transparent hover:bg-muted text-foreground border-none shadow-none"
           : "bg-card hover:bg-muted border border-border text-foreground shadow-xs"
@@ -93,14 +93,14 @@ export const TokenCounterVisualization: React.FC<TokenCounterVisualizationProps>
 
         {/* Center indicator dot */}
         <span
-          className="absolute w-1.5 h-1.5 rounded-full bg-primary transition"
+          className="absolute w-1.5 h-1.5 rounded-full bg-primary transition-colors"
           aria-hidden="true"
         />
       </div>
 
       {/* Token Counter Numbers & Context Label */}
       <div className="flex items-baseline gap-1 min-w-0 font-mono">
-        <span className={`text-xs font-semibold tracking-tight ${textColorClass} transition`}>
+        <span className={`text-xs font-semibold tracking-tight ${textColorClass} transition-colors`}>
           {formatTokenNumber(safeTokens)}
         </span>
         <span className="text-[10px] text-muted-foreground hidden xs:inline font-normal">

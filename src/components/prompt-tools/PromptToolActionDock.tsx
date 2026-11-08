@@ -24,7 +24,7 @@ export const PromptToolActionDock: React.FC<PromptToolActionDockProps> = ({
           <button
             type="button"
             onClick={onCopy}
-            className="px-2.5 py-1 rounded-lg bg-background hover:bg-muted text-foreground border border-border text-xs font-medium flex items-center gap-1 transition cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-background hover:bg-muted text-foreground border border-border text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
           >
             {hasCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{hasCopied ? "Copied" : "Copy"}</span>
@@ -33,7 +33,7 @@ export const PromptToolActionDock: React.FC<PromptToolActionDockProps> = ({
             <button
               type="button"
               onClick={onInsert}
-              className="px-3 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition cursor-pointer shadow-sm active:scale-95"
+              className="px-3 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-sm active:scale-95"
             >
               {hasInserted ? <Check className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
               <span>{hasInserted ? "Inserted" : "Insert into Chat"}</span>

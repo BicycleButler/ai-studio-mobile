@@ -86,21 +86,21 @@ export const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = (
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition cursor-pointer"
+          className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={onKeepRemote}
-          className="px-4 py-2 text-sm font-medium rounded-lg text-foreground bg-muted hover:bg-muted/80 border border-border transition cursor-pointer"
+          className="px-4 py-2 text-sm font-medium rounded-lg text-foreground bg-muted hover:bg-muted/80 border border-border transition-colors cursor-pointer"
         >
           Keep Remote
         </button>
         <button
           type="button"
           onClick={onOverwriteRemote}
-          className="px-4 py-2 text-sm font-medium rounded-lg text-primary-foreground bg-primary hover:bg-primary/90 transition shadow-sm cursor-pointer"
+          className="px-4 py-2 text-sm font-medium rounded-lg text-primary-foreground bg-primary hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
         >
           Overwrite Remote
         </button>

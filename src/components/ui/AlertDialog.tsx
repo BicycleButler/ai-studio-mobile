@@ -83,7 +83,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
                 type="button"
                 ref={cancelRef}
                 onClick={onCancel}
-                className="px-4 py-2 text-sm font-medium text-foreground bg-transparent border border-border rounded-lg hover:bg-muted transition cursor-pointer"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-transparent border border-border rounded-lg hover:bg-muted transition-colors cursor-pointer"
               >
                 {cancelText}
               </button>
@@ -91,7 +91,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
                 type="button"
                 onClick={onConfirm}
                 disabled={isConfirmDisabled}
-                className={`px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                className={`px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                   confirmVariant === 'destructive'
                     ? 'bg-muted/40 hover:bg-destructive/90 text-muted-foreground hover:text-destructive-foreground'
                     : 'bg-primary hover:bg-primary/90 text-primary-foreground'

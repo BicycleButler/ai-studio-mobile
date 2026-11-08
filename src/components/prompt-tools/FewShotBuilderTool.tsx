@@ -158,7 +158,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
               key={preset.name}
               type="button"
               onClick={() => handleLoadPreset(preset)}
-              className="px-2 py-1 rounded-lg bg-background hover:bg-muted text-[11px] font-medium text-foreground border border-border transition cursor-pointer"
+              className="px-2 py-1 rounded-lg bg-background hover:bg-muted text-[11px] font-medium text-foreground border border-border transition-colors cursor-pointer"
               title={preset.description}
             >
               {preset.name}
@@ -176,7 +176,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
           <button
             type="button"
             onClick={handleAddExample}
-            className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium flex items-center gap-1 transition cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Pair</span>
@@ -200,7 +200,7 @@ export const FewShotBuilderTool: React.FC<FewShotBuilderToolProps> = ({ onInsert
                 <button
                   type="button"
                   onClick={() => handleRemoveExample(ex.id)}
-                  className="w-6 h-6 rounded-md hover:bg-muted/40 text-muted-foreground hover:text-destructive flex items-center justify-center transition cursor-pointer"
+                  className="w-6 h-6 rounded-md hover:bg-muted/40 text-muted-foreground hover:text-destructive flex items-center justify-center transition-colors cursor-pointer"
                   title="Remove example"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

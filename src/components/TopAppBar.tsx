@@ -91,7 +91,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   }, [isMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-background/95 backdrop-blur-md border-b border-border px-3 sm:px-4 flex items-center justify-between gap-2.5 transition shrink-0">
+    <header className="sticky top-0 z-30 h-16 bg-background/95 backdrop-blur-md border-b border-border px-3 sm:px-4 flex items-center justify-between gap-2.5 transition-colors shrink-0">
       {/* Left Zone: Borderless Token Count Display & Tuning Trigger (ADR 0037 / ADR 0039) */}
       <div className="flex items-center min-w-0">
         <TokenCounterVisualization
@@ -113,7 +113,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             type="button"
             id="top-prompt-templates-btn"
             onClick={onOpenPromptTemplates}
-            className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation relative"
+            className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation relative"
             title="Prompt Templates (Modular directives)"
             aria-label="Prompt Templates"
           >
@@ -131,7 +131,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           type="button"
           id="top-workspace-switcher-btn"
           onClick={onOpenBottomNav}
-          className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation"
+          className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation"
           title={`Switch Workspace (${activeProject?.name || activeProjectName || "Default"})`}
           aria-label="Switch Workspace"
         >
@@ -144,7 +144,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             type="button"
             id="top-settings-btn"
             onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition relative cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation"
+            className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors relative cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary touch-manipulation"
             title="Navigation & more options"
             aria-label="Navigation & more options"
             aria-expanded={isMenuOpen}
@@ -182,7 +182,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     setIsMenuOpen(false);
                     onOpenSettings("account");
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <User className="w-4 h-4" />
@@ -206,9 +206,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     setIsMenuOpen(false);
                     onOpenSettings("display");
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition">
+                  <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                     {resolvedTheme === "dark" ? (
                       <Moon className="w-4 h-4" />
                     ) : (
@@ -234,9 +234,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     setIsMenuOpen(false);
                     onOpenSettings("settings");
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition">
+                  <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                     <Sliders className="w-4 h-4" />
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
@@ -258,9 +258,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     setIsMenuOpen(false);
                     onOpenParameters();
                   }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition">
+                  <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                     <Layers className="w-4 h-4" />
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
@@ -283,9 +283,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                       setIsMenuOpen(false);
                       onOpenJulesSessions();
                     }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition">
+                    <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
                       <FolderGit2 className="w-4 h-4" />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">

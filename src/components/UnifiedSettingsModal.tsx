@@ -245,7 +245,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
                 onClose();
               }}
-              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="p-2 -ms-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               title="Close drawer"
               aria-label="Back / Close drawer"
             >
@@ -275,7 +275,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
                 onClose();
               }}
-              className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="w-10 h-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               title="Close drawer"
               aria-label="Close drawer"
             >
@@ -451,7 +451,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
                 onClose();
               }}
-              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-md active:scale-95 transition-colors cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Done
             </button>

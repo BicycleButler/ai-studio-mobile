@@ -40,7 +40,7 @@ export const StubsImpactTab: React.FC<StubsImpactTabProps> = ({
         </div>
         <button
           onClick={() => onRefreshImpact(selectedImpactTarget)}
-          className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition whitespace-nowrap shadow-sm"
+          className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition-colors whitespace-nowrap shadow-sm"
         >
           Analyze Impact
         </button>
@@ -69,7 +69,7 @@ export const StubsImpactTab: React.FC<StubsImpactTabProps> = ({
                   {impactResult.directCallers.map((dep: string) => (
                     <li
                       key={dep}
-                      className="px-2.5 py-1.5 text-xs font-mono text-foreground hover:bg-muted/50 rounded-md transition border border-transparent hover:border-border"
+                      className="px-2.5 py-1.5 text-xs font-mono text-foreground hover:bg-muted/50 rounded-md transition-colors border border-transparent hover:border-border"
                     >
                       {dep}
                     </li>
@@ -100,7 +100,7 @@ export const StubsImpactTab: React.FC<StubsImpactTabProps> = ({
                   {impactResult.dependencies.map((dep: string) => (
                     <li
                       key={dep}
-                      className="px-2.5 py-1.5 text-xs font-mono text-foreground hover:bg-muted/50 rounded-md transition border border-transparent hover:border-border"
+                      className="px-2.5 py-1.5 text-xs font-mono text-foreground hover:bg-muted/50 rounded-md transition-colors border border-transparent hover:border-border"
                     >
                       {dep}
                     </li>
