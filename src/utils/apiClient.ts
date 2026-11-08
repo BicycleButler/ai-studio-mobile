@@ -1,6 +1,6 @@
 import { IUrlBuilder } from "./urlUtils";
 import { BaseApiError, isAbortError, parseErrorResponse } from "./apiClientErrors";
-import { Interceptor, IInterceptorManager } from "./apiClientInterceptors";
+import { Interceptor, IInterceptorManager, ResponseInterceptor } from "./apiClientInterceptors";
 import { ExponentialBackoffRetryStrategy, IRetryStrategy, RetryConfig } from "./apiClientRetry";
 import { IResponseParser } from "./apiResponseParser";
 
@@ -14,6 +14,7 @@ export interface ApiClientConfig {
 export interface IApiClient {
   addInterceptor(interceptor: Interceptor): void;
   clearInterceptors(): void;
+  addResponseInterceptor(interceptor: ResponseInterceptor): void;
   fetch<T>(
     endpoint: string,
     options?: RequestInit,
@@ -51,6 +52,9 @@ export class ApiClient implements IApiClient {
   public clearInterceptors(): void {
     this.interceptorManager.clearInterceptors();
   }
+  public addResponseInterceptor(interceptor: ResponseInterceptor): void {
+    this.interceptorManager.addResponseInterceptor(interceptor);
+  }
   private async prepareRequest(
     endpoint: string,
     options?: RequestInit,
@@ -75,6 +79,7 @@ export class ApiClient implements IApiClient {
     let res: Response;
     try {
       res = await this.fetchWithRetry(endpoint, options || {});
+      res = await this.interceptorManager.applyResponseInterceptors(res, endpoint, options || {});
     } catch (err: unknown) {
       if (isAbortError(err)) {
         throw err;

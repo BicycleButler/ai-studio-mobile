@@ -31,4 +31,31 @@ describe('InterceptorManager', () => {
     const result = await manager.applyInterceptors('test-url', {});
     expect(result.url).toBe('test-url');
   });
+  it('should apply response interceptors in order', async () => {
+    const manager = new InterceptorManager();
+
+    manager.addResponseInterceptor(async (res, _url, _options) => {
+      // Mock modification
+      return new Response(JSON.stringify({ interceptor1: true }), {
+        status: res.status,
+        statusText: res.statusText,
+        headers: (() => { const h = new Headers(res.headers); h.set('X-Res-First', 'true'); return h; })()
+      });
+    });
+
+    manager.addResponseInterceptor(async (res, _url, _options) => {
+      return new Response(await res.text(), {
+        status: res.status,
+        statusText: res.statusText,
+        headers: (() => { const h = new Headers(res.headers); h.set('X-Res-Second', 'true'); return h; })()
+      });
+    });
+
+    const initialResponse = new Response(JSON.stringify({ initial: true }), { status: 200, headers: { 'X-Initial': 'true' } });
+    const result = await manager.applyResponseInterceptors(initialResponse, 'test-url', {});
+
+    expect(result.headers.get('X-Res-First')).toBe('true');
+    expect(result.headers.get('X-Res-Second')).toBe('true');
+    expect(await result.json()).toEqual({ interceptor1: true });
+  });
 });
