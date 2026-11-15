@@ -1,9 +1,11 @@
 import React, { createContext, useContext, ReactNode } from "react";
-import { PromptConfig, SettingsTab } from "../types";
+import { LocalModelLoadProgress, ModelInfo, PromptConfig, SettingsTab } from "../types";
 import { SpeechSettings } from "../services/speechVoices";
 
 export interface SharedWorkspaceProps {
   config: PromptConfig;
+  activeModelInfo?: ModelInfo;
+  webllmProgress?: LocalModelLoadProgress;
   onUpdateSystemInstruction: (inst: string) => void;
   onOpenParameters: () => void;
   hasApiKey: boolean;
@@ -20,6 +22,9 @@ export interface SharedWorkspaceProps {
   onToggleTemplate: (id: string) => void;
   onRemoveTemplate: (id: string) => void;
   onClearAllTemplates: () => void;
+
+  // Cross-workspace IDE navigation
+  onOpenFileInIDE?: (filePath: string) => void;
 
   // Speech Settings
   speechSettings: SpeechSettings;

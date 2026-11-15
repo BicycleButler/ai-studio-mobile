@@ -2,6 +2,7 @@ import { GoogleUser } from "../types";
 import { IGoogleAuthService } from "./googleAuth";
 import { IAuthService } from "./auth";
 import { IGeneralSettingsService } from "../utils/storage/general";
+import { IProviderConnectionService } from "../utils/storage/providers";
 import { ILogger } from "../utils/logger";
 
 export interface IAppAuthManager {
@@ -23,6 +24,7 @@ export interface AppAuthManagerConfig {
   googleAuthService: IGoogleAuthService;
   authService: IAuthService;
   generalSettingsService: IGeneralSettingsService;
+  providerConnectionService?: IProviderConnectionService;
   logger: ILogger;
 }
 
@@ -30,6 +32,7 @@ export class AppAuthManager implements IAppAuthManager {
   private googleAuthService: IGoogleAuthService;
   private authService: IAuthService;
   private generalSettingsService: IGeneralSettingsService;
+  private providerConnectionService?: IProviderConnectionService;
   private logger: ILogger;
 
   private _hasServerKey: boolean = false;
@@ -43,6 +46,7 @@ export class AppAuthManager implements IAppAuthManager {
     this.googleAuthService = config.googleAuthService;
     this.authService = config.authService;
     this.generalSettingsService = config.generalSettingsService;
+    this.providerConnectionService = config.providerConnectionService;
     this.logger = config.logger;
     this._googleUser = this.googleAuthService.loadStoredGoogleUser();
   }
@@ -60,7 +64,12 @@ export class AppAuthManager implements IAppAuthManager {
   }
 
   public hasAnyApiKey(): boolean {
-    return Boolean(this._googleUser || this.getCustomApiKey().trim() || this._hasServerKey);
+    return Boolean(
+      this._googleUser ||
+        this.getCustomApiKey().trim() ||
+        this._hasServerKey ||
+        this.providerConnectionService?.hasAnyEnabledConnection()
+    );
   }
 
   public saveCustomApiKey(key: string): void {

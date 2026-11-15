@@ -16,6 +16,7 @@ export interface UseGeminiStreamReturn {
   errorDetails: GeminiApiError | null;
   durationMs: number;
   tokenCount: number;
+  getLastError: () => GeminiApiError | null;
   startStream: (
     payload: GenerateRequestBody,
     chunkCallback?: (accumulatedText: string) => void
@@ -33,6 +34,7 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
   const [tokenCount, setTokenCount] = useState(0);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastErrorRef = useRef<GeminiApiError | null>(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -54,9 +56,12 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
   }, []);
 
   const clearError = useCallback(() => {
+    lastErrorRef.current = null;
     setError(null);
     setErrorDetails(null);
   }, []);
+
+  const getLastError = useCallback(() => lastErrorRef.current, []);
 
   const startStream = useCallback(
     async (
@@ -73,6 +78,7 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
           throw new Error("AbortController is not supported in this environment.");
       }
       abortControllerRef.current = controller;
+      lastErrorRef.current = null;
 
       setIsGenerating(true);
       setError(null);
@@ -85,10 +91,12 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
           payload,
           {
             onChunk: (accumulatedText) => {
+              if (abortControllerRef.current !== controller) return;
               chunkCallback?.(accumulatedText);
               optionsRef.current.onChunk?.(accumulatedText);
             },
             onDone: (meta) => {
+              if (abortControllerRef.current !== controller) return;
               setDurationMs(meta.durationMs);
               setTokenCount(meta.totalTokens);
             },
@@ -99,21 +107,28 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
           }
         );
 
-        optionsRef.current.onComplete?.(result);
+        if (abortControllerRef.current === controller) {
+          optionsRef.current.onComplete?.(result);
+        }
         return result;
       } catch (err: unknown) {
         // Map raw unknown errors cleanly through the abstraction layer using `geminiStreamService.formatStreamError`
         const apiErr = geminiStreamService.formatStreamError(err);
-        setError(apiErr.message);
-        setErrorDetails(apiErr);
-        optionsRef.current.onError?.(apiErr);
+        if (abortControllerRef.current === controller) {
+          lastErrorRef.current = apiErr;
+          setError(apiErr.message);
+          setErrorDetails(apiErr);
+          optionsRef.current.onError?.(apiErr);
+        }
         return null;
       } finally {
-        setIsGenerating(false);
-        abortControllerRef.current = null;
+        if (abortControllerRef.current === controller) {
+          setIsGenerating(false);
+          abortControllerRef.current = null;
+        }
       }
     },
-    []
+    [geminiStreamService, platformService]
   );
 
   return {
@@ -122,6 +137,7 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
     errorDetails,
     durationMs,
     tokenCount,
+    getLastError,
     startStream,
     stopStream,
     clearError,

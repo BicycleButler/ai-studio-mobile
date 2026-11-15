@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from './syncAdapter';
-import { IApiClient } from '../apiClient';
+import { IApiClient, BaseApiError } from '../apiClient';
 import { IOfflineService } from '../offlineService';
 import { INetworkStatusProvider, NetworkStatus } from '../networkStatus';
 import { Observable } from '../observable';
@@ -140,5 +140,89 @@ describe('NetworkStorageSyncAdapter', () => {
         const adapter = new NetworkStorageSyncAdapter({ transport, offlineService: mockOfflineService, networkStatusProvider: mockNetworkStatusProvider, retryStrategy: defaultRetryStrategy, logger: noOpLogger });
 
         expect(() => adapter.syncItem({ id: 1 }, 'test_mutation')).toThrowError(/NetworkStorageSyncAdapter: Cannot sync item, no endpoint provided/);
+    });
+
+    it('should coalesce rapid successive syncItem calls while a transmit is in flight', async () => {
+        const mockNetworkStatusProvider: INetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true),
+            getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
+        };
+
+        let resolveFirst!: (val: unknown) => void;
+        const firstPromise = new Promise((resolve) => {
+            resolveFirst = resolve;
+        });
+
+        mockApiClient.fetch
+            .mockReturnValueOnce(firstPromise as Promise<unknown>)
+            .mockResolvedValueOnce({ ok: true });
+
+        const transport = new ApiClientSyncTransport(mockApiClient);
+        const adapter = new NetworkStorageSyncAdapter({
+            transport,
+            offlineService: mockOfflineService,
+            networkStatusProvider: mockNetworkStatusProvider,
+            retryStrategy: defaultRetryStrategy,
+            logger: noOpLogger,
+            endpoint: '/api/test',
+            method: 'PUT',
+        });
+
+        adapter.syncItem({ v: 1 }, 'prompts');
+        adapter.syncItem({ v: 2 }, 'prompts');
+        adapter.syncItem({ v: 3 }, 'prompts');
+
+        // Only the first request is in-flight initially; v: 2 was superseded by v: 3
+        expect(mockApiClient.fetch).toHaveBeenCalledTimes(1);
+
+        resolveFirst({ ok: true });
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(mockApiClient.fetch).toHaveBeenCalledTimes(2);
+        expect(mockApiClient.fetch).toHaveBeenNthCalledWith(
+            2,
+            '/api/test',
+            expect.objectContaining({
+                method: 'PUT',
+                body: JSON.stringify({ v: 3 }),
+            })
+        );
+    });
+
+    it('should forward remote and remoteVersion to onConflict on 409 response', async () => {
+        const mockNetworkStatusProvider: INetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true),
+            getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
+        };
+        const onConflict = vi.fn();
+
+        const conflictErr = BaseApiError.fromResponse('Conflict', 409, undefined, '/api/test', {
+            remote: [{ id: 'r1' }],
+            remoteVersion: 9,
+        });
+        mockApiClient.fetch.mockRejectedValueOnce(conflictErr);
+
+        const transport = new ApiClientSyncTransport(mockApiClient);
+        const adapter = new NetworkStorageSyncAdapter({
+            transport,
+            offlineService: mockOfflineService,
+            networkStatusProvider: mockNetworkStatusProvider,
+            retryStrategy: defaultRetryStrategy,
+            logger: noOpLogger,
+            endpoint: '/api/test',
+            onConflict,
+        });
+
+        adapter.syncItem([{ id: 'l1' }], 'projects');
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(onConflict).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'projects',
+                localData: [{ id: 'l1' }],
+                remoteData: [{ id: 'r1' }],
+                remoteVersion: 9,
+            })
+        );
     });
 });

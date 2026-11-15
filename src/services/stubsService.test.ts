@@ -114,6 +114,103 @@ describe('StubsClient', () => {
         );
         expect(result).toEqual(mockData);
     });
+
+    it('should call queryGraph correctly', async () => {
+        const mockData = { mode: 'map', query: 'map:', summary: 'ok' };
+        mockApiClient.fetch.mockResolvedValueOnce(mockData);
+
+        const result = await client.queryGraph('explain: StubsClient', 1200);
+
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/query?q=explain%3A%20StubsClient&budget=1200',
+            undefined,
+            'Failed to execute GraphRAG query'
+        );
+        expect(result).toEqual(mockData);
+    });
+
+    it('should call runPipeline correctly', async () => {
+        const mockData = { passed: true, scannedFiles: 10 };
+        mockApiClient.fetch.mockResolvedValueOnce(mockData);
+
+        const result = await client.runPipeline();
+
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/run',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            },
+            'Failed to run Stubs pipeline'
+        );
+        expect(result).toEqual(mockData);
+    });
+
+    it('should call sandSpec correctly', async () => {
+        const mockData = { success: true, message: 'Sanded', result: { path: 'a.ts.md', targetFile: 'a.ts', astHash: 'abc' } };
+        mockApiClient.fetch.mockResolvedValueOnce(mockData);
+
+        const result = await client.sandSpec('src/services/a.ts.md');
+
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/spec-sand',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: 'src/services/a.ts.md' }),
+            },
+            'Failed to sand spec'
+        );
+        expect(result).toEqual(mockData);
+    });
+
+    it('should call fetchWorkspaceFileTree correctly', async () => {
+        const mockTree = {
+            rootName: 'react-example',
+            tree: [
+                {
+                    name: 'src',
+                    path: 'src',
+                    type: 'directory' as const,
+                    children: [
+                        { name: 'App.tsx', path: 'src/App.tsx', type: 'file' as const, language: 'tsx' }
+                    ]
+                }
+            ],
+            totalFiles: 1,
+            totalDirectories: 1,
+        };
+        mockApiClient.fetch.mockResolvedValueOnce(mockTree);
+
+        const result = await client.fetchWorkspaceFileTree();
+
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/tree',
+            undefined,
+            'Failed to load workspace file tree'
+        );
+        expect(result).toEqual(mockTree);
+    });
+
+    it('should call fetchWorkspaceFile correctly', async () => {
+        const mockFile = {
+            path: 'src/components/StubsWorkspace.tsx',
+            name: 'StubsWorkspace.tsx',
+            language: 'tsx',
+            content: 'export const StubsWorkspace = () => null;',
+            lineCount: 1,
+        };
+        mockApiClient.fetch.mockResolvedValueOnce(mockFile);
+
+        const result = await client.fetchWorkspaceFile('src/components/StubsWorkspace.tsx');
+
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/file?path=src%2Fcomponents%2FStubsWorkspace.tsx',
+            undefined,
+            'Failed to open workspace file'
+        );
+        expect(result).toEqual(mockFile);
+    });
 });
 
 describe('StubsClient Stream Config', () => {

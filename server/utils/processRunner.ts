@@ -10,14 +10,22 @@ export interface ProcessLogEvent {
   code?: number;
 }
 
+export interface ProcessRunnerOptions extends SpawnOptionsWithoutStdio {
+  timeoutMs?: number;
+  maxOutputBytes?: number;
+}
+
 export interface IProcessRunner {
   runCommand(
     executablePath: string,
     args: string[],
-    options?: SpawnOptionsWithoutStdio,
+    options?: ProcessRunnerOptions,
     eventEmitter?: EventEmitter
   ): Promise<{ exitCode: number; stdout: string; stderr: string }>;
 }
+
+const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_MAX_OUTPUT_BYTES = 2 * 1024 * 1024;
 
 export class ProcessRunner implements IProcessRunner {
   constructor(private timeProvider: ITimeProvider = new DefaultTimeProvider()) {}
@@ -25,9 +33,12 @@ export class ProcessRunner implements IProcessRunner {
   public async runCommand(
     executablePath: string,
     args: string[] = [],
-    options?: SpawnOptionsWithoutStdio,
+    options?: ProcessRunnerOptions,
     eventEmitter?: EventEmitter
   ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const maxOutputBytes = options?.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
+
     return new Promise((resolve, reject) => {
       fs.promises.access(executablePath).then(() => {
         if (eventEmitter) {
@@ -38,17 +49,61 @@ export class ProcessRunner implements IProcessRunner {
           });
         }
 
+        const { timeoutMs: _t, maxOutputBytes: _m, ...spawnOpts } = options || {};
         const child = spawn("node", [executablePath, ...args], {
-          ...options,
-          env: { ...process.env, FORCE_COLOR: "1", ...(options?.env || {}) },
+          ...spawnOpts,
+          env: { ...process.env, FORCE_COLOR: "1", ...(spawnOpts.env || {}) },
         });
 
         let stdout = "";
         let stderr = "";
+        let stdoutTruncated = false;
+        let stderrTruncated = false;
+        let settled = false;
+        let killTimer: ReturnType<typeof setTimeout> | undefined;
+
+        const timeoutTimer =
+          timeoutMs > 0
+            ? setTimeout(() => {
+                if (settled) return;
+                settled = true;
+                const timeoutMsg = `Process timed out after ${timeoutMs}ms`;
+                try {
+                  child.kill("SIGTERM");
+                  killTimer = setTimeout(() => {
+                    try {
+                      child.kill("SIGKILL");
+                    } catch {
+                      // ignore
+                    }
+                  }, 2000);
+                } catch {
+                  // ignore
+                }
+                if (eventEmitter) {
+                  eventEmitter.emit("log", {
+                    type: "error",
+                    text: `[Execution timeout: ${timeoutMsg}]`,
+                    timestamp: this.timeProvider.now(),
+                  });
+                }
+                reject(new Error(timeoutMsg));
+              }, timeoutMs)
+            : undefined;
+
+        const cleanupTimers = () => {
+          if (timeoutTimer) clearTimeout(timeoutTimer);
+          if (killTimer) clearTimeout(killTimer);
+        };
 
         child.stdout.on("data", (chunk: Buffer) => {
           const text = chunk.toString();
-          stdout += text;
+          if (Buffer.byteLength(stdout, "utf8") + Buffer.byteLength(text, "utf8") <= maxOutputBytes) {
+            stdout += text;
+          } else if (!stdoutTruncated) {
+            stdoutTruncated = true;
+            stdout += "\n...[stdout truncated: output exceeded buffer limit]";
+          }
           if (eventEmitter) {
             eventEmitter.emit("log", {
               type: "stdout",
@@ -60,7 +115,12 @@ export class ProcessRunner implements IProcessRunner {
 
         child.stderr.on("data", (chunk: Buffer) => {
           const text = chunk.toString();
-          stderr += text;
+          if (Buffer.byteLength(stderr, "utf8") + Buffer.byteLength(text, "utf8") <= maxOutputBytes) {
+            stderr += text;
+          } else if (!stderrTruncated) {
+            stderrTruncated = true;
+            stderr += "\n...[stderr truncated: output exceeded buffer limit]";
+          }
           if (eventEmitter) {
             eventEmitter.emit("log", {
               type: "stderr",
@@ -71,6 +131,9 @@ export class ProcessRunner implements IProcessRunner {
         });
 
         child.on("close", (code) => {
+          cleanupTimers();
+          if (settled) return;
+          settled = true;
           if (eventEmitter) {
             eventEmitter.emit("log", {
               type: "exit",
@@ -87,6 +150,9 @@ export class ProcessRunner implements IProcessRunner {
         });
 
         child.on("error", (err) => {
+          cleanupTimers();
+          if (settled) return;
+          settled = true;
           if (eventEmitter) {
             eventEmitter.emit("log", {
               type: "error",
@@ -110,4 +176,5 @@ export class ProcessRunner implements IProcessRunner {
     });
   }
 }
+
 

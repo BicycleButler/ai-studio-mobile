@@ -5,16 +5,18 @@ export interface SyncHandlerConfig {
   mutationType: string;
   endpoint: string;
   method?: string;
-  payloadWrapper?: (payload: unknown) => unknown;
+  payloadWrapper?: (payload: unknown, mutation?: OfflineMutation) => unknown;
   requestBuilder?: (payload: unknown, method: string) => RequestInit;
+  onSuccess?: (response: unknown) => void;
 }
 
 export interface ISyncOrchestrator {
   createGenericSyncHandler(
     endpoint: string,
-    payloadWrapper?: (payload: unknown) => unknown,
+    payloadWrapper?: (payload: unknown, mutation?: OfflineMutation) => unknown,
     method?: string,
-    requestBuilder?: (payload: unknown, method: string) => RequestInit
+    requestBuilder?: (payload: unknown, method: string) => RequestInit,
+    onSuccess?: (response: unknown) => void
   ): SyncHandler;
   registerHandlers(): void;
 }
@@ -28,24 +30,26 @@ export class SyncOrchestrator implements ISyncOrchestrator {
 
   public createGenericSyncHandler(
     endpoint: string,
-    payloadWrapper?: (payload: unknown) => unknown,
+    payloadWrapper?: (payload: unknown, mutation?: OfflineMutation) => unknown,
     method: string = "POST",
-    requestBuilder?: (payload: unknown, method: string) => RequestInit
+    requestBuilder?: (payload: unknown, method: string) => RequestInit,
+    onSuccess?: (response: unknown) => void
   ): SyncHandler {
     return async (mutation: OfflineMutation) => {
       try {
-        const bodyPayload = payloadWrapper ? payloadWrapper(mutation.payload) : mutation.payload;
+        const bodyPayload = payloadWrapper ? payloadWrapper(mutation.payload, mutation) : mutation.payload;
         const requestInit = requestBuilder ? requestBuilder(bodyPayload, method) : {
           method,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(bodyPayload),
         };
-        await this.apiClient.fetch(endpoint, requestInit);
+        const response = await this.apiClient.fetch(endpoint, requestInit);
+        onSuccess?.(response);
         return { success: true };
       } catch (err: unknown) {
         if (err instanceof BaseApiError) {
           if (err.statusCode === 409) {
-            const data = err.rawData as { remote?: unknown } | undefined;
+            const data = err.rawData as { remote?: unknown; remoteVersion?: number } | undefined;
             return {
               success: false,
               retryable: false,
@@ -53,6 +57,7 @@ export class SyncOrchestrator implements ISyncOrchestrator {
                 type: mutation.type,
                 localData: mutation.payload,
                 remoteData: data?.remote,
+                remoteVersion: typeof data?.remoteVersion === "number" ? data.remoteVersion : undefined,
                 id: mutation.id
               }
             };
@@ -70,7 +75,13 @@ export class SyncOrchestrator implements ISyncOrchestrator {
     this.handlersConfig.forEach((config) => {
       this.offlineService.registerSyncHandler(
         config.mutationType,
-        this.createGenericSyncHandler(config.endpoint, config.payloadWrapper, config.method, config.requestBuilder)
+        this.createGenericSyncHandler(
+          config.endpoint,
+          config.payloadWrapper,
+          config.method,
+          config.requestBuilder,
+          config.onSuccess
+        )
       );
     });
   }

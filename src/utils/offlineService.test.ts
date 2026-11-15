@@ -78,6 +78,31 @@ describe('OfflineService', () => {
     expect(queue[0].type).toBe('FAILING_ACTION');
     expect(queue[1].type).toBe('SUCCESS_ACTION');
   });
+
+  it('awaits async storage hydration before returning from getOfflineQueue', async () => {
+    const delayedStorage: AsyncStorage = {
+      async getItem<T>() {
+        await new Promise((r) => setTimeout(r, 25));
+        return [
+          { id: 'hydrated-1', type: 'saved_prompts', payload: [], timestamp: 123 },
+        ] as unknown as T;
+      },
+      async setItem() {},
+    };
+
+    const delayedService = new OfflineService({
+      storageKey: 'delayed_queue',
+      storageAdapter: delayedStorage,
+      logger: new NoOpLogger(),
+      crossTabNotifierFactory: new DefaultCrossTabNotifierFactory(),
+      platformService: new BrowserPlatformService(),
+    });
+
+    const queue = await delayedService.getOfflineQueue();
+    expect(queue).toHaveLength(1);
+    expect(queue[0].id).toBe('hydrated-1');
+    delayedService.dispose();
+  });
 });
 
 import { FallbackAsyncStorage } from './asyncStorage';

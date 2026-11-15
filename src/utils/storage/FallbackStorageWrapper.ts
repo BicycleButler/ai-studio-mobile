@@ -6,9 +6,12 @@ import { EventEmitter } from "../eventEmitter";
 import { ILogger, DefaultLoggerFactory } from "../logger";
 
 export class FallbackStorageWrapper implements Storage {
+  private primaryStorage: Storage;
   private activeStorage: Storage;
   private memoryFallback: MemoryStorage | null = null;
   public quotaExceededEvent = new EventEmitter<void>();
+  public storageDegradedEvent = new EventEmitter<string>();
+  public storageRecoveredEvent = new EventEmitter<void>();
 
   private logger: ILogger;
   private platformService: IPlatformService;
@@ -16,10 +19,43 @@ export class FallbackStorageWrapper implements Storage {
   constructor(primaryStorage: Storage, logger: ILogger = new DefaultLoggerFactory().createLogger(), platformService: IPlatformService = new BrowserPlatformService()) {
     this.platformService = platformService;
     this.logger = logger;
+    this.primaryStorage = primaryStorage;
     this.activeStorage = primaryStorage;
   }
 
-  private promoteToMemory(): void {
+  public isDegraded(): boolean {
+    return this.memoryFallback !== null;
+  }
+
+  private tryRecoverPrimaryStorage(): boolean {
+    if (!this.memoryFallback) return false;
+    try {
+      const testKey = "__storage_recover_test__";
+      this.primaryStorage.setItem(testKey, "1");
+      this.primaryStorage.removeItem(testKey);
+
+      // Flush in-memory keys back to primary storage
+      for (let i = 0; i < this.memoryFallback.length; i++) {
+        const key = this.memoryFallback.key(i);
+        if (key) {
+          const val = this.memoryFallback.getItem(key);
+          if (val !== null) {
+            this.primaryStorage.setItem(key, val);
+          }
+        }
+      }
+
+      this.activeStorage = this.primaryStorage;
+      this.memoryFallback = null;
+      this.logger.info("Recovered persistent browser storage from memory fallback.");
+      this.storageRecoveredEvent.emit();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private promoteToMemory(reason: string = "Browser storage quota exceeded or restricted; using temporary in-memory storage."): void {
     if (this.memoryFallback) return; // Already promoted
 
     this.memoryFallback = new MemoryStorage();
@@ -41,6 +77,7 @@ export class FallbackStorageWrapper implements Storage {
 
     this.activeStorage = this.memoryFallback;
     this.logger.warn("Promoted storage to memory fallback due to failure.");
+    this.storageDegradedEvent.emit(reason);
   }
 
   getItem(key: string): string | null {
@@ -53,6 +90,11 @@ export class FallbackStorageWrapper implements Storage {
   }
 
   setItem(key: string, value: string): void {
+    if (this.memoryFallback) {
+      this.memoryFallback.setItem(key, value);
+      this.tryRecoverPrimaryStorage();
+      return;
+    }
     try {
       this.activeStorage.setItem(key, value);
     } catch (e) {
@@ -79,6 +121,14 @@ export class FallbackStorageWrapper implements Storage {
   removeItem(key: string): void {
     try {
       this.activeStorage.removeItem(key);
+      if (this.memoryFallback) {
+        try {
+          this.primaryStorage.removeItem(key);
+        } catch {
+          // ignore
+        }
+        this.tryRecoverPrimaryStorage();
+      }
     } catch {
       this.promoteToMemory();
       this.activeStorage.removeItem(key);

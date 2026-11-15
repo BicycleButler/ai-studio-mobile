@@ -15,12 +15,16 @@ export interface OfflineMutation {
   timestamp: number;
   id: string;
   version?: number;
+  attempts?: number;
+  lastError?: string;
+  nextRetryAt?: number;
 }
 
 export interface ConflictData {
   type: string;
   localData: unknown;
   remoteData: unknown;
+  remoteVersion?: number;
   id: string;
 }
 
@@ -35,10 +39,13 @@ export interface IOfflineService {
   removeOfflineMutation(id: string): Promise<void>;
   getOfflineQueueLength(): Promise<number>;
   clearOfflineMutations(): Promise<void>;
-  processOfflineMutations(): Promise<{ success: boolean; conflicts: ConflictData[] }>;
+  processOfflineMutations(): Promise<{ success: boolean; conflicts: ConflictData[]; droppedIds?: string[]; droppedMutations?: OfflineMutation[] }>;
   getOfflineQueue(): Promise<OfflineMutation[]>;
   subscribe(listener: () => void): () => void;
   getSnapshot(): OfflineMutation[];
+  getDeadLetterQueue?(): Promise<OfflineMutation[]>;
+  retryDeadLetterQueue?(): Promise<number>;
+  clearDeadLetterQueue?(): Promise<void>;
 }
 
 export interface OfflineServiceConfig {
@@ -53,12 +60,15 @@ export interface OfflineServiceConfig {
   platformService?: IPlatformService;
 }
 
+const DEAD_LETTER_STORAGE_KEY = "ai_studio_offline_dead_letter_v1";
+
 export class OfflineService implements IOfflineService {
   private queueStore: IOfflineQueueStore;
   private syncEngine: ISyncEngine;
   private logger: ILogger;
   private idGenerator: IIdGenerator;
   private timeProvider: ITimeProvider;
+  private deadLetterMemoryFallback: OfflineMutation[] = [];
 
   constructor(config: OfflineServiceConfig) {
     this.logger = config.logger || new DefaultLoggerFactory().createLogger();
@@ -129,11 +139,72 @@ export class OfflineService implements IOfflineService {
     await this.queueStore.clear();
   }
 
+  private readDeadLettersSync(): OfflineMutation[] {
+    try {
+      if (typeof localStorage !== "undefined") {
+        const raw = localStorage.getItem(DEAD_LETTER_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed as OfflineMutation[];
+        }
+      }
+    } catch {
+      // Fallback to in-memory copy
+    }
+    return [...this.deadLetterMemoryFallback];
+  }
+
+  private writeDeadLettersSync(items: OfflineMutation[]): void {
+    const capped = items.slice(-50);
+    this.deadLetterMemoryFallback = capped;
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(DEAD_LETTER_STORAGE_KEY, JSON.stringify(capped));
+      }
+    } catch {
+      // Ignore storage quota/access errors
+    }
+  }
+
+  public async getDeadLetterQueue(): Promise<OfflineMutation[]> {
+    return this.readDeadLettersSync();
+  }
+
+  public async clearDeadLetterQueue(): Promise<void> {
+    this.writeDeadLettersSync([]);
+  }
+
+  public async retryDeadLetterQueue(): Promise<number> {
+    const items = this.readDeadLettersSync();
+    if (items.length === 0) return 0;
+    this.writeDeadLettersSync([]);
+    for (const item of items) {
+      await this.queueStore.enqueue({
+        ...item,
+        attempts: 0,
+        nextRetryAt: undefined,
+      });
+    }
+    return items.length;
+  }
+
   public async processOfflineMutations(): Promise<{
     success: boolean;
     conflicts: ConflictData[];
+    droppedIds?: string[];
+    droppedMutations?: OfflineMutation[];
   }> {
-    return this.syncEngine.processOfflineMutations();
+    const result = await this.syncEngine.processOfflineMutations();
+    if (result.droppedMutations && result.droppedMutations.length > 0) {
+      const existing = this.readDeadLettersSync();
+      const existingIds = new Set(existing.map((m) => m.id));
+      const merged = [
+        ...existing,
+        ...result.droppedMutations.filter((m) => !existingIds.has(m.id)),
+      ];
+      this.writeDeadLettersSync(merged);
+    }
+    return result;
   }
 
   public async getOfflineQueue(): Promise<OfflineMutation[]> {

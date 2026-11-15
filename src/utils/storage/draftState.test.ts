@@ -104,4 +104,38 @@ describe('DraftStateService', () => {
     expect(savedArg?.promptType).toBe('chat');
     expect(savedArg?.updatedAt).toBeGreaterThan(123);
   });
+
+  it('strips heavy base64 image data and data URLs when saving draft messages', () => {
+    (mockDraftSingleton.load as import("vitest").Mock).mockReturnValue(null);
+    (mockGlobalDraftSingleton.load as import("vitest").Mock).mockReturnValue(null);
+
+    const service = new DraftStateService({ logger: mockLogger, draftRegistry: mockDraftRegistry });
+    service.saveDraftState(
+      {
+        messages: [
+          {
+            id: 'm1',
+            role: 'user',
+            text: 'Look at this image',
+            timestamp: 1000,
+            images: [
+              {
+                id: 'img1',
+                name: 'photo.png',
+                mimeType: 'image/png',
+                sizeKb: 120,
+                data: 'VERY_LARGE_BASE64_PAYLOAD',
+                previewUrl: 'data:image/png;base64,VERY_LARGE_BASE64_PAYLOAD',
+              },
+            ],
+          },
+        ],
+      },
+      'proj1'
+    );
+
+    const savedArg = (mockDraftSingleton.save as import("vitest").Mock).mock.calls[0][0];
+    expect(savedArg?.messages?.[0]?.images?.[0]?.data).toBe('');
+    expect(savedArg?.messages?.[0]?.images?.[0]?.previewUrl).toBe('');
+  });
 });

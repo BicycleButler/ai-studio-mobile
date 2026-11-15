@@ -1,5 +1,7 @@
 import {
   User,
+  Cpu,
+  Blocks,
   Sun,
   Sliders,
   Layers,
@@ -22,6 +24,8 @@ export interface SettingsTabConfig {
 
 export const SETTINGS_TABS_CONFIG: SettingsTabConfig[] = [
   { id: "account", label: "Profile", title: "Profile & Account", icon: User, requiresAuthWarning: true, aliases: ["auth", "key", "profile"] },
+  { id: "providers", label: "Providers", title: "Providers & Local Models", icon: Cpu, aliases: ["local", "ollama", "webgpu", "openai", "anthropic"] },
+  { id: "integrations", label: "Integrations", title: "Cloud & Dev Integrations", icon: Blocks, aliases: ["firebase", "gcp", "github", "vercel", "cloud"] },
   { id: "display", label: "Themes", title: "Themes & Appearance", icon: Sun, aliases: ["theme", "themes"] },
   { id: "security", label: "Settings", title: "Settings & Security", icon: Sliders, aliases: ["settings"] },
   { id: "model", label: "Models", title: "Models & Tuners", icon: Layers, aliases: ["tune", "models"] },

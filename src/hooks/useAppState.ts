@@ -1,5 +1,5 @@
 import { useServices } from "../services/ServiceContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAppAuth } from "./useAppAuth";
 import { usePromptTemplates } from "./usePromptTemplates";
 
@@ -7,7 +7,7 @@ import { useChatSession } from "./useChatSession";
 import { useProjectManager } from "./useProjectManager";
 import { useUIState } from "./useUIState";
 import { useModelConfig } from "./useModelConfig";
-import { PromptType, ChatMessage, ChatSession, SavedPrompt } from "../types";
+import { PromptType, ChatMessage, ChatSession, SavedPrompt, ProjectInfo } from "../types";
 
 
 
@@ -93,11 +93,28 @@ export function useAppState() {
     if (onStopStream) {
       onStopStream();
     }
+    pendingChatSaveRef.current?.();
     chatSession.setCurrentSessionId(session.id);
     chatSession.setMessages(session.messages || []);
     if (session.model) {
       setConfig((prev) => ({ ...prev, model: session.model! }));
     }
+  };
+
+  const handleStartNewChatWithFlush = (onStopStream?: () => void) => {
+    if (onStopStream) {
+      onStopStream();
+    }
+    pendingChatSaveRef.current?.();
+    chatSession.handleStartNewChat();
+  };
+
+  const handleProjectActivatedWithFlush = (project: ProjectInfo, onStopStream?: () => void) => {
+    if (onStopStream) {
+      onStopStream();
+    }
+    pendingChatSaveRef.current?.();
+    projectManager.handleProjectActivated(project);
   };
 
   // Draft Save Effect
@@ -118,28 +135,75 @@ export function useAppState() {
     return () => platformService.clearTimeout(timeout);
   }, [promptType, config, chatSession.freeformText, chatSession.structuredExamples, chatSession.messages, promptTemplates.selectedTemplateIds, activeProject?.id, platformService]);
 
-  // Chat Session Persistence Effect
+  const pendingChatSaveRef = useRef<(() => void) | null>(null);
+
+  // Flush any pending debounced chat save on pagehide or unmount
   useEffect(() => {
-    if (chatSession.messages && chatSession.messages.length > 0 && chatSession.currentSessionId) {
-      const hasMeaningfulContent = chatSession.messages.some(
-        (m: ChatMessage) => m.text.trim().length > 0 || (m.images && m.images.length > 0)
-      );
-      if (hasMeaningfulContent) {
-        chatHistoryService.saveChatSession(
-          {
-            id: chatSession.currentSessionId,
-            title: chatHistoryService.generateSessionTitle(chatSession.messages),
-            messages: chatSession.messages,
-            createdAt: timeProvider.now(),
-            updatedAt: timeProvider.now(),
-            model: config.model,
-            projectId: activeProject?.id,
-          },
-          activeProject?.id
-        );
-      }
+    if (!platformService.isBrowserEnv()) {
+      return () => {
+        pendingChatSaveRef.current?.();
+      };
     }
-  }, [chatSession.messages, chatSession.currentSessionId, activeProject?.id, config.model]);
+    const flush = () => {
+      pendingChatSaveRef.current?.();
+    };
+    const removePageHide = platformService.addEventListener("pagehide", flush);
+    return () => {
+      removePageHide();
+      pendingChatSaveRef.current?.();
+    };
+  }, [platformService]);
+
+  // Chat Session Persistence Effect (debounced while streaming, immediate on completion)
+  useEffect(() => {
+    if (!chatSession.messages || chatSession.messages.length === 0 || !chatSession.currentSessionId) {
+      pendingChatSaveRef.current = null;
+      return;
+    }
+
+    const hasMeaningfulContent = chatSession.messages.some(
+      (m: ChatMessage) => m.text.trim().length > 0 || (m.images && m.images.length > 0)
+    );
+    if (!hasMeaningfulContent) {
+      pendingChatSaveRef.current = null;
+      return;
+    }
+
+    const sessionId = chatSession.currentSessionId;
+    const projectId = activeProject?.id;
+    const messagesSnapshot = chatSession.messages;
+    const modelSnapshot = config.model;
+    const isStreaming = messagesSnapshot.some((m) => m.isStreaming);
+
+    const persistSession = () => {
+      pendingChatSaveRef.current = null;
+      const existing = chatHistoryService.getChatSessionById(sessionId, projectId);
+      const now = timeProvider.now();
+      chatHistoryService.saveChatSession(
+        {
+          id: sessionId,
+          title: chatHistoryService.generateSessionTitle(messagesSnapshot),
+          messages: messagesSnapshot,
+          createdAt: existing?.createdAt || now,
+          updatedAt: now,
+          model: modelSnapshot,
+          projectId,
+        },
+        projectId
+      );
+    };
+
+    if (!isStreaming) {
+      persistSession();
+      return;
+    }
+
+    pendingChatSaveRef.current = persistSession;
+    const timeout = platformService.setTimeout(persistSession, 1000);
+    return () => {
+      platformService.clearTimeout(timeout);
+    };
+  }, [chatSession.messages, chatSession.currentSessionId, activeProject?.id, config.model, chatHistoryService, platformService, timeProvider]);
 
   // Init Effects
   useEffect(() => {
@@ -151,6 +215,7 @@ export function useAppState() {
 
   return {
     ...projectManager,
+    handleProjectActivated: handleProjectActivatedWithFlush,
     ...uiState,
     isTemplateDrawerOpen: promptTemplates.isTemplateDrawerOpen,
     setIsTemplateDrawerOpen: promptTemplates.setIsTemplateDrawerOpen,
@@ -187,7 +252,7 @@ export function useAppState() {
     structuredExamples: chatSession.structuredExamples,
     savedPrompts: chatSession.savedPrompts,
     setSavedPrompts: chatSession.setSavedPrompts,
-    handleStartNewChat: chatSession.handleStartNewChat,
+    handleStartNewChat: handleStartNewChatWithFlush,
     handleSelectChatSession,
     handleSaveCurrentPrompt: chatSession.handleSaveCurrentPrompt,
     handleDeleteSavedPrompt: chatSession.handleDeleteSavedPrompt,

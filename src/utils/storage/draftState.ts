@@ -110,7 +110,18 @@ export class DraftStateService implements IDraftStateService {
     const sanitizeMessages = (msgs: unknown): ChatMessage[] | undefined => {
       if (!Array.isArray(msgs)) return undefined;
       const clean = cleanMockData(msgs as ChatMessage[], "chat");
-      return clean.length > 0 ? clean : undefined;
+      if (clean.length === 0) return undefined;
+      return clean.map((m) => ({
+        ...m,
+        images: m.images?.map((img) => ({
+          ...img,
+          data: "",
+          previewUrl:
+            img.previewUrl && img.previewUrl.startsWith("data:")
+              ? ""
+              : img.previewUrl,
+        })),
+      }));
     };
 
     return {
@@ -130,14 +141,34 @@ export class DraftStateService implements IDraftStateService {
     };
   }
 
+  private sanitizeDraftForStorage(draft: DraftState): DraftState {
+    if (!Array.isArray(draft.messages)) {
+      return draft;
+    }
+    return {
+      ...draft,
+      messages: draft.messages.map((m) => ({
+        ...m,
+        images: m.images?.map((img) => ({
+          ...img,
+          data: "", // Strip heavy base64 image payloads to protect localStorage quota
+          previewUrl:
+            img.previewUrl && img.previewUrl.startsWith("data:")
+              ? ""
+              : img.previewUrl,
+        })),
+      })),
+    };
+  }
+
   public saveDraftState(draft: Partial<DraftState>, projectId?: string | null): void {
     try {
       const current = this.loadDraftState(projectId);
-      const updated: DraftState = {
+      const updated: DraftState = this.sanitizeDraftForStorage({
         ...current,
         ...draft,
         updatedAt: this.timeProvider.now(),
-      };
+      });
       const key = this.getProjectDraftKey(projectId);
       const draftSingleton = this.getDraftSingleton(key);
       draftSingleton.save(updated);

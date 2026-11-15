@@ -3,28 +3,35 @@ import { useState, useCallback } from "react";
 import { StubsSidecarSpec } from "../../types";
 import { useServices } from "../../services/ServiceContext";
 
-
 export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: () => void) {
   const { stubsClient, platformService } = useServices();
   const [specs, setSpecs] = useState<StubsSidecarSpec[]>([]);
   const [activeSpecPath, setActiveSpecPath] = useState<string>("");
   const [specContent, setSpecContent] = useState<string>("");
+  const [isLoadingSpecDetail, setIsLoadingSpecDetail] = useState(false);
 
   const [isLoadingSpecs, setIsLoadingSpecs] = useState(false);
   const [isSavingSpec, setIsSavingSpec] = useState(false);
   const [isMaterializingSpec, setIsMaterializingSpec] = useState(false);
+  const [isSandingSpec, setIsSandingSpec] = useState(false);
 
   const [specActionToast, setSpecActionToast] = useState<string | null>(null);
 
-  const selectSpec = useCallback(async (path: string) => {
-    setActiveSpecPath(path);
-    try {
-      const detail = await stubsClient.fetchSpecDetail(path);
-      setSpecContent(detail.content);
-    } catch (err: unknown) {
-      showToast(`Failed to read spec: ${getErrorMessage(err)}`);
-    }
-  }, [showToast, stubsClient]);
+  const selectSpec = useCallback(
+    async (path: string) => {
+      setActiveSpecPath(path);
+      setIsLoadingSpecDetail(true);
+      try {
+        const detail = await stubsClient.fetchSpecDetail(path);
+        setSpecContent(detail.content);
+      } catch (err: unknown) {
+        showToast(`Failed to read spec: ${getErrorMessage(err)}`);
+      } finally {
+        setIsLoadingSpecDetail(false);
+      }
+    },
+    [showToast, stubsClient]
+  );
 
   const loadSpecs = useCallback(async () => {
     setIsLoadingSpecs(true);
@@ -41,19 +48,25 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
     }
   }, [activeSpecPath, selectSpec, showToast, stubsClient]);
 
-  const saveSpec = useCallback(async () => {
-    if (!activeSpecPath) return;
-    setIsSavingSpec(true);
-    try {
-      await stubsClient.saveSpecContent(activeSpecPath, specContent);
-      setSpecActionToast(`Saved ${activeSpecPath}`);
-      platformService.setTimeout(() => setSpecActionToast(null), 3000);
-    } catch (err: unknown) {
-      showToast(`Failed to save spec: ${getErrorMessage(err)}`);
-    } finally {
-      setIsSavingSpec(false);
-    }
-  }, [activeSpecPath, specContent, showToast, stubsClient]);
+  const saveSpec = useCallback(
+    async (contentOverride?: string) => {
+      if (!activeSpecPath) return;
+      const nextContent = contentOverride ?? specContent;
+      setIsSavingSpec(true);
+      try {
+        await stubsClient.saveSpecContent(activeSpecPath, nextContent);
+        setSpecActionToast(`Saved ${activeSpecPath}`);
+        showToast(`Saved ${activeSpecPath}`);
+        platformService.setTimeout(() => setSpecActionToast(null), 3000);
+        await loadSpecs();
+      } catch (err: unknown) {
+        showToast(`Failed to save spec: ${getErrorMessage(err)}`);
+      } finally {
+        setIsSavingSpec(false);
+      }
+    },
+    [activeSpecPath, specContent, showToast, stubsClient, platformService, loadSpecs]
+  );
 
   const materializeActiveSpec = useCallback(async () => {
     if (!activeSpecPath) return;
@@ -72,7 +85,26 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
     } finally {
       setIsMaterializingSpec(false);
     }
-  }, [activeSpecPath, loadSpecs, showToast, onDataUpdated, stubsClient]);
+  }, [activeSpecPath, loadSpecs, showToast, onDataUpdated, stubsClient, platformService]);
+
+  const sandActiveSpec = useCallback(async () => {
+    if (!activeSpecPath) return;
+    setIsSandingSpec(true);
+    try {
+      const res = await stubsClient.sandSpec(activeSpecPath);
+      setSpecActionToast(res.message);
+      platformService.setTimeout(() => setSpecActionToast(null), 4000);
+      showToast(res.message);
+      await Promise.all([loadSpecs(), selectSpec(activeSpecPath)]);
+      if (onDataUpdated) {
+        onDataUpdated();
+      }
+    } catch (err: unknown) {
+      showToast(`Sanding failed: ${getErrorMessage(err)}`);
+    } finally {
+      setIsSandingSpec(false);
+    }
+  }, [activeSpecPath, loadSpecs, selectSpec, showToast, onDataUpdated, stubsClient, platformService]);
 
   return {
     specs,
@@ -80,12 +112,15 @@ export function useStubsSpecs(showToast: (msg: string) => void, onDataUpdated?: 
     specContent,
     setSpecContent,
     isLoadingSpecs,
+    isLoadingSpecDetail,
     isSavingSpec,
     isMaterializingSpec,
+    isSandingSpec,
     specActionToast,
     loadSpecs,
     selectSpec,
     saveSpec,
     materializeActiveSpec,
+    sandActiveSpec,
   };
 }

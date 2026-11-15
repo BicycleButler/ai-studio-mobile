@@ -6,13 +6,13 @@ import {
   Layers,
   ShieldCheck,
   AlertOctagon,
-  Terminal,
   FileCode2,
+  Terminal,
   RefreshCw,
+  Play,
   Sparkles,
 } from "lucide-react";
 import mermaid from "mermaid";
-
 
 import { StubsTerminalTab } from "./stubs/StubsTerminalTab";
 import { StubsLintTab } from "./stubs/StubsLintTab";
@@ -25,34 +25,31 @@ import { useStubsTerminal } from "../hooks/stubs/useStubsTerminal";
 import { useStubsData } from "../hooks/stubs/useStubsData";
 import { useStubsSpecs } from "../hooks/stubs/useStubsSpecs";
 import { useServices } from "../services/ServiceContext";
-
 import { useWorkspace } from "../contexts/WorkspaceContext";
+import { StubsCommandName } from "../types/stubs";
 
-export interface StubsWorkspaceProps {
-}
+export interface StubsWorkspaceProps {}
 
 type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal";
 
-
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
-  const { onOpenBottomNav: _onOpenBottomNav, onOpenParameters: _onOpenParameters } = useWorkspace();
+  const { onOpenBottomNav: _onOpenBottomNav, onOpenParameters: _onOpenParameters, onOpenFileInIDE } = useWorkspace();
   const { logger, clipboardService, platformService } = useServices();
-    // Navigation & Sub-views
-  const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
 
-  // Notification Toast
+  const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showToast = React.useCallback((msg: string) => {
-    setToastMessage(msg);
-    platformService.setTimeout(() => {
-      setToastMessage(null);
-    }, 3500);
-  }, []);
+  const showToast = React.useCallback(
+    (msg: string) => {
+      setToastMessage(msg);
+      platformService.setTimeout(() => {
+        setToastMessage(null);
+      }, 3500);
+    },
+    [platformService]
+  );
 
-  // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
-
   const [selectedImpactTarget, setSelectedImpactTarget] = useState<string>("src/types.ts");
 
   const {
@@ -60,45 +57,81 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
     isExecutingCommand,
     clearLogs,
     scrollToBottom,
-    runCommand
+    runCommand,
+    executeRawInput,
   } = useStubsTerminal();
 
   const {
     graphData,
     isLoadingGraph,
     loadGraph,
+    queryResult,
+    isQuerying,
+    runQuery,
+    clearQuery,
+    pipelineResult,
+    isRunningPipeline,
+    runPipeline,
     diagramGroupBy,
     setDiagramGroupBy,
-        renderedSvg,
-            isLoadingDiagram,
+    diagramType,
+    setDiagramType,
+    diagramTarget,
+    setDiagramTarget,
+    diagramMermaid,
+    renderedSvg,
+    diagramViewMode,
+    setDiagramViewMode,
+    diagramError,
+    isLoadingDiagram,
     loadDiagram,
     lintViolations,
     lintPassed,
     totalLintChecks,
+    lintErrorCount,
+    lintWarningCount,
+    lintDurationMs,
+    pruneIssues,
+    pruneSummary,
     isLoadingLint,
     loadLint,
     impactResult,
-    loadImpact
+    impactGuard,
+    setImpactGuard,
+    isLoadingImpact,
+    loadImpact,
   } = useStubsData(showToast);
 
-  const { specs, activeSpecPath: selectedSpecId, loadSpecs, selectSpec, } = useStubsSpecs(showToast, loadGraph);
+  const {
+    specs,
+    activeSpecPath: selectedSpecId,
+    specContent,
+    setSpecContent,
+    isLoadingSpecDetail,
+    isSavingSpec,
+    isMaterializingSpec,
+    isSandingSpec,
+    loadSpecs,
+    selectSpec,
+    saveSpec,
+    materializeActiveSpec,
+    sandActiveSpec,
+  } = useStubsSpecs(showToast, loadGraph);
+
   const [copiedSpecId, setCopiedSpecId] = useState<string | null>(null);
-  const handleCopySpec = useCallback(async (id: string, content: string) => {
-    try {
-      await clipboardService.writeText(content);
-      setCopiedSpecId(id);
-      platformService.setTimeout(() => setCopiedSpecId(null), 2000);
-    } catch {
-      // Ignored
-    }
-  }, [clipboardService, platformService]);
-
-
-
-
-
-
-
+  const handleCopyText = useCallback(
+    async (id: string, content: string) => {
+      try {
+        await clipboardService.writeText(content);
+        setCopiedSpecId(id);
+        showToast("Copied to clipboard.");
+        platformService.setTimeout(() => setCopiedSpecId(null), 2000);
+      } catch {
+        // Ignored
+      }
+    },
+    [clipboardService, platformService, showToast]
+  );
 
   // Initialize Mermaid
   useEffect(() => {
@@ -134,24 +167,41 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
     } else if (activeTab === "impact" && !impactResult) {
       loadImpact(selectedImpactTarget);
     }
-  }, [activeTab, diagramGroupBy, loadDiagram, impactResult, loadImpact, selectedImpactTarget]);
+  }, [activeTab, diagramGroupBy, diagramType, diagramTarget, loadDiagram, impactResult, loadImpact, selectedImpactTarget]);
 
-  // Execute CLI Command Helper
-  const handleRunCommand = async (
-    command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
-    args: string[] = []
-  ) => {
+  const handleRunCommand = async (command: StubsCommandName, args: string[] = []) => {
     runCommand(command, args, {
-      onStart: () => showToast(`Executing 'stubs ${command}'...`),
+      onStart: () => showToast(`Running 'stubs ${command}'...`),
       onSuccess: () => {
-        showToast(`Command 'stubs ${command}' completed.`);
+        showToast(`'stubs ${command}' completed.`);
         loadGraph();
-        if (command === "lint-arch") loadLint();
+        if (command === "lint-arch" || command === "prune" || command === "run") loadLint();
         if (command === "diagram") loadDiagram();
+        if (command === "sand" || command === "phase") loadSpecs();
       },
-      onError: (err) => showToast(`Execution error: ${getErrorMessage(err)}`)
+      onError: (err) => showToast(`Execution error: ${getErrorMessage(err)}`),
     });
   };
+
+  const handleInspectImpact = useCallback(
+    (target: string) => {
+      setSelectedImpactTarget(target);
+      setActiveTab("impact");
+      loadImpact(target);
+    },
+    [loadImpact]
+  );
+
+  const handleViewSliceDiagram = useCallback(
+    (target: string) => {
+      setDiagramTarget(target);
+      setDiagramType("slice");
+      setActiveTab("diagram");
+    },
+    [setDiagramTarget, setDiagramType]
+  );
+
+  const availableNodes = graphData?.nodes.map((n) => n.id) || [];
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground select-text overflow-hidden relative font-sans">
@@ -166,119 +216,118 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
         </div>
       )}
 
-      {/* 52px Unified Section Toolbar (ADR 0039): Sub-Tabs Segmented Control + Repository Selector + Scan Action */}
+      {/* 52px Unified Section Toolbar */}
       <div className="h-[52px] min-h-[52px] bg-card border-b border-border px-3 flex items-center justify-between gap-2.5 z-10 shrink-0">
         {/* Left: Segmented Sub-Tab Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 min-w-0 flex-1">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1 min-w-0 flex-1">
           <button
             type="button"
             id="stubs-tab-graph"
             onClick={() => setActiveTab("graph")}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "graph"
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
             }`}
           >
             <Cpu className="w-3.5 h-3.5" />
-            <span>Graph & Nodes</span>
+            <span>Graph & Query</span>
             {graphData && (
-              <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/30 font-mono">
+              <span className="ms-1 text-[11px] font-mono tabular-nums opacity-80">
                 {graphData.nodes.length}
               </span>
             )}
           </button>
 
-        <button
-          type="button"
-          id="stubs-tab-diagram"
-          onClick={() => setActiveTab("diagram")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
-            activeTab === "diagram"
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span>Mermaid Diagram</span>
-        </button>
+          <button
+            type="button"
+            id="stubs-tab-diagram"
+            onClick={() => setActiveTab("diagram")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+              activeTab === "diagram"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Diagrams</span>
+          </button>
 
-        <button
-          type="button"
-          id="stubs-tab-lint"
-          onClick={() => setActiveTab("lint")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
-            activeTab === "lint"
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
-          }`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Architectural Lint</span>
-          {lintViolations.length > 0 ? (
-            <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-rose-950 text-rose-300 font-mono font-bold">
+          <button
+            type="button"
+            id="stubs-tab-lint"
+            onClick={() => setActiveTab("lint")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+              activeTab === "lint"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Lint & Hygiene</span>
+            <span className="ms-1 text-[11px] font-mono tabular-nums opacity-80">
               {lintViolations.length}
             </span>
-          ) : (
-            <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-muted/40 text-muted-foreground font-mono">
-              0
+          </button>
+
+          <button
+            type="button"
+            id="stubs-tab-impact"
+            onClick={() => setActiveTab("impact")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+              activeTab === "impact"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+            }`}
+          >
+            <AlertOctagon className="w-3.5 h-3.5" />
+            <span>Impact & Pre-Flight</span>
+          </button>
+
+          <button
+            type="button"
+            id="stubs-tab-specs"
+            onClick={() => setActiveTab("specs")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+              activeTab === "specs"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+            }`}
+          >
+            <FileCode2 className="w-3.5 h-3.5" />
+            <span>Specs & Lifecycle</span>
+            <span className="ms-1 text-[11px] font-mono tabular-nums opacity-80">
+              {specs.length}
             </span>
-          )}
-        </button>
+          </button>
 
-        <button
-          type="button"
-          id="stubs-tab-impact"
-          onClick={() => setActiveTab("impact")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
-            activeTab === "impact"
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
-          }`}
-        >
-          <AlertOctagon className="w-3.5 h-3.5" />
-          <span>Blast Radius & Impact</span>
-        </button>
-
-        <button
-          type="button"
-          id="stubs-tab-specs"
-          onClick={() => setActiveTab("specs")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
-            activeTab === "specs"
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
-          }`}
-        >
-          <FileCode2 className="w-3.5 h-3.5" />
-          <span>Sidecar Specs</span>
-          <span className="ms-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/30 font-mono">
-            {specs.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          id="stubs-tab-terminal"
-          onClick={() => setActiveTab("terminal")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
-            activeTab === "terminal"
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
-          }`}
-        >
-          <Terminal className="w-3.5 h-3.5" />
-          <span>CLI Console</span>
-        </button>
+          <button
+            type="button"
+            id="stubs-tab-terminal"
+            onClick={() => setActiveTab("terminal")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+              activeTab === "terminal"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            <span>CLI Console</span>
+          </button>
         </div>
 
-        {/* Right Zone: Workspace Target & Scan AST Trigger (ADR 0039) */}
+        {/* Right Zone: Workspace Metadata & Actions */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-1.5 bg-muted/60 border border-input rounded-lg px-2.5 py-1 text-xs text-foreground">
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground px-2">
             <GitBranch className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span className="text-xs font-medium text-foreground max-w-[160px] sm:max-w-[220px] truncate">
-              Active Workspace (ai-studio-mobile)
+            <span className="font-medium text-foreground truncate max-w-[160px]">
+              {graphData?.projectName || "ai-studio-mobile"}
             </span>
+            {graphData?.autonomyLevel && (
+              <span className="text-[11px] font-mono text-muted-foreground hidden xl:inline">
+                · {graphData.autonomyLevel}
+              </span>
+            )}
           </div>
 
           <button
@@ -286,78 +335,124 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             id="stubs-header-scan-btn"
             onClick={() => handleRunCommand("scan")}
             disabled={isExecutingCommand || isLoadingGraph}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
-            title="Scan physical source code AST & update graph database"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-background hover:bg-muted text-foreground border border-border text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
+            title="Scan AST & refresh SQLite graph database"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoadingGraph || isExecutingCommand ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">Scan AST</span>
+          </button>
+
+          <button
+            type="button"
+            id="stubs-header-run-btn"
+            onClick={runPipeline}
+            disabled={isRunningPipeline || isExecutingCommand}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
+            title="Run unified stubs pipeline (scan, lint-arch, prune, sidecars)"
+          >
+            <Play className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">
+              {isRunningPipeline ? "Running..." : "Run Pipeline"}
+            </span>
           </button>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] bg-background">
-        {/* TAB 1: GRAPH & NODES */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-3.5 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] bg-background">
         {activeTab === "graph" && (
-            <StubsGraphTab
-              graphData={graphData}
-              searchQuery={searchQuery}
-              onSetSearchQuery={setSearchQuery}
-              isLoading={isLoadingGraph}
-            />
+          <StubsGraphTab
+            graphData={graphData}
+            searchQuery={searchQuery}
+            onSetSearchQuery={setSearchQuery}
+            isLoading={isLoadingGraph}
+            queryResult={queryResult}
+            isQuerying={isQuerying}
+            onRunQuery={runQuery}
+            onClearQuery={clearQuery}
+            pipelineResult={pipelineResult}
+            onInspectImpact={handleInspectImpact}
+            onViewSliceDiagram={handleViewSliceDiagram}
+          />
         )}
 
-        {/* TAB 2: DIAGRAM / C4 MODEL */}
         {activeTab === "diagram" && (
-            <StubsDiagramTab
-              diagramHtml={renderedSvg}
-              diagramGroupBy={diagramGroupBy}
-              onSetDiagramGroupBy={setDiagramGroupBy as (mode: "type" | "domain" | "layer" | "none" | "folder") => void}
-              isLoading={isLoadingDiagram}
-              error={null}
-            />
+          <StubsDiagramTab
+            diagramHtml={renderedSvg}
+            diagramMermaid={diagramMermaid}
+            diagramGroupBy={diagramGroupBy}
+            onSetDiagramGroupBy={setDiagramGroupBy}
+            diagramType={diagramType}
+            onSetDiagramType={setDiagramType}
+            diagramTarget={diagramTarget}
+            onSetDiagramTarget={setDiagramTarget}
+            diagramViewMode={diagramViewMode}
+            onSetDiagramViewMode={setDiagramViewMode}
+            availableNodes={availableNodes}
+            isLoading={isLoadingDiagram}
+            error={diagramError}
+            onCopyMermaid={(code) => handleCopyText("mermaid-diagram", code)}
+            onOpenFileInIDE={onOpenFileInIDE}
+          />
         )}
 
-        {/* TAB 3: LINT & STRUCTURAL AUDIT */}
         {activeTab === "lint" && (
-            <StubsLintTab
-              lintPassed={lintPassed}
-              lintViolations={lintViolations}
-              totalChecks={totalLintChecks}
-              onRefreshLint={loadLint}
-              isLoading={isLoadingLint}
-            />
+          <StubsLintTab
+            lintPassed={lintPassed}
+            lintViolations={lintViolations}
+            totalChecks={totalLintChecks}
+            errorCount={lintErrorCount}
+            warningCount={lintWarningCount}
+            durationMs={lintDurationMs}
+            pruneIssues={pruneIssues}
+            pruneSummary={pruneSummary}
+            onRefreshLint={loadLint}
+            onInspectTarget={handleInspectImpact}
+            isLoading={isLoadingLint}
+          />
         )}
 
-        {/* TAB 4: IMPACT ANALYSIS */}
         {activeTab === "impact" && (
-            <StubsImpactTab
-              impactResult={impactResult}
-              selectedImpactTarget={selectedImpactTarget}
-              onSetImpactTarget={setSelectedImpactTarget}
-              onRefreshImpact={loadImpact}
-              availableNodes={graphData?.nodes.map(n => n.id) || []}
-            />
+          <StubsImpactTab
+            impactResult={impactResult}
+            selectedImpactTarget={selectedImpactTarget}
+            onSetImpactTarget={setSelectedImpactTarget}
+            impactGuard={impactGuard}
+            onSetImpactGuard={setImpactGuard}
+            onRefreshImpact={loadImpact}
+            availableNodes={availableNodes}
+            isLoading={isLoadingImpact}
+            onCopyBriefing={(md) => handleCopyText("tiered-context", md)}
+          />
         )}
 
-        {/* TAB 5: SPECS / CONTRACTS */}
         {activeTab === "specs" && (
-            <StubsSpecsTab
-              specs={specs}
-              selectedSpecId={selectedSpecId}
-              onSelectSpec={selectSpec}
-              copiedSpecId={copiedSpecId}
-              onCopySpec={handleCopySpec}
-            />
+          <StubsSpecsTab
+            specs={specs}
+            selectedSpecId={selectedSpecId}
+            specContent={specContent}
+            isLoadingSpecDetail={isLoadingSpecDetail}
+            isSavingSpec={isSavingSpec}
+            isMaterializingSpec={isMaterializingSpec}
+            isSandingSpec={isSandingSpec}
+            onSelectSpec={selectSpec}
+            onChangeSpecContent={setSpecContent}
+            onSaveSpec={() => void saveSpec()}
+            onMaterializeSpec={() => void materializeActiveSpec()}
+            onSandSpec={() => void sandActiveSpec()}
+            copiedSpecId={copiedSpecId}
+            onCopySpec={handleCopyText}
+          />
         )}
 
-        {/* TAB 6: TERMINAL */}
         {activeTab === "terminal" && (
-            <StubsTerminalTab
-              terminalLogs={terminalLogs}
-              onExecuteCommand={runCommand as (cmd: string) => void}
-              onClearTerminal={clearLogs}
-            />
+          <StubsTerminalTab
+            terminalLogs={terminalLogs}
+            isExecuting={isExecutingCommand}
+            onExecuteCommand={(cmd, args) => void handleRunCommand(cmd, args)}
+            onExecuteRawInput={(raw) => void executeRawInput(raw)}
+            onClearTerminal={clearLogs}
+          />
         )}
       </div>
     </div>

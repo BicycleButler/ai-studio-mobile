@@ -15,6 +15,7 @@ export interface IOfflineQueueStore {
   enqueue(mutation: OfflineMutation): Promise<void>;
   remove(id: string): Promise<void>;
   removeMany(ids: string[]): Promise<void>;
+  updateMany?(mutations: OfflineMutation[]): Promise<void>;
   clear(): Promise<void>;
   replace(queue: OfflineMutation[]): Promise<void>;
   getQueue(): Promise<OfflineMutation[]>;
@@ -44,6 +45,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   private storageKey: string;
   private storageAdapter: AsyncStorage;
   private logger: ILogger;
+  private initPromise: Promise<void>;
 
   constructor(config: OfflineQueueStoreConfig) {
     this.storageKey = config.storageKey;
@@ -61,7 +63,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     } catch {
       // Ignore cross tab init errors
     }
-    this.syncCacheFromStorage().catch(() => {});
+    this.initPromise = this.syncCacheFromStorage().catch(() => {});
   }
 
   private notifyQueue(queue: OfflineMutation[]) {
@@ -107,6 +109,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   }
 
   private async withQueueLock(action: (queue: OfflineMutation[]) => OfflineMutation[] | Promise<OfflineMutation[]>): Promise<void> {
+    await this.initPromise;
     await this.queueMutex.run(async () => {
       const queue = await this.safeGetQueue();
       const newQueue = await action(queue);
@@ -135,6 +138,14 @@ export class OfflineQueueStore implements IOfflineQueueStore {
     });
   }
 
+  public async updateMany(mutations: OfflineMutation[]): Promise<void> {
+    if (!mutations || mutations.length === 0) return;
+    const byId = new Map(mutations.map((m) => [m.id, m]));
+    await this.withQueueLock((queue) => {
+      return queue.map((m) => byId.get(m.id) || m);
+    });
+  }
+
   public async clear(): Promise<void> {
     await this.withQueueLock(() => {
       return [];
@@ -148,6 +159,7 @@ export class OfflineQueueStore implements IOfflineQueueStore {
   }
 
   public async getQueue(): Promise<OfflineMutation[]> {
+    await this.initPromise;
     return this.cachedQueue;
   }
 

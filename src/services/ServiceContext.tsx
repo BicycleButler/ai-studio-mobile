@@ -11,6 +11,8 @@ import { IApiClient, ApiClient } from "../utils/apiClient";
 import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
 import { DEFAULT_SYNC_HANDLERS } from "../utils/syncRegistry";
 import { NetworkStorageSyncAdapter, ApiClientSyncTransport } from "../utils/storage/syncAdapter";
+import { syncVersionTracker } from "../utils/syncVersionTracker";
+import { syncConflictBus } from "../utils/syncConflictBus";
 import { createDefaultStorageInstance, DefaultStorageFactory, DefaultActiveItemManagerFactory } from "../utils/storage";
 import { DefaultCrossTabNotifierFactory } from "../utils/crossTabNotifier/CrossTabNotifierFactory";
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
@@ -48,6 +50,10 @@ import { IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage } from 
 import { Mutex } from "../utils/mutex";
 import { ExponentialBackoffRetryStrategy } from "../utils/apiClientRetry";
 import { BatchSelectionManager, IBatchSelectionManager } from "../utils/batchSelectionManager";
+import { ProviderConnectionService, IProviderConnectionService } from "../utils/storage/providers";
+import { LocalModelService, ILocalModelService } from "./localModelService";
+import { IntegrationConnectionService, IIntegrationConnectionService } from "../utils/storage/integrations";
+import { IntegrationApiService, IIntegrationApiService } from "./integrationService";
 
 export interface IServices {
   themeService: IThemeService;
@@ -62,6 +68,10 @@ export interface IServices {
   savedPromptsService: ISavedPromptsService;
   generalSettingsService: IGeneralSettingsService;
   draftStateService: IDraftStateService;
+  providerConnectionService: IProviderConnectionService;
+  localModelService: ILocalModelService;
+  integrationConnectionService: IIntegrationConnectionService;
+  integrationApiService: IIntegrationApiService;
   speechVoicesService: ISpeechVoicesService;
   createSentenceSpeechQueue: (options: SentenceQueueOptions) => ISentenceSpeechQueue;
   sseStreamParserFactory: import("../utils/sseParser").ISSEStreamParserFactory;
@@ -93,6 +103,10 @@ const explicitlyInjectedPlatformService = new BrowserPlatformService();
 const explicitlyInjectedStorageInstance = createDefaultStorageInstance();
 const explicitlyInjectedStorageFactory = new DefaultStorageFactory(explicitlyInjectedStorageInstance);
 const explicitlyInjectedActiveItemManagerFactory = new DefaultActiveItemManagerFactory();
+const isTestEnv = typeof import.meta !== "undefined" && Boolean((import.meta as unknown as { env?: { VITEST?: unknown } }).env?.VITEST);
+const explicitlyInjectedNetworkStatusProvider = new BrowserNetworkStatusProvider(explicitlyInjectedPlatformService, {
+  enableActiveHealthCheck: !isTestEnv,
+});
 
 const explicitlyInjectedApiClient = new ApiClient({
   interceptorManager: new InterceptorManager(),
@@ -146,9 +160,32 @@ const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
 
 const explicitlyInjectedStubsClient = new StubsClient({ apiClient: explicitlyInjectedApiClient, logger: explicitlyInjectedLogger });
 
+const explicitlyInjectedProviderConnectionService = new ProviderConnectionService({
+  storageFactory: explicitlyInjectedStorageFactory,
+  idGenerator: explicitlyInjectedIdGenerator,
+  timeProvider: explicitlyInjectedTimeProvider,
+});
+
+const explicitlyInjectedLocalModelService = new LocalModelService({
+  logger: explicitlyInjectedLogger,
+});
+
+const explicitlyInjectedIntegrationConnectionService = new IntegrationConnectionService({
+  storageFactory: explicitlyInjectedStorageFactory,
+  idGenerator: explicitlyInjectedIdGenerator,
+  timeProvider: explicitlyInjectedTimeProvider,
+});
+
+const explicitlyInjectedIntegrationApiService = new IntegrationApiService({
+  apiClient: explicitlyInjectedApiClient,
+  platformService: explicitlyInjectedPlatformService,
+});
+
 const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
   apiClient: explicitlyInjectedApiClient,
-  logger: explicitlyInjectedLogger
+  logger: explicitlyInjectedLogger,
+  providerConnectionService: explicitlyInjectedProviderConnectionService,
+  localModelService: explicitlyInjectedLocalModelService,
 });
 
 
@@ -157,12 +194,30 @@ const explicitlyInjectedSavedPromptsService = new SavedPromptsService({
   activeItemManagerFactory: explicitlyInjectedActiveItemManagerFactory,
   savedPromptsManager: undefined,
   syncAdapter: new NetworkStorageSyncAdapter({
-    transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
+    transport: new ApiClientSyncTransport(
+      explicitlyInjectedApiClient,
+      (item, method) => {
+        const baseVersion = syncVersionTracker.getVersion("prompts");
+        return {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompts: item,
+            ...(baseVersion !== undefined ? { baseVersion } : {}),
+          }),
+        };
+      },
+      (res) => {
+        const version = (res as { version?: number } | null)?.version;
+        syncVersionTracker.setVersion("prompts", version);
+      }
+    ),
     offlineService: explicitlyInjectedOfflineService,
-    networkStatusProvider: new BrowserNetworkStatusProvider(explicitlyInjectedPlatformService),
+    networkStatusProvider: explicitlyInjectedNetworkStatusProvider,
     retryStrategy: new DefaultOfflineRetryStrategy(),
     logger: explicitlyInjectedLogger,
-    endpoint: "/api/prompts"
+    endpoint: "/api/prompts",
+    onConflict: (conflict) => syncConflictBus.emit(conflict),
   }),
 });
 
@@ -174,6 +229,7 @@ const explicitlyInjectedAppAuthManager = new AppAuthManager({
   googleAuthService: explicitlyInjectedGoogleAuthService,
   authService: explicitlyInjectedAuthService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
+  providerConnectionService: explicitlyInjectedProviderConnectionService,
   logger: explicitlyInjectedLogger
 });
 
@@ -185,7 +241,36 @@ const explicitlyInjectedWindowSecurityService = new WindowSecurityService({
 const explicitlyInjectedProjectService = new ProjectService({
   activeItemManagerFactory: explicitlyInjectedActiveItemManagerFactory,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
-  idGenerator: explicitlyInjectedIdGenerator
+  idGenerator: explicitlyInjectedIdGenerator,
+  syncAdapter: new NetworkStorageSyncAdapter({
+    transport: new ApiClientSyncTransport(
+      explicitlyInjectedApiClient,
+      (items, method) => {
+        const sanitized = Array.isArray(items)
+          ? items.map(({ apiKey: _omitted, ...rest }) => rest)
+          : items;
+        const baseVersion = syncVersionTracker.getVersion("projects");
+        return {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projects: sanitized,
+            ...(baseVersion !== undefined ? { baseVersion } : {}),
+          }),
+        };
+      },
+      (res) => {
+        const version = (res as { version?: number } | null)?.version;
+        syncVersionTracker.setVersion("projects", version);
+      }
+    ),
+    offlineService: explicitlyInjectedOfflineService,
+    networkStatusProvider: explicitlyInjectedNetworkStatusProvider,
+    retryStrategy: new DefaultOfflineRetryStrategy(),
+    logger: explicitlyInjectedLogger,
+    endpoint: "/api/projects",
+    onConflict: (conflict) => syncConflictBus.emit(conflict),
+  }),
 });
 
 const explicitlyInjectedDraftStateService = new DraftStateService({ logger: explicitlyInjectedLogger, storageFactory: explicitlyInjectedStorageFactory });
@@ -221,12 +306,16 @@ const defaultServices: IServices = {
   offlineService: explicitlyInjectedOfflineService,
   apiClient: explicitlyInjectedApiClient,
   syncOrchestrator: explicitlyInjectedSyncOrchestrator,
-  networkStatusProvider: new BrowserNetworkStatusProvider(explicitlyInjectedPlatformService),
+  networkStatusProvider: explicitlyInjectedNetworkStatusProvider,
   chatHistoryService: new ChatHistoryService({ logger: explicitlyInjectedLogger, storageFactory: explicitlyInjectedStorageFactory }),
   projectService: explicitlyInjectedProjectService,
   savedPromptsService: explicitlyInjectedSavedPromptsService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
   draftStateService: explicitlyInjectedDraftStateService,
+  providerConnectionService: explicitlyInjectedProviderConnectionService,
+  localModelService: explicitlyInjectedLocalModelService,
+  integrationConnectionService: explicitlyInjectedIntegrationConnectionService,
+  integrationApiService: explicitlyInjectedIntegrationApiService,
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
   createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
   sseStreamParserFactory: { create: (onEvent) => new SSEStreamParser(onEvent) },

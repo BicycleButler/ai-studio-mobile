@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from "react";
 import {
   Play,
   Square,
@@ -16,12 +16,23 @@ import {
   ChevronUp,
   ChevronDown,
   Terminal,
+  X,
+  FileCode2,
+  PanelLeft,
+  FolderTree,
+  Cloud,
 } from "lucide-react";
 
 
 import { IDEWorkspaceProps } from "./WorkspaceRouter";
 import { useWorkspace } from "../contexts/WorkspaceContext";
 import { useServices } from "../services/ServiceContext";
+import { CodeEditor } from "./CodeEditor";
+import { IDEFileExplorerSidebar } from "./IDEFileExplorerSidebar";
+import { IDERemoteSyncModal } from "./integrations/IDERemoteSyncModal";
+import { WorkspaceTreeNode } from "../types/stubs";
+import { RemoteFileSource } from "../types/integrations";
+import { collectAncestorPaths } from "../utils/fileTree";
 
 interface MobileIDEWorkspaceProps extends IDEWorkspaceProps {
 }
@@ -29,9 +40,12 @@ interface MobileIDEWorkspaceProps extends IDEWorkspaceProps {
 interface IDEFile {
   id: string;
   name: string;
+  filePath?: string;
   language: string;
   content: string;
   isCustom?: boolean;
+  isWorkspaceFile?: boolean;
+  remoteSource?: RemoteFileSource;
 }
 
 interface ConsoleLog {
@@ -46,9 +60,20 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   freeformText = "",
   structuredExamples = [],
   onSwitchToPrompt: _onSwitchToPrompt,
+  openedWorkspaceFiles = [],
+  activeWorkspaceFilePath = null,
+  isLoadingWorkspaceFile = false,
+  workspaceFileError = null,
+  onSelectWorkspaceFile,
+  onOpenWorkspaceFile,
+  onUpdateWorkspaceFileContent,
+  onResetWorkspaceFile,
+  onCloseWorkspaceFile,
+  onOpenRemoteFileInIDE,
+  onUpdateRemoteSource,
 }) => {
-  const { codeGeneratorService, geminiStreamService, logger, clipboardService, fileDownloadService, platformService, idGenerator, timeProvider } = useServices();
-  const { config, hasApiKey, onOpenAuth, onOpenParameters } = useWorkspace();
+  const { codeGeneratorService, geminiStreamService, stubsClient, logger, clipboardService, fileDownloadService, platformService, idGenerator, timeProvider } = useServices();
+  const { config, hasApiKey, onOpenAuth, onOpenParameters, onOpenSettings } = useWorkspace();
 
   // Generate initial files from prompt context
   const getGeneratedFiles = (): IDEFile[] => [
@@ -86,11 +111,14 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   ];
 
   const [files, setFiles] = useState<IDEFile[]>(getGeneratedFiles);
-  const [activeFileId, setActiveFileId] = useState<string>("typescript");
+  const [activeFileId, setActiveFileId] = useState<string>(() =>
+    activeWorkspaceFilePath ? `ws:${activeWorkspaceFilePath}` : "typescript"
+  );
   const [wordWrap, setWordWrap] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<"editor" | "console" | "split">("editor");
   const [isConsoleDrawerOpen, setIsConsoleDrawerOpen] = useState<boolean>(false);
+  const [isRemoteSyncOpen, setIsRemoteSyncOpen] = useState<boolean>(false);
 
   // Console state
   const [consoleLogs, setConsoleLogs] = useState<ConsoleLog[]>([
@@ -110,14 +138,127 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  const hasInitializedLayoutRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const consoleBottomRef = useRef<HTMLDivElement>(null);
   const tabStripRef = useRef<HTMLDivElement>(null);
 
-  const activeFile = files.find((f) => f.id === activeFileId) || files[0];
+  // Hierarchical file explorer sidebar state
+  const [isCompactLayout, setIsCompactLayout] = useState<boolean>(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+  const [treeRootName, setTreeRootName] = useState<string>("workspace");
+  const [fileTree, setFileTree] = useState<WorkspaceTreeNode[]>([]);
+  const [totalTreeFiles, setTotalTreeFiles] = useState<number>(0);
+  const [isLoadingTree, setIsLoadingTree] = useState<boolean>(false);
+  const [treeError, setTreeError] = useState<string | null>(null);
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => new Set(["src"]));
+
+  useLayoutEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const updateLayout = (width: number) => {
+      if (width <= 0) return;
+      const compact = width < 720;
+      setIsCompactLayout(compact);
+      if (!hasInitializedLayoutRef.current) {
+        hasInitializedLayoutRef.current = true;
+        setIsSidebarOpen(!compact);
+      }
+    };
+    updateLayout(el.clientWidth);
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          updateLayout(entry.contentRect.width);
+        }
+      });
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+    return undefined;
+  }, []);
+
+  const loadFileTree = useCallback(async () => {
+    setIsLoadingTree(true);
+    setTreeError(null);
+    try {
+      const res = await stubsClient.fetchWorkspaceFileTree();
+      setTreeRootName(res.rootName || "workspace");
+      setFileTree(res.tree || []);
+      setTotalTreeFiles(res.totalFiles || 0);
+    } catch (err: unknown) {
+      setTreeError(err instanceof Error ? err.message : "Failed to load project files");
+    } finally {
+      setIsLoadingTree(false);
+    }
+  }, [stubsClient]);
+
+  useEffect(() => {
+    void loadFileTree();
+  }, [loadFileTree]);
+
+  // Sync active tab and auto-expand parent folders when user opens a workspace file
+  useEffect(() => {
+    if (activeWorkspaceFilePath) {
+      setActiveFileId(`ws:${activeWorkspaceFilePath}`);
+      const ancestors = collectAncestorPaths(activeWorkspaceFilePath);
+      if (ancestors.length > 0) {
+        setExpandedDirs((prev) => {
+          const next = new Set(prev);
+          let changed = false;
+          for (const dir of ancestors) {
+            if (!next.has(dir)) {
+              next.add(dir);
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      }
+    }
+  }, [activeWorkspaceFilePath]);
+
+  const workspaceIdeFiles: IDEFile[] = openedWorkspaceFiles.map((wf) => ({
+    id: `ws:${wf.path}`,
+    name: wf.name,
+    filePath: wf.path,
+    language: wf.language,
+    content: wf.content,
+    isWorkspaceFile: true,
+    remoteSource: wf.remoteSource,
+  }));
+
+  const openWorkspacePaths = useMemo(
+    () => new Set(openedWorkspaceFiles.map((wf) => wf.path)),
+    [openedWorkspaceFiles]
+  );
+
+  const dirtyWorkspacePaths = useMemo(
+    () =>
+      new Set(
+        openedWorkspaceFiles
+          .filter((wf) => wf.content !== wf.originalContent)
+          .map((wf) => wf.path)
+      ),
+    [openedWorkspaceFiles]
+  );
+
+  const allFiles: IDEFile[] = [...workspaceIdeFiles, ...files];
+  const isPendingWorkspaceFile = Boolean(
+    activeWorkspaceFilePath &&
+      activeFileId === `ws:${activeWorkspaceFilePath}` &&
+      !openWorkspacePaths.has(activeWorkspaceFilePath)
+  );
+  const activeFile = allFiles.find((f) => f.id === activeFileId) || allFiles[0];
 
   // Keep generated code in sync if user changes tabs, unless active file was manually customized
   const handleResetActiveFile = () => {
+    if (activeFile.isWorkspaceFile && activeFile.filePath && onResetWorkspaceFile) {
+      onResetWorkspaceFile(activeFile.filePath);
+      addConsoleLog("info", `Reset ${activeFile.filePath} to disk contents.`);
+      return;
+    }
     const generated = getGeneratedFiles();
     const match = generated.find((f) => f.id === activeFileId);
     if (match) {
@@ -129,6 +270,10 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   };
 
   const handleUpdateContent = (newContent: string) => {
+    if (activeFile.isWorkspaceFile && activeFile.filePath && onUpdateWorkspaceFileContent) {
+      onUpdateWorkspaceFileContent(activeFile.filePath, newContent);
+      return;
+    }
     setFiles((prev) =>
       prev.map((f) => (f.id === activeFileId ? { ...f, content: newContent } : f))
     );
@@ -326,6 +471,61 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     addConsoleLog("info", `Deleted scratchpad file: ${name}`);
   };
 
+  const handleToggleDir = (dirPath: string) => {
+    setExpandedDirs((prev) => {
+      const next = new Set(prev);
+      if (next.has(dirPath)) {
+        next.delete(dirPath);
+      } else {
+        next.add(dirPath);
+      }
+      return next;
+    });
+  };
+
+  const handleCollapseAllDirs = () => {
+    setExpandedDirs(new Set());
+  };
+
+  const handleSelectTreeFile = (node: WorkspaceTreeNode) => {
+    if (node.type !== "file" || node.isBinary) return;
+    if (onOpenWorkspaceFile) {
+      onOpenWorkspaceFile(node.path);
+    } else {
+      onSelectWorkspaceFile?.(node.path);
+    }
+    setActiveFileId(`ws:${node.path}`);
+    if (isCompactLayout) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const handleSelectVirtualFile = (fileId: string) => {
+    setActiveFileId(fileId);
+    onSelectWorkspaceFile?.(null);
+    if (isCompactLayout) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const handleSelectFileTab = (file: IDEFile) => {
+    setActiveFileId(file.id);
+    if (file.isWorkspaceFile && file.filePath) {
+      onSelectWorkspaceFile?.(file.filePath);
+    } else {
+      onSelectWorkspaceFile?.(null);
+    }
+  };
+
+  const handleCloseWorkspaceTab = (file: IDEFile) => {
+    if (!file.filePath) return;
+    onCloseWorkspaceFile?.(file.filePath);
+    if (activeFileId === file.id) {
+      const nextWs = workspaceIdeFiles.find((f) => f.id !== file.id);
+      setActiveFileId(nextWs ? nextWs.id : files[0].id);
+    }
+  };
+
   // Compute line numbers
   const lines = activeFile.content.split("\n");
 
@@ -348,54 +548,98 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full flex-1 overflow-hidden bg-background text-foreground font-sans select-none">
-      {/* 52px Unified Section Toolbar (ADR 0039): Swipeable Pull Strip File Tabs + View Switcher + Run Action */}
+    <div
+      ref={rootRef}
+      className="flex flex-col h-full flex-1 overflow-hidden bg-background text-foreground font-sans select-none"
+    >
+      {/* 52px Unified Section Toolbar (ADR 0039): Explorer Toggle + Open File Tabs + View Switcher + Run Action */}
       <div className="h-[52px] min-h-[52px] flex items-center justify-between px-2 bg-card border-b border-border shrink-0 gap-2">
-        {/* Left: Swipeable Pull Strip for File Explorer Tabs */}
-        <div
-          ref={tabStripRef}
-          className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1.5 min-w-0 flex-1 touch-pan-x cursor-grab active:cursor-grabbing overscroll-x-contain"
-        >
-          {files.map((file) => {
-            const isActive = file.id === activeFileId;
-            return (
-              <div
-                key={file.id}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-colors cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
-                  isActive
-                    ? "bg-primary/10 text-primary border-primary/30 font-semibold shadow-xs"
-                    : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted border-border/50"
-                }`}
-                onClick={() => setActiveFileId(file.id)}
-              >
-                <span>{file.name}</span>
-                {file.isCustom && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteFile(file.id, file.name);
-                    }}
-                    className="opacity-60 group-hover:opacity-100 p-0.5 hover:text-destructive transition-colors cursor-pointer"
-                    title="Delete scratchpad"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-
+        {/* Left: Explorer Sidebar Toggle + Swipeable Pull Strip for Open File Tabs */}
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <button
             type="button"
-            onClick={handleCreateScratchpad}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted border border-dashed border-border rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            title="Create new scratchpad file"
-            aria-label="Create scratchpad"
+            id="ide-toggle-explorer-btn"
+            onClick={() => setIsSidebarOpen((prev) => !prev)}
+            aria-expanded={isSidebarOpen}
+            aria-label={isSidebarOpen ? "Hide file explorer" : "Show file explorer"}
+            title={isSidebarOpen ? "Hide file explorer" : "Show file explorer"}
+            className={`flex items-center justify-center min-w-[38px] min-h-[38px] px-2 rounded-xl border text-xs transition-colors duration-150 shrink-0 cursor-pointer touch-manipulation ${
+              isSidebarOpen
+                ? "bg-primary/10 text-primary border-primary/30"
+                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted border-border/60"
+            }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-mono">Scratch</span>
+            <PanelLeft className="w-4 h-4" />
           </button>
+
+          <div
+            ref={tabStripRef}
+            className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1.5 min-w-0 flex-1 touch-pan-x cursor-grab active:cursor-grabbing overscroll-x-contain"
+          >
+            {allFiles.map((file) => {
+              const isActive = file.id === activeFileId && !isPendingWorkspaceFile;
+              const isDirty = Boolean(file.filePath && dirtyWorkspacePaths.has(file.filePath));
+              return (
+                <div
+                  key={file.id}
+                  title={file.filePath || file.name}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-colors cursor-pointer whitespace-nowrap group shrink-0 border select-none ${
+                    isActive
+                      ? "bg-primary/10 text-primary border-primary/30 font-semibold shadow-xs"
+                      : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted border-border/50"
+                  }`}
+                  onClick={() => handleSelectFileTab(file)}
+                >
+                  {file.isWorkspaceFile && <FileCode2 className="w-3 h-3 shrink-0 opacity-80" />}
+                  <span>{file.name}</span>
+                  {isDirty && (
+                    <span className="text-[10px] font-semibold text-primary" title="Modified">
+                      M
+                    </span>
+                  )}
+                  {file.isWorkspaceFile && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseWorkspaceTab(file);
+                      }}
+                      className="opacity-60 group-hover:opacity-100 p-0.5 hover:text-foreground transition-colors cursor-pointer"
+                      title="Close file tab"
+                      aria-label={`Close ${file.name}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                  {file.isCustom && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFile(file.id, file.name);
+                      }}
+                      className="opacity-60 group-hover:opacity-100 p-0.5 hover:text-destructive transition-colors cursor-pointer"
+                      title="Delete scratchpad"
+                      aria-label={`Delete ${file.name}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={handleCreateScratchpad}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted border border-dashed border-border rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              title="Create new scratchpad file"
+              aria-label="Create scratchpad"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-mono">Scratch</span>
+            </button>
+          </div>
         </div>
 
         {/* Right: View Switcher (Desktop/Tablet) / Logs Chip (Mobile) & Run Action */}
@@ -480,122 +724,196 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
         </div>
       </div>
 
-      {/* Main IDE Workspace: Split or Single View */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-        {/* Top Editor Area */}
-        {(activeView === "editor" || activeView === "split") && (
-          <div
-            className={`flex flex-col bg-card relative ${
-              activeView === "split" ? "h-[58%] border-b border-border" : "h-full"
-            }`}
-          >
-            {/* Editor Subheader: File path, formatting actions */}
-            <div className="flex items-center justify-between px-3 py-1 bg-muted/30 border-b border-border text-[11px] text-muted-foreground shrink-0">
-              <span className="font-mono text-foreground truncate">
-                src/{activeFile.name}
-              </span>
+      {/* Main IDE Workspace: Hierarchical Explorer Sidebar + Editor/Console Split */}
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
+        <IDEFileExplorerSidebar
+          isOpen={isSidebarOpen}
+          isOverlay={isCompactLayout}
+          onClose={() => setIsSidebarOpen(false)}
+          rootName={treeRootName}
+          tree={fileTree}
+          totalFiles={totalTreeFiles}
+          isLoadingTree={isLoadingTree}
+          treeError={treeError}
+          onRefreshTree={() => void loadFileTree()}
+          expandedDirs={expandedDirs}
+          onToggleDir={handleToggleDir}
+          onCollapseAllDirs={handleCollapseAllDirs}
+          activeFileId={activeFileId}
+          activeWorkspaceFilePath={activeWorkspaceFilePath}
+          openWorkspacePaths={openWorkspacePaths}
+          dirtyWorkspacePaths={dirtyWorkspacePaths}
+          onSelectWorkspaceFile={handleSelectTreeFile}
+          virtualFiles={files}
+          onSelectVirtualFile={handleSelectVirtualFile}
+          onCreateScratchpad={handleCreateScratchpad}
+          onDeleteScratchpad={handleDeleteFile}
+        />
 
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setWordWrap((prev) => !prev)}
-                  className={`p-1 rounded transition-colors cursor-pointer ${
-                    wordWrap ? "bg-muted text-primary" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  title="Toggle Word Wrap"
-                >
-                  <WrapText className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleResetActiveFile}
-                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  title="Reset file to latest generated prompt code"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCopyFile}
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
-                  title="Copy code to clipboard"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3 h-3 text-primary" />
-                      <span className="text-[10px] text-primary font-medium">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3" />
-                      <span className="text-[10px]">Copy</span>
-                    </>
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative">
+          {/* Top Editor Area */}
+          {(activeView === "editor" || activeView === "split") && (
+            <div
+              className={`flex flex-col bg-card relative min-h-0 ${
+                activeView === "split" ? "h-[58%] border-b border-border" : "h-full"
+              }`}
+            >
+              {/* Editor Subheader: File path, formatting actions */}
+              <div className="flex items-center justify-between px-3 py-1 bg-muted/30 border-b border-border text-[11px] text-muted-foreground shrink-0 gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {!isSidebarOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSidebarOpen(true)}
+                      className="p-1 -ms-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
+                      title="Open file explorer"
+                      aria-label="Open file explorer"
+                    >
+                      <FolderTree className="w-3.5 h-3.5 text-primary" />
+                    </button>
                   )}
-                </button>
+                  <span
+                    className="font-mono text-foreground truncate"
+                    title={
+                      isPendingWorkspaceFile && activeWorkspaceFilePath
+                        ? activeWorkspaceFilePath
+                        : activeFile.filePath || `src/${activeFile.name}`
+                    }
+                  >
+                    {isPendingWorkspaceFile && activeWorkspaceFilePath
+                      ? activeWorkspaceFilePath
+                      : activeFile.filePath || `src/${activeFile.name}`}
+                  </span>
+                </div>
+                {isLoadingWorkspaceFile && (
+                  <span className="text-[11px] text-muted-foreground font-mono shrink-0">
+                    Loading file...
+                  </span>
+                )}
+                {workspaceFileError && (
+                  <span className="text-[11px] text-destructive font-mono truncate">
+                    {workspaceFileError}
+                  </span>
+                )}
 
-                <button
-                  type="button"
-                  onClick={handleDownloadFile}
-                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  title="Download file"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    id="ide-cloud-sync-btn"
+                    onClick={() => setIsRemoteSyncOpen(true)}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
+                    title="Sync with Firebase, Google Cloud, GitHub, or Vercel"
+                    aria-label="Cloud and Git Sync"
+                  >
+                    <Cloud className="w-3 h-3 text-primary" />
+                    <span className="text-[10px] font-medium">Cloud Sync</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWordWrap((prev) => !prev)}
+                    className={`p-1 rounded transition-colors cursor-pointer ${
+                      wordWrap ? "bg-muted text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Toggle Word Wrap"
+                    aria-label="Toggle Word Wrap"
+                  >
+                    <WrapText className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetActiveFile}
+                    className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title="Reset file to latest generated prompt code"
+                    aria-label="Reset active file"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyFile}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
+                    title="Copy code to clipboard"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3 h-3 text-primary" />
+                        <span className="text-[10px] text-primary font-medium">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span className="text-[10px]">Copy</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadFile}
+                    className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title="Download file"
+                    aria-label="Download file"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Code Editor Body with Line Numbers */}
-            <div className="flex-1 flex min-h-0 overflow-hidden relative">
-              {/* Line Numbers Gutter */}
-              <div
-                className="w-10 py-2.5 select-none text-end pe-2.5 font-mono text-[11px] text-muted-foreground bg-muted/50 border-e border-border overflow-hidden leading-5 shrink-0"
-                aria-hidden="true"
-              >
-                {lines.map((_, idx) => (
-                  <div key={idx}>{idx + 1}</div>
+              {/* Syntax-Highlighted Code Editor with Synchronized Line Numbers */}
+              {isPendingWorkspaceFile && isLoadingWorkspaceFile ? (
+                <div className="flex-1 flex items-center justify-center text-xs font-mono text-muted-foreground bg-card">
+                  Loading {activeWorkspaceFilePath}...
+                </div>
+              ) : isPendingWorkspaceFile && workspaceFileError ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-2 bg-card">
+                  <p className="text-xs font-mono text-destructive">{workspaceFileError}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activeWorkspaceFilePath && onOpenWorkspaceFile) {
+                        onOpenWorkspaceFile(activeWorkspaceFilePath);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-xs font-medium text-foreground cursor-pointer"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <CodeEditor
+                  value={activeFile.content}
+                  onChange={handleUpdateContent}
+                  language={activeFile.language}
+                  filePath={activeFile.filePath || activeFile.name}
+                  wordWrap={wordWrap}
+                  textareaRef={textareaRef}
+                  onSelect={handleTextareaSelect}
+                  onKeyUp={handleTextareaSelect}
+                  onClick={handleTextareaSelect}
+                />
+              )}
+
+              {/* Mobile Keyboard Coding Accessory Bar */}
+              <div className="flex items-center gap-1 px-1.5 py-1 bg-muted/30 border-t border-border overflow-x-auto scrollbar-none shrink-0">
+                <span className="text-[10px] text-muted-foreground uppercase font-mono px-1 select-none">
+                  Tokens:
+                </span>
+                {quickSymbols.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => handleInsertSymbol(item.insert)}
+                    className="px-2 py-0.5 rounded bg-card hover:bg-muted active:bg-primary/20 text-xs font-mono text-foreground border border-border transition-colors whitespace-nowrap active:scale-95 shadow-xs cursor-pointer"
+                  >
+                    {item.label}
+                  </button>
                 ))}
               </div>
-
-              {/* Code Textarea */}
-              <textarea
-                ref={textareaRef}
-                value={activeFile.content}
-                onChange={(e) => handleUpdateContent(e.target.value)}
-                onSelect={handleTextareaSelect}
-                onKeyUp={handleTextareaSelect}
-                onClick={handleTextareaSelect}
-                spellCheck={false}
-                autoCapitalize="none"
-                autoComplete="off"
-                autoCorrect="off"
-                className={`flex-1 p-2.5 font-mono text-xs text-foreground bg-transparent resize-none focus:outline-none leading-5 caret-primary overflow-auto ${
-                  wordWrap ? "whitespace-pre-wrap" : "whitespace-pre"
-                }`}
-                style={{ tabSize: 2 }}
-                placeholder="// Write code here..."
-              />
             </div>
-
-            {/* Mobile Keyboard Coding Accessory Bar */}
-            <div className="flex items-center gap-1 px-1.5 py-1 bg-muted/30 border-t border-border overflow-x-auto scrollbar-none shrink-0">
-              <span className="text-[10px] text-muted-foreground uppercase font-mono px-1 select-none">
-                Tokens:
-              </span>
-              {quickSymbols.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => handleInsertSymbol(item.insert)}
-                  className="px-2 py-0.5 rounded bg-card hover:bg-muted active:bg-primary/20 text-xs font-mono text-foreground border border-border transition-colors whitespace-nowrap active:scale-95 shadow-xs cursor-pointer"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Bottom Console Terminal Area (Desktop/Tablet split/console view) */}
         {(activeView === "console" || activeView === "split") && (
@@ -752,6 +1070,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Mobile IDE Status Bar (Footer) */}
@@ -794,6 +1113,24 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
           )}
         </div>
       </div>
+
+      <IDERemoteSyncModal
+        isOpen={isRemoteSyncOpen}
+        onClose={() => setIsRemoteSyncOpen(false)}
+        onOpenIntegrationsSettings={() => onOpenSettings?.("integrations")}
+        activeIdeFile={{
+          path: activeFile.filePath || activeFile.name,
+          name: activeFile.name,
+          language: activeFile.language,
+          content: activeFile.content,
+          remoteSource: activeFile.remoteSource,
+        }}
+        openedWorkspaceFiles={openedWorkspaceFiles}
+        onOpenRemoteFileInIDE={(file) => {
+          onOpenRemoteFileInIDE?.(file);
+        }}
+        onUpdateRemoteSource={onUpdateRemoteSource}
+      />
     </div>
   );
 };

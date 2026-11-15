@@ -10,4 +10,7 @@ export const STORAGE_KEYS = {
   SPEECH_SETTINGS: "gemini_studio_speech_settings_v1",
   THEME_MODE: "aistudio_theme_mode",
   CHAT_SESSIONS_PREFIX: "ai_studio_chat_sessions_v1",
+  PROVIDER_CONNECTIONS: "ai_studio_provider_connections_v1",
+  INTEGRATION_CONNECTIONS: "ai_studio_integration_connections_v1",
+  LOCAL_MODELS_CONFIG: "ai_studio_local_models_config_v1",
 } as const;

@@ -4,11 +4,20 @@ import {
   StubsGraphData,
   StubsImpactResult,
   StubsLintViolation,
+  StubsPruneIssue,
+  StubsPruneResult,
   StubsSidecarSpec,
+  StubsQueryResult,
+  StubsRunResult,
+  StubsTieredContext,
+  StubsDiagramGroupBy,
+  StubsDiagramType,
+  StubsCommandName,
+  StubsWorkspaceFileContent,
+  WorkspaceFileTreeResponse,
 } from "../types";
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
-import { BrowserPlatformService } from "../services/platformService"
-
+import { BrowserPlatformService } from "../services/platformService";
 
 export interface StubsDiagramResponse {
   mermaid: string;
@@ -20,6 +29,11 @@ export interface StubsLintResponse {
   violations: StubsLintViolation[];
   passed: boolean;
   totalChecks: number;
+  errorCount?: number;
+  warningCount?: number;
+  durationMs?: number;
+  pruneIssues?: StubsPruneIssue[];
+  pruneSummary?: StubsPruneResult["summary"];
 }
 
 export interface StubsSpecsResponse {
@@ -34,14 +48,25 @@ export interface StubsExecuteResponse {
 
 export interface IStubsClient {
   fetchGraphData(): Promise<StubsGraphData>;
-  fetchDiagram(groupBy?: "domain" | "layer"): Promise<StubsDiagramResponse>;
-  fetchImpact(target: string): Promise<StubsImpactResult>;
+  queryGraph(query: string, budget?: number): Promise<StubsQueryResult>;
+  fetchDiagram(
+    groupBy?: StubsDiagramGroupBy,
+    type?: StubsDiagramType,
+    target?: string
+  ): Promise<StubsDiagramResponse>;
+  fetchImpact(target: string, guard?: "low" | "medium" | "high" | "critical"): Promise<StubsImpactResult>;
+  fetchContextPackage(target: string): Promise<StubsTieredContext>;
   fetchLintResults(): Promise<StubsLintResponse>;
+  fetchPruneResults(): Promise<StubsPruneResult>;
+  runPipeline(): Promise<StubsRunResult>;
   fetchSidecarSpecs(): Promise<StubsSpecsResponse>;
   fetchSpecDetail(path: string): Promise<{ content: string; path: string }>;
+  fetchWorkspaceFileTree(): Promise<WorkspaceFileTreeResponse>;
+  fetchWorkspaceFile(path: string): Promise<StubsWorkspaceFileContent>;
   saveSpecContent(path: string, content: string): Promise<{ success: boolean; message: string }>;
   materializeSpec(path: string): Promise<{ success: boolean; message: string; result: { targetFile: string; bytesWritten: number } }>;
-  executeStubsCommand(command: "scan" | "lint-arch" | "diagram" | "impact" | "sand", args?: string[]): Promise<StubsExecuteResponse>;
+  sandSpec(path: string): Promise<{ success: boolean; message: string; result: { path: string; targetFile: string; astHash: string } }>;
+  executeStubsCommand(command: StubsCommandName, args?: string[]): Promise<StubsExecuteResponse>;
   connectStubsStream(onLog: (data: { type: string; text: string; timestamp: number; code?: number }) => void, endpoint?: string): () => void;
 }
 
@@ -53,14 +78,14 @@ export interface StubsClientConfig {
 }
 
 export class StubsClient implements IStubsClient {
-  private config: Required<Omit<StubsClientConfig, 'platformService'>> & { platformService: IPlatformService };
+  private config: Required<Omit<StubsClientConfig, "platformService">> & { platformService: IPlatformService };
   constructor(config: StubsClientConfig) {
     const platformService = config.platformService || new BrowserPlatformService();
     this.config = {
       apiClient: config.apiClient,
       logger: config.logger || new DefaultLoggerFactory().createLogger(),
       platformService,
-      createEventSource: config.createEventSource || ((endpoint: string) => platformService.createEventSource(endpoint) || undefined)
+      createEventSource: config.createEventSource || ((endpoint: string) => platformService.createEventSource(endpoint) || undefined),
     };
   }
 
@@ -68,24 +93,69 @@ export class StubsClient implements IStubsClient {
     return this.config.apiClient.fetch<StubsGraphData>("/api/stubs/graph", undefined, "Failed to fetch Stubs graph data");
   }
 
-  public async fetchDiagram(groupBy: "domain" | "layer" = "domain"): Promise<StubsDiagramResponse> {
+  public async queryGraph(query: string, budget = 1500): Promise<StubsQueryResult> {
+    return this.config.apiClient.fetch<StubsQueryResult>(
+      `/api/stubs/query?q=${encodeURIComponent(query)}&budget=${encodeURIComponent(String(budget))}`,
+      undefined,
+      "Failed to execute GraphRAG query"
+    );
+  }
+
+  public async fetchDiagram(
+    groupBy: StubsDiagramGroupBy = "domain",
+    type?: StubsDiagramType,
+    target?: string
+  ): Promise<StubsDiagramResponse> {
+    let url = `/api/stubs/diagram?groupBy=${encodeURIComponent(groupBy)}`;
+    if (type && type !== "architecture") {
+      url += `&type=${encodeURIComponent(type)}`;
+    }
+    if (target) {
+      url += `&target=${encodeURIComponent(target)}`;
+    }
     return this.config.apiClient.fetch<StubsDiagramResponse>(
-      `/api/stubs/diagram?groupBy=${encodeURIComponent(groupBy)}`,
+      url,
       undefined,
       "Failed to fetch Stubs diagram"
     );
   }
 
-  public async fetchImpact(target: string): Promise<StubsImpactResult> {
+  public async fetchImpact(
+    target: string,
+    guard?: "low" | "medium" | "high" | "critical"
+  ): Promise<StubsImpactResult> {
+    let url = `/api/stubs/impact?target=${encodeURIComponent(target)}`;
+    if (guard) {
+      url += `&guard=${encodeURIComponent(guard)}`;
+    }
     return this.config.apiClient.fetch<StubsImpactResult>(
-      `/api/stubs/impact?target=${encodeURIComponent(target)}`,
+      url,
       undefined,
       "Failed to fetch impact analysis"
     );
   }
 
+  public async fetchContextPackage(target: string): Promise<StubsTieredContext> {
+    return this.config.apiClient.fetch<StubsTieredContext>(
+      `/api/stubs/context?target=${encodeURIComponent(target)}`,
+      undefined,
+      "Failed to fetch tiered agent context"
+    );
+  }
+
   public async fetchLintResults(): Promise<StubsLintResponse> {
     return this.config.apiClient.fetch<StubsLintResponse>("/api/stubs/lint", undefined, "Failed to fetch architecture lint results");
+  }
+
+  public async fetchPruneResults(): Promise<StubsPruneResult> {
+    return this.config.apiClient.fetch<StubsPruneResult>("/api/stubs/prune", undefined, "Failed to fetch workspace prune results");
+  }
+
+  public async runPipeline(): Promise<StubsRunResult> {
+    return this.config.apiClient.fetch<StubsRunResult>("/api/stubs/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }, "Failed to run Stubs pipeline");
   }
 
   public async fetchSidecarSpecs(): Promise<StubsSpecsResponse> {
@@ -97,6 +167,22 @@ export class StubsClient implements IStubsClient {
       `/api/stubs/spec-detail?path=${encodeURIComponent(path)}`,
       undefined,
       "Failed to fetch spec content"
+    );
+  }
+
+  public async fetchWorkspaceFileTree(): Promise<WorkspaceFileTreeResponse> {
+    return this.config.apiClient.fetch<WorkspaceFileTreeResponse>(
+      "/api/stubs/tree",
+      undefined,
+      "Failed to load workspace file tree"
+    );
+  }
+
+  public async fetchWorkspaceFile(path: string): Promise<StubsWorkspaceFileContent> {
+    return this.config.apiClient.fetch<StubsWorkspaceFileContent>(
+      `/api/stubs/file?path=${encodeURIComponent(path)}`,
+      undefined,
+      "Failed to open workspace file"
     );
   }
 
@@ -116,8 +202,16 @@ export class StubsClient implements IStubsClient {
     }, "Failed to materialize spec");
   }
 
+  public async sandSpec(path: string): Promise<{ success: boolean; message: string; result: { path: string; targetFile: string; astHash: string } }> {
+    return this.config.apiClient.fetch<{ success: boolean; message: string; result: { path: string; targetFile: string; astHash: string } }>("/api/stubs/spec-sand", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    }, "Failed to sand spec");
+  }
+
   public async executeStubsCommand(
-    command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
+    command: StubsCommandName,
     args: string[] = []
   ): Promise<StubsExecuteResponse> {
     return this.config.apiClient.fetch<StubsExecuteResponse>("/api/stubs/execute", {
@@ -135,8 +229,8 @@ export class StubsClient implements IStubsClient {
       const eventSource = this.config.createEventSource(endpoint);
 
       if (!eventSource) {
-         this.config.logger.warn("[stubs stream] EventSource is not supported in this environment");
-         return () => {};
+        this.config.logger.warn("[stubs stream] EventSource is not supported in this environment");
+        return () => {};
       }
 
       eventSource.onmessage = (event) => {
@@ -161,4 +255,3 @@ export class StubsClient implements IStubsClient {
     }
   }
 }
-

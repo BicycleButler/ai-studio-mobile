@@ -9,6 +9,7 @@ export interface ApiClientConfig {
   responseParser: IResponseParser;
   urlBuilder: IUrlBuilder;
   retryConfig?: RetryConfig;
+  defaultTimeoutMs?: number;
 }
 
 export interface IApiClient {
@@ -29,16 +30,20 @@ export interface IApiClient {
   ): Promise<Response>;
 }
 
+const DEFAULT_API_TIMEOUT_MS = 30_000;
+
 export class ApiClient implements IApiClient {
   private interceptorManager: IInterceptorManager;
   private responseParser: IResponseParser;
   private urlBuilder: IUrlBuilder;
+  private defaultTimeoutMs: number;
   public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
   constructor(config: ApiClientConfig) {
     const retryConfig = config.retryConfig || {};
     this.interceptorManager = config.interceptorManager;
     this.responseParser = config.responseParser;
     this.urlBuilder = config.urlBuilder;
+    this.defaultTimeoutMs = config.defaultTimeoutMs ?? DEFAULT_API_TIMEOUT_MS;
     this.retryConfig = {
       retries: retryConfig.retries ?? 3,
       fetcher: retryConfig.fetcher ?? fetch,
@@ -64,21 +69,27 @@ export class ApiClient implements IApiClient {
     let fetchOptions = options || {};
     return this.interceptorManager.applyInterceptors(url, fetchOptions);
   }
-  private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+  private async fetchWithRetry(
+    url: string,
+    options: RequestInit,
+    retryNonIdempotent: boolean = false
+  ): Promise<Response> {
     return this.retryConfig.retryStrategy.execute(url, options, {
       retries: this.retryConfig.retries,
       fetcher: this.retryConfig.fetcher,
       retryableStatusCodes: this.retryConfig.retryableStatusCodes,
+      retryNonIdempotent,
     });
   }
   private async executeRequest(
     endpoint: string,
     options?: RequestInit,
-    defaultErrorMessage: string = "API request failed"
+    defaultErrorMessage: string = "API request failed",
+    retryNonIdempotent: boolean = false
   ): Promise<Response> {
     let res: Response;
     try {
-      res = await this.fetchWithRetry(endpoint, options || {});
+      res = await this.fetchWithRetry(endpoint, options || {}, retryNonIdempotent);
       res = await this.interceptorManager.applyResponseInterceptors(res, endpoint, options || {});
     } catch (err: unknown) {
       if (isAbortError(err)) {
@@ -101,8 +112,26 @@ export class ApiClient implements IApiClient {
     queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<T> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
-    const res = await this.executeRequest(url, fetchOptions, defaultErrorMessage);
-    return this.responseParser.parse<T>(res, endpoint);
+    let timeoutCtrl: AbortController | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let effectiveOptions = fetchOptions;
+
+    if (!fetchOptions.signal && this.defaultTimeoutMs > 0 && typeof AbortController !== "undefined") {
+      timeoutCtrl = new AbortController();
+      timer = setTimeout(() => {
+        timeoutCtrl?.abort(new DOMException(`Request to ${endpoint} timed out after ${this.defaultTimeoutMs}ms`, "TimeoutError"));
+      }, this.defaultTimeoutMs);
+      effectiveOptions = { ...fetchOptions, signal: timeoutCtrl.signal };
+    }
+
+    try {
+      const res = await this.executeRequest(url, effectiveOptions, defaultErrorMessage, false);
+      return await this.responseParser.parse<T>(res, endpoint);
+    } finally {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+    }
   }
   public async fetchStream(
     endpoint: string,
@@ -111,7 +140,7 @@ export class ApiClient implements IApiClient {
     queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<Response> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
-    const res = await this.executeRequest(url, fetchOptions, defaultErrorMessage);
+    const res = await this.executeRequest(url, fetchOptions, defaultErrorMessage, false);
     return this.responseParser.parseStream(res, endpoint);
   }
 }

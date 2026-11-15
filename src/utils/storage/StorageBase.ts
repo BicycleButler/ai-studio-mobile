@@ -1,5 +1,5 @@
 
-import { IStorageAdapter, IStorageBase } from "./types";
+import { IStorageAdapter, IStorageBase, StorageSaveOptions } from "./types";
 import { Observable } from "../observable";
 import { ILogger, DefaultLoggerFactory } from "../logger";
 import { deepFreeze } from "./helpers";
@@ -99,7 +99,7 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
     }
   }
 
-  public save(item: T): void {
+  public save(item: T, saveOptions?: StorageSaveOptions): void {
     let savedSnapshot: T;
     try {
       const toStore = this.options.transformIn ? this.options.transformIn(item) : item;
@@ -128,7 +128,7 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
     }
 
     this.notify(savedSnapshot);
-    if (this.options.onSave) {
+    if (!saveOptions?.skipSync && this.options.onSave) {
       try {
         this.options.onSave(savedSnapshot);
       } catch (onSaveErr) {

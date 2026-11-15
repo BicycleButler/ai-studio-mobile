@@ -1,15 +1,21 @@
 import { useState, useEffect } from "react";
-import { GoogleUser } from "../types";
+import { GoogleUser, ProviderConnection } from "../types";
 import { useServices } from "../services/ServiceContext";
 
 export function useAppAuth() {
-  const { appAuthManager } = useServices();
+  const { appAuthManager, providerConnectionService } = useServices();
 
   const [googleUser, setGoogleUser] = useState<GoogleUser | null>(() => appAuthManager.getGoogleUser());
   const [hasServerKey, setHasServerKey] = useState<boolean>(() => appAuthManager.hasServerKey());
   const [customApiKey, setCustomApiKey] = useState<string>(() => appAuthManager.getCustomApiKey());
+  const [connections, setConnections] = useState<ProviderConnection[]>(() =>
+    providerConnectionService.loadConnections()
+  );
 
-  const hasApiKey = appAuthManager.hasAnyApiKey();
+  const hasApiKey =
+    Boolean(googleUser || customApiKey.trim() || hasServerKey) ||
+    connections.some((c) => c.enabled && (c.providerId === "local-webllm" || c.providerId === "local-browser" || c.providerId === "local-ollama" || c.providerId === "openai-compatible" || Boolean(c.apiKey?.trim()))) ||
+    appAuthManager.hasAnyApiKey();
 
   const handleSaveApiKey = (key: string) => {
     appAuthManager.saveCustomApiKey(key);
@@ -48,8 +54,14 @@ export function useAppAuth() {
         setGoogleUser(user);
       }
     );
-    return () => unsubscribe();
-  }, [appAuthManager]);
+    const unsubProviders = providerConnectionService.connectionsObservable.subscribe((list) => {
+      setConnections(list);
+    });
+    return () => {
+      unsubscribe();
+      unsubProviders();
+    };
+  }, [appAuthManager, providerConnectionService]);
 
   return {
     googleUser,

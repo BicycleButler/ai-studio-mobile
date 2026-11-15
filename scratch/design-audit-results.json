@@ -1,10 +1,214 @@
 {
   "targetDir": "src",
-  "totalFiles": 258,
-  "filesWithViolationsCount": 0,
-  "cleanFilesCount": 258,
-  "totalViolations": 0,
-  "byRule": {},
-  "byDir": [],
-  "violations": []
+  "totalFiles": 288,
+  "filesWithViolationsCount": 6,
+  "cleanFilesCount": 282,
+  "totalViolations": 9,
+  "byRule": {
+    "Semantic Color at Rest": 5,
+    "Static Alert Colors": 2,
+    "Raw Emoji in Functional UI": 2
+  },
+  "byDir": [
+    {
+      "domain": "components/ErrorBoundary.tsx",
+      "violationCount": 1,
+      "violations": [
+        {
+          "file": "src/components/ErrorBoundary.tsx",
+          "line": 64,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<div className=\"mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-destructive\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        }
+      ]
+    },
+    {
+      "domain": "components/IDEFileExplorerSidebar.tsx",
+      "violationCount": 1,
+      "violations": [
+        {
+          "file": "src/components/IDEFileExplorerSidebar.tsx",
+          "line": 313,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<div className=\"px-2.5 py-2 text-xs text-destructive space-y-1.5\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        }
+      ]
+    },
+    {
+      "domain": "components/MobileIDEWorkspace.tsx",
+      "violationCount": 2,
+      "violations": [
+        {
+          "file": "src/components/MobileIDEWorkspace.tsx",
+          "line": 794,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<span className=\"text-[11px] text-destructive font-mono truncate\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        },
+        {
+          "file": "src/components/MobileIDEWorkspace.tsx",
+          "line": 872,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<p className=\"text-xs font-mono text-destructive\">{workspaceFileError}</p>",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        }
+      ]
+    },
+    {
+      "domain": "components/OfflineIndicator.tsx",
+      "violationCount": 1,
+      "violations": [
+        {
+          "file": "src/components/OfflineIndicator.tsx",
+          "line": 25,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "className=\"sticky top-0 z-[100] w-full flex items-center justify-between gap-2 px-4 py-2 bg-destructive/10 text-destructive border-b border-destructive/30 text-xs font-medium\"",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        }
+      ]
+    },
+    {
+      "domain": "components/StorageWarningBanner.tsx",
+      "violationCount": 2,
+      "violations": [
+        {
+          "file": "src/components/StorageWarningBanner.tsx",
+          "line": 18,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "className=\"mx-3 mt-2 flex items-center justify-between gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground shadow-sm\"",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        },
+        {
+          "file": "src/components/StorageWarningBanner.tsx",
+          "line": 21,
+          "rule": "Static Alert Colors",
+          "adr": "ADR 0020",
+          "severity": "WARNING",
+          "snippet": "<AlertTriangle className=\"h-3.5 w-3.5 shrink-0 text-amber-500\" />",
+          "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+        }
+      ]
+    },
+    {
+      "domain": "utils/storage",
+      "violationCount": 2,
+      "violations": [
+        {
+          "file": "src/utils/storage/encryption.test.ts",
+          "line": 16,
+          "rule": "Raw Emoji in Functional UI",
+          "adr": "ADR 0021",
+          "severity": "WARNING",
+          "snippet": "const secret = 'key-🔐-日本語-café-Δ';",
+          "description": "Raw unicode emoji used in functional UI. Replace with Lucide icon."
+        },
+        {
+          "file": "src/utils/storage/encryption.test.ts",
+          "line": 23,
+          "rule": "Raw Emoji in Functional UI",
+          "adr": "ADR 0021",
+          "severity": "WARNING",
+          "snippet": "const plain = 'v2_key_🔒';",
+          "description": "Raw unicode emoji used in functional UI. Replace with Lucide icon."
+        }
+      ]
+    }
+  ],
+  "violations": [
+    {
+      "file": "src/components/ErrorBoundary.tsx",
+      "line": 64,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<div className=\"mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-destructive\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/IDEFileExplorerSidebar.tsx",
+      "line": 313,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<div className=\"px-2.5 py-2 text-xs text-destructive space-y-1.5\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/MobileIDEWorkspace.tsx",
+      "line": 794,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<span className=\"text-[11px] text-destructive font-mono truncate\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/MobileIDEWorkspace.tsx",
+      "line": 872,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<p className=\"text-xs font-mono text-destructive\">{workspaceFileError}</p>",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/OfflineIndicator.tsx",
+      "line": 25,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "className=\"sticky top-0 z-[100] w-full flex items-center justify-between gap-2 px-4 py-2 bg-destructive/10 text-destructive border-b border-destructive/30 text-xs font-medium\"",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    },
+    {
+      "file": "src/components/StorageWarningBanner.tsx",
+      "line": 18,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "className=\"mx-3 mt-2 flex items-center justify-between gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground shadow-sm\"",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/components/StorageWarningBanner.tsx",
+      "line": 21,
+      "rule": "Static Alert Colors",
+      "adr": "ADR 0020",
+      "severity": "WARNING",
+      "snippet": "<AlertTriangle className=\"h-3.5 w-3.5 shrink-0 text-amber-500\" />",
+      "description": "Static alert color on resting UI element. Restrict colored alerts to transient states or active hover."
+    },
+    {
+      "file": "src/utils/storage/encryption.test.ts",
+      "line": 16,
+      "rule": "Raw Emoji in Functional UI",
+      "adr": "ADR 0021",
+      "severity": "WARNING",
+      "snippet": "const secret = 'key-🔐-日本語-café-Δ';",
+      "description": "Raw unicode emoji used in functional UI. Replace with Lucide icon."
+    },
+    {
+      "file": "src/utils/storage/encryption.test.ts",
+      "line": 23,
+      "rule": "Raw Emoji in Functional UI",
+      "adr": "ADR 0021",
+      "severity": "WARNING",
+      "snippet": "const plain = 'v2_key_🔒';",
+      "description": "Raw unicode emoji used in functional UI. Replace with Lucide icon."
+    }
+  ]
 }

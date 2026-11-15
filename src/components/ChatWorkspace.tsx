@@ -71,6 +71,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
 }) => {
   const {
     config: _config,
+    activeModelInfo,
+    webllmProgress,
     onUpdateSystemInstruction: _onUpdateSystemInstruction,
     onOpenParameters: _onOpenParameters,
     hasApiKey,
@@ -1035,36 +1037,50 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-md mx-auto">
               <h3 className="text-base font-semibold text-foreground mb-1">
-                Google AI Studio Playground
+                {activeModelInfo?.providerName && activeModelInfo.providerName !== "Google"
+                  ? `${activeModelInfo.providerName} · ${activeModelInfo.name}`
+                  : "AI Studio & Multi-Provider Playground"}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Engineered with Gemini 3.8 Flash for fast mobile prototyping, testing, and Android app integration.
+                {activeModelInfo?.isLocal
+                  ? `Running ${activeModelInfo.name} locally on-device with zero cloud transfer.`
+                  : `Active model: ${activeModelInfo?.name || _config.model}. Connect Google AI Studio, external API keys, or local on-device models.`}
               </p>
 
               {/* Authentication prompt card if not authenticated */}
-              {!hasApiKey ? (
+              {!hasApiKey && !activeModelInfo?.isLocal ? (
                 <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card text-start shadow-sm">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-5 h-5 rounded-full bg-card flex items-center justify-center p-0.5 shrink-0 border border-border">
                       <GoogleIcon className="w-full h-full" />
                     </div>
                     <span className="font-semibold text-xs text-foreground">
-                      Sign in with Google AI Studio
+                      Connect a Provider or Local Model
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-                    Connect your Google account to sync live models, prompts, and run code directly from your AI Studio environment.
+                    Sign in with Google AI Studio, connect OpenAI / Anthropic / OpenRouter / Groq keys, or run WebGPU &amp; Ollama models offline.
                   </p>
-                  {onOpenAuth && (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {onOpenAuth && (
+                      <button
+                        type="button"
+                        onClick={onOpenAuth}
+                        className="flex-1 py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-sm active:scale-95 transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      >
+                        <span>Google AI Studio</span>
+                        <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={onOpenAuth}
-                      className="w-full py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-sm active:scale-95 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      id="chat-open-providers-btn"
+                      onClick={() => onOpenSettings("providers")}
+                      className="flex-1 py-2 px-3 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
-                      <span>Connect Google Account</span>
-                      <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
+                      <span>API Keys &amp; Local</span>
                     </button>
-                  )}
+                  </div>
                 </div>
               ) : googleUser && (googleUser as { email: string }).email ? (
                 <div className="w-full mb-3 p-2.5 rounded-xl bg-card flex items-center justify-between gap-2 text-start">
@@ -1115,15 +1131,17 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   <span className="font-medium text-foreground">User</span>
                 ) : (
                   <div className="flex items-center gap-1">
-                    <span className="font-medium text-foreground">Gemini</span>
+                    <span className="font-medium text-foreground">
+                      {msg.modelName || activeModelInfo?.name || "Gemini"}
+                    </span>
                     {msg.tokenCount && (
-                      <span className="text-[10px] text-muted-foreground">
-                        • {msg.tokenCount} tokens
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        · {msg.tokenCount} tokens
                       </span>
                     )}
                     {msg.durationMs && (
-                      <span className="text-[10px] text-muted-foreground">
-                        • {(msg.durationMs / 1000).toFixed(2)}s
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        · {(msg.durationMs / 1000).toFixed(2)}s
                       </span>
                     )}
                   </div>
@@ -1159,7 +1177,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 {/* Message content */}
                 {msg.role === "model" ? (
                   <div className="prose dark:prose-invert prose-xs sm:prose-sm max-w-none break-words [&>pre]:bg-muted [&>pre]:p-3 [&>pre]:rounded-xl [&>pre]:border [&>pre]:border-border [&>pre]:overflow-x-auto [&>code]:text-primary [&>code]:bg-muted [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>ul]:list-disc [&>ul]:ps-4 [&>ol]:list-decimal [&>ol]:ps-4">
-                    <Markdown>{msg.text || (msg.isStreaming ? "Thinking..." : "")}</Markdown>
+                    <Markdown>
+                      {msg.text ||
+                        (msg.isStreaming
+                          ? webllmProgress?.status === "loading" && msg.providerId === "local-webllm"
+                            ? `Loading on-device weights (${Math.round(webllmProgress.progress * 100)}%)... ${webllmProgress.text}`
+                            : "Thinking..."
+                          : "")}
+                    </Markdown>
                     {msg.isStreaming && (
                       <span className="inline-block w-1.5 h-3.5 bg-primary ms-1 animate-pulse align-middle" />
                     )}

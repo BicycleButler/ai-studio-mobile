@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   ChatMessage,
   MessageAttachment,
   IncomingMessage,
 } from "./types";
+import { RemoteFileSource } from "./types/integrations";
 import { TopAppBar } from "./components/TopAppBar";
-import { WorkspaceRouter } from "./components/WorkspaceRouter";
+import { WorkspaceRouter, IDEOpenedFile } from "./components/WorkspaceRouter";
 import { TunerBottomSheet } from "./components/TunerBottomSheet";
 import { UnifiedSettingsModal } from "./components/UnifiedSettingsModal";
 import { AndroidFrame } from "./components/AndroidFrame";
@@ -26,12 +27,17 @@ import {
 // removed projectsManager
 } from "./utils/storage";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+import { StorageWarningBanner } from "./components/StorageWarningBanner";
+import { PWAUpdateBanner } from "./components/PWAUpdateBanner";
 import { useAppState } from "./hooks/useAppState";
 import { useServices } from "./services/ServiceContext";
+import { useProviderConnections } from "./hooks/useProviderConnections";
+import { isLocalProvider } from "./utils/providerCatalog";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 
 export default function App() {
-  const { keyVerificationService, speechVoicesService, projectService, idGenerator, timeProvider } = useServices();
+  const { keyVerificationService, speechVoicesService, projectService, stubsClient, idGenerator, timeProvider } = useServices();
 
   const {
     projects,
@@ -97,6 +103,7 @@ export default function App() {
     isGenerating,
     error: streamError,
     errorDetails,
+    getLastError,
     startStream,
     stopStream,
     clearError,
@@ -120,7 +127,13 @@ export default function App() {
                 }
               : null
           );
-          setProjects(projects.map(p => p.id === activeProject.id ? { ...p, isValid: false, status: "invalid_key", statusMessage: "Key expired or revoked" } : p));
+          setProjects((prev) =>
+            prev.map((p) =>
+              p.id === activeProject.id
+                ? { ...p, isValid: false, status: "invalid_key", statusMessage: "Key expired or revoked" }
+                : p
+            )
+          );
         }
       }
     },
@@ -128,6 +141,144 @@ export default function App() {
 
   // Online / offline network detection
   const { isOnline } = useNetworkStatus();
+  const { webllmProgress } = useProviderConnections();
+
+  const currentModelObj =
+    models.find(
+      (m) =>
+        m.id === config.model &&
+        (!config.providerId || !m.providerId || m.providerId === config.providerId)
+    ) || models.find((m) => m.id === config.model);
+  const currentModelName = currentModelObj ? currentModelObj.name : config.model;
+  const activeProviderId = currentModelObj?.providerId || config.providerId || "google";
+  const isActiveModelLocal = isLocalProvider(activeProviderId);
+
+  // Workspace files opened in Mobile IDE (e.g., from Stubs architecture diagrams)
+  const [openedWorkspaceFiles, setOpenedWorkspaceFiles] = useState<IDEOpenedFile[]>([]);
+  const [activeWorkspaceFilePath, setActiveWorkspaceFilePath] = useState<string | null>(null);
+  const [isLoadingWorkspaceFile, setIsLoadingWorkspaceFile] = useState(false);
+  const [workspaceFileError, setWorkspaceFileError] = useState<string | null>(null);
+
+  const handleOpenFileInIDE = useCallback(
+    async (filePath: string) => {
+      const normalized = filePath.replace(/\\/g, "/").replace(/^\/+/, "");
+      if (!normalized) return;
+
+      setPromptType("code");
+      setActiveWorkspaceFilePath(normalized);
+      setWorkspaceFileError(null);
+
+      const alreadyOpen = openedWorkspaceFiles.some((f) => f.path === normalized);
+      if (alreadyOpen) {
+        return;
+      }
+
+      setIsLoadingWorkspaceFile(true);
+      try {
+        const fetched = await stubsClient.fetchWorkspaceFile(normalized);
+        setOpenedWorkspaceFiles((prev) => {
+          if (prev.some((f) => f.path === fetched.path)) {
+            return prev;
+          }
+          return [
+            ...prev,
+            {
+              path: fetched.path,
+              name: fetched.name,
+              language: fetched.language,
+              content: fetched.content,
+              originalContent: fetched.content,
+            },
+          ];
+        });
+      } catch (err: unknown) {
+        setWorkspaceFileError(err instanceof Error ? err.message : "Failed to load file into IDE");
+      } finally {
+        setIsLoadingWorkspaceFile(false);
+      }
+    },
+    [openedWorkspaceFiles, setPromptType, stubsClient]
+  );
+
+  const handleUpdateWorkspaceFileContent = useCallback((filePath: string, content: string) => {
+    setOpenedWorkspaceFiles((prev) =>
+      prev.map((f) => (f.path === filePath ? { ...f, content } : f))
+    );
+  }, []);
+
+  const handleResetWorkspaceFile = useCallback((filePath: string) => {
+    setOpenedWorkspaceFiles((prev) =>
+      prev.map((f) => (f.path === filePath ? { ...f, content: f.originalContent } : f))
+    );
+  }, []);
+
+  const handleCloseWorkspaceFile = useCallback((filePath: string) => {
+    setOpenedWorkspaceFiles((prev) => {
+      const remaining = prev.filter((f) => f.path !== filePath);
+      setActiveWorkspaceFilePath((current) => {
+        if (current !== filePath) return current;
+        return remaining.length > 0 ? remaining[remaining.length - 1].path : null;
+      });
+      return remaining;
+    });
+  }, []);
+
+  const handleOpenRemoteFileInIDE = useCallback(
+    (file: {
+      path: string;
+      name: string;
+      language: string;
+      content: string;
+      remoteSource: RemoteFileSource;
+    }) => {
+      const normalized = file.path.replace(/\\/g, "/").replace(/^\/+/, "");
+      if (!normalized) return;
+
+      setOpenedWorkspaceFiles((prev) => {
+        const exists = prev.some((f) => f.path === normalized);
+        if (exists) {
+          return prev.map((f) =>
+            f.path === normalized
+              ? {
+                  ...f,
+                  content: file.content,
+                  originalContent: file.content,
+                  remoteSource: file.remoteSource,
+                }
+              : f
+          );
+        }
+        return [
+          ...prev,
+          {
+            path: normalized,
+            name: file.name,
+            language: file.language,
+            content: file.content,
+            originalContent: file.content,
+            remoteSource: file.remoteSource,
+          },
+        ];
+      });
+      setActiveWorkspaceFilePath(normalized);
+      setWorkspaceFileError(null);
+      setPromptType("code");
+    },
+    [setPromptType]
+  );
+
+  const handleUpdateOpenedFileRemoteSource = useCallback(
+    (filePath: string, remoteSource: RemoteFileSource, syncedContent: string) => {
+      setOpenedWorkspaceFiles((prev) =>
+        prev.map((f) =>
+          f.path === filePath
+            ? { ...f, remoteSource, originalContent: syncedContent }
+            : f
+        )
+      );
+    },
+    []
+  );
 
   // Screen and window security (FLAG_SECURE)
   const { isShieldActive } = useWindowSecurity({
@@ -148,10 +299,11 @@ export default function App() {
     text: string,
     attachments?: MessageAttachment[],
     templateIds?: string[],
-    rawUserText?: string
+    rawUserText?: string,
+    baseMessages?: ChatMessage[]
   ) => {
-    if (isGenerating || !isOnline) return;
-    if (!hasApiKey) {
+    if (isGenerating || (!isOnline && !isActiveModelLocal)) return;
+    if (!hasApiKey && !isActiveModelLocal) {
       handleOpenSettings("account");
       return;
     }
@@ -166,7 +318,8 @@ export default function App() {
       rawUserText,
     };
 
-    const updatedMessages = [...messages, userMessage];
+    const baseHistory = baseMessages ?? messages;
+    const updatedMessages = [...baseHistory, userMessage];
 
     // Placeholder model message for streaming
     const modelMessageId = idGenerator.generate("model");
@@ -176,6 +329,8 @@ export default function App() {
       text: "",
       timestamp: timeProvider.now(),
       isStreaming: true,
+      modelName: currentModelName,
+      providerId: activeProviderId,
     };
     setMessages([...updatedMessages, placeholderModelMsg]);
 
@@ -192,6 +347,8 @@ export default function App() {
     const result = await startStream(
       {
         model: config.model,
+        providerId: activeProviderId,
+        connectionId: currentModelObj?.connectionId || config.connectionId,
         messages: apiMessages,
         systemInstruction: config.systemInstruction,
         temperature: config.temperature,
@@ -224,13 +381,18 @@ export default function App() {
         )
       );
     } else {
+      const latestError = getLastError();
       setMessages((prev) =>
         prev.map((m) =>
           m.id === modelMessageId
             ? {
                 ...m,
                 isStreaming: false,
-                error: streamError || "Failed to generate response. Check API key.",
+                error: latestError
+                  ? latestError.message
+                  : m.text.trim().length > 0
+                    ? undefined
+                    : "Generation stopped.",
               }
             : m
         )
@@ -240,14 +402,21 @@ export default function App() {
 
   // Regenerate last response
   const handleRegenerate = () => {
-    if (messages.length === 0 || isGenerating || !isOnline) return;
+    if (messages.length === 0 || isGenerating || (!isOnline && !isActiveModelLocal)) return;
     const lastUserIdx = messages.map((m) => m.role).lastIndexOf("user");
     if (lastUserIdx === -1) return;
 
     const trimmed = messages.slice(0, lastUserIdx + 1);
     const lastUser = trimmed[trimmed.length - 1];
-    setMessages(trimmed.slice(0, -1));
-    void handleSendMessage(lastUser.text, lastUser.images);
+    const baseHistory = trimmed.slice(0, -1);
+    setMessages(baseHistory);
+    void handleSendMessage(
+      lastUser.text,
+      lastUser.images,
+      lastUser.templateIds,
+      lastUser.rawUserText,
+      baseHistory
+    );
   };
 
   const totalTokensEstimate = (() => {
@@ -261,12 +430,11 @@ export default function App() {
     return sysTokens;
   })();
 
-  const currentModelObj = models.find((m) => m.id === config.model);
-  const currentModelName = currentModelObj ? currentModelObj.name : config.model;
-
   return (
     <AndroidFrame mode={deviceMode}>
       <OfflineIndicator />
+      <StorageWarningBanner />
+      <PWAUpdateBanner isGenerating={isGenerating} />
 
       {/* FLAG_SECURE Privacy Shield to obscure sensitive snapshots in App Switcher */}
       <SecurePrivacyShield isActive={isShieldActive} />
@@ -325,7 +493,7 @@ export default function App() {
       />
 
       <AuthRequiredBanner
-        hasApiKey={hasApiKey}
+        hasApiKey={hasApiKey || isActiveModelLocal}
         onOpenSettings={() => handleOpenSettings("account")}
       />
 
@@ -355,6 +523,8 @@ export default function App() {
       {/* Main Content Area: Primary Active Workspace */}
       <WorkspaceProvider value={{
           config,
+          activeModelInfo: currentModelObj,
+          webllmProgress,
           onUpdateSystemInstruction: (inst) => setConfig((prev) => ({ ...prev, systemInstruction: inst })),
           onOpenParameters: () => setShowTunerSheet(true),
           hasApiKey,
@@ -369,6 +539,7 @@ export default function App() {
           onToggleTemplate: handleToggleTemplate,
           onRemoveTemplate: handleRemoveTemplate,
           onClearAllTemplates: handleClearAllTemplates,
+          onOpenFileInIDE: (filePath) => void handleOpenFileInIDE(filePath),
           speechSettings,
           onSaveSpeechSettings: (newSettings) => {
             setSpeechSettings(newSettings);
@@ -393,7 +564,18 @@ export default function App() {
             messages,
             freeformText,
             structuredExamples,
-            onSwitchToPrompt: () => { setPromptType("chat"); }
+            onSwitchToPrompt: () => { setPromptType("chat"); },
+            openedWorkspaceFiles,
+            activeWorkspaceFilePath,
+            isLoadingWorkspaceFile,
+            workspaceFileError,
+            onSelectWorkspaceFile: setActiveWorkspaceFilePath,
+            onOpenWorkspaceFile: (filePath) => void handleOpenFileInIDE(filePath),
+            onUpdateWorkspaceFileContent: handleUpdateWorkspaceFileContent,
+            onResetWorkspaceFile: handleResetWorkspaceFile,
+            onCloseWorkspaceFile: handleCloseWorkspaceFile,
+            onOpenRemoteFileInIDE: handleOpenRemoteFileInIDE,
+            onUpdateRemoteSource: handleUpdateOpenedFileRemoteSource,
           }}
           stubsProps={{}}
         />
@@ -411,82 +593,100 @@ export default function App() {
       />
 
       {/* Canonical Model & Tuner Bottom Sheet */}
-      <TunerBottomSheet
-        isOpen={showTunerSheet}
-        config={config}
-        onChangeConfig={setConfig}
-        models={models}
-        onClose={() => setShowTunerSheet(false)}
-        isModal={true}
-        hasApiKey={hasApiKey}
-        onOpenAuth={() => handleOpenSettings("account")}
-      />
+      <ErrorBoundary scope="tuner" onReset={() => setShowTunerSheet(false)}>
+        <TunerBottomSheet
+          isOpen={showTunerSheet}
+          config={config}
+          onChangeConfig={setConfig}
+          models={models}
+          onClose={() => setShowTunerSheet(false)}
+          isModal={true}
+          hasApiKey={hasApiKey}
+          onOpenAuth={() => handleOpenSettings("account")}
+          onOpenProviders={() => {
+            setShowTunerSheet(false);
+            handleOpenSettings("providers");
+          }}
+        />
+      </ErrorBoundary>
 
       {/* Unified Settings Modal Hub */}
-      <UnifiedSettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        initialTab={settingsTab}
-        customApiKey={customApiKey}
-        onSaveCustomApiKey={handleSaveApiKey}
-        hasServerKey={hasServerKey}
-        onRefreshServerAuth={refreshServerAuth}
-        speechSettings={speechSettings}
-        onSaveSpeechSettings={(newSettings) => {
-          setSpeechSettings(newSettings);
-          speechVoicesService.saveSpeechSettings(newSettings);
-        }}
-        config={config}
-        onChangeConfig={setConfig}
-        models={models}
-        savedPrompts={savedPrompts}
-        onLoadPrompt={(p) => {
-          handleLoadPrompt(p);
-          setShowSettingsModal(false);
-        }}
-        onSaveCurrentPrompt={handleSaveCurrentPrompt}
-        onDeletePrompt={handleDeleteSavedPrompt}
-        onBulkDeletePrompts={handleBulkDeleteSavedPrompts}
-        messages={messages}
-        deviceMode={deviceMode}
-        onSelectDeviceMode={setDeviceMode}
-        onOpenCustomTabBrowser={() => setShowCustomTabBrowser(true)}
-        onOpenImportProject={() => {
-          setCandidateClipboardKey("");
-          setShowImportModal(true);
-        }}
-        activeProjectName={activeProject?.name}
-        projects={projects}
-        activeProject={activeProject}
-        onSelectProject={(p) => handleProjectActivated(p, stopStream)}
-        onRenameProject={handleRenameProject}
-        onDeleteProject={(id) => handleDeleteProject(id, stopStream)}
-        onBulkDeleteProjects={(ids) => handleBulkDeleteProjects(ids, stopStream)}
-      />
+      <ErrorBoundary scope="settings" onReset={() => setShowSettingsModal(false)}>
+        <UnifiedSettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          initialTab={settingsTab}
+          customApiKey={customApiKey}
+          onSaveCustomApiKey={handleSaveApiKey}
+          hasServerKey={hasServerKey}
+          onRefreshServerAuth={refreshServerAuth}
+          speechSettings={speechSettings}
+          onSaveSpeechSettings={(newSettings) => {
+            setSpeechSettings(newSettings);
+            speechVoicesService.saveSpeechSettings(newSettings);
+          }}
+          config={config}
+          onChangeConfig={setConfig}
+          models={models}
+          savedPrompts={savedPrompts}
+          onLoadPrompt={(p) => {
+            handleLoadPrompt(p);
+            setShowSettingsModal(false);
+          }}
+          onSaveCurrentPrompt={handleSaveCurrentPrompt}
+          onDeletePrompt={handleDeleteSavedPrompt}
+          onBulkDeletePrompts={handleBulkDeleteSavedPrompts}
+          messages={messages}
+          deviceMode={deviceMode}
+          onSelectDeviceMode={setDeviceMode}
+          onOpenCustomTabBrowser={() => setShowCustomTabBrowser(true)}
+          onOpenImportProject={() => {
+            setCandidateClipboardKey("");
+            setShowImportModal(true);
+          }}
+          activeProjectName={activeProject?.name}
+          projects={projects}
+          activeProject={activeProject}
+          onSelectProject={(p) => handleProjectActivated(p, stopStream)}
+          onRenameProject={handleRenameProject}
+          onDeleteProject={(id) => handleDeleteProject(id, stopStream)}
+          onBulkDeleteProjects={(ids) => handleBulkDeleteProjects(ids, stopStream)}
+          openedWorkspaceFiles={openedWorkspaceFiles}
+          activeWorkspaceFilePath={activeWorkspaceFilePath}
+          onOpenRemoteFileInIDE={(file) => {
+            handleOpenRemoteFileInIDE(file);
+            setShowSettingsModal(false);
+          }}
+        />
+      </ErrorBoundary>
 
       {/* Phase 2: In-App AI Studio Launcher (Chrome Custom Tab style) */}
-      <CustomTabBrowserModal
-        isOpen={showCustomTabBrowser}
-        onClose={() => setShowCustomTabBrowser(false)}
-        activeApiKey={customApiKey}
-        onImportKey={(key) => {
-          setCandidateClipboardKey(key);
-          setShowImportModal(true);
-          setShowCustomTabBrowser(false);
-        }}
-      />
+      <ErrorBoundary scope="browser" onReset={() => setShowCustomTabBrowser(false)}>
+        <CustomTabBrowserModal
+          isOpen={showCustomTabBrowser}
+          onClose={() => setShowCustomTabBrowser(false)}
+          activeApiKey={customApiKey}
+          onImportKey={(key) => {
+            setCandidateClipboardKey(key);
+            setShowImportModal(true);
+            setShowCustomTabBrowser(false);
+          }}
+        />
+      </ErrorBoundary>
 
       {/* Phase 2: Import Project Modal / Bottom Sheet */}
-      <ImportProjectSheet
-        isOpen={showImportModal}
-        onClose={() => {
-          setShowImportModal(false);
-          setCandidateClipboardKey("");
-        }}
-        initialKey={candidateClipboardKey}
-        onSuccess={(p) => handleProjectActivated(p, stopStream)}
-        availableModels={models.map((m) => ({ id: m.id, name: m.name }))}
-      />
+      <ErrorBoundary scope="import" onReset={() => setShowImportModal(false)}>
+        <ImportProjectSheet
+          isOpen={showImportModal}
+          onClose={() => {
+            setShowImportModal(false);
+            setCandidateClipboardKey("");
+          }}
+          initialKey={candidateClipboardKey}
+          onSuccess={(p) => handleProjectActivated(p, stopStream)}
+          availableModels={models.map((m) => ({ id: m.id, name: m.name }))}
+        />
+      </ErrorBoundary>
 
     </AndroidFrame>
   );

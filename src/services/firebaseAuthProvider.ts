@@ -63,17 +63,40 @@ export class FirebaseAuthProvider implements IAuthProvider {
   }
 
   async signIn(): Promise<AuthSignInResult> {
+    return this.signInWithProvider(this.getGoogleAuthProvider());
+  }
+
+  async signInWithScopes(scopes: string[]): Promise<AuthSignInResult> {
+    const provider = new GoogleAuthProvider();
+    provider.addScope("https://www.googleapis.com/auth/userinfo.email");
+    provider.addScope("https://www.googleapis.com/auth/userinfo.profile");
+    for (const scope of scopes) {
+      const clean = scope.trim();
+      if (clean) provider.addScope(clean);
+    }
+    provider.setCustomParameters({
+      prompt: "select_account consent",
+    });
+    return this.signInWithProvider(provider);
+  }
+
+  private async signInWithProvider(provider: GoogleAuthProvider): Promise<AuthSignInResult> {
     const auth = this.getFirebaseAuth();
     if (!auth) {
       throw new Error("Google authentication is not available in this environment.");
     }
 
     try {
-      const provider = this.getGoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
 
       const accessToken = credential?.accessToken || "";
+      let idToken: string | undefined;
+      try {
+        idToken = await result.user.getIdToken();
+      } catch {
+        idToken = credential?.idToken || undefined;
+      }
 
       const email = result.user.email;
       if (!email) {
@@ -87,6 +110,7 @@ export class FirebaseAuthProvider implements IAuthProvider {
       return {
         user: { email, name, picture, sub },
         accessToken,
+        idToken,
       };
     } catch (error: unknown) {
       const errObj = error as { code?: string; message?: string };
@@ -101,6 +125,16 @@ export class FirebaseAuthProvider implements IAuthProvider {
       }
       this.logger.error("Google sign in error:", error);
       throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  async getIdToken(): Promise<string | null> {
+    const auth = this.getFirebaseAuth();
+    if (!auth?.currentUser) return null;
+    try {
+      return await auth.currentUser.getIdToken();
+    } catch {
+      return null;
     }
   }
 

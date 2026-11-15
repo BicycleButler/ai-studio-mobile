@@ -92,4 +92,80 @@ describe('ExponentialBackoffRetryStrategy', () => {
 
       expect(mockFetcher).toHaveBeenCalledTimes(1); // Must only call once
   });
+
+  it('should NOT retry non-idempotent POST requests by default', async () => {
+    const strategy = new ExponentialBackoffRetryStrategy(new FixedIntervalDelayStrategy(0));
+    const mockFetcher = vi.fn().mockResolvedValue({ ok: false, status: 500 } as Response);
+
+    const response = await strategy.execute('test-url', { method: 'POST' }, {
+      retries: 3,
+      fetcher: mockFetcher,
+      retryableStatusCodes: new Set([500]),
+    });
+
+    expect(response.status).toBe(500);
+    expect(mockFetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('should retry POST requests only when retryNonIdempotent is true', async () => {
+    const strategy = new ExponentialBackoffRetryStrategy(new FixedIntervalDelayStrategy(0));
+    const mockFetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
+
+    const response = await strategy.execute('test-url', { method: 'POST' }, {
+      retries: 3,
+      fetcher: mockFetcher,
+      retryableStatusCodes: new Set([503]),
+      retryNonIdempotent: true,
+    });
+
+    expect(response.ok).toBe(true);
+    expect(mockFetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('should honor Retry-After header delay on retryable response', async () => {
+    const strategy = new ExponentialBackoffRetryStrategy(new FixedIntervalDelayStrategy(5000));
+    const headers = new Headers({ 'Retry-After': '0' });
+    const mockFetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 429, headers } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
+
+    const start = Date.now();
+    const response = await strategy.execute('test-url', { method: 'GET' }, {
+      retries: 2,
+      fetcher: mockFetcher,
+      retryableStatusCodes: new Set([429]),
+    });
+    const elapsed = Date.now() - start;
+
+    expect(response.ok).toBe(true);
+    expect(mockFetcher).toHaveBeenCalledTimes(2);
+    expect(elapsed).toBeLessThan(1000); // Overrode 5000ms strategy with Retry-After: 0
+  });
+
+  it('should abort immediately if AbortSignal triggers during backoff sleep', async () => {
+    const strategy = new ExponentialBackoffRetryStrategy(new FixedIntervalDelayStrategy(5000));
+    const controller = new AbortController();
+    const mockFetcher = vi.fn().mockResolvedValue({ ok: false, status: 503 } as Response);
+
+    setTimeout(() => controller.abort(), 30);
+
+    const start = Date.now();
+    await expect(
+      strategy.execute(
+        'test-url',
+        { method: 'GET', signal: controller.signal },
+        {
+          retries: 3,
+          fetcher: mockFetcher,
+          retryableStatusCodes: new Set([503]),
+        }
+      )
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    const elapsed = Date.now() - start;
+
+    expect(elapsed).toBeLessThan(1000);
+    expect(mockFetcher).toHaveBeenCalledTimes(1);
+  });
 });

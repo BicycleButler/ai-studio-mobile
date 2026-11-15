@@ -1,9 +1,10 @@
-import { IOfflineService } from "../offlineService";
-import { IApiClient } from "../apiClient";
+import { IOfflineService, ConflictData } from "../offlineService";
+import { IApiClient, BaseApiError } from "../apiClient";
 import { INetworkStatusProvider } from "../networkStatus";
 import { IOfflineRetryStrategy } from "./offlineRetryStrategy";
 import { ILogger } from "../logger";
 import { SyncAdapterError } from "./syncAdapterErrors";
+import { errorReporter } from "../errorReporter";
 
 export interface IStorageSyncAdapter<T> {
   syncItem(item: T, mutationType: string, endpoint?: string, method?: string): void;
@@ -16,7 +17,8 @@ export interface ISyncTransport<T> {
 export class ApiClientSyncTransport<T> implements ISyncTransport<T> {
   constructor(
     private apiClient: IApiClient,
-    private requestBuilder?: (item: T, method: string) => RequestInit
+    private requestBuilder?: (item: T, method: string) => RequestInit,
+    private onSuccess?: (response: unknown) => void
   ) {
     this.requestBuilder = requestBuilder || ((item: T, method: string) => ({
       method,
@@ -26,7 +28,8 @@ export class ApiClientSyncTransport<T> implements ISyncTransport<T> {
   }
 
   public async transmit(endpoint: string, item: T, method: string): Promise<void> {
-    await this.apiClient.fetch(endpoint, this.requestBuilder!(item, method));
+    const res = await this.apiClient.fetch(endpoint, this.requestBuilder!(item, method));
+    this.onSuccess?.(res);
   }
 }
 
@@ -38,6 +41,7 @@ export interface NetworkStorageSyncAdapterConfig<T> {
   logger: ILogger;
   endpoint?: string;
   method?: string;
+  onConflict?: (conflict: ConflictData) => void;
 }
 
 export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
@@ -48,6 +52,9 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
   private logger: ILogger;
   private defaultEndpoint?: string;
   private defaultMethod: string;
+  private onConflict?: (conflict: ConflictData) => void;
+  private inFlightByType = new Map<string, Promise<void>>();
+  private pendingByType = new Map<string, { item: T; endpoint: string; method: string }>();
 
   constructor(config: NetworkStorageSyncAdapterConfig<T>) {
     this.transport = config.transport;
@@ -57,6 +64,51 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
     this.logger = config.logger;
     this.defaultEndpoint = config.endpoint;
     this.defaultMethod = config.method || "POST";
+    this.onConflict = config.onConflict;
+  }
+
+  private dispatchTransmit(item: T, mutationType: string, endpoint: string, method: string): void {
+    const run = async (currItem: T, currEndpoint: string, currMethod: string): Promise<void> => {
+      try {
+        await this.transport.transmit(currEndpoint, currItem, currMethod);
+      } catch (e) {
+        if (e instanceof BaseApiError && e.statusCode === 409) {
+          this.pendingByType.delete(mutationType);
+          const data = e.rawData as { remote?: unknown; remoteVersion?: number } | undefined;
+          errorReporter.report("sync_conflict", `Sync conflict for ${mutationType}`, {
+            scope: mutationType,
+          });
+          this.onConflict?.({
+            type: mutationType,
+            localData: currItem,
+            remoteData: data?.remote,
+            remoteVersion: typeof data?.remoteVersion === "number" ? data.remoteVersion : undefined,
+            id: `conflict_${Date.now()}`,
+          });
+          return;
+        }
+        if (this.retryStrategy.shouldEnqueue(e)) {
+          this.logger.debug(`Failed to save ${mutationType} to server, falling back to offline queue`, e);
+          await this.offlineService.enqueueOfflineMutation(mutationType, currItem).catch((err) =>
+            this.logger.error("Failed to enqueue offline mutation", err)
+          );
+        } else {
+          this.logger.error(`Failed to save ${mutationType} to server. Error is not retryable, dropping sync.`, e);
+        }
+      }
+    };
+
+    const promise = run(item, endpoint, method).finally(() => {
+      const next = this.pendingByType.get(mutationType);
+      if (next) {
+        this.pendingByType.delete(mutationType);
+        this.dispatchTransmit(next.item, mutationType, next.endpoint, next.method);
+      } else {
+        this.inFlightByType.delete(mutationType);
+      }
+    });
+
+    this.inFlightByType.set(mutationType, promise);
   }
 
   public syncItem(item: T, mutationType: string, endpoint?: string, method?: string): void {
@@ -68,14 +120,12 @@ export class NetworkStorageSyncAdapter<T> implements IStorageSyncAdapter<T> {
     }
 
     if (this.networkStatusProvider.isOnline()) {
-      this.transport.transmit(finalEndpoint, item, finalMethod).catch((e) => {
-        if (this.retryStrategy.shouldEnqueue(e)) {
-          this.logger.debug(`Failed to save ${mutationType} to server, falling back to offline queue`, e);
-          this.offlineService.enqueueOfflineMutation(mutationType, item).catch((err) => this.logger.error("Failed to enqueue offline mutation", err));
-        } else {
-          this.logger.error(`Failed to save ${mutationType} to server. Error is not retryable, dropping sync.`, e);
-        }
-      });
+      if (this.inFlightByType.has(mutationType)) {
+        // Coalesce rapid successive mutations while an identical resource type sync is in flight
+        this.pendingByType.set(mutationType, { item, endpoint: finalEndpoint, method: finalMethod });
+        return;
+      }
+      this.dispatchTransmit(item, mutationType, finalEndpoint, finalMethod);
     } else {
       this.offlineService.enqueueOfflineMutation(mutationType, item).catch((err) => this.logger.error("Failed to enqueue offline mutation", err));
     }

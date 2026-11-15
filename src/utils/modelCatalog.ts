@@ -102,9 +102,33 @@ export const CURATED_MODELS: ModelInfo[] = [
  * Identifies deprecated, legacy, or non-chat/tuner models that must never be
  * shown in the AI Studio Model & Tuners menu.
  */
-export function isDeprecatedOrUnusableModel(rawId: string): boolean {
+export function isDeprecatedOrUnusableModel(rawId: string, providerId?: string): boolean {
   if (!rawId) return true;
+  if (providerId && providerId !== "google") {
+    return false;
+  }
+
   const id = rawId.toLowerCase().trim().replace(/^models\//, "");
+
+  // Allow non-Google model IDs when providerId wasn't explicitly passed
+  if (
+    id.startsWith("gpt-") ||
+    id.startsWith("o1") ||
+    id.startsWith("o3") ||
+    id.startsWith("o4") ||
+    id.startsWith("claude-") ||
+    id.startsWith("llama") ||
+    id.startsWith("deepseek") ||
+    id.startsWith("qwen") ||
+    id.startsWith("phi-") ||
+    id.startsWith("mistral") ||
+    id.includes("-mlc") ||
+    id.includes("/") ||
+    id.includes(":") ||
+    id === "chrome-gemini-nano"
+  ) {
+    return false;
+  }
 
   // 1. Strictly deprecated or legacy models prohibited by Google AI Studio
   if (
@@ -156,8 +180,8 @@ export function isDeprecatedOrUnusableModel(rawId: string): boolean {
  * Returns a clean, sanitized model ID. If the model is deprecated or unusable,
  * falls back to FALLBACK_MODEL_ID.
  */
-export function sanitizeModelId(modelId: string | undefined): string {
-  if (!modelId || isDeprecatedOrUnusableModel(modelId)) {
+export function sanitizeModelId(modelId: string | undefined, providerId?: string): string {
+  if (!modelId || isDeprecatedOrUnusableModel(modelId, providerId)) {
     return FALLBACK_MODEL_ID;
   }
   return modelId;

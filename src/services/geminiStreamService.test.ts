@@ -1,56 +1,123 @@
-import { DefaultUrlBuilder } from "../utils/urlUtils";
-import { DefaultResponseParser } from "../utils/apiResponseParser";
-import { InterceptorManager } from "../utils/apiClientInterceptors";
-import { DefaultLoggerFactory } from "../utils/logger";
-import { ApiClient } from "../utils/apiClient";
-import { describe, test } from 'vitest';
-import { GeminiStreamService } from './geminiStreamService';
-// Unit tests for geminiStreamService and error formatting
-import {
-  GeminiApiError,
-} from "./geminiStreamService";
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { GeminiStreamService, GeminiApiError } from './geminiStreamService';
+import { DefaultUrlBuilder } from '../utils/urlUtils';
+import { DefaultResponseParser } from '../utils/apiResponseParser';
+import { InterceptorManager } from '../utils/apiClientInterceptors';
+import { DefaultLoggerFactory } from '../utils/logger';
+import { ApiClient } from '../utils/apiClient';
+import { errorReporter } from '../utils/errorReporter';
 
 describe('testStreamService', () => {
-  test('main', () => {
-  const testGeminiStreamService = new GeminiStreamService({ apiClient: new ApiClient({ interceptorManager: new InterceptorManager(), responseParser: new DefaultResponseParser(), urlBuilder: new DefaultUrlBuilder() }), logger: new DefaultLoggerFactory().createLogger() });
-  // 1. Test buildHeaders
-  const defaultHeaders = testGeminiStreamService.buildHeaders();
-  if (defaultHeaders["Content-Type"] !== "application/json") {
-    throw new Error("Default headers missing application/json content type");
-  }
-  if (defaultHeaders["x-gemini-api-key"] !== undefined) {
-    throw new Error("Default headers should not have api key when none provided");
-  }
+  beforeEach(() => {
+    errorReporter.clear();
+  });
 
-  const customHeaders = testGeminiStreamService.buildHeaders("test-custom-key-123");
-  if (customHeaders["x-gemini-api-key"] !== "test-custom-key-123") {
-    throw new Error("Custom headers did not include custom key correctly");
-  }
+  test('headers, error classification, and abort formatting', () => {
+    const testGeminiStreamService = new GeminiStreamService({
+      apiClient: new ApiClient({
+        interceptorManager: new InterceptorManager(),
+        responseParser: new DefaultResponseParser(),
+        urlBuilder: new DefaultUrlBuilder(),
+      }),
+      logger: new DefaultLoggerFactory().createLogger(),
+    });
 
-  // 2. Test GeminiApiError classification
-  const rateLimitErr = new GeminiApiError("Resource exhausted: quota exceeded", 429);
-  if (!rateLimitErr.isQuotaError) {
-    throw new Error("Expected isQuotaError to be true for 429 quota error");
-  }
+    const defaultHeaders = testGeminiStreamService.buildHeaders();
+    expect(defaultHeaders['Content-Type']).toBe('application/json');
+    expect(defaultHeaders['x-gemini-api-key']).toBeUndefined();
 
-  const authErr = new GeminiApiError("Invalid API key provided", 403);
-  if (!authErr.isAuthError) {
-    throw new Error("Expected isAuthError to be true for 403 API key error");
-  }
+    const customHeaders = testGeminiStreamService.buildHeaders('test-custom-key-123');
+    expect(customHeaders['x-gemini-api-key']).toBe('test-custom-key-123');
 
-  const unavailableErr = new GeminiApiError("The service is currently unavailable.", 503);
-  if (!unavailableErr.isUnavailable) {
-    throw new Error("Expected isUnavailable to be true for 503 unavailable error");
-  }
+    const rateLimitErr = new GeminiApiError('Resource exhausted: quota exceeded', 429);
+    expect(rateLimitErr.isQuotaError).toBe(true);
 
-  // 3. Test formatStreamError
-  const abortErr = new Error("AbortError");
-  abortErr.name = "AbortError";
-  const formattedAbort = testGeminiStreamService.formatStreamError(abortErr);
-  if (!formattedAbort.message.includes("stopped by user")) {
-    throw new Error("Expected abort error to format friendly message");
-  }
+    const authErr = new GeminiApiError('Invalid API key provided', 403);
+    expect(authErr.isAuthError).toBe(true);
 
+    const unavailableErr = new GeminiApiError('The service is currently unavailable.', 503);
+    expect(unavailableErr.isUnavailable).toBe(true);
 
+    const gatewayErr = new GeminiApiError('Bad gateway', 502);
+    expect(gatewayErr.isUnavailable).toBe(true);
+
+    const abortErr = new Error('AbortError');
+    abortErr.name = 'AbortError';
+    const formattedAbort = testGeminiStreamService.formatStreamError(abortErr);
+    expect(formattedAbort.message).toContain('stopped by user');
+  });
+
+  test('retries pre-stream transient 503 error once and succeeds on retry', async () => {
+    let attempts = 0;
+    const encoder = new TextEncoder();
+    const sseStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode('data: {"text":"Hello "}\n\ndata: {"text":"world"}\n\ndata: {"done":true,"durationMs":5,"usageMetadata":{"totalTokenCount":2}}\n\n')
+        );
+        controller.close();
+      },
+    });
+
+    const mockApiClient = {
+      fetchStream: vi.fn(async () => {
+        attempts++;
+        if (attempts === 1) {
+          throw new (await import('../utils/apiClient')).BaseApiError('Temporary 503', 503);
+        }
+        return new Response(sseStream, {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        });
+      }),
+    } as unknown as ApiClient;
+
+    const service = new GeminiStreamService({
+      apiClient: mockApiClient,
+      logger: new DefaultLoggerFactory().createLogger(),
+      maxConnectRetries: 1,
+      retryDelayMs: 5,
+      connectTimeoutMs: 5000,
+    });
+
+    const chunks: string[] = [];
+    const result = await service.streamGeminiContent(
+      { model: 'gemini-2.5-flash', messages: [{ role: 'user', text: 'hi' }] },
+      { onChunk: (acc: string) => chunks.push(acc) }
+    );
+
+    expect(attempts).toBe(2);
+    expect(result.text).toBe('Hello world');
+  });
+
+  test('aborts stalled stream on chunk idle timeout and redacts leaked API keys in errorReporter', async () => {
+    const leakedKey = 'AIzaSyDummyKey1234567890ABCDEFGHIJKLMNO';
+    const neverEndingStream = new ReadableStream<Uint8Array>({
+      start() {
+        // Keep stream open without sending chunks to trigger idle timeout
+      },
+    });
+
+    const mockApiClient = {
+      fetchStream: vi.fn(async () => new Response(neverEndingStream, { status: 200 })),
+    } as unknown as ApiClient;
+
+    const service = new GeminiStreamService({
+      apiClient: mockApiClient,
+      logger: new DefaultLoggerFactory().createLogger(),
+      chunkIdleTimeoutMs: 40,
+      maxConnectRetries: 0,
+    });
+
+    await expect(
+      service.streamGeminiContent(
+        { model: 'gemini-2.5-flash', messages: [{ role: 'user', text: 'hi' }] },
+        { onChunk: () => {} }
+      )
+    ).rejects.toThrow(/stalled|timed out/i);
+
+    const reported = errorReporter.report('stream_error', `Failure using key ${leakedKey}`);
+    expect(reported.message).not.toContain(leakedKey);
+    expect(reported.message).toContain('[REDACTED_KEY]');
   });
 });

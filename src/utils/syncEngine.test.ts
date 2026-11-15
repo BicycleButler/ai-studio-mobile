@@ -88,4 +88,33 @@ describe('SyncEngine', () => {
     expect(result.success).toBe(true); // Process finishes
     expect(mockQueueStore.removeMany).toHaveBeenCalledWith(['1', '2']); // The two must be removed (one dropped, one succeeded)
   });
+
+  it('should drop poison-pill mutation after reaching max retries so subsequent items unblock', async () => {
+    queueData = [
+      { id: '1', type: 'FAILING_ACTION', payload: {}, timestamp: 1, attempts: 4 },
+      { id: '2', type: 'SUCCESS_ACTION', payload: {}, timestamp: 2 }
+    ];
+
+    engine.registerSyncHandler('FAILING_ACTION', async () => ({ success: false, retryable: true }));
+    engine.registerSyncHandler('SUCCESS_ACTION', async () => ({ success: true }));
+
+    const result = await engine.processOfflineMutations();
+
+    expect(result.success).toBe(true);
+    expect(mockQueueStore.removeMany).toHaveBeenCalledWith(['1', '2']);
+  });
+
+  it('should skip processing when head mutation is within nextRetryAt backoff window', async () => {
+    queueData = [
+      { id: '1', type: 'SUCCESS_ACTION', payload: {}, timestamp: 1, attempts: 1, nextRetryAt: Date.now() + 60_000 }
+    ];
+
+    const handler = vi.fn(async () => ({ success: true }));
+    engine.registerSyncHandler('SUCCESS_ACTION', handler);
+
+    const result = await engine.processOfflineMutations();
+
+    expect(result.success).toBe(false);
+    expect(handler).not.toHaveBeenCalled();
+  });
 });

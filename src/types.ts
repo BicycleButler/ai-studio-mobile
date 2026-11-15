@@ -1,4 +1,5 @@
 export * from "./types/stubs";
+export * from "./types/integrations";
 export type PromptType = "chat" | "code" | "stubs";
 
 export type SettingsTab =
@@ -6,6 +7,8 @@ export type SettingsTab =
   | "auth"
   | "key"
   | "profile"
+  | "providers"
+  | "integrations"
   | "audio"
   | "display"
   | "theme"
@@ -19,6 +22,17 @@ export type SettingsTab =
   | "model"
   | "models";
 
+export type ModelProviderId =
+  | "google"
+  | "openai"
+  | "anthropic"
+  | "openrouter"
+  | "groq"
+  | "openai-compatible"
+  | "local-ollama"
+  | "local-webllm"
+  | "local-browser";
+
 export interface ModelInfo {
   id: string;
   name: string;
@@ -29,6 +43,36 @@ export interface ModelInfo {
   supportsAudio: boolean;
   supportsSystemInstruction: boolean;
   supportsJson: boolean;
+  providerId?: ModelProviderId;
+  providerName?: string;
+  connectionId?: string;
+  isLocal?: boolean;
+  sizeLabel?: string;
+}
+
+export interface ProviderConnection {
+  id: string;
+  providerId: ModelProviderId;
+  name: string;
+  apiKey?: string;
+  baseUrl?: string;
+  customModels?: string[];
+  discoveredModels?: ModelInfo[];
+  enabled: boolean;
+  proxyViaServer?: boolean;
+  lastVerifiedAt?: number;
+  status?: "connected" | "error" | "unverified";
+  statusMessage?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface LocalModelLoadProgress {
+  modelId: string;
+  progress: number; // 0 to 1
+  text: string;
+  status: "idle" | "loading" | "ready" | "error";
+  error?: string;
 }
 
 export interface MessageAttachment {
@@ -77,6 +121,8 @@ export interface ChatMessage {
   error?: string;
   templateIds?: string[];
   rawUserText?: string;
+  modelName?: string;
+  providerId?: ModelProviderId;
 }
 
 export interface StructuredExample {
@@ -97,6 +143,8 @@ export interface GoogleUser {
 
 export interface PromptConfig {
   model: string;
+  providerId?: ModelProviderId;
+  connectionId?: string;
   systemInstruction: string;
   temperature: number;
   topP: number;
@@ -132,6 +180,9 @@ export interface IncomingMessage {
 
 export interface GenerateRequestBody {
   model?: string;
+  providerId?: ModelProviderId;
+  connectionId?: string;
+  baseUrl?: string;
   messages: IncomingMessage[];
   systemInstruction?: string;
   temperature?: number;

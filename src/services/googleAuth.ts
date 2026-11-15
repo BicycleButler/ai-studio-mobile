@@ -5,7 +5,7 @@ import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/s
 import { IMutableSingleton } from "../utils/storage/types";
 import { IApiClient } from "../utils/apiClient";
 
-import { IAuthProvider } from "./authProvider";
+import { AuthSignInResult, IAuthProvider } from "./authProvider";
 import { ILogger } from "../utils/logger";
 import { BrowserPlatformService } from "../services/platformService"
 
@@ -44,6 +44,8 @@ export interface IGoogleAuthService {
   fetchCurrentGoogleUser(): Promise<GoogleUser | null>;
   logoutGoogleUser(): Promise<void>;
   openGoogleOAuthPopup(authUrl: string): Promise<{ token?: string; code?: string }>;
+  supportsScopedSignIn?(): boolean;
+  signInWithScopes?(scopes: string[]): Promise<AuthSignInResult>;
 }
 
 export class GoogleAuthService implements IGoogleAuthService {
@@ -82,6 +84,35 @@ export class GoogleAuthService implements IGoogleAuthService {
     this.currentAuthProvider = provider;
   }
 
+  public supportsScopedSignIn(): boolean {
+    return Boolean(this.isBrowserEnv() && this.currentAuthProvider?.signInWithScopes);
+  }
+
+  public async signInWithScopes(scopes: string[]): Promise<AuthSignInResult> {
+    if (!this.currentAuthProvider?.signInWithScopes) {
+      throw new Error("Scoped Google sign-in is not available in this environment.");
+    }
+    this.isSigningIn = true;
+    try {
+      const result = await this.currentAuthProvider.signInWithScopes(scopes);
+      if (!result.accessToken) {
+        throw new Error("Google did not return an OAuth access token for the requested permissions.");
+      }
+      this.cachedAccessToken = result.accessToken;
+      await this.syncGoogleUserWithBackend({
+        ...result.user,
+        authSource: "google_oauth",
+        idToken: result.idToken,
+        accessToken: result.accessToken,
+      }).catch(() => {
+        // Session sync is best-effort; caller still receives the scoped OAuth token
+      });
+      return result;
+    } finally {
+      this.isSigningIn = false;
+    }
+  }
+
   public async getAccessToken(): Promise<string | null> {
     return this.cachedAccessToken;
   }
@@ -100,15 +131,30 @@ export class GoogleAuthService implements IGoogleAuthService {
   }
 
   public async syncGoogleUserWithBackend(
-    user: Partial<GoogleUser>
+    user: Partial<GoogleUser> & { idToken?: string; accessToken?: string }
   ): Promise<GoogleUser> {
     try {
+      let idToken = user.idToken;
+      if (!idToken && this.currentAuthProvider?.getIdToken) {
+        try {
+          idToken = (await this.currentAuthProvider.getIdToken()) || undefined;
+        } catch {
+          // ignore token retrieval error
+        }
+      }
+      const accessToken = user.accessToken || this.cachedAccessToken || undefined;
+      const payload = {
+        ...user,
+        ...(idToken ? { idToken } : {}),
+        ...(accessToken ? { accessToken } : {}),
+      };
+
       const data = await this.apiClient.fetch<{ user: GoogleUser }>("/api/auth/google", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(user),
+        body: JSON.stringify(payload),
       }, "Failed to authenticate Google account with server.");
 
       this.saveStoredGoogleUser(data.user);
@@ -145,12 +191,14 @@ export class GoogleAuthService implements IGoogleAuthService {
     this.isSigningIn = true;
     try {
       if (!this.currentAuthProvider) throw new Error("No AuthProvider configured.");
-      const { user, accessToken } = await this.currentAuthProvider.signIn();
+      const { user, accessToken, idToken } = await this.currentAuthProvider.signIn();
       this.cachedAccessToken = accessToken;
 
       const syncedUser = await this.syncGoogleUserWithBackend({
         ...user,
         authSource: "google_oauth",
+        idToken,
+        accessToken,
       });
 
       return { user: syncedUser, accessToken: this.cachedAccessToken || "" };

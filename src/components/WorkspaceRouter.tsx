@@ -9,6 +9,7 @@ import {
   MessageAttachment,
   ChatSession,
 } from "../types";
+import { RemoteFileSource } from "../types/integrations";
 
 export interface ChatWorkspaceProps {
   messages: ChatMessage[];
@@ -22,14 +23,41 @@ export interface ChatWorkspaceProps {
   onNewChat: () => void;
 }
 
+export interface IDEOpenedFile {
+  path: string;
+  name: string;
+  language: string;
+  content: string;
+  originalContent: string;
+  remoteSource?: RemoteFileSource;
+}
+
 export interface IDEWorkspaceProps {
   messages: ChatMessage[];
   freeformText?: string;
   structuredExamples?: StructuredExample[];
   onSwitchToPrompt: () => void;
+  openedWorkspaceFiles?: IDEOpenedFile[];
+  activeWorkspaceFilePath?: string | null;
+  isLoadingWorkspaceFile?: boolean;
+  workspaceFileError?: string | null;
+  onSelectWorkspaceFile?: (path: string | null) => void;
+  onOpenWorkspaceFile?: (path: string) => void;
+  onUpdateWorkspaceFileContent?: (path: string, content: string) => void;
+  onResetWorkspaceFile?: (path: string) => void;
+  onCloseWorkspaceFile?: (path: string) => void;
+  onOpenRemoteFileInIDE?: (file: {
+    path: string;
+    name: string;
+    language: string;
+    content: string;
+    remoteSource: RemoteFileSource;
+  }) => void;
+  onUpdateRemoteSource?: (filePath: string, remoteSource: RemoteFileSource, syncedContent: string) => void;
 }
 
 import { StubsWorkspaceProps } from "./StubsWorkspace";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 export interface WorkspaceRouterProps {
   promptType: PromptType;
@@ -47,13 +75,19 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
   return (
     <main className="flex-1 flex flex-col overflow-hidden relative">
       {promptType === "chat" && (
-        <ChatWorkspace {...chatProps} />
+        <ErrorBoundary scope="chat" key="chat">
+          <ChatWorkspace {...chatProps} />
+        </ErrorBoundary>
       )}
       {promptType === "code" && (
-        <MobileIDEWorkspace {...ideProps} />
+        <ErrorBoundary scope="code" key="code">
+          <MobileIDEWorkspace {...ideProps} />
+        </ErrorBoundary>
       )}
       {promptType === "stubs" && (
-        <StubsWorkspace {...(stubsProps as StubsWorkspaceProps)} />
+        <ErrorBoundary scope="stubs" key="stubs">
+          <StubsWorkspace {...(stubsProps as StubsWorkspaceProps)} />
+        </ErrorBoundary>
       )}
     </main>
   );

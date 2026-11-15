@@ -19,7 +19,8 @@ export interface IProjectService {
   ): ProjectInfo;
 }
 
-import { IStorageFactory } from "./StorageFactory";
+import { IStorageFactory, DefaultStorageFactory } from "./StorageFactory";
+import { IStorageSyncAdapter } from "./syncAdapter";
 
 export interface ProjectServiceConfig {
   timeProvider?: ITimeProvider;
@@ -28,9 +29,8 @@ export interface ProjectServiceConfig {
   idGenerator?: IIdGenerator;
   storageFactory?: IStorageFactory;
   activeItemManagerFactory?: IActiveItemManagerFactory;
+  syncAdapter?: IStorageSyncAdapter<ProjectInfo[]>;
 }
-
-import { DefaultStorageFactory } from "./StorageFactory";
 
 export class ProjectService implements IProjectService {
   public projectsManager: IActiveItemManager<ProjectInfo>;
@@ -47,6 +47,11 @@ export class ProjectService implements IProjectService {
       collectionOptions: {
         transformIn: (p) => ({ ...p, apiKey: encryptSecret(p.apiKey) }),
         transformOut: (p) => ({ ...p, apiKey: decryptSecret(p.apiKey) }),
+        onSave: config?.syncAdapter
+          ? (clean) => {
+              config.syncAdapter!.syncItem(clean, "projects");
+            }
+          : undefined,
       },
       activeIdKey: STORAGE_KEYS.ACTIVE_PROJECT_ID,
       activeIdOptions: {

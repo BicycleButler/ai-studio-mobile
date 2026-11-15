@@ -7,6 +7,7 @@ import {
   Sliders,
   MoreVertical,
   Layers,
+  Blocks,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PromptType, ProjectInfo } from "../types";
@@ -262,7 +263,31 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                       Models & Tuners
                     </span>
                     <span className="text-[11px] text-muted-foreground truncate">
-                      {currentModelName} • Gemini 3.8 & Flash
+                      {currentModelName} · Multi-Provider &amp; Local
+                    </span>
+                  </div>
+                </button>
+
+                {/* Option 5: Cloud & Dev Integrations */}
+                <button
+                  type="button"
+                  id="overflow-nav-integrations"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onOpenSettings("integrations");
+                  }}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
+                    <Blocks className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-xs font-semibold text-foreground tracking-tight">
+                      Integrations
+                    </span>
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      Firebase, GCP, GitHub &amp; Vercel
                     </span>
                   </div>
                 </button>

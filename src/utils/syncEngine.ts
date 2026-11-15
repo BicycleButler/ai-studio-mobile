@@ -5,7 +5,12 @@ import { IQueueProcessingStrategy, StrictFifoQueueProcessingStrategy } from "./s
 
 export interface ISyncEngine {
   registerSyncHandler(type: string, handler: SyncHandler): void;
-  processOfflineMutations(): Promise<{ success: boolean; conflicts: ConflictData[] }>;
+  processOfflineMutations(): Promise<{
+    success: boolean;
+    conflicts: ConflictData[];
+    droppedIds?: string[];
+    droppedMutations?: import("./offlineService").OfflineMutation[];
+  }>;
 }
 
 export class SyncEngine implements ISyncEngine {
@@ -31,11 +36,13 @@ export class SyncEngine implements ISyncEngine {
   public async processOfflineMutations(): Promise<{
     success: boolean;
     conflicts: ConflictData[];
+    droppedIds?: string[];
+    droppedMutations?: import("./offlineService").OfflineMutation[];
   }> {
     const queue = await this.queueStore.getQueue();
 
     if (queue.length === 0) {
-      return { success: true, conflicts: [] };
+      return { success: true, conflicts: [], droppedIds: [], droppedMutations: [] };
     }
 
     const result = await this.processingStrategy.process(queue, this.syncRegistry, this.logger);
@@ -45,6 +52,15 @@ export class SyncEngine implements ISyncEngine {
       await this.queueStore.removeMany(result.successfulIds);
     }
 
-    return { success: result.success, conflicts: result.conflicts };
+    if (result.updatedMutations && result.updatedMutations.length > 0 && typeof this.queueStore.updateMany === "function") {
+      await this.queueStore.updateMany(result.updatedMutations);
+    }
+
+    return {
+      success: result.success,
+      conflicts: result.conflicts,
+      droppedIds: result.droppedIds || [],
+      droppedMutations: result.droppedMutations || [],
+    };
   }
 }

@@ -90,13 +90,12 @@ export class ChatHistoryService implements IChatHistoryService {
         // Sort by updatedAt descending
         sessions = [...sessions].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
-        // Keep only top 10
-        if (sessions.length > 10) {
-            const retained = sessions.slice(0, 10);
-            // We use raw setter here to bypass the write-through pipeline temporarily or just use the collection
-            // We must be careful not to trigger another quota error, but we are *shrinking* the data.
-            collection.save(retained);
-            this.config.logger.info(`ChatHistoryService: Evicted ${sessions.length - 10} sessions from ${key}`);
+        // Progressive eviction: drop down to 10, then 5, then 2 sessions if needed
+        let targetCount = sessions.length > 10 ? 10 : sessions.length > 5 ? 5 : sessions.length > 2 ? 2 : sessions.length;
+        if (targetCount < sessions.length) {
+          const retained = sessions.slice(0, targetCount);
+          collection.save(retained);
+          this.config.logger.info(`ChatHistoryService: Evicted ${sessions.length - targetCount} sessions from ${key}`);
         }
       });
     } catch (e) {
@@ -132,15 +131,10 @@ export class ChatHistoryService implements IChatHistoryService {
 
         keysToClean.forEach((key) => {
           const collection = this.getChatCollectionByKey(key);
-          const rawCollection = this.config.collectionRegistry.get(key);
-          const rawSessions = rawCollection.load();
-
-          const cleanSessions = collection.load();
+          const rawSessions = collection.load();
+          const cleanSessions = rawSessions.filter((s) => !this.isMockChatSession(s));
           if (cleanSessions.length !== rawSessions.length) {
             collection.save(cleanSessions);
-          }
-          if (typeof ((rawCollection as unknown) as { dispose?: () => void }).dispose === "function") {
-            ((rawCollection as unknown) as { dispose: () => void }).dispose();
           }
         });
       }
@@ -155,6 +149,10 @@ export class ChatHistoryService implements IChatHistoryService {
       images: m.images?.map((img) => ({
         ...img,
         data: "", // Stripped to conserve storage quota
+        previewUrl:
+          img.previewUrl && img.previewUrl.startsWith("data:")
+            ? ""
+            : img.previewUrl,
       })),
     }));
   }

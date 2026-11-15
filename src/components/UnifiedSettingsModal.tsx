@@ -29,9 +29,14 @@ import { useTheme } from "../hooks/useTheme";
 import { SettingsDisplayTab } from "./settings/SettingsDisplayTab";
 import { SettingsAccountTab } from "./settings/SettingsAccountTab";
 import { SettingsSecurityTab } from "./settings/SettingsSecurityTab";
+import { ProvidersKeysSection } from "./settings/ProvidersKeysSection";
+import { IntegrationsHubSection } from "./integrations/IntegrationsHubSection";
+import { IDEOpenedFile } from "./WorkspaceRouter";
+import { RemoteFileSource } from "../types/integrations";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 import { useServices } from "../services/ServiceContext";
 import { SettingsTab } from "../types";
+import { getProviderDisplayName } from "../utils/providerCatalog";
 
 export interface AccountSettingsProps {
   customApiKey: string;
@@ -89,6 +94,17 @@ export interface UnifiedSettingsModalProps
   // Display & Appearance
   deviceMode: DeviceFrameMode;
   onSelectDeviceMode: (mode: DeviceFrameMode) => void;
+
+  // Bi-directional IDE bridge
+  openedWorkspaceFiles?: IDEOpenedFile[];
+  activeWorkspaceFilePath?: string | null;
+  onOpenRemoteFileInIDE?: (file: {
+    path: string;
+    name: string;
+    language: string;
+    content: string;
+    remoteSource: RemoteFileSource;
+  }) => void;
 }
 
 export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
@@ -123,6 +139,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   messages = [],
   deviceMode,
   onSelectDeviceMode,
+  openedWorkspaceFiles = [],
+  activeWorkspaceFilePath = null,
+  onOpenRemoteFileInIDE,
 }) => {
   const { mode: themeMode, setThemeMode } = useTheme();
 
@@ -299,6 +318,8 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               hasServerKey={hasServerKey}
               onRefreshServerAuth={onRefreshServerAuth}
               onOpenCustomTabBrowser={() => _onOpenCustomTabBrowser && _onOpenCustomTabBrowser()}
+              onOpenProvidersTab={() => setActiveTab("providers")}
+              onOpenIntegrationsTab={() => setActiveTab("integrations")}
               isVerifyingKey={false}
               localKeyValidationResult={null}
               activeProject={activeProject}
@@ -318,6 +339,34 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               getProjectSelectionState={getProjectSelectionState}
               handleBulkDeleteProjects={handleBulkDeleteProjects}
               liveModelsCount={liveModelsCount}
+            />
+          )}
+          {/* TAB: PROVIDERS & LOCAL MODELS */}
+          {activeTab === "providers" && (
+            <ProvidersKeysSection
+              activeModelId={config?.model || ""}
+              onActivateModel={(model) => {
+                if (onChangeConfig && config) {
+                  onChangeConfig({
+                    ...config,
+                    model: model.id,
+                    providerId: model.providerId || "google",
+                    connectionId: model.connectionId,
+                  });
+                }
+              }}
+            />
+          )}
+          {/* TAB: CLOUD & DEV INTEGRATIONS */}
+          {activeTab === "integrations" && (
+            <IntegrationsHubSection
+              openedWorkspaceFiles={openedWorkspaceFiles}
+              activeIdeFile={
+                openedWorkspaceFiles.find((f) => f.path === activeWorkspaceFilePath) ||
+                openedWorkspaceFiles[0] ||
+                null
+              }
+              onOpenRemoteFileInIDE={onOpenRemoteFileInIDE}
             />
           )}
           {/* TAB 2: VOICE & SPEECH */}
@@ -360,6 +409,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
                   isModal={false}
                   hasApiKey={hasAnyAuth}
                   onOpenAuth={() => setActiveTab("account")}
+                  onOpenProviders={() => setActiveTab("providers")}
                 />
               ) : (
                 <div className="p-8 rounded-2xl bg-card text-center space-y-3">
@@ -429,8 +479,10 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               </span>
               <span className="truncate hidden sm:inline">
                 {hasAnyAuth
-                  ? "Gemini AI Studio Connected"
-                  : "API Key Required"}
+                  ? config?.providerId && config.providerId !== "google"
+                    ? `${getProviderDisplayName(config.providerId)} Active`
+                    : "AI Provider Connected"
+                  : "API Key or Local Model Required"}
               </span>
             </div>
 

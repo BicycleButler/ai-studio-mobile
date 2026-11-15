@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { ModelInfo } from "../types";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { ModelInfo, ProviderConnection } from "../types";
 import { useServices } from "../services/ServiceContext";
 import {
   CURATED_MODELS,
@@ -10,16 +10,38 @@ import {
 export function useModelConfig(
   customApiKey: string
 ) {
-  const { apiClient } = useServices();
-  const [models, setModels] = useState<ModelInfo[]>(CURATED_MODELS);
+  const { apiClient, providerConnectionService } = useServices();
+  const [googleModels, setGoogleModels] = useState<ModelInfo[]>(() =>
+    CURATED_MODELS.map((m) => ({
+      ...m,
+      providerId: "google" as const,
+      providerName: "Google AI Studio",
+    }))
+  );
+  const [connections, setConnections] = useState<ProviderConnection[]>(() =>
+    providerConnectionService.loadConnections()
+  );
+
+  useEffect(() => {
+    const unsub = providerConnectionService.connectionsObservable.subscribe((list) => {
+      setConnections(list);
+    });
+    return () => unsub();
+  }, [providerConnectionService]);
 
   const refreshModels = useCallback(async (apiKey?: string, forceRefresh = false) => {
     try {
       const data = await fetchModels(apiClient, apiKey, forceRefresh);
       if (data?.models && Array.isArray(data.models) && data.models.length > 0) {
-        const cleaned = data.models.filter((m: ModelInfo) => !isDeprecatedOrUnusableModel(m.id));
+        const cleaned = data.models
+          .filter((m: ModelInfo) => !isDeprecatedOrUnusableModel(m.id, m.providerId || "google"))
+          .map((m: ModelInfo) => ({
+            ...m,
+            providerId: m.providerId || ("google" as const),
+            providerName: m.providerName || "Google AI Studio",
+          }));
         if (cleaned.length > 0) {
-          setModels(cleaned);
+          setGoogleModels(cleaned);
         }
       }
     } catch {
@@ -31,9 +53,14 @@ export function useModelConfig(
     refreshModels(customApiKey);
   }, [customApiKey, refreshModels]);
 
+  const models = useMemo(() => {
+    const providerModels = providerConnectionService.getEnabledProviderModels();
+    return [...googleModels, ...providerModels];
+  }, [googleModels, connections, providerConnectionService]);
+
   return {
     models,
-    setModels,
+    setModels: setGoogleModels,
     refreshModels,
   };
 }

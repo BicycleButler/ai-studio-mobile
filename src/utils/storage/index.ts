@@ -5,6 +5,8 @@ export * from "./general";
 export * from "./draftState";
 export * from "./projects";
 export * from "./prompts";
+export * from "./providers";
+export * from "./integrations";
 export * from "./core";
 
 

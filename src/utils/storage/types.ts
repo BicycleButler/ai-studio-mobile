@@ -1,8 +1,12 @@
 import { IObservable } from "../observable";
 
+export interface StorageSaveOptions {
+  skipSync?: boolean;
+}
+
 export interface IStorageBase<T> extends IObservable<T>, IDisposable {
   load(): T;
-  save(item: T): void;
+  save(item: T, saveOptions?: StorageSaveOptions): void;
   clear(): void;
 }
 

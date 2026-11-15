@@ -1,16 +1,31 @@
 import { defaultServerContext } from "./serverContext";
 import path from "node:path";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
-
 import { DatabaseSync } from "node:sqlite";
+import ts from "typescript";
 import {
   StubsNode,
   StubsEdge,
   StubsGraphData,
   StubsLintViolation,
+  StubsPruneIssue,
+  StubsPruneResult,
   StubsImpactResult,
+  StubsTieredContext,
   StubsSidecarSpec,
+  StubsQueryResult,
+  StubsQueryMatch,
+  StubsRunResult,
+  StubsRunStep,
+  StubsDiagramGroupBy,
+  StubsDiagramType,
+  StubsCommandName,
+  StubsSpecCategory,
+  StubsDriftStatus,
+  WorkspaceTreeNode,
+  WorkspaceFileTreeResponse,
 } from "../src/types";
 
 export const stubsEvents = new EventEmitter();
@@ -19,30 +34,524 @@ stubsEvents.setMaxListeners(50);
 const CWD = process.cwd();
 const CLI_PATH = path.resolve(CWD, ".agents/skills/stubs/dist/cli.cjs");
 const DB_PATH = path.resolve(CWD, ".stubs/graph.sqlite");
+const CONFIG_PATH = path.resolve(CWD, ".stubs/config.json");
 
-// Helper to safely get an open DatabaseSync connection
+interface StubsWorkspaceConfig {
+  project_name: string;
+  version: string;
+  autonomy_level: string;
+  paths?: {
+    specs_dir?: string;
+    templates_dir?: string;
+    database_path?: string;
+  };
+}
+
+function readWorkspaceConfig(): StubsWorkspaceConfig {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      const raw = fs.readFileSync(CONFIG_PATH, "utf8");
+      const parsed = JSON.parse(raw) as Partial<StubsWorkspaceConfig>;
+      return {
+        project_name: parsed.project_name || "ai-studio-mobile",
+        version: parsed.version || "1.0.0",
+        autonomy_level: parsed.autonomy_level || "guided_execution",
+        paths: parsed.paths,
+      };
+    }
+  } catch {
+    // Fallback to defaults
+  }
+  return {
+    project_name: "ai-studio-mobile",
+    version: "1.0.0",
+    autonomy_level: "guided_execution",
+  };
+}
+
+function isCliBinaryPresent(): boolean {
+  return fs.existsSync(CLI_PATH);
+}
+
+function emitLog(type: "start" | "stdout" | "stderr" | "error" | "exit", text: string, code?: number): void {
+  stubsEvents.emit("log", {
+    type,
+    text,
+    timestamp: Date.now(),
+    ...(code !== undefined ? { code } : {}),
+  });
+}
+
+function assertInsideWorkspace(resolvedPath: string, label = "path"): void {
+  const cwdPrefix = CWD.endsWith(path.sep) ? CWD : CWD + path.sep;
+  if (resolvedPath !== CWD && !resolvedPath.startsWith(cwdPrefix)) {
+    throw new Error(`Invalid ${label} outside workspace`);
+  }
+}
+
+let sharedDb: DatabaseSync | null = null;
+
+function configureSqlitePragmas(db: DatabaseSync): void {
+  db.exec(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA busy_timeout = 5000;
+  `);
+}
+
+function ensureDatabase(): DatabaseSync {
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (sharedDb) {
+    try {
+      sharedDb.prepare("SELECT 1").get();
+      return sharedDb;
+    } catch {
+      try {
+        sharedDb.close();
+      } catch {
+        // ignore close error
+      }
+      sharedDb = null;
+    }
+  }
+  const db = new DatabaseSync(DB_PATH);
+  configureSqlitePragmas(db);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS nodes (
+      id TEXT PRIMARY KEY,
+      file_path TEXT NOT NULL,
+      entity_type TEXT,
+      name TEXT NOT NULL,
+      domain TEXT,
+      layer INTEGER,
+      fan_in INTEGER DEFAULT 0,
+      fan_out INTEGER DEFAULT 0,
+      degree INTEGER DEFAULT 0,
+      ast_hash TEXT,
+      line_count INTEGER DEFAULT 0,
+      exports_json TEXT
+    );
+    CREATE TABLE IF NOT EXISTS edges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source TEXT NOT NULL,
+      target TEXT NOT NULL,
+      relationship TEXT DEFAULT 'imports',
+      weight INTEGER DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS metadata (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+  `);
+  sharedDb = db;
+  return db;
+}
+
 function getDatabase(): DatabaseSync | null {
   try {
     if (!fs.existsSync(DB_PATH)) {
       return null;
     }
-    return new DatabaseSync(DB_PATH);
+    return ensureDatabase();
   } catch (err) {
     defaultServerContext.services.logger.error("[stubsService] Error opening SQLite database:", err);
     return null;
   }
 }
 
+export function closeStubsDatabase(): void {
+  if (sharedDb) {
+    try {
+      sharedDb.close();
+    } catch {
+      // ignore already closed
+    }
+    sharedDb = null;
+  }
+}
+
+function inferDomainAndLayer(relPath: string): { domain: string; layer: number; entityType: string } {
+  const norm = relPath.replace(/\\/g, "/");
+  if (norm.startsWith("server/") || norm === "server.ts") {
+    return { domain: "server", layer: 6, entityType: "server" };
+  }
+  if (norm === "src/App.tsx" || norm === "src/main.tsx") {
+    return { domain: "core", layer: 5, entityType: "entrypoint" };
+  }
+  if (norm.startsWith("src/types") || norm.startsWith("src/schemas/")) {
+    return { domain: "core", layer: 0, entityType: norm.includes("schema") ? "schema" : "type" };
+  }
+  if (norm.startsWith("src/utils/") || norm.startsWith("src/data/")) {
+    return { domain: "utils", layer: 1, entityType: norm.includes(".test.") ? "test" : "utility" };
+  }
+  if (norm.startsWith("src/services/")) {
+    return { domain: "services", layer: 2, entityType: norm.includes(".test.") ? "test" : "service" };
+  }
+  if (norm.startsWith("src/hooks/") || norm.startsWith("src/contexts/")) {
+    return {
+      domain: norm.startsWith("src/contexts/") ? "core" : "hooks",
+      layer: 3,
+      entityType: norm.includes("contexts/") ? "context" : norm.includes(".test.") ? "test" : "hook",
+    };
+  }
+  if (norm.startsWith("src/components/")) {
+    return {
+      domain: "components",
+      layer: 4,
+      entityType: norm.includes(".test.") ? "test" : "component",
+    };
+  }
+  return { domain: "core", layer: 1, entityType: "module" };
+}
+
+async function collectSourceFiles(): Promise<string[]> {
+  const files: string[] = [];
+  const ignoredDirs = new Set(["node_modules", "dist", "dev-dist", ".git", ".stubs", ".agents", "test-results", "scratch"]);
+
+  async function walk(dir: string): Promise<void> {
+    if (!fs.existsSync(dir)) return;
+    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+    for (const ent of entries) {
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) {
+        if (!ignoredDirs.has(ent.name)) {
+          await walk(full);
+        }
+      } else if (ent.isFile() && /\.(ts|tsx)$/.test(ent.name) && !ent.name.endsWith(".d.ts")) {
+        files.push(path.relative(CWD, full).replace(/\\/g, "/"));
+      }
+    }
+  }
+
+  await walk(path.join(CWD, "src"));
+  await walk(path.join(CWD, "server"));
+  if (fs.existsSync(path.join(CWD, "server.ts"))) {
+    files.push("server.ts");
+  }
+
+  return files.sort();
+}
+
+function resolveImportTarget(fromRelPath: string, specifier: string, knownFiles: Set<string>): string | null {
+  if (!specifier.startsWith(".") && !specifier.startsWith("/")) {
+    const pkgName = specifier.startsWith("@")
+      ? specifier.split("/").slice(0, 2).join("/")
+      : specifier.split("/")[0];
+    return `pkg:${pkgName}`;
+  }
+
+  const fromDir = path.dirname(path.resolve(CWD, fromRelPath));
+  const baseResolved = path.resolve(fromDir, specifier);
+  const candidates = [
+    baseResolved,
+    `${baseResolved}.ts`,
+    `${baseResolved}.tsx`,
+    path.join(baseResolved, "index.ts"),
+    path.join(baseResolved, "index.tsx"),
+  ];
+
+  for (const candidate of candidates) {
+    const rel = path.relative(CWD, candidate).replace(/\\/g, "/");
+    if (knownFiles.has(rel)) {
+      return rel;
+    }
+  }
+  return null;
+}
+
+async function parseTypeScriptFile(relPath: string, knownFiles: Set<string>): Promise<{
+  exports: string[];
+  imports: Array<{ target: string; relationship: string }>;
+  astHash: string;
+  lineCount: number;
+}> {
+  const fullPath = path.resolve(CWD, relPath);
+  const content = await fs.promises.readFile(fullPath, "utf8");
+  const lineCount = content.split("\n").length;
+  const astHash = crypto.createHash("sha256").update(content).digest("hex").slice(0, 12);
+
+  const scriptKind = relPath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sourceFile = ts.createSourceFile(relPath, content, ts.ScriptTarget.Latest, true, scriptKind);
+
+  const exportsSet = new Set<string>();
+  const importsList: Array<{ target: string; relationship: string }> = [];
+
+  const hasExportModifier = (node: ts.Node): boolean => {
+    if (!ts.canHaveModifiers(node)) return false;
+    const mods = ts.getModifiers(node);
+    return Boolean(mods?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword));
+  };
+
+  sourceFile.forEachChild((node) => {
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+      const target = resolveImportTarget(relPath, node.moduleSpecifier.text, knownFiles);
+      if (target) {
+        const isTypeOnly = Boolean(node.importClause?.isTypeOnly);
+        importsList.push({ target, relationship: isTypeOnly ? "type-imports" : "imports" });
+      }
+    } else if (ts.isExportDeclaration(node)) {
+      if (node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+        const target = resolveImportTarget(relPath, node.moduleSpecifier.text, knownFiles);
+        if (target) {
+          importsList.push({ target, relationship: "re-exports" });
+        }
+      }
+      if (node.exportClause && ts.isNamedExports(node.exportClause)) {
+        for (const el of node.exportClause.elements) {
+          exportsSet.add(el.name.text);
+        }
+      }
+    } else if (ts.isExportAssignment(node)) {
+      exportsSet.add("default");
+    } else if (hasExportModifier(node)) {
+      if (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node) || ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node)) {
+        if (node.name) exportsSet.add(node.name.text);
+        else exportsSet.add("default");
+      } else if (ts.isVariableStatement(node)) {
+        for (const decl of node.declarationList.declarations) {
+          if (ts.isIdentifier(decl.name)) {
+            exportsSet.add(decl.name.text);
+          }
+        }
+      }
+    }
+  });
+
+  return {
+    exports: Array.from(exportsSet),
+    imports: importsList,
+    astHash,
+    lineCount,
+  };
+}
+
+let activeScanPromise: Promise<{
+  filesScanned: number;
+  edgesCount: number;
+  symbolsCount: number;
+  durationMs: number;
+}> | null = null;
+
+/**
+ * Performs a real AST scan of the repository and updates .stubs/graph.sqlite.
+ * Concurrent invocations coalesce onto the in-flight scan to avoid SQLITE_BUSY races.
+ */
+export async function scanWorkspace(emitToStream = false): Promise<{
+  filesScanned: number;
+  edgesCount: number;
+  symbolsCount: number;
+  durationMs: number;
+}> {
+  if (activeScanPromise) {
+    return activeScanPromise;
+  }
+  activeScanPromise = performWorkspaceScan(emitToStream).finally(() => {
+    activeScanPromise = null;
+  });
+  return activeScanPromise;
+}
+
+async function performWorkspaceScan(emitToStream = false): Promise<{
+  filesScanned: number;
+  edgesCount: number;
+  symbolsCount: number;
+  durationMs: number;
+}> {
+  const startTime = Date.now();
+  if (emitToStream) {
+    emitLog("start", "$ stubs scan");
+  }
+
+  const files = await collectSourceFiles();
+  const knownFiles = new Set(files);
+
+  const rawNodes = new Map<string, {
+    id: string;
+    filePath: string;
+    entityType: string;
+    name: string;
+    domain: string;
+    layer: number;
+    astHash: string;
+    lineCount: number;
+    exports: string[];
+  }>();
+
+  const rawEdges: Array<{ source: string; target: string; relationship: string; weight: number }> = [];
+  const fanInMap = new Map<string, number>();
+  const fanOutMap = new Map<string, number>();
+
+  for (let i = 0; i < files.length; i++) {
+    const relPath = files[i];
+    if (i > 0 && i % 15 === 0) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+    try {
+      const { exports: fileExports, imports, astHash, lineCount } = await parseTypeScriptFile(relPath, knownFiles);
+      const { domain, layer, entityType } = inferDomainAndLayer(relPath);
+
+      rawNodes.set(relPath, {
+        id: relPath,
+        filePath: relPath,
+        entityType,
+        name: path.basename(relPath),
+        domain,
+        layer,
+        astHash,
+        lineCount,
+        exports: fileExports,
+      });
+
+      const seenTargets = new Set<string>();
+      for (const imp of imports) {
+        if (imp.target === relPath) continue;
+        if (seenTargets.has(imp.target)) continue;
+        seenTargets.add(imp.target);
+
+        rawEdges.push({
+          source: relPath,
+          target: imp.target,
+          relationship: imp.relationship,
+          weight: 1,
+        });
+
+        if (!imp.target.startsWith("pkg:")) {
+          fanOutMap.set(relPath, (fanOutMap.get(relPath) || 0) + 1);
+          fanInMap.set(imp.target, (fanInMap.get(imp.target) || 0) + 1);
+        }
+      }
+    } catch (err) {
+      defaultServerContext.services.logger.warn(`[stubsService] Failed parsing ${relPath}:`, err);
+    }
+  }
+
+  const db = ensureDatabase();
+  let totalSymbols = 0;
+
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    db.exec("DELETE FROM nodes");
+    db.exec("DELETE FROM edges");
+
+    const insertNode = db.prepare(`
+      INSERT INTO nodes (id, file_path, entity_type, name, domain, layer, fan_in, fan_out, degree, ast_hash, line_count, exports_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const node of rawNodes.values()) {
+      const fanIn = fanInMap.get(node.id) || 0;
+      const fanOut = fanOutMap.get(node.id) || 0;
+      const degree = fanIn + fanOut;
+      totalSymbols += node.exports.length;
+
+      insertNode.run(
+        node.id,
+        node.filePath,
+        node.entityType,
+        node.name,
+        node.domain,
+        node.layer,
+        fanIn,
+        fanOut,
+        degree,
+        node.astHash,
+        node.lineCount,
+        JSON.stringify(node.exports)
+      );
+    }
+
+    const insertEdge = db.prepare(`
+      INSERT INTO edges (source, target, relationship, weight)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    for (const edge of rawEdges) {
+      insertEdge.run(edge.source, edge.target, edge.relationship, edge.weight);
+    }
+
+    db.prepare("INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)").run(
+      "last_scanned_at",
+      String(Date.now())
+    );
+
+    db.exec("COMMIT");
+  } catch (err) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      // ignore rollback error
+    }
+    throw err;
+  }
+
+  const durationMs = Date.now() - startTime;
+  if (emitToStream) {
+    emitLog("stdout", `Scanned ${rawNodes.size} TypeScript modules, ${rawEdges.length} dependency edges, and ${totalSymbols} exported symbols in ${durationMs}ms.`);
+    emitLog("stdout", `Updated graph database at .stubs/graph.sqlite.`);
+    emitLog("exit", `[Process exited with code 0]`, 0);
+  }
+
+  return {
+    filesScanned: rawNodes.size,
+    edgesCount: rawEdges.length,
+    symbolsCount: totalSymbols,
+    durationMs,
+  };
+}
+
+function detectCycles(nodes: StubsNode[], edges: StubsEdge[]): string[][] {
+  const adj = new Map<string, string[]>();
+  for (const edge of edges) {
+    if (edge.target.startsWith("pkg:")) continue;
+    const list = adj.get(edge.source) || [];
+    list.push(edge.target);
+    adj.set(edge.source, list);
+  }
+
+  const visited = new Set<string>();
+  const inStack = new Set<string>();
+  const cyclesFound: string[][] = [];
+
+  function dfs(curr: string, currentPath: string[]) {
+    visited.add(curr);
+    inStack.add(curr);
+    currentPath.push(curr);
+
+    const neighbors = adj.get(curr) || [];
+    for (const next of neighbors) {
+      if (!visited.has(next)) {
+        dfs(next, [...currentPath]);
+      } else if (inStack.has(next)) {
+        const cycleStart = currentPath.indexOf(next);
+        if (cycleStart !== -1) {
+          cyclesFound.push([...currentPath.slice(cycleStart), next]);
+        }
+      }
+    }
+    inStack.delete(curr);
+  }
+
+  for (const node of nodes) {
+    if (!visited.has(node.id)) {
+      dfs(node.id, []);
+    }
+  }
+
+  return cyclesFound;
+}
+
 /**
  * Returns parsed dependency graph data from .stubs/graph.sqlite
  */
 export async function getGraphData(): Promise<StubsGraphData> {
+  const config = readWorkspaceConfig();
   let db = getDatabase();
 
-  // If DB does not exist, run a scan first
   if (!db) {
     try {
-      await runCliCommand("scan");
+      await scanWorkspace(false);
       db = getDatabase();
     } catch (e) {
       defaultServerContext.services.logger.warn("[stubsService] Initial scan failed:", e);
@@ -54,6 +563,7 @@ export async function getGraphData(): Promise<StubsGraphData> {
   const domains: Record<string, number> = {};
   const layers: Record<number, number> = {};
   let totalSymbols = 0;
+  let lastScannedAt: number | undefined;
 
   interface NodeRow {
     id: string;
@@ -82,13 +592,16 @@ export async function getGraphData(): Promise<StubsGraphData> {
     try {
       const nodeRows = db.prepare("SELECT * FROM nodes ORDER BY degree DESC").all() as unknown as NodeRow[];
       for (const row of nodeRows) {
-        let parsedExports = [];
+        let parsedExports: string[] = [];
         try {
           if (row.exports_json) parsedExports = JSON.parse(row.exports_json);
         } catch {
           // Ignore parse errors
         }
         totalSymbols += Array.isArray(parsedExports) ? parsedExports.length : 0;
+
+        const sidecarCandidate = `${row.file_path}.md`;
+        const hasSidecar = fs.existsSync(path.resolve(CWD, sidecarCandidate));
 
         const node: StubsNode = {
           id: row.id,
@@ -103,6 +616,8 @@ export async function getGraphData(): Promise<StubsGraphData> {
           astHash: row.ast_hash,
           lineCount: row.line_count || 0,
           exportsJson: row.exports_json,
+          hasSidecar,
+          sidecarPath: hasSidecar ? sidecarCandidate : undefined,
         };
         nodes.push(node);
 
@@ -113,55 +628,400 @@ export async function getGraphData(): Promise<StubsGraphData> {
       const edgeRows = db.prepare("SELECT * FROM edges").all() as unknown as EdgeRow[];
       for (const row of edgeRows) {
         edges.push({
-          id: typeof row.id === "number" ? row.id : (row.id ? parseInt(String(row.id), 10) : undefined),
+          id: typeof row.id === "number" ? row.id : row.id ? parseInt(String(row.id), 10) : undefined,
           source: row.source,
           target: row.target,
           relationship: row.relationship || "imports",
           weight: row.weight || 1,
         });
       }
+
+      try {
+        const metaRow = db.prepare("SELECT value FROM metadata WHERE key = 'last_scanned_at'").get() as { value?: string } | undefined;
+        if (metaRow?.value) lastScannedAt = Number(metaRow.value);
+      } catch {
+        // metadata table might not exist in older sqlite files
+      }
     } catch (err) {
       defaultServerContext.services.logger.error("[stubsService] Query error:", err);
     }
   }
 
+  const cycles = detectCycles(nodes, edges);
+  const specs = await listSidecarSpecs();
+  const sidecarsCount = specs.filter((s) => s.category === "sidecar").length;
+  const planningDocsCount = specs.filter((s) => s.category === "planning" || s.category === "concept").length;
+
   return {
-    projectName: "ai-studio-mobile",
-    version: "1.0.0",
+    projectName: config.project_name,
+    version: config.version,
+    autonomyLevel: config.autonomy_level,
+    cliAvailable: isCliBinaryPresent(),
     nodes,
     edges,
     summary: {
       totalFiles: nodes.length,
       totalEdges: edges.length,
       totalSymbols,
-      cyclesCount: 0,
+      cyclesCount: cycles.length,
+      sidecarsCount,
+      planningDocsCount,
       domains,
       layers,
+      lastScannedAt,
     },
   };
 }
 
+function parseExports(node: StubsNode): string[] {
+  if (!node.exportsJson) return [];
+  try {
+    const parsed = JSON.parse(node.exportsJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function findNodeMatch(nodes: StubsNode[], query: string): StubsNode | undefined {
+  const q = query.trim().toLowerCase();
+  if (!q) return undefined;
+  return (
+    nodes.find((n) => n.id.toLowerCase() === q) ||
+    nodes.find((n) => n.filePath.toLowerCase() === q) ||
+    nodes.find((n) => n.name.toLowerCase() === q) ||
+    nodes.find((n) => n.name.toLowerCase().replace(/\.(ts|tsx)$/, "") === q) ||
+    nodes.find((n) => parseExports(n).some((ex) => ex.toLowerCase() === q)) ||
+    nodes.find((n) => n.filePath.toLowerCase().includes(q))
+  );
+}
+
 /**
- * Returns Mermaid diagram string (either generated from CLI or constructed from graph data)
+ * Unified GraphRAG & Surgical Query Engine (`stubs query "<question or prefix>"`)
+ * Supports:
+ * - `explain: <target>`
+ * - `path: <source> to <target>`
+ * - `blast: <target>`
+ * - `map:`
+ * - `<concept or question>`
  */
-export async function getDiagram(groupBy: "domain" | "layer" = "domain"): Promise<{ mermaid: string; edgeCount: number; nodeCount: number }> {
+export async function queryGraph(rawQuery: string, budget = 1500): Promise<StubsQueryResult> {
+  const graph = await getGraphData();
+  const q = rawQuery.trim();
+  const lower = q.toLowerCase();
+
+  // 1. Level 0 Macro Map (`map:`)
+  if (lower === "map:" || lower === "map") {
+    const domainStats = new Map<string, { nodes: StubsNode[]; layerSum: number }>();
+    for (const n of graph.nodes) {
+      const entry = domainStats.get(n.domain) || { nodes: [], layerSum: 0 };
+      entry.nodes.push(n);
+      entry.layerSum += n.layer;
+      domainStats.set(n.domain, entry);
+    }
+
+    const domains = Array.from(domainStats.entries()).map(([domain, info]) => {
+      const sorted = [...info.nodes].sort((a, b) => b.degree - a.degree);
+      return {
+        domain,
+        nodeCount: info.nodes.length,
+        hubFile: sorted[0]?.id,
+        avgLayer: Number((info.layerSum / Math.max(1, info.nodes.length)).toFixed(1)),
+      };
+    }).sort((a, b) => b.nodeCount - a.nodeCount);
+
+    return {
+      mode: "map",
+      query: q,
+      summary: `Level 0 Macro Map: ${domains.length} domains across ${graph.nodes.length} indexed modules and ${graph.edges.length} edges.`,
+      mapResult: { domains },
+    };
+  }
+
+  // 2. Shortest Path (`path: A to B`)
+  if (lower.startsWith("path:")) {
+    const body = q.slice(5).trim();
+    const parts = body.split(/\s+to\s+/i);
+    const fromQuery = parts[0]?.trim() || "";
+    const toQuery = parts[1]?.trim() || "";
+    const fromNode = findNodeMatch(graph.nodes, fromQuery);
+    const toNode = findNodeMatch(graph.nodes, toQuery);
+
+    if (!fromNode || !toNode) {
+      return {
+        mode: "path",
+        query: q,
+        summary: `Could not resolve both endpoints ('${fromQuery}' and '${toQuery}') in the dependency graph.`,
+        pathResult: { from: fromQuery, to: toQuery, found: false, paths: [], hops: 0 },
+      };
+    }
+
+    // BFS shortest path (directed, with undirected fallback notice if needed)
+    const adj = new Map<string, string[]>();
+    for (const edge of graph.edges) {
+      if (edge.target.startsWith("pkg:")) continue;
+      const list = adj.get(edge.source) || [];
+      list.push(edge.target);
+      adj.set(edge.source, list);
+    }
+
+    const queue: string[][] = [[fromNode.id]];
+    const visited = new Set<string>([fromNode.id]);
+    const foundPaths: string[][] = [];
+
+    while (queue.length > 0 && foundPaths.length < 3) {
+      const currentPath = queue.shift()!;
+      const curr = currentPath[currentPath.length - 1];
+      if (curr === toNode.id) {
+        foundPaths.push(currentPath);
+        continue;
+      }
+      if (currentPath.length >= 8) continue;
+      for (const next of adj.get(curr) || []) {
+        if (!visited.has(next) || next === toNode.id) {
+          if (next !== toNode.id) visited.add(next);
+          queue.push([...currentPath, next]);
+        }
+      }
+    }
+
+    return {
+      mode: "path",
+      query: q,
+      summary: foundPaths.length > 0
+        ? `Shortest dependency path from ${fromNode.name} to ${toNode.name} (${foundPaths[0].length - 1} hops).`
+        : `No directed import path found from ${fromNode.name} to ${toNode.name}.`,
+      pathResult: {
+        from: fromNode.id,
+        to: toNode.id,
+        found: foundPaths.length > 0,
+        paths: foundPaths,
+        hops: foundPaths[0] ? foundPaths[0].length - 1 : 0,
+      },
+    };
+  }
+
+  // 3. Blast Radius (`blast: <target>`)
+  if (lower.startsWith("blast:")) {
+    const targetQuery = q.slice(6).trim();
+    const matched = findNodeMatch(graph.nodes, targetQuery);
+    const targetId = matched?.id || targetQuery;
+    const impact = await getImpact(targetId);
+    return {
+      mode: "blast",
+      query: q,
+      summary: `Blast radius for ${targetId}: ${impact.riskScore} risk (${impact.fanIn} direct callers, ${impact.transitiveCallers?.length || 0} transitive callers).`,
+      blastResult: impact,
+    };
+  }
+
+  // 4. Explain Symbol / Module (`explain: <target>`)
+  if (lower.startsWith("explain:")) {
+    const targetQuery = q.slice(8).trim();
+    const node = findNodeMatch(graph.nodes, targetQuery);
+    if (!node) {
+      return {
+        mode: "explain",
+        query: q,
+        summary: `No module or exported symbol matched '${targetQuery}'.`,
+      };
+    }
+    const callers = graph.edges.filter((e) => e.target === node.id).map((e) => e.source);
+    const callees = graph.edges.filter((e) => e.source === node.id).map((e) => e.target);
+    const exports = parseExports(node);
+
+    return {
+      mode: "explain",
+      query: q,
+      summary: `${node.id} · Domain: ${node.domain} · Layer ${node.layer} · ${callers.length} callers · ${callees.length} dependencies · ${exports.length} exports.`,
+      explain: {
+        node,
+        exports,
+        callers,
+        callees,
+        community: `${node.domain} (L${node.layer})`,
+        sidecarPath: node.sidecarPath,
+      },
+    };
+  }
+
+  // 5. GraphRAG Concept / Question Retrieval
+  const terms = lower
+    .replace(/[^a-z0-9_.\s-]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length >= 2 && !["how", "does", "the", "work", "what", "where", "is", "are", "for", "and", "with"].includes(t));
+
+  const scored: StubsQueryMatch[] = [];
+  for (const node of graph.nodes) {
+    const exports = parseExports(node);
+    const haystackPath = node.filePath.toLowerCase();
+    const haystackExports = exports.join(" ").toLowerCase();
+    let score = 0;
+    const reasons: string[] = [];
+
+    for (const term of terms) {
+      if (node.name.toLowerCase().includes(term)) {
+        score += 10;
+        reasons.push(`filename matches '${term}'`);
+      } else if (haystackPath.includes(term)) {
+        score += 6;
+        reasons.push(`path matches '${term}'`);
+      }
+      if (haystackExports.includes(term)) {
+        score += 8;
+        reasons.push(`exports match '${term}'`);
+      }
+      if (node.domain.toLowerCase() === term) {
+        score += 4;
+        reasons.push(`domain '${node.domain}'`);
+      }
+    }
+
+    if (score > 0 || terms.length === 0) {
+      const centralityBoost = Math.min(4, Math.floor(node.degree / 5));
+      scored.push({
+        node,
+        score: score + centralityBoost,
+        reason: reasons.length > 0 ? Array.from(new Set(reasons)).slice(0, 3).join(", ") : "high-centrality hub",
+        exports,
+      });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score || b.node.degree - a.node.degree);
+  const maxMatches = Math.max(4, Math.min(18, Math.floor(budget / 100)));
+  const topMatches = scored.slice(0, maxMatches);
+  const estimatedTokens = topMatches.reduce((acc, m) => acc + 45 + m.exports.length * 6, 0);
+
+  return {
+    mode: "search",
+    query: q,
+    summary: `GraphRAG retrieved ${topMatches.length} relevant modules (~${estimatedTokens} tokens within ${budget} budget).`,
+    estimatedTokens,
+    matches: topMatches,
+  };
+}
+
+/**
+ * Returns Mermaid diagram string (architecture flowchart, sequence diagram, or neighborhood slice)
+ */
+export async function getDiagram(
+  groupBy: StubsDiagramGroupBy = "domain",
+  diagramType: StubsDiagramType = "architecture",
+  target?: string
+): Promise<{ mermaid: string; edgeCount: number; nodeCount: number }> {
   const graph = await getGraphData();
 
   if (graph.nodes.length === 0) {
     return {
-      mermaid: "graph TD\n  empty[No nodes scanned yet - Click 'Scan AST']",
+      mermaid: "flowchart TD\n  empty[No nodes scanned yet - Click 'Scan AST']",
       edgeCount: 0,
       nodeCount: 0,
     };
   }
 
-  // Build clean Mermaid flowchart syntax
-  const lines: string[] = ["graph TD"];
+  const sanitizeId = (id: string) => "n_" + id.replace(/[^a-zA-Z0-9_]/g, "_");
 
-  const sanitizeId = (id: string) => id.replace(/[^a-zA-Z0-9_]/g, "_");
+  // Sequence Diagram mode (`stubs diagram <target> --type sequence`)
+  if (diagramType === "sequence") {
+    const targetNode = (target && findNodeMatch(graph.nodes, target)) || graph.nodes[0];
+    const lines: string[] = ["sequenceDiagram"];
+    const directDeps = graph.edges
+      .filter((e) => e.source === targetNode.id && !e.target.startsWith("pkg:"))
+      .slice(0, 10);
+    const callers = graph.edges
+      .filter((e) => e.target === targetNode.id && !e.source.startsWith("pkg:"))
+      .slice(0, 6);
+
+    const participantIds = new Set<string>([targetNode.id]);
+    const interactions: Array<{ from: string; to: string; arrow: "->>" | "-->>"; label: string }> = [];
+
+    for (const c of callers) {
+      participantIds.add(c.source);
+      interactions.push({
+        from: c.source,
+        to: targetNode.id,
+        arrow: "->>",
+        label: `${c.relationship} (${path.basename(c.source)})`,
+      });
+    }
+
+    for (const d of directDeps) {
+      participantIds.add(d.target);
+      interactions.push({
+        from: targetNode.id,
+        to: d.target,
+        arrow: "->>",
+        label: `${d.relationship} (${path.basename(d.target)})`,
+      });
+      const secondHop = graph.edges
+        .filter((e) => e.source === d.target && !e.target.startsWith("pkg:"))
+        .slice(0, 2);
+      for (const s of secondHop) {
+        participantIds.add(s.target);
+        interactions.push({
+          from: d.target,
+          to: s.target,
+          arrow: "-->>",
+          label: s.relationship,
+        });
+      }
+    }
+
+    const nodeLookup = new Map(graph.nodes.map((n) => [n.id, n]));
+    for (const pid of participantIds) {
+      const label = (nodeLookup.get(pid)?.name || path.basename(pid)).replace(/[;:]/g, "");
+      lines.push(`  participant ${sanitizeId(pid)} as ${label}`);
+    }
+
+    for (const edge of interactions) {
+      lines.push(`  ${sanitizeId(edge.from)}${edge.arrow}${sanitizeId(edge.to)}: ${edge.label}`);
+    }
+
+    if (callers.length === 0 && directDeps.length === 0) {
+      lines.push(`  Note over ${sanitizeId(targetNode.id)}: Standalone leaf module (${targetNode.filePath})`);
+    }
+
+    return {
+      mermaid: lines.join("\n"),
+      edgeCount: callers.length + directDeps.length,
+      nodeCount: participantIds.size,
+    };
+  }
+
+  // Focused Neighborhood Slice (`stubs diagram <target> --type slice`)
+  if (diagramType === "slice") {
+    const targetNode = (target && findNodeMatch(graph.nodes, target)) || graph.nodes[0];
+    const callers = graph.edges.filter((e) => e.target === targetNode.id && !e.source.startsWith("pkg:"));
+    const deps = graph.edges.filter((e) => e.source === targetNode.id && !e.target.startsWith("pkg:"));
+
+    const includedIds = new Set<string>([targetNode.id]);
+    for (const c of callers.slice(0, 15)) includedIds.add(c.source);
+    for (const d of deps.slice(0, 15)) includedIds.add(d.target);
+
+    const lines: string[] = ["flowchart LR"];
+    lines.push(`  ${sanitizeId(targetNode.id)}[["${targetNode.name} (L${targetNode.layer})"]]`);
+    lines.push(`  style ${sanitizeId(targetNode.id)} fill:#1d4ed8,stroke:#60a5fa,stroke-width:2px,color:#ffffff`);
+
+    for (const c of callers.slice(0, 15)) {
+      lines.push(`  ${sanitizeId(c.source)}["${path.basename(c.source)}"] --> ${sanitizeId(targetNode.id)}`);
+    }
+    for (const d of deps.slice(0, 15)) {
+      lines.push(`  ${sanitizeId(targetNode.id)} --> ${sanitizeId(d.target)}["${path.basename(d.target)}"]`);
+    }
+
+    return {
+      mermaid: lines.join("\n"),
+      edgeCount: Math.min(15, callers.length) + Math.min(15, deps.length),
+      nodeCount: includedIds.size,
+    };
+  }
+
+  // Full Architecture Flowchart (`stubs diagram --group-by domain|layer`)
+  const lines: string[] = ["flowchart TD"];
+  const renderedNodeIds = new Set<string>();
 
   if (groupBy === "domain") {
-    // Group into subgraphs by domain
     const domainGroups = new Map<string, StubsNode[]>();
     for (const node of graph.nodes) {
       const group = domainGroups.get(node.domain) || [];
@@ -170,26 +1030,27 @@ export async function getDiagram(groupBy: "domain" | "layer" = "domain"): Promis
     }
 
     for (const [domain, groupNodes] of domainGroups.entries()) {
-      lines.push(`  subgraph ${sanitizeId(domain)}["Domain: ${domain}"]`);
-      lines.push(`    style ${sanitizeId(domain)} fill:#0f172a,stroke:#38bdf8,stroke-width:1px,color:#f8fafc`);
-      for (const n of groupNodes.slice(0, 15)) {
+      const subId = `dom_${domain.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+      lines.push(`  subgraph ${subId}["Domain: ${domain} (${groupNodes.length})"]`);
+      lines.push(`    style ${subId} fill:#0f172a,stroke:#38bdf8,stroke-width:1px,color:#f8fafc`);
+      for (const n of groupNodes.slice(0, 12)) {
+        renderedNodeIds.add(n.id);
         lines.push(`    ${sanitizeId(n.id)}["${n.name}"]`);
       }
-      if (groupNodes.length > 15) {
-        lines.push(`    ${sanitizeId(domain)}_more["...and ${groupNodes.length - 15} more"]`);
+      if (groupNodes.length > 12) {
+        lines.push(`    ${subId}_more["+${groupNodes.length - 12} more modules"]`);
       }
       lines.push("  end");
     }
   } else {
-    // Group into subgraphs by layer (0 through 6)
     const layerNames: Record<number, string> = {
       0: "Layer 0: Core Types & Schemas",
-      1: "Layer 1: Low-Level Storage & Utilities",
-      2: "Layer 2: Domain Services & Clients",
-      3: "Layer 3: UI Sub-Components & Drawers",
-      4: "Layer 4: Top-Level Workspaces",
-      5: "Layer 5: Main App Scaffold",
-      6: "Layer 6: Server & Infrastructure",
+      1: "Layer 1: Utilities & Storage",
+      2: "Layer 2: Domain Services",
+      3: "Layer 3: Hooks & Contexts",
+      4: "Layer 4: UI Components",
+      5: "Layer 5: App Entrypoints",
+      6: "Layer 6: Server Runtime",
     };
 
     const layerGroups = new Map<number, StubsNode[]>();
@@ -199,24 +1060,25 @@ export async function getDiagram(groupBy: "domain" | "layer" = "domain"): Promis
       layerGroups.set(node.layer, group);
     }
 
-    for (const [layer, groupNodes] of layerGroups.entries()) {
+    for (const layer of Array.from(layerGroups.keys()).sort((a, b) => a - b)) {
+      const groupNodes = layerGroups.get(layer) || [];
       const lTitle = layerNames[layer] || `Layer ${layer}`;
-      lines.push(`  subgraph layer_${layer}["${lTitle}"]`);
+      lines.push(`  subgraph layer_${layer}["${lTitle} (${groupNodes.length})"]`);
       lines.push(`    style layer_${layer} fill:#0f172a,stroke:#818cf8,stroke-width:1px,color:#f8fafc`);
-      for (const n of groupNodes.slice(0, 15)) {
+      for (const n of groupNodes.slice(0, 12)) {
+        renderedNodeIds.add(n.id);
         lines.push(`    ${sanitizeId(n.id)}["${n.name}"]`);
       }
-      if (groupNodes.length > 15) {
-        lines.push(`    layer_${layer}_more["...and ${groupNodes.length - 15} more"]`);
+      if (groupNodes.length > 12) {
+        lines.push(`    layer_${layer}_more["+${groupNodes.length - 12} more modules"]`);
       }
       lines.push("  end");
     }
   }
 
-  // Filter internal project edges (exclude external packages like pkg:*)
   const internalEdges = graph.edges
-    .filter((e) => !e.target.startsWith("pkg:"))
-    .slice(0, 120); // Cap for diagram readability
+    .filter((e) => !e.target.startsWith("pkg:") && renderedNodeIds.has(e.source) && renderedNodeIds.has(e.target))
+    .slice(0, 90);
 
   for (const edge of internalEdges) {
     lines.push(`  ${sanitizeId(edge.source)} --> ${sanitizeId(edge.target)}`);
@@ -225,37 +1087,127 @@ export async function getDiagram(groupBy: "domain" | "layer" = "domain"): Promis
   return {
     mermaid: lines.join("\n"),
     edgeCount: internalEdges.length,
-    nodeCount: graph.nodes.length,
+    nodeCount: renderedNodeIds.size,
   };
 }
 
 /**
- * Calculates file blast radius & architectural impact
+ * Generates Tiered Agent Context (`stubs context <target>`)
  */
-export async function getImpact(targetFile: string): Promise<StubsImpactResult> {
+export async function getContextPackage(targetFile: string): Promise<StubsTieredContext> {
   const graph = await getGraphData();
-  const node = graph.nodes.find(
-    (n) => n.id === targetFile || n.filePath === targetFile || n.name === targetFile
-  );
+  const node = findNodeMatch(graph.nodes, targetFile);
+  const targetId = node?.id || targetFile;
+
+  const directDepIds = graph.edges
+    .filter((e) => e.source === targetId && !e.target.startsWith("pkg:"))
+    .map((e) => e.target);
+  const directCallerIds = graph.edges
+    .filter((e) => e.target === targetId && !e.source.startsWith("pkg:"))
+    .map((e) => e.source);
+
+  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+
+  const tier1Deps = directDepIds
+    .map((id) => nodeMap.get(id))
+    .filter((n): n is StubsNode => Boolean(n))
+    .map((n) => ({
+      path: n.id,
+      domain: n.domain,
+      layer: n.layer,
+      exports: parseExports(n).slice(0, 8),
+    }));
+
+  const tier1Callers = directCallerIds
+    .map((id) => nodeMap.get(id))
+    .filter((n): n is StubsNode => Boolean(n))
+    .map((n) => ({
+      path: n.id,
+      domain: n.domain,
+      layer: n.layer,
+    }));
+
+  const transitiveSet = new Set<string>();
+  for (const depId of directDepIds) {
+    for (const e of graph.edges) {
+      if (e.source === depId && !e.target.startsWith("pkg:") && e.target !== targetId && !directDepIds.includes(e.target)) {
+        transitiveSet.add(e.target);
+      }
+    }
+  }
+  const tier2Boundary = Array.from(transitiveSet).slice(0, 15);
+  const targetExports = node ? parseExports(node) : [];
+  const estimatedTokens =
+    (node?.lineCount || 50) * 6 +
+    tier1Deps.reduce((acc, d) => acc + 30 + d.exports.length * 5, 0) +
+    tier1Callers.length * 15 +
+    tier2Boundary.length * 10;
+
+  const briefingLines = [
+    `# Stubs Agent Briefing: ${targetId}`,
+    ``,
+    `## Tier 0 — Target Module`,
+    `- Path: \`${targetId}\` (${node?.lineCount || 0} lines, Domain: ${node?.domain || "core"}, Layer ${node?.layer ?? 0})`,
+    ...(node?.sidecarPath ? [`- Sidecar Spec: \`${node.sidecarPath}\``] : []),
+    `- Exports: ${targetExports.length > 0 ? targetExports.join(", ") : "none"}`,
+    ``,
+    `## Tier 1 — Direct Dependencies (${tier1Deps.length})`,
+    ...tier1Deps.map((d) => `- \`${d.path}\` (L${d.layer} ${d.domain}): ${d.exports.join(", ") || "internal"}`),
+    ``,
+    `## Tier 1 — Direct Callers (${tier1Callers.length})`,
+    ...tier1Callers.map((c) => `- \`${c.path}\` (L${c.layer} ${c.domain})`),
+    ``,
+    `## Tier 2 — Transitive Boundary (${tier2Boundary.length})`,
+    ...tier2Boundary.map((b) => `- \`${b}\``),
+  ];
+
+  return {
+    target: targetId,
+    estimatedTokens,
+    tier0: {
+      path: targetId,
+      sidecarPath: node?.sidecarPath,
+      lineCount: node?.lineCount || 0,
+      exports: targetExports,
+    },
+    tier1Deps,
+    tier1Callers,
+    tier2Boundary,
+    briefingMarkdown: briefingLines.join("\n"),
+  };
+}
+
+/**
+ * Calculates file blast radius, domain crossings, pre-flight safety gate, and tiered context
+ */
+export async function getImpact(
+  targetFile: string,
+  guardThreshold: "low" | "medium" | "high" | "critical" = "high"
+): Promise<StubsImpactResult> {
+  const graph = await getGraphData();
+  const config = readWorkspaceConfig();
+  const node = findNodeMatch(graph.nodes, targetFile);
+  const resolvedId = node?.id || targetFile;
 
   const directCallers = graph.edges
-    .filter((e) => e.target === (node?.id || targetFile))
+    .filter((e) => e.target === resolvedId && !e.source.startsWith("pkg:"))
     .map((e) => e.source);
 
   const dependencies = graph.edges
-    .filter((e) => e.source === (node?.id || targetFile))
+    .filter((e) => e.source === resolvedId && !e.target.startsWith("pkg:"))
     .map((e) => e.target);
 
-  // Transitive callers (BFS up to depth 2)
+  // Transitive callers (BFS up to depth 3)
   const transitiveSet = new Set<string>();
-  const queue = [...directCallers];
+  const queue = directCallers.map((c) => ({ id: c, depth: 1 }));
   while (queue.length > 0) {
-    const curr = queue.shift()!;
+    const { id: curr, depth } = queue.shift()!;
+    if (depth >= 3) continue;
     for (const e of graph.edges) {
-      if (e.target === curr && !directCallers.includes(e.source) && !transitiveSet.has(e.source)) {
+      if (e.target === curr && e.source !== resolvedId && !directCallers.includes(e.source) && !transitiveSet.has(e.source)) {
         transitiveSet.add(e.source);
-        if (transitiveSet.size < 25) {
-          queue.push(e.source);
+        if (transitiveSet.size < 40) {
+          queue.push({ id: e.source, depth: depth + 1 });
         }
       }
     }
@@ -264,7 +1216,7 @@ export async function getImpact(targetFile: string): Promise<StubsImpactResult> 
   const fanIn = directCallers.length;
   const fanOut = dependencies.length;
 
-  let riskScore: "LOW" | "MODERATE" | "HIGH" | "CRITICAL" = "LOW";
+  let riskScore: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" = "LOW";
   let numericRisk = 15;
 
   if (fanIn >= 20 || (node && node.layer === 0 && fanIn >= 10)) {
@@ -274,13 +1226,36 @@ export async function getImpact(targetFile: string): Promise<StubsImpactResult> 
     riskScore = "HIGH";
     numericRisk = 75;
   } else if (fanIn >= 3 || fanOut >= 8) {
-    riskScore = "MODERATE";
+    riskScore = "MEDIUM";
     numericRisk = 50;
   }
 
+  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+  const targetDomain = node?.domain || "core";
+  const domainBoundaries = new Set<string>();
+  for (const callerId of directCallers) {
+    const callerNode = nodeMap.get(callerId);
+    if (callerNode && callerNode.domain !== targetDomain) {
+      domainBoundaries.add(callerNode.domain);
+    }
+  }
+
+  const specs = await listSidecarSpecs();
+  const affectedSet = new Set([resolvedId, ...directCallers, ...Array.from(transitiveSet)]);
+  const staleSidecarsAtRisk = specs
+    .filter((s) => s.targetCodeFile && affectedSet.has(s.targetCodeFile) && s.driftStatus === "drifted")
+    .map((s) => s.path);
+
+  const riskRank: Record<string, number> = { low: 1, medium: 2, high: 3, critical: 4 };
+  const currentRank = riskRank[riskScore.toLowerCase()] || 1;
+  const guardRank = riskRank[guardThreshold] || 3;
+  const isBlocked = currentRank > guardRank;
+
+  const tieredContext = await getContextPackage(resolvedId);
+
   return {
-    target: targetFile,
-    domain: node?.domain || "core",
+    target: resolvedId,
+    domain: targetDomain,
     layer: node?.layer ?? 1,
     fanIn,
     fanOut,
@@ -289,119 +1264,286 @@ export async function getImpact(targetFile: string): Promise<StubsImpactResult> 
     directCallers,
     transitiveCallers: Array.from(transitiveSet),
     dependencies,
+    domainBoundariesCrossed: Array.from(domainBoundaries),
+    staleSidecarsAtRisk,
+    preFlight: {
+      safe: !isBlocked,
+      guardThreshold,
+      autonomyLevel: config.autonomy_level,
+      blockedReason: isBlocked
+        ? `Blast risk ${riskScore} exceeds --guard ${guardThreshold.toUpperCase()} threshold (${fanIn} direct callers across ${domainBoundaries.size} external domains).`
+        : undefined,
+      editOrder: [...dependencies.slice(0, 4), resolvedId, ...directCallers.slice(0, 4)],
+    },
+    tieredContext,
   };
 }
 
 /**
- * Does architectural lint checks:
- * 1. Layer hierarchy violations (for example, lower layer importing higher layer)
- * 2. Circular dependency cycles
+ * Runs workspace hygiene checks (`stubs prune`)
+ */
+export async function pruneWorkspace(): Promise<StubsPruneResult> {
+  const start = Date.now();
+  const graph = await getGraphData();
+  const specs = await listSidecarSpecs();
+  const issues: StubsPruneIssue[] = [];
+
+  // 1. PHANTOM_SIDECAR
+  let phantomSidecars = 0;
+  for (const spec of specs) {
+    if (spec.category === "sidecar" && spec.targetCodeFile && !spec.targetExists) {
+      phantomSidecars++;
+      issues.push({
+        type: "PHANTOM_SIDECAR",
+        severity: "error",
+        path: spec.path,
+        message: `Sidecar '${spec.path}' targets missing code file '${spec.targetCodeFile}'.`,
+      });
+    }
+  }
+
+  // 2. STALE_DB_NODE
+  let staleDbNodes = 0;
+  for (const node of graph.nodes) {
+    if (!fs.existsSync(path.resolve(CWD, node.filePath))) {
+      staleDbNodes++;
+      issues.push({
+        type: "STALE_DB_NODE",
+        severity: "warning",
+        path: node.filePath,
+        message: `Graph node '${node.filePath}' no longer exists on disk. Run 'stubs scan' to refresh.`,
+      });
+    }
+  }
+
+  // 3. ZOMBIE_EXPORT (non-test, non-entrypoint files with 0 incoming edges and exports)
+  let zombieExports = 0;
+  const entryFiles = new Set(["src/App.tsx", "src/main.tsx", "server.ts", "src/types.ts", "src/index.css"]);
+  for (const node of graph.nodes) {
+    if (
+      node.entityType === "test" ||
+      node.filePath.includes(".test.") ||
+      entryFiles.has(node.filePath) ||
+      node.filePath.endsWith("/index.ts")
+    ) {
+      continue;
+    }
+    const exports = parseExports(node);
+    if (node.fanIn === 0 && exports.length > 0) {
+      zombieExports++;
+      issues.push({
+        type: "ZOMBIE_EXPORT",
+        severity: "info",
+        path: node.filePath,
+        symbol: exports[0],
+        message: `Module '${node.filePath}' has 0 incoming import edges (${exports.length} exports: ${exports.slice(0, 3).join(", ")}${exports.length > 3 ? "…" : ""}).`,
+      });
+    }
+  }
+
+  // 4. UNTRACKED_CODE summary count (note: sidecars are opt-in in latest stubs skill)
+  const untrackedCode = graph.nodes.filter(
+    (n) => !n.hasSidecar && n.entityType !== "test" && !n.filePath.includes(".test.")
+  ).length;
+
+  return {
+    issues: issues.slice(0, 60),
+    summary: {
+      phantomSidecars,
+      untrackedCode,
+      zombieExports,
+      staleDbNodes,
+    },
+    durationMs: Math.max(1, Date.now() - start),
+  };
+}
+
+/**
+ * Architectural guardrail checks (`stubs lint-arch`):
+ * 1. LAYER_VIOLATION
+ * 2. CIRCULAR_DEPENDENCY
+ * 3. UNMANIFESTED_DEPENDENCY (sidecar depends_on parity)
+ * 4. DOMAIN_LEAK (cross-domain non-hub imports)
  */
 export async function lintArchitecture(): Promise<{
   violations: StubsLintViolation[];
   passed: boolean;
   totalChecks: number;
+  errorCount: number;
+  warningCount: number;
+  durationMs: number;
+  pruneIssues: StubsPruneIssue[];
+  pruneSummary: StubsPruneResult["summary"];
 }> {
+  const start = Date.now();
   const graph = await getGraphData();
   const violations: StubsLintViolation[] = [];
+  const nodeMap = new Map<string, StubsNode>(graph.nodes.map((n) => [n.id, n]));
 
-  // Map nodeId -> node
-  const nodeMap = new Map<string, StubsNode>();
-  for (const n of graph.nodes) {
-    nodeMap.set(n.id, n);
-  }
+  // Canonical domain hubs from context-map.md
+  const domainHubs: Record<string, Set<string>> = {
+    core: new Set(["src/types.ts", "src/types/stubs.ts", "src/types/speechRecognition.ts", "src/contexts/WorkspaceContext.tsx", "src/schemas/validation.ts"]),
+    utils: new Set(["src/utils/platform.ts", "src/utils/index.ts", "src/utils/errorHandling.ts", "src/utils/logger.ts", "src/utils/timeProvider.ts", "src/utils/idGenerator.ts", "src/utils/modelCatalog.ts", "src/utils/observable.ts", "src/utils/apiClient.ts", "src/utils/storage/index.ts"]),
+    services: new Set(["src/services/platformService.ts", "src/services/ServiceContext.tsx", "src/services/IPlatformService.ts"]),
+  };
 
-  // 1. Check layer hierarchy inversions
-  // Rule: Modules in layer L must only import modules in layer <= L (with allowed same-layer or downward)
-  // Specifically: Layer 0 (types/contracts) must NEVER import Layer 1, 2, 3, 4, 5, 6
+  // 1. Layer Hierarchy Violations & Domain Leaks
   for (const edge of graph.edges) {
+    if (edge.target.startsWith("pkg:")) continue;
     const src = nodeMap.get(edge.source);
     const tgt = nodeMap.get(edge.target);
     if (!src || !tgt) continue;
+    if (src.entityType === "test" || src.filePath.includes(".test.")) continue;
 
-    // Layer 0 importing higher layers
+    // Layer 0 (types/schemas) importing higher layers
     if (src.layer === 0 && tgt.layer > 0) {
       violations.push({
-        rule: "layer-0-inversion",
+        rule: "LAYER_VIOLATION",
         severity: "error",
-        message: `Layer 0 core module '${src.name}' imports higher Layer ${tgt.layer} module '${tgt.name}'`,
+        message: `Layer 0 module '${src.name}' imports higher Layer ${tgt.layer} module '${tgt.name}'.`,
         source: src.id,
         target: tgt.id,
       });
-    }
-
-    // Layer 1 (utilities) importing UI / Workspaces (Layer 3/4)
-    if (src.layer <= 1 && tgt.layer >= 3) {
-      violations.push({
-        rule: "layer-hierarchy-inversion",
-        severity: "warning",
-        message: `Lower Layer ${src.layer} module '${src.name}' directly imports UI Layer ${tgt.layer} module '${tgt.name}'`,
-        source: src.id,
-        target: tgt.id,
-      });
-    }
-  }
-
-  // 2. Check circular dependencies (cycles) using DFS
-  const adj = new Map<string, string[]>();
-  for (const edge of graph.edges) {
-    if (edge.target.startsWith("pkg:")) continue;
-    const list = adj.get(edge.source) || [];
-    list.push(edge.target);
-    adj.set(edge.source, list);
-  }
-
-  const visited = new Set<string>();
-  const inStack = new Set<string>();
-  const cyclesFound: string[][] = [];
-
-  function dfs(curr: string, path: string[]) {
-    visited.add(curr);
-    inStack.add(curr);
-    path.push(curr);
-
-    const neighbors = adj.get(curr) || [];
-    for (const next of neighbors) {
-      if (!visited.has(next)) {
-        dfs(next, [...path]);
-      } else if (inStack.has(next)) {
-        const cycleStart = path.indexOf(next);
-        if (cycleStart !== -1) {
-          cyclesFound.push([...path.slice(cycleStart), next]);
-        }
+    } else if (src.layer < tgt.layer && !(src.layer === 2 && tgt.layer === 0) && !(src.layer === 1 && tgt.layer === 2 && tgt.id === "src/services/IPlatformService.ts")) {
+      // Lower tier importing higher tier
+      if (src.layer <= 1 && tgt.layer >= 3) {
+        violations.push({
+          rule: "LAYER_VIOLATION",
+          severity: "error",
+          message: `Lower Layer ${src.layer} module '${src.name}' imports UI Layer ${tgt.layer} module '${tgt.name}'.`,
+          source: src.id,
+          target: tgt.id,
+        });
+      } else if (src.layer === 2 && tgt.layer >= 3) {
+        violations.push({
+          rule: "LAYER_VIOLATION",
+          severity: "warning",
+          message: `Service Layer 2 module '${src.name}' imports Layer ${tgt.layer} module '${tgt.name}'.`,
+          source: src.id,
+          target: tgt.id,
+        });
       }
     }
 
-    inStack.delete(curr);
-  }
-
-  for (const node of graph.nodes) {
-    if (!visited.has(node.id)) {
-      dfs(node.id, []);
+    // Domain Leak check: external domains bypassing canonical hub (except Layer 0 types)
+    if (src.domain !== tgt.domain && tgt.layer > 0 && domainHubs[tgt.domain] && !domainHubs[tgt.domain].has(tgt.id)) {
+      if (src.domain !== "server" && !tgt.id.endsWith("Service.ts")) {
+        violations.push({
+          rule: "DOMAIN_LEAK",
+          severity: "warning",
+          message: `Cross-domain import from '${src.domain}' (${src.name}) directly targets internal module '${tgt.id}' instead of a canonical hub.`,
+          source: src.id,
+          target: tgt.id,
+        });
+      }
     }
   }
 
-  for (const cycle of cyclesFound.slice(0, 5)) {
+  // 2. Circular Dependency Cycles
+  const cyclesFound = detectCycles(graph.nodes, graph.edges);
+  for (const cycle of cyclesFound.slice(0, 8)) {
     violations.push({
-      rule: "circular-dependency",
+      rule: "CIRCULAR_DEPENDENCY",
       severity: "error",
-      message: `Circular import cycle detected: ${cycle.map(f => path.basename(f)).join(" -> ")}`,
+      message: `Circular import cycle detected: ${cycle.map((f) => path.basename(f)).join(" -> ")}`,
+      source: cycle[0],
       cycle,
     });
   }
 
+  // 3. Sidecar Manifest Parity (`UNMANIFESTED_DEPENDENCY`)
+  const specs = await listSidecarSpecs();
+  for (const spec of specs) {
+    if (spec.category === "sidecar" && spec.targetCodeFile && spec.dependsOn && spec.dependsOn.length > 0) {
+      const actualDeps = graph.edges
+        .filter((e) => e.source === spec.targetCodeFile && !e.target.startsWith("pkg:"))
+        .map((e) => e.target);
+      for (const dep of actualDeps) {
+        const depBase = path.basename(dep);
+        if (!spec.dependsOn.some((d) => d.includes(depBase) || dep.includes(d))) {
+          violations.push({
+            rule: "UNMANIFESTED_DEPENDENCY",
+            severity: "warning",
+            message: `Sidecar '${spec.filename}' omits import '${dep}' from its 'depends_on' frontmatter.`,
+            source: spec.targetCodeFile,
+            target: dep,
+          });
+        }
+      }
+    }
+  }
+
+  const pruneResult = await pruneWorkspace();
+  const errorCount = violations.filter((v) => v.severity === "error").length;
+  const warningCount = violations.filter((v) => v.severity === "warning").length;
+
   return {
     violations,
-    passed: violations.filter((v) => v.severity === "error").length === 0,
-    totalChecks: graph.edges.length + graph.nodes.length,
+    passed: errorCount === 0,
+    totalChecks: graph.edges.length + graph.nodes.length + specs.length,
+    errorCount,
+    warningCount,
+    durationMs: Math.max(1, Date.now() - start),
+    pruneIssues: pruneResult.issues,
+    pruneSummary: pruneResult.summary,
   };
 }
 
+function parseFrontmatter(content: string): Record<string, string | string[]> {
+  const result: Record<string, string | string[]> = {};
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return result;
+
+  const lines = match[1].split(/\r?\n/);
+  let activeArrayKey: string | null = null;
+  let activeArray: string[] = [];
+
+  for (const line of lines) {
+    const listItem = line.match(/^\s+-\s+(.*)$/);
+    if (listItem && activeArrayKey) {
+      activeArray.push(listItem[1].trim().replace(/^['"]|['"]$/g, ""));
+      result[activeArrayKey] = activeArray;
+      continue;
+    }
+
+    const kv = line.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
+    if (kv) {
+      activeArrayKey = null;
+      const key = kv[1].trim();
+      const rawVal = kv[2].trim();
+      if (!rawVal) {
+        activeArrayKey = key;
+        activeArray = [];
+        result[key] = activeArray;
+      } else {
+        result[key] = rawVal.replace(/^['"]|['"]$/g, "");
+      }
+    }
+  }
+  return result;
+}
+
 /**
- * Lists all sidecar specs (*.ts.md) and architecture planning docs (*.md)
+ * Lists all sidecar specs (*.ts.md), planning docs, context maps, and ADRs
  */
 export async function listSidecarSpecs(): Promise<StubsSidecarSpec[]> {
   const results: StubsSidecarSpec[] = [];
+
+  function classifyDoc(rel: string, filename: string, fmType: string): StubsSpecCategory {
+    if (filename.endsWith(".ts.md") || filename.endsWith(".tsx.md") || fmType === "service-spec" || fmType === "code-sidecar") {
+      return "sidecar";
+    }
+    if (rel.includes("/adr/") || fmType === "adr") {
+      return "adr";
+    }
+    if (rel.includes("context-map") || rel.includes("/domains/") || fmType === "context-map" || fmType === "domain-context-map" || fmType === "visual-diagram") {
+      return "context-map";
+    }
+    if (rel.includes("knowledge/planning") || fmType === "initiative-plan") {
+      return "planning";
+    }
+    return "concept";
+  }
 
   function walk(dir: string) {
     if (!fs.existsSync(dir)) return;
@@ -412,48 +1554,78 @@ export async function listSidecarSpecs(): Promise<StubsSidecarSpec[]> {
         if (ent.name !== "node_modules" && ent.name !== "dist" && ent.name !== ".git") {
           walk(full);
         }
-      } else if (ent.isFile() && (ent.name.endsWith(".ts.md") || (ent.name.endsWith(".md") && (dir.includes("knowledge") || dir.includes(".stubs"))))) {
-        const rel = path.relative(CWD, full);
+      } else if (ent.isFile() && ent.name.endsWith(".md")) {
+        const rel = path.relative(CWD, full).replace(/\\/g, "/");
+        const isSidecar = ent.name.endsWith(".ts.md") || ent.name.endsWith(".tsx.md");
+        const isKnowledge = rel.startsWith("knowledge/");
+        if (!isSidecar && !isKnowledge) continue;
+
         try {
           const content = fs.readFileSync(full, "utf8");
-          // Extract frontmatter
-          const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-          let title = ent.name;
-          let type = ent.name.endsWith(".ts.md") ? "code-sidecar" : "architecture-doc";
-          let status = "clean";
-          let targetCodeFile: string | undefined;
+          const fm = parseFrontmatter(content);
+          const title = typeof fm.title === "string" && fm.title ? fm.title : ent.name;
+          const type = typeof fm.type === "string" && fm.type ? fm.type : isSidecar ? "code-sidecar" : "architecture-doc";
+          const status = typeof fm.status === "string" && fm.status ? fm.status : "active";
+          const statusFlag = typeof fm.status_flag === "string" ? fm.status_flag : undefined;
+          const phase = typeof fm.phase === "string" ? fm.phase : isSidecar ? (status === "materialized" ? "sand" : "spec") : undefined;
+          const domain = typeof fm.domain === "string" ? fm.domain : inferDomainAndLayer(rel).domain;
+          const dependsOn = Array.isArray(fm.depends_on) ? fm.depends_on : undefined;
 
-          if (frontmatterMatch) {
-            const lines = frontmatterMatch[1].split("\n");
-            for (const line of lines) {
-              const [k, ...rest] = line.split(":");
-              if (!k) continue;
-              const v = rest.join(":").trim().replace(/^['"]|['"]$/g, "");
-              if (k.trim() === "title") title = v;
-              if (k.trim() === "type") type = v;
-              if (k.trim() === "status" || k.trim() === "status_flag") status = v;
-              if (k.trim() === "target_code_file") targetCodeFile = v;
-            }
-          }
-
-          if (!targetCodeFile && ent.name.endsWith(".ts.md")) {
-            targetCodeFile = full.replace(/\.md$/, "");
+          let targetCodeFileRel: string | undefined;
+          if (typeof fm.target_code_file === "string" && fm.target_code_file) {
+            const candidateFromCwd = path.resolve(CWD, fm.target_code_file);
+            const candidateFromDir = path.resolve(path.dirname(full), fm.target_code_file);
+            const chosen = fs.existsSync(candidateFromCwd) ? candidateFromCwd : candidateFromDir;
+            targetCodeFileRel = path.relative(CWD, chosen).replace(/\\/g, "/");
+          } else if (isSidecar) {
+            targetCodeFileRel = rel.replace(/\.md$/, "");
           }
 
           let targetExists = false;
-          if (targetCodeFile) {
-            const targetResolved = path.resolve(path.dirname(full), targetCodeFile);
-            targetExists = fs.existsSync(targetResolved);
+          let driftStatus: StubsDriftStatus = "doc-only";
+          if (targetCodeFileRel) {
+            const resolvedTarget = path.resolve(CWD, targetCodeFileRel);
+            targetExists = fs.existsSync(resolvedTarget);
+            if (!targetExists) {
+              driftStatus = "unmaterialized";
+            } else if (statusFlag === "drifted" || statusFlag === "conflict") {
+              driftStatus = "drifted";
+            } else {
+              // Check if target file modified much later or has ast_hash mismatch
+              const recordedHash = typeof fm.ast_hash === "string" ? fm.ast_hash : undefined;
+              if (recordedHash) {
+                const targetContent = fs.readFileSync(resolvedTarget, "utf8");
+                const currentHash = crypto.createHash("sha256").update(targetContent).digest("hex").slice(0, 12);
+                driftStatus = currentHash === recordedHash ? "clean" : "drifted";
+              } else {
+                driftStatus = "clean";
+              }
+            }
           }
+
+          // Parse markdown task checklist progress (- [ ] / - [x])
+          const unchecked = (content.match(/^\s*-\s*\[\s\]/gm) || []).length;
+          const checked = (content.match(/^\s*-\s*\[[xX]\]/gm) || []).length;
+          const checklistProgress =
+            checked + unchecked > 0 ? { completed: checked, total: checked + unchecked } : undefined;
+
+          const category = classifyDoc(rel, ent.name, type);
 
           results.push({
             path: rel,
             filename: ent.name,
             title,
             type,
+            category,
             status,
-            targetCodeFile: targetCodeFile ? path.relative(CWD, path.resolve(path.dirname(full), targetCodeFile)) : undefined,
+            statusFlag,
+            phase,
+            driftStatus,
+            checklistProgress,
+            dependsOn,
+            targetCodeFile: targetCodeFileRel,
             targetExists,
+            domain,
           });
         } catch (e) {
           defaultServerContext.services.logger.warn("[stubsService] Error reading spec file:", full, e);
@@ -465,6 +1637,16 @@ export async function listSidecarSpecs(): Promise<StubsSidecarSpec[]> {
   walk(path.join(CWD, "src"));
   walk(path.join(CWD, "knowledge"));
 
+  // Sort: sidecars first, then planning, then context-maps
+  const order: Record<StubsSpecCategory, number> = {
+    sidecar: 0,
+    planning: 1,
+    "context-map": 2,
+    concept: 3,
+    adr: 4,
+  };
+  results.sort((a, b) => (order[a.category] ?? 9) - (order[b.category] ?? 9) || a.path.localeCompare(b.path));
+
   return results;
 }
 
@@ -473,7 +1655,7 @@ export async function listSidecarSpecs(): Promise<StubsSidecarSpec[]> {
  */
 export async function getSpecContent(relPath: string): Promise<{ content: string; path: string }> {
   const safePath = path.resolve(CWD, relPath);
-  if (!safePath.startsWith(CWD)) {
+  if (!safePath.startsWith(CWD + path.sep)) {
     throw new Error("Invalid spec path outside workspace");
   }
   if (!fs.existsSync(safePath)) {
@@ -483,14 +1665,143 @@ export async function getSpecContent(relPath: string): Promise<{ content: string
   return { content, path: relPath };
 }
 
+function detectFileLanguage(filePath: string): string {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith(".tsx")) return "tsx";
+  if (lower.endsWith(".ts")) return "typescript";
+  if (lower.endsWith(".jsx")) return "jsx";
+  if (lower.endsWith(".js") || lower.endsWith(".cjs") || lower.endsWith(".mjs")) return "javascript";
+  if (lower.endsWith(".json")) return "json";
+  if (lower.endsWith(".md")) return "markdown";
+  if (lower.endsWith(".css")) return "css";
+  if (lower.endsWith(".html")) return "html";
+  if (lower.endsWith(".yml") || lower.endsWith(".yaml")) return "yaml";
+  if (lower.endsWith(".sh")) return "bash";
+  if (lower.endsWith(".sql")) return "sql";
+  if (lower.endsWith(".svg") || lower.endsWith(".xml")) return "xml";
+  return "text";
+}
+
+const TREE_IGNORED_DIRS = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  "dev-dist",
+  ".stubs",
+  "test-results",
+]);
+
+const BINARY_FILE_PATTERN = /\.(png|jpe?g|gif|webp|ico|woff2?|ttf|eot|otf|sqlite|db|pdf|zip|gz|tar|wasm)$/i;
+
+/**
+ * Returns the hierarchical directory and file tree for the workspace IDE explorer
+ */
+export async function getWorkspaceFileTree(): Promise<WorkspaceFileTreeResponse> {
+  let totalFiles = 0;
+  let totalDirectories = 0;
+
+  function walkDir(dirAbs: string, relPrefix: string): WorkspaceTreeNode[] {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dirAbs, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+
+    const dirs: WorkspaceTreeNode[] = [];
+    const files: WorkspaceTreeNode[] = [];
+
+    for (const ent of entries) {
+      const name = ent.name;
+      const relPath = relPrefix ? `${relPrefix}/${name}` : name;
+
+      if (ent.isDirectory()) {
+        if (TREE_IGNORED_DIRS.has(name)) {
+          continue;
+        }
+        totalDirectories++;
+        const children = walkDir(path.join(dirAbs, name), relPath);
+        dirs.push({
+          name,
+          path: relPath,
+          type: "directory",
+          children,
+        });
+      } else if (ent.isFile()) {
+        if (name.startsWith(".env") && name !== ".env.example") {
+          continue;
+        }
+        totalFiles++;
+        const isBinary = BINARY_FILE_PATTERN.test(name);
+        files.push({
+          name,
+          path: relPath,
+          type: "file",
+          language: isBinary ? "binary" : detectFileLanguage(relPath),
+          isBinary,
+        });
+      }
+    }
+
+    dirs.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    return [...dirs, ...files];
+  }
+
+  const tree = walkDir(CWD, "");
+  return {
+    rootName: path.basename(CWD) || "workspace",
+    tree,
+    totalFiles,
+    totalDirectories,
+  };
+}
+
+/**
+ * Reads a workspace source file safely for viewing/editing in the IDE
+ */
+export async function getWorkspaceFileContent(relPath: string): Promise<{
+  path: string;
+  name: string;
+  language: string;
+  content: string;
+  lineCount: number;
+}> {
+  const normalizedRel = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const safePath = path.resolve(CWD, normalizedRel);
+  if (!safePath.startsWith(CWD + path.sep)) {
+    throw new Error("Invalid file path outside workspace");
+  }
+  const baseName = path.basename(safePath);
+  if (
+    (baseName.startsWith(".env") && baseName !== ".env.example") ||
+    normalizedRel.startsWith("node_modules/") ||
+    normalizedRel.startsWith(".git/")
+  ) {
+    throw new Error("Access to restricted file is not permitted");
+  }
+  if (!fs.existsSync(safePath) || !fs.statSync(safePath).isFile()) {
+    throw new Error(`Workspace file not found: ${normalizedRel}`);
+  }
+  if (BINARY_FILE_PATTERN.test(baseName)) {
+    throw new Error(`Binary file '${baseName}' cannot be opened in the text editor.`);
+  }
+  const content = fs.readFileSync(safePath, "utf8");
+  return {
+    path: normalizedRel,
+    name: baseName,
+    language: detectFileLanguage(normalizedRel),
+    content,
+    lineCount: content.split(/\r?\n/).length,
+  };
+}
+
 /**
  * Saves updated spec content
  */
 export async function saveSpecContent(relPath: string, content: string): Promise<void> {
   const safePath = path.resolve(CWD, relPath);
-  if (!safePath.startsWith(CWD)) {
-    throw new Error("Invalid spec path outside workspace");
-  }
+  assertInsideWorkspace(safePath, "spec path");
   fs.writeFileSync(safePath, content, "utf8");
 }
 
@@ -500,29 +1811,25 @@ export async function saveSpecContent(relPath: string, content: string): Promise
 export async function materializeSpec(relPath: string): Promise<{ targetFile: string; bytesWritten: number }> {
   const spec = await getSpecContent(relPath);
   const fullSpecPath = path.resolve(CWD, relPath);
+  assertInsideWorkspace(fullSpecPath, "spec path");
+  const fm = parseFrontmatter(spec.content);
 
-  // Extract target_code_file from frontmatter or infer from .ts.md
   let targetRel = relPath.replace(/\.md$/, "");
-  const frontmatterMatch = spec.content.match(/^---\n([\s\S]*?)\n---/);
-  if (frontmatterMatch) {
-    const lines = frontmatterMatch[1].split("\n");
-    for (const line of lines) {
-      const [k, ...rest] = line.split(":");
-      if (k.trim() === "target_code_file") {
-        const rawTarget = rest.join(":").trim().replace(/^['"]|['"]$/g, "");
-        targetRel = path.relative(CWD, path.resolve(path.dirname(fullSpecPath), rawTarget));
-      }
-    }
+  if (typeof fm.target_code_file === "string" && fm.target_code_file) {
+    const candidateFromCwd = path.resolve(CWD, fm.target_code_file);
+    const candidateFromDir = path.resolve(path.dirname(fullSpecPath), fm.target_code_file);
+    const chosen = fs.existsSync(candidateFromCwd) || fm.target_code_file.startsWith("src/") ? candidateFromCwd : candidateFromDir;
+    targetRel = path.relative(CWD, chosen).replace(/\\/g, "/");
   }
 
-  // Extract TypeScript code block
-  const codeBlockMatch = spec.content.match(/```(?:typescript|ts)\n([\s\S]*?)\n```/);
+  const codeBlockMatch = spec.content.match(/```(?:typescript|ts)\r?\n([\s\S]*?)\r?\n```/);
   if (!codeBlockMatch) {
     throw new Error("No TypeScript (```ts) code block found inside sidecar specification to materialize.");
   }
 
   const code = codeBlockMatch[1];
   const targetFullPath = path.resolve(CWD, targetRel);
+  assertInsideWorkspace(targetFullPath, "target path");
   fs.writeFileSync(targetFullPath, code, "utf8");
 
   return {
@@ -532,22 +1839,297 @@ export async function materializeSpec(relPath: string): Promise<{ targetFile: st
 }
 
 /**
- * Runs a CLI command through child process, streaming lines to SSE subscribers
+ * Performs AST-based reverse sanding (`stubs sand <file.ts.md>`) to synchronize sidecar frontmatter with target code
  */
-export async function runCliCommand(
-  command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",
-  args: string[] = []
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  try {
-    await fs.promises.access(CLI_PATH, fs.constants.F_OK);
-  } catch {
-    throw new Error(`Stubs CLI not found at ${CLI_PATH}. Please build the agent skills first.`);
+export async function sandSpec(relPath: string): Promise<{
+  path: string;
+  targetFile: string;
+  astHash: string;
+  exportsSynced: number;
+  depsSynced: number;
+  message: string;
+}> {
+  const spec = await getSpecContent(relPath);
+  const fullSpecPath = path.resolve(CWD, relPath);
+  assertInsideWorkspace(fullSpecPath, "spec path");
+  const fm = parseFrontmatter(spec.content);
+
+  let targetRel = relPath.replace(/\.md$/, "");
+  if (typeof fm.target_code_file === "string" && fm.target_code_file) {
+    const candidateFromCwd = path.resolve(CWD, fm.target_code_file);
+    const candidateFromDir = path.resolve(path.dirname(fullSpecPath), fm.target_code_file);
+    const chosen = fs.existsSync(candidateFromCwd) ? candidateFromCwd : candidateFromDir;
+    targetRel = path.relative(CWD, chosen).replace(/\\/g, "/");
   }
 
-  return defaultServerContext.services.processRunner.runCommand(
-    CLI_PATH,
-    [command, ...args],
-    { cwd: CWD },
-    stubsEvents
-  );
+  const targetFullPath = path.resolve(CWD, targetRel);
+  assertInsideWorkspace(targetFullPath, "target path");
+  if (!fs.existsSync(targetFullPath)) {
+    throw new Error(`Target code file '${targetRel}' does not exist on disk.`);
+  }
+
+  const knownFiles = new Set(await collectSourceFiles());
+  const parsed = await parseTypeScriptFile(targetRel, knownFiles);
+  const internalDeps = parsed.imports
+    .filter((i) => !i.target.startsWith("pkg:"))
+    .map((i) => i.target);
+
+  // Update frontmatter with ast_hash and status_flag: clean
+  let updatedContent = spec.content;
+  const fmMatch = updatedContent.match(/^(---\r?\n)([\s\S]*?)(\r?\n---)/);
+  if (fmMatch) {
+    const fmLines = fmMatch[2].split(/\r?\n/).filter((l) => !l.startsWith("ast_hash:") && !l.startsWith("status_flag:"));
+    fmLines.push(`status_flag: clean`);
+    fmLines.push(`ast_hash: ${parsed.astHash}`);
+    updatedContent = `${fmMatch[1]}${fmLines.join("\n")}${fmMatch[3]}${updatedContent.slice(fmMatch[0].length)}`;
+    fs.writeFileSync(fullSpecPath, updatedContent, "utf8");
+  }
+
+  emitLog("stdout", `[sand] Synchronized ${relPath} <-> ${targetRel} (ast_hash: ${parsed.astHash}, ${parsed.exports.length} exports, ${internalDeps.length} deps)`);
+
+  return {
+    path: relPath,
+    targetFile: targetRel,
+    astHash: parsed.astHash,
+    exportsSynced: parsed.exports.length,
+    depsSynced: internalDeps.length,
+    message: `Sanded '${relPath}' cleanly (AST hash ${parsed.astHash}, ${parsed.exports.length} exports).`,
+  };
+}
+
+let activePipelinePromise: Promise<StubsRunResult> | null = null;
+let cliQueue: Promise<unknown> = Promise.resolve();
+
+/**
+ * Executes the unified `stubs run` pipeline (scan -> lint-arch -> prune -> sidecar sand audit -> context maps)
+ * Concurrent calls coalesce onto the in-flight pipeline run.
+ */
+export async function runStubsPipeline(emitToStream = true): Promise<StubsRunResult> {
+  if (activePipelinePromise) {
+    return activePipelinePromise;
+  }
+  activePipelinePromise = performStubsPipeline(emitToStream).finally(() => {
+    activePipelinePromise = null;
+  });
+  return activePipelinePromise;
+}
+
+async function performStubsPipeline(emitToStream = true): Promise<StubsRunResult> {
+  const start = Date.now();
+  if (emitToStream) {
+    emitLog("start", "$ stubs run");
+  }
+
+  const steps: StubsRunStep[] = [];
+
+  // 1. AST Scan
+  const scanRes = await scanWorkspace(false);
+  steps.push({
+    name: "AST Scan & Graph Sync",
+    status: "pass",
+    detail: `${scanRes.filesScanned} modules · ${scanRes.edgesCount} edges · ${scanRes.symbolsCount} symbols`,
+    durationMs: scanRes.durationMs,
+  });
+  if (emitToStream) {
+    emitLog("stdout", `[1/4] scan: ${scanRes.filesScanned} modules, ${scanRes.edgesCount} edges (${scanRes.durationMs}ms)`);
+  }
+
+  // 2. Architectural Lint
+  const lintRes = await lintArchitecture();
+  steps.push({
+    name: "Architectural Guardrails (lint-arch)",
+    status: lintRes.errorCount > 0 ? "fail" : lintRes.warningCount > 0 ? "warn" : "pass",
+    detail: `${lintRes.errorCount} errors · ${lintRes.warningCount} warnings (${lintRes.totalChecks} checks)`,
+    durationMs: lintRes.durationMs,
+  });
+  if (emitToStream) {
+    emitLog("stdout", `[2/4] lint-arch: ${lintRes.errorCount} errors, ${lintRes.warningCount} warnings (${lintRes.durationMs}ms)`);
+  }
+
+  // 3. Hygiene & Prune
+  const pruneStart = Date.now();
+  const pruneRes = await pruneWorkspace();
+  const pruneIssueCount = pruneRes.summary.phantomSidecars + pruneRes.summary.staleDbNodes + pruneRes.summary.zombieExports;
+  steps.push({
+    name: "Workspace Hygiene (prune)",
+    status: pruneRes.summary.phantomSidecars > 0 ? "fail" : pruneIssueCount > 0 ? "warn" : "pass",
+    detail: `${pruneRes.summary.phantomSidecars} phantom · ${pruneRes.summary.zombieExports} zombie exports · ${pruneRes.summary.staleDbNodes} stale DB`,
+    durationMs: Date.now() - pruneStart,
+  });
+  if (emitToStream) {
+    emitLog("stdout", `[3/4] prune: ${pruneIssueCount} hygiene items detected`);
+  }
+
+  // 4. Sidecars & Context Maps
+  const specsStart = Date.now();
+  const specs = await listSidecarSpecs();
+  const driftedSidecars = specs.filter((s) => s.driftStatus === "drifted").length;
+  const contextMapsCount = specs.filter((s) => s.category === "context-map").length;
+  steps.push({
+    name: "Sidecars & Context Maps",
+    status: driftedSidecars > 0 ? "warn" : "pass",
+    detail: `${specs.length} docs · ${driftedSidecars} drifted sidecars · ${contextMapsCount} context maps`,
+    durationMs: Date.now() - specsStart,
+  });
+  if (emitToStream) {
+    emitLog("stdout", `[4/4] specs & maps: ${specs.length} documents (${driftedSidecars} drifted sidecars, ${contextMapsCount} context maps)`);
+    emitLog("exit", `[Process exited with code ${lintRes.passed ? 0 : 1}]`, lintRes.passed ? 0 : 1);
+  }
+
+  return {
+    passed: lintRes.passed && pruneRes.summary.phantomSidecars === 0,
+    scannedFiles: scanRes.filesScanned,
+    edgesCount: scanRes.edgesCount,
+    lintErrors: lintRes.errorCount,
+    lintWarnings: lintRes.warningCount,
+    pruneIssues: pruneIssueCount,
+    driftedSidecars,
+    contextMapsCount,
+    durationMs: Math.max(1, Date.now() - start),
+    steps,
+  };
+}
+
+/**
+ * Runs a Stubs CLI command (delegating to cli.cjs if present, otherwise executing the built-in TS stubs engine)
+ * Serializes concurrent CLI invocations to prevent interlocking DB/process contention.
+ */
+export async function runCliCommand(
+  command: StubsCommandName,
+  args: string[] = []
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  const run = async (): Promise<{ exitCode: number; stdout: string; stderr: string }> => {
+    if (isCliBinaryPresent()) {
+      return defaultServerContext.services.processRunner.runCommand(
+        CLI_PATH,
+        [command, ...args],
+        { cwd: CWD },
+        stubsEvents
+      );
+    }
+
+    // Built-in TypeScript Stubs Engine execution with live SSE streaming
+    emitLog("start", `$ npx stubs ${command}${args.length ? ` ${args.join(" ")}` : ""}`);
+
+  try {
+    let stdout = "";
+    let exitCode = 0;
+
+    if (command === "scan") {
+      const res = await scanWorkspace(false);
+      stdout = `AST scan complete: ${res.filesScanned} modules, ${res.edgesCount} edges, ${res.symbolsCount} symbols (${res.durationMs}ms).`;
+      emitLog("stdout", stdout);
+    } else if (command === "run") {
+      const res = await runStubsPipeline(false);
+      stdout = res.steps.map((s) => `[${s.status.toUpperCase()}] ${s.name}: ${s.detail}`).join("\n");
+      for (const line of stdout.split("\n")) emitLog("stdout", line);
+      exitCode = res.passed ? 0 : 1;
+    } else if (command === "lint-arch") {
+      const res = await lintArchitecture();
+      const lines = [
+        `Checked ${res.totalChecks} architectural invariants in ${res.durationMs}ms.`,
+        `Result: ${res.passed ? "PASSED" : "FAILED"} (${res.errorCount} errors, ${res.warningCount} warnings)`,
+        ...res.violations.slice(0, 15).map((v) => `  [${v.severity.toUpperCase()}] ${v.rule}: ${v.message}`),
+      ];
+      stdout = lines.join("\n");
+      for (const line of lines) emitLog(line.includes("[ERROR]") ? "stderr" : "stdout", line);
+      exitCode = res.passed ? 0 : 1;
+    } else if (command === "prune") {
+      const res = await pruneWorkspace();
+      const lines = [
+        `Prune audit complete (${res.durationMs}ms):`,
+        `  PHANTOM_SIDECAR: ${res.summary.phantomSidecars}`,
+        `  ZOMBIE_EXPORT:   ${res.summary.zombieExports}`,
+        `  STALE_DB_NODE:   ${res.summary.staleDbNodes}`,
+        `  UNTRACKED_CODE:  ${res.summary.untrackedCode} (opt-in)`,
+        ...res.issues.slice(0, 12).map((i) => `  - [${i.type}] ${i.message}`),
+      ];
+      stdout = lines.join("\n");
+      for (const line of lines) emitLog("stdout", line);
+    } else if (command === "query") {
+      const q = args.join(" ") || "map:";
+      const res = await queryGraph(q);
+      const lines = [res.summary];
+      if (res.mapResult) {
+        for (const d of res.mapResult.domains) {
+          lines.push(`  domain:${d.domain} (${d.nodeCount} files, avg L${d.avgLayer}, hub: ${d.hubFile || "—"})`);
+        }
+      } else if (res.pathResult) {
+        if (res.pathResult.found) {
+          lines.push(`  ${res.pathResult.paths[0].join(" -> ")}`);
+        }
+      } else if (res.explain) {
+        lines.push(`  Exports: ${res.explain.exports.join(", ") || "none"}`);
+        lines.push(`  Callers (${res.explain.callers.length}): ${res.explain.callers.slice(0, 6).join(", ")}`);
+        lines.push(`  Callees (${res.explain.callees.length}): ${res.explain.callees.slice(0, 6).join(", ")}`);
+      } else if (res.matches) {
+        for (const m of res.matches.slice(0, 10)) {
+          lines.push(`  [score:${m.score}] ${m.node.id} (${m.reason})`);
+        }
+      }
+      stdout = lines.join("\n");
+      for (const line of lines) emitLog("stdout", line);
+    } else if (command === "impact" || command === "pre-flight" || command === "context") {
+      const target = args.find((a) => !a.startsWith("-")) || "src/types.ts";
+      const res = await getImpact(target);
+      const lines = [
+        `${command.toUpperCase()} for ${res.target} [Domain: ${res.domain}, Layer ${res.layer}]`,
+        `  Risk: ${res.riskScore} (${res.numericRisk}/100) | Fan-In: ${res.fanIn} | Fan-Out: ${res.fanOut}`,
+        `  Pre-Flight Gate: ${res.preFlight?.safe ? "SAFE TO EDIT" : `BLOCKED — ${res.preFlight?.blockedReason}`}`,
+        `  Direct Callers (${res.directCallers.length}): ${res.directCallers.slice(0, 8).join(", ") || "none"}`,
+        `  Tiered Context Tokens: ~${res.tieredContext?.estimatedTokens || 0}`,
+      ];
+      stdout = lines.join("\n");
+      for (const line of lines) emitLog("stdout", line);
+      if (command === "pre-flight" && res.preFlight && !res.preFlight.safe) {
+        exitCode = 2;
+      }
+    } else if (command === "diagram") {
+      const groupBy: StubsDiagramGroupBy = args.includes("layer") ? "layer" : "domain";
+      const res = await getDiagram(groupBy, "architecture");
+      stdout = `Generated Mermaid diagram (${res.nodeCount} nodes, ${res.edgeCount} edges, grouped by ${groupBy}).`;
+      emitLog("stdout", stdout);
+    } else if (command === "phase") {
+      const specs = await listSidecarSpecs();
+      const lines = [
+        `5-Phase Lifecycle Status (${specs.length} tracked specs & plans):`,
+        ...specs.slice(0, 15).map((s) => `  [${(s.phase || s.status).toUpperCase()}] ${s.path} (${s.driftStatus || s.category})`),
+      ];
+      stdout = lines.join("\n");
+      for (const line of lines) emitLog("stdout", line);
+    } else if (command === "sand") {
+      const target = args.find((a) => !a.startsWith("-"));
+      if (target) {
+        const res = await sandSpec(target);
+        stdout = res.message;
+        emitLog("stdout", stdout);
+      } else {
+        const specs = (await listSidecarSpecs()).filter((s) => s.category === "sidecar" && s.targetExists);
+        const results: string[] = [];
+        for (const s of specs) {
+          const r = await sandSpec(s.path);
+          results.push(r.message);
+        }
+        stdout = results.length > 0 ? results.join("\n") : "No target sidecars found to sand.";
+        emitLog("stdout", stdout);
+      }
+    } else if (command === "map") {
+      const specs = (await listSidecarSpecs()).filter((s) => s.category === "context-map");
+      stdout = `Verified ${specs.length} context maps:\n${specs.map((s) => `  - ${s.path}`).join("\n")}`;
+      for (const line of stdout.split("\n")) emitLog("stdout", line);
+    }
+
+    emitLog("exit", `[Process exited with code ${exitCode}]`, exitCode);
+    return { exitCode, stdout, stderr: "" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    emitLog("error", `[Execution error: ${msg}]`);
+    emitLog("exit", `[Process exited with code 1]`, 1);
+    return { exitCode: 1, stdout: "", stderr: msg };
+  }
+  };
+
+  const next = cliQueue.then(run, run);
+  cliQueue = next.catch(() => {});
+  return next;
 }

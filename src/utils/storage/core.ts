@@ -8,6 +8,7 @@ import { ISerializer, JsonSerializer } from "./serializer";
 const defaultSerializer = new JsonSerializer();
 
 import { BrowserPlatformService } from "../../services/platformService"
+import { storageDegradationTracker } from "./degradationState";
 
 
 export function createDefaultStorageInstance(platformService: IPlatformService = new BrowserPlatformService()): Storage {
@@ -22,10 +23,20 @@ export function createDefaultStorageInstance(platformService: IPlatformService =
         wrapper.quotaExceededEvent.subscribe(() => {
             platformService.getStorageQuotaObservable().emit();
         });
+        wrapper.storageDegradedEvent.subscribe((reason) => {
+            storageDegradationTracker.markDegraded(reason);
+        });
+        wrapper.storageRecoveredEvent.subscribe(() => {
+            storageDegradationTracker.reset();
+        });
         return wrapper;
       }
+      storageDegradationTracker.markDegraded("Persistent browser storage is unavailable. Changes will only last for this session.");
     }
   } catch {
+    if (platformService.isBrowserEnv()) {
+      storageDegradationTracker.markDegraded("Browser storage access was blocked. Changes will only last for this session.");
+    }
   }
   return new MemoryStorage();
 }

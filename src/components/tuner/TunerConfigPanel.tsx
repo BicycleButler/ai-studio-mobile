@@ -10,6 +10,7 @@ import {
   Brain,
   CheckCircle2,
   AlertCircle,
+  Cpu,
 } from "lucide-react";
 import { PromptConfig, ModelInfo } from "../../types";
 import {
@@ -24,6 +25,7 @@ export interface TunerActionHandlers {
   onClose?: () => void;
   onChangeConfig: (newConfig: PromptConfig) => void;
   onOpenAuth?: () => void;
+  onOpenProviders?: () => void;
 }
 
 export interface TunerBottomSheetProps extends TunerActionHandlers {
@@ -45,27 +47,38 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
   isOpen: _isOpen = true,
   hasApiKey = false,
   onOpenAuth,
+  onOpenProviders,
 }) => {
 
   const { platformService } = useServices();
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [activeProviderFilter, setActiveProviderFilter] = useState<string>("All");
 
   // Filter out any deprecated, legacy, or unusable non-chat models
   const cleanModels = useMemo(() => {
     const source = models && models.length > 0 ? models : CURATED_MODELS;
-    const filtered = source.filter((m) => !isDeprecatedOrUnusableModel(m.id));
+    const filtered = source.filter((m) => !isDeprecatedOrUnusableModel(m.id, m.providerId));
     return filtered.length > 0 ? filtered : CURATED_MODELS;
   }, [models]);
 
   // Guard against deprecated/unusable model saved in config
   useEffect(() => {
-    if (isDeprecatedOrUnusableModel(config.model)) {
+    if (isDeprecatedOrUnusableModel(config.model, config.providerId)) {
       onChangeConfig({
         ...config,
-        model: sanitizeModelId(config.model),
+        model: sanitizeModelId(config.model, config.providerId),
       });
     }
-  }, [config.model, onChangeConfig, config]);
+  }, [config.model, config.providerId, onChangeConfig, config]);
+
+  // Distinct provider filters
+  const providerFilters = useMemo(() => {
+    const set = new Set<string>(["All"]);
+    cleanModels.forEach((m) => {
+      set.add(m.providerName || "Google");
+    });
+    return Array.from(set);
+  }, [cleanModels]);
 
   // Distinct category filters
   const categories = useMemo(() => {
@@ -77,9 +90,15 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
   }, [cleanModels]);
 
   const displayedModels = useMemo(() => {
-    if (activeCategory === "All") return cleanModels;
-    return cleanModels.filter((m) => m.category === activeCategory);
-  }, [cleanModels, activeCategory]);
+    return cleanModels.filter((m) => {
+      const matchesProvider =
+        activeProviderFilter === "All" ||
+        (m.providerName || "Google") === activeProviderFilter;
+      const matchesCategory =
+        activeCategory === "All" || m.category === activeCategory;
+      return matchesProvider && matchesCategory;
+    });
+  }, [cleanModels, activeProviderFilter, activeCategory]);
 
   useEffect(() => {
     if (!isModal || !onClose) return;
@@ -138,7 +157,12 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
     updateField("responseSchemaText", JSON.stringify(sampleSchema, null, 2));
   };
 
-  const selectedModelInfo = cleanModels.find((m) => m.id === config.model);
+  const selectedModelInfo =
+    cleanModels.find(
+      (m) =>
+        m.id === config.model &&
+        (!config.providerId || !m.providerId || m.providerId === config.providerId)
+    ) || cleanModels.find((m) => m.id === config.model);
 
   const bodyFields = (
     <div className="space-y-5">
@@ -158,33 +182,69 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
           </div>
           <div className="min-w-0">
             <span className="font-semibold text-xs text-foreground block truncate">
-              {hasApiKey ? "AI Studio Authenticated" : "Authentication Required"}
+              {hasApiKey ? "Provider Authenticated" : "Credentials or Local Model Needed"}
             </span>
             <span className="text-[11px] block text-muted-foreground truncate">
               {hasApiKey
-                ? "Connected to Gemini • Tap to manage keys"
-                : "Tap to connect API credentials"}
+                ? `Active: ${selectedModelInfo?.providerName || "Google AI Studio"} · Tap to manage`
+                : "Tap to connect API keys or enable local models"}
             </span>
           </div>
         </div>
-        <span className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground shrink-0 font-mono">
+        <span className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground shrink-0 font-mono whitespace-nowrap">
           {hasApiKey ? "Connected" : "Authenticate"}
         </span>
       </div>
 
       {/* 1. Model Selection */}
       <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-primary" />
             <span>Select Model</span>
           </label>
-          {selectedModelInfo && (
-            <span className="text-[10px] font-mono text-muted-foreground">
-              Active: <strong className="text-primary font-semibold">{selectedModelInfo.name}</strong>
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {selectedModelInfo && (
+              <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[180px]">
+                Active: <strong className="text-primary font-semibold">{selectedModelInfo.name}</strong>
+              </span>
+            )}
+            {onOpenProviders && (
+              <button
+                type="button"
+                id="tuner-open-providers-btn"
+                onClick={onOpenProviders}
+                className="px-2 py-1 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground text-[11px] font-medium text-foreground transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <Cpu className="w-3 h-3" />
+                <span>Providers &amp; Local</span>
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Provider Filter Tabs */}
+        {providerFilters.length > 2 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+            {providerFilters.map((prov) => {
+              const isActive = activeProviderFilter === prov;
+              return (
+                <button
+                  key={prov}
+                  type="button"
+                  onClick={() => setActiveProviderFilter(prov)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {prov}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Category Pills */}
         {categories.length > 1 && (
@@ -196,7 +256,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                   key={cat}
                   type="button"
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -212,12 +272,21 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
         {/* Clean Model Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {displayedModels.map((m) => {
-            const isSelected = config.model === m.id;
+            const isSelected =
+              config.model === m.id &&
+              (!config.providerId || !m.providerId || m.providerId === config.providerId);
             return (
               <button
-                key={m.id}
+                key={`${m.providerId || "google"}-${m.connectionId || "default"}-${m.id}`}
                 type="button"
-                onClick={() => updateField("model", m.id)}
+                onClick={() =>
+                  onChangeConfig({
+                    ...config,
+                    model: m.id,
+                    providerId: m.providerId || "google",
+                    connectionId: m.connectionId,
+                  })
+                }
                 className={`text-start p-3 rounded-xl border transition-colors relative cursor-pointer group ${
                   isSelected
                     ? "bg-primary/10 border-primary ring-1 ring-primary/30 text-foreground"
@@ -228,6 +297,8 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                   <div className="flex items-center gap-1.5 min-w-0">
                     {isSelected ? (
                       <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                    ) : m.isLocal ? (
+                      <Cpu className="w-3 h-3 text-muted-foreground shrink-0" />
                     ) : m.category === "Complex Reasoning" ? (
                       <Brain className="w-3 h-3 text-muted-foreground shrink-0" />
                     ) : m.category === "High Speed" ? (
@@ -246,23 +317,36 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
                 </p>
 
                 <div className="flex items-center flex-wrap gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="px-1.5 py-0.5 rounded bg-muted/80 font-mono">
-                    {m.contextWindow}
+                  <span className="font-medium text-foreground">
+                    {m.providerName || "Google"}
                   </span>
+                  <span aria-hidden="true">·</span>
+                  <span className="font-mono tabular-nums">
+                    {m.contextWindow || "—"}
+                  </span>
+                  {m.sizeLabel && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span className="font-mono tabular-nums">{m.sizeLabel}</span>
+                    </>
+                  )}
                   {m.supportsVision && (
-                    <span className="px-1.5 py-0.5 rounded bg-muted/80 font-medium text-foreground">
-                      Vision
-                    </span>
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>Vision</span>
+                    </>
                   )}
                   {m.supportsAudio && (
-                    <span className="px-1.5 py-0.5 rounded bg-muted/80 font-medium text-foreground">
-                      Audio
-                    </span>
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>Audio</span>
+                    </>
                   )}
                   {m.supportsJson && (
-                    <span className="px-1.5 py-0.5 rounded bg-muted/80 font-medium text-foreground">
-                      JSON
-                    </span>
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>JSON</span>
+                    </>
                   )}
                 </div>
               </button>
