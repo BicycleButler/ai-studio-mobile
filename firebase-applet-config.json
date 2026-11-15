@@ -1,11 +1,12 @@
 {
-  "projectId": "hermes1-498505",
-  "appId": "1:472548735565:web:b8c43229cc5da6d7c77a04",
-  "apiKey": "AIzaSyCFXKcaxmiwwNvsZyD6ld58HX1NbL2CMtg",
-  "authDomain": "hermes1-498505.firebaseapp.com",
-  "storageBucket": "hermes1-498505.firebasestorage.app",
-  "messagingSenderId": "472548735565",
+  "projectId": "gen-lang-client-0543865196",
+  "appId": "1:120006245010:web:3ace3bed82fb6bba2a044b",
+  "apiKey": "AIzaSyCdw-AdJJL-t6yy7bI2qTXfm5W_CqD9uqo",
+  "authDomain": "gen-lang-client-0543865196.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-googleaistudiomo-a6098e85-da20-46a8-bb05-cded9d796221",
+  "storageBucket": "gen-lang-client-0543865196.firebasestorage.app",
+  "messagingSenderId": "120006245010",
   "measurementId": "",
-  "oAuthClientId": "472548735565-g6674g0em848itgic56b668532g1h74e.apps.googleusercontent.com",
+  "oAuthClientId": "120006245010-fgo97u4rqn3rp9acrr3ccmig4ei2o5pe.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

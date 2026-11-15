@@ -1,7 +1,7 @@
 import { DefaultLoggerFactory } from "../utils/logger";
 import { ChatHistoryService } from "./chatHistoryService";
 import { createDefaultStorageInstance, DefaultStorageFactory } from "../utils/storage";
-import { describe, test } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import { ChatSession, ChatMessage } from '../types';
 
 
@@ -156,14 +156,80 @@ describe('testChatHistoryService', () => {
   service.clearAllChatSessions(activeProjectId);
 
   });
+
+  test('clears isStreaming flags on persisted messages and supports preserveTimestamp', () => {
+    const service = new ChatHistoryService({
+      storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()),
+      logger: new DefaultLoggerFactory().createLogger(),
+    });
+    const projectId = "proj_stream_sanitize_test";
+    service.clearAllChatSessions(projectId);
+
+    const remoteUpdatedAt = 1700000123456;
+    service.saveChatSession(
+      {
+        id: "sess_streaming_flush",
+        title: "Streaming Session",
+        messages: [
+          {
+            id: "msg_streaming",
+            role: "model",
+            text: "Partial streamed text",
+            timestamp: 1700000123000,
+            isStreaming: true,
+          },
+        ],
+        createdAt: 1700000120000,
+        updatedAt: remoteUpdatedAt,
+        projectId,
+      },
+      projectId,
+      { preserveTimestamp: true }
+    );
+
+    const saved = service.getChatSessionById("sess_streaming_flush", projectId);
+    expect(saved?.messages[0].isStreaming).toBe(false);
+    expect(saved?.updatedAt).toBe(remoteUpdatedAt);
+
+    service.clearAllChatSessions(projectId);
+  });
 });
 
 // Add bulk delete test
 describe('testBulkDeleteChatSessions', () => {
   test('main', () => {
+    const service = new ChatHistoryService({
+      storageFactory: new DefaultStorageFactory(createDefaultStorageInstance()),
+      logger: new DefaultLoggerFactory().createLogger(),
+    });
+    const projectId = "proj_bulk_delete_test";
+    service.clearAllChatSessions(projectId);
 
+    service.saveChatSession(
+      {
+        id: "sess_bulk_1",
+        title: "One",
+        messages: [{ id: "hist_bulk_m1", role: "user", text: "One", timestamp: 1000 }],
+        createdAt: 1000,
+        updatedAt: 1000,
+        projectId,
+      },
+      projectId
+    );
+    service.saveChatSession(
+      {
+        id: "sess_bulk_2",
+        title: "Two",
+        messages: [{ id: "hist_bulk_m2", role: "user", text: "Two", timestamp: 2000 }],
+        createdAt: 2000,
+        updatedAt: 2000,
+        projectId,
+      },
+      projectId
+    );
 
-  // Need to import bulkDeleteChatSessions here but this is a rough test structure
-
+    expect(service.bulkDeleteChatSessions(["sess_bulk_1"], projectId)).toBe(true);
+    expect(service.getChatSessions(projectId).map((s) => s.id)).toEqual(["sess_bulk_2"]);
+    service.clearAllChatSessions(projectId);
   });
 });

@@ -113,6 +113,7 @@ export class DraftStateService implements IDraftStateService {
       if (clean.length === 0) return undefined;
       return clean.map((m) => ({
         ...m,
+        isStreaming: false,
         images: m.images?.map((img) => ({
           ...img,
           data: "",
@@ -149,6 +150,7 @@ export class DraftStateService implements IDraftStateService {
       ...draft,
       messages: draft.messages.map((m) => ({
         ...m,
+        isStreaming: false,
         images: m.images?.map((img) => ({
           ...img,
           data: "", // Strip heavy base64 image payloads to protect localStorage quota

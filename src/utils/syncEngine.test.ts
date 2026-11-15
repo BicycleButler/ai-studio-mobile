@@ -117,4 +117,33 @@ describe('SyncEngine', () => {
     expect(result.success).toBe(false);
     expect(handler).not.toHaveBeenCalled();
   });
+
+  it('should halt queue on 409 conflict without marking the conflicting mutation as dropped or removing it', async () => {
+    queueData = [
+      { id: 'm1', type: 'CONFLICT_ACTION', payload: { v: 1 }, timestamp: 1 },
+      { id: 'm2', type: 'SUCCESS_ACTION', payload: { v: 2 }, timestamp: 2 },
+    ];
+
+    const secondHandler = vi.fn(async () => ({ success: true }));
+    engine.registerSyncHandler('CONFLICT_ACTION', async () => ({
+      success: false,
+      retryable: false,
+      conflict: {
+        id: 'm1',
+        type: 'CONFLICT_ACTION',
+        localData: { v: 1 },
+        remoteData: { v: 9 },
+        remoteVersion: 9,
+      },
+    }));
+    engine.registerSyncHandler('SUCCESS_ACTION', secondHandler);
+
+    const result = await engine.processOfflineMutations();
+
+    expect(result.success).toBe(false);
+    expect(result.conflicts).toHaveLength(1);
+    expect(result.droppedIds).toEqual([]);
+    expect(mockQueueStore.removeMany).not.toHaveBeenCalled();
+    expect(secondHandler).not.toHaveBeenCalled();
+  });
 });

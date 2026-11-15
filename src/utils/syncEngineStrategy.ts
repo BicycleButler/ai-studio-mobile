@@ -67,6 +67,7 @@ export class StrictFifoQueueProcessingStrategy implements IQueueProcessingStrate
 
       let success = false;
       let retryable = true;
+      let conflict: ConflictData | undefined;
       let lastErrorMsg: string | undefined;
       try {
         const handler = syncRegistry[mutation.type];
@@ -77,6 +78,7 @@ export class StrictFifoQueueProcessingStrategy implements IQueueProcessingStrate
             retryable = result.retryable;
           }
           if (result.conflict) {
+            conflict = result.conflict;
             conflicts.push(result.conflict);
           }
         } else {
@@ -88,6 +90,12 @@ export class StrictFifoQueueProcessingStrategy implements IQueueProcessingStrate
       }
 
       if (!success) {
+        if (conflict) {
+          // Halt queue processing and keep conflicting mutation in store until resolved by the user
+          processSuccess = false;
+          remainingQueue.push(...queue.slice(i));
+          break;
+        }
         if (!retryable) {
           logger.warn(`Dropping non-retryable offline mutation ${mutation.type}`);
           droppedIds.push(mutation.id);

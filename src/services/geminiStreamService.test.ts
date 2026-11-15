@@ -120,4 +120,110 @@ describe('testStreamService', () => {
     expect(reported.message).not.toContain(leakedKey);
     expect(reported.message).toContain('[REDACTED_KEY]');
   });
+
+  test('throws 502 GeminiApiError when SSE stream closes empty without any events', async () => {
+    const emptyStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.close();
+      },
+    });
+
+    const mockApiClient = {
+      fetchStream: vi.fn(async () => new Response(emptyStream, { status: 200 })),
+    } as unknown as ApiClient;
+
+    const service = new GeminiStreamService({
+      apiClient: mockApiClient,
+      logger: new DefaultLoggerFactory().createLogger(),
+      maxConnectRetries: 0,
+    });
+
+    await expect(
+      service.streamGeminiContent(
+        { model: 'gemini-2.5-flash', messages: [{ role: 'user', text: 'hi' }] },
+        { onChunk: () => {} }
+      )
+    ).rejects.toMatchObject({
+      statusCode: 502,
+      message: expect.stringMatching(/without receiving a response/i),
+    });
+  });
+
+  test('retries pre-stream connect timeout with a fresh AbortSignal and succeeds on attempt 2', async () => {
+    const signals: Array<AbortSignal | undefined> = [];
+    const encoder = new TextEncoder();
+    const sseStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('data: {"text":"Retried OK"}\n\ndata: {"done":true}\n\n'));
+        controller.close();
+      },
+    });
+
+    const mockApiClient = {
+      fetchStream: vi.fn((_endpoint: string, opts?: RequestInit) => {
+        signals.push(opts?.signal ?? undefined);
+        if (signals.length === 1) {
+          return new Promise<Response>((_resolve, reject) => {
+            opts?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('Aborted', 'AbortError'));
+            }, { once: true });
+          });
+        }
+        return Promise.resolve(new Response(sseStream, { status: 200 }));
+      }),
+    } as unknown as ApiClient;
+
+    const service = new GeminiStreamService({
+      apiClient: mockApiClient,
+      logger: new DefaultLoggerFactory().createLogger(),
+      connectTimeoutMs: 30,
+      maxConnectRetries: 1,
+      retryDelayMs: 5,
+    });
+
+    const result = await service.streamGeminiContent(
+      { model: 'gemini-2.5-flash', messages: [{ role: 'user', text: 'hi' }] },
+      { onChunk: () => {} }
+    );
+
+    expect(signals.length).toBe(2);
+    expect(signals[0]?.aborted).toBe(true);
+    expect(signals[1]?.aborted).toBe(false);
+    expect(signals[0]).not.toBe(signals[1]);
+    expect(result.text).toBe('Retried OK');
+  });
+
+  test('throws 504 GeminiApiError if all pre-stream connect attempts time out', async () => {
+    let calls = 0;
+    const mockApiClient = {
+      fetchStream: vi.fn((_endpoint: string, opts?: RequestInit) => {
+        calls++;
+        return new Promise<Response>((_resolve, reject) => {
+          opts?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          }, { once: true });
+        });
+      }),
+    } as unknown as ApiClient;
+
+    const service = new GeminiStreamService({
+      apiClient: mockApiClient,
+      logger: new DefaultLoggerFactory().createLogger(),
+      connectTimeoutMs: 25,
+      maxConnectRetries: 1,
+      retryDelayMs: 5,
+    });
+
+    await expect(
+      service.streamGeminiContent(
+        { model: 'gemini-2.5-flash', messages: [{ role: 'user', text: 'hi' }] },
+        { onChunk: () => {} }
+      )
+    ).rejects.toMatchObject({
+      statusCode: 504,
+      message: expect.stringMatching(/Connection timed out/i),
+    });
+
+    expect(calls).toBe(2);
+  });
 });

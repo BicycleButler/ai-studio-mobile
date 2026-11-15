@@ -1,4 +1,3 @@
-import { IPlatformService } from "./IPlatformService";
 import { describe, it, expect } from 'vitest';
 import { BrowserFileDownloadService } from './fileDownloadService';
 import { NoOpLogger } from '../utils/logger';

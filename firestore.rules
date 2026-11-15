@@ -1,0 +1,384 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isValidOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isValidOptionalId(data, key) {
+      return !(key in data) || isValidId(data[key]);
+    }
+
+    function isValidOptionalNumber(data, key) {
+      return !(key in data) || data[key] is number;
+    }
+
+    // 3. Entity Validation Blueprints (Anti-Update-Gap: no existing()/diff() inside helpers)
+    function isValidUserPublicProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'createdAt', 'updatedAt'])
+        && data.uid == userId
+        && isValidId(data.uid)
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 120
+        && isValidOptionalString(data, 'photoURL', 1024)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivateInfo(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'authSource', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'authSource', 'createdAt', 'updatedAt'])
+        && data.uid == userId
+        && isValidId(data.uid)
+        && data.email is string
+        && data.email.size() >= 3
+        && data.email.size() <= 254
+        && data.authSource is string
+        && data.authSource.size() <= 32
+        && data.authSource in ['google_oauth', 'google_identity', 'google_account']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPromptConfigMap(cfg) {
+      return cfg is map
+        && cfg.keys().hasAll(['model', 'temperature'])
+        && cfg.keys().hasOnly([
+          'model', 'providerId', 'connectionId', 'systemInstruction',
+          'temperature', 'topP', 'topK', 'maxOutputTokens',
+          'responseMimeType', 'responseSchemaText'
+        ])
+        && cfg.model is string
+        && cfg.model.size() >= 1
+        && cfg.model.size() <= 128
+        && cfg.temperature is number
+        && isValidOptionalString(cfg, 'providerId', 64)
+        && isValidOptionalString(cfg, 'connectionId', 128)
+        && isValidOptionalString(cfg, 'systemInstruction', 30000)
+        && isValidOptionalNumber(cfg, 'topP')
+        && isValidOptionalNumber(cfg, 'topK')
+        && isValidOptionalNumber(cfg, 'maxOutputTokens')
+        && isValidOptionalString(cfg, 'responseMimeType', 64)
+        && isValidOptionalString(cfg, 'responseSchemaText', 20000);
+    }
+
+    function isValidMessagesList(msgs) {
+      return msgs is list
+        && msgs.size() <= 200
+        && (
+          msgs.size() == 0
+          || (
+            msgs[0] is map
+            && msgs[0].keys().hasAll(['id', 'role', 'text', 'timestamp'])
+            && msgs[0].keys().hasOnly([
+              'id', 'role', 'text', 'timestamp', 'tokenCount',
+              'durationMs', 'error', 'templateIds', 'rawUserText',
+              'modelName', 'providerId'
+            ])
+            && msgs[0].id is string
+            && msgs[0].id.size() >= 1
+            && msgs[0].id.size() <= 128
+            && msgs[0].role is string
+            && msgs[0].role.size() <= 16
+            && msgs[0].role in ['user', 'model']
+            && msgs[0].text is string
+            && msgs[0].text.size() <= 50000
+            && msgs[0].timestamp is number
+          )
+        );
+    }
+
+    function isValidSavedPrompt(data, userId, promptId) {
+      return data.keys().hasAll(['id', 'ownerId', 'title', 'type', 'config', 'messages', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'title', 'type', 'config', 'messages',
+          'freeformText', 'projectId', 'clientUpdatedAt', 'createdAt', 'updatedAt'
+        ])
+        && data.id == promptId
+        && data.ownerId == userId
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 200
+        && data.type is string
+        && data.type.size() <= 16
+        && data.type in ['chat', 'code', 'stubs']
+        && isValidPromptConfigMap(data.config)
+        && isValidMessagesList(data.messages)
+        && isValidOptionalString(data, 'freeformText', 50000)
+        && isValidOptionalId(data, 'projectId')
+        && isValidOptionalNumber(data, 'clientUpdatedAt')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatSession(data, userId, sessionId) {
+      return data.keys().hasAll(['id', 'ownerId', 'title', 'messages', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'title', 'messages', 'model',
+          'projectId', 'clientCreatedAt', 'clientUpdatedAt', 'createdAt', 'updatedAt'
+        ])
+        && data.id == sessionId
+        && data.ownerId == userId
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 200
+        && isValidMessagesList(data.messages)
+        && isValidOptionalString(data, 'model', 128)
+        && isValidOptionalId(data, 'projectId')
+        && isValidOptionalNumber(data, 'clientCreatedAt')
+        && isValidOptionalNumber(data, 'clientUpdatedAt')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPromptTemplate(data, userId, templateId) {
+      return data.keys().hasAll(['id', 'ownerId', 'title', 'content', 'category', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'title', 'description', 'content',
+          'category', 'clientCreatedAt', 'clientUpdatedAt', 'createdAt', 'updatedAt'
+        ])
+        && data.id == templateId
+        && data.ownerId == userId
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 160
+        && isValidOptionalString(data, 'description', 500)
+        && data.content is string
+        && data.content.size() >= 1
+        && data.content.size() <= 20000
+        && data.category is string
+        && data.category.size() <= 32
+        && data.category in ['coding', 'reasoning', 'tone', 'formatting', 'analysis', 'custom']
+        && isValidOptionalNumber(data, 'clientCreatedAt')
+        && isValidOptionalNumber(data, 'clientUpdatedAt')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWorkspaceProject(data, userId, projectId) {
+      return data.keys().hasAll(['id', 'ownerId', 'name', 'defaultModel', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'name', 'defaultModel', 'status',
+          'clientCreatedAt', 'clientUpdatedAt', 'createdAt', 'updatedAt'
+        ])
+        && data.id == projectId
+        && data.ownerId == userId
+        && isValidId(data.id)
+        && isValidId(data.ownerId)
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 160
+        && data.defaultModel is string
+        && data.defaultModel.size() >= 1
+        && data.defaultModel.size() <= 128
+        && (!('status' in data) || (data.status is string && data.status.size() <= 32 && data.status in ['active', 'invalid_key', 'attention_required', 'revoked']))
+        && isValidOptionalNumber(data, 'clientCreatedAt')
+        && isValidOptionalNumber(data, 'clientUpdatedAt')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // 4. Master Gate: Root Non-PII User Profile
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isOwner(userId) && resource.data.uid == request.auth.uid;
+
+      allow create: if isVerifiedOwner(userId)
+        && isValidId(userId)
+        && isValidUserPublicProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedOwner(userId)
+        && isValidId(userId)
+        && isValidUserPublicProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+
+      allow delete: if isVerifiedOwner(userId) && isValidId(userId);
+
+      // 5. PII Isolation Subcollection
+      match /private/{infoId} {
+        allow get: if isValidId(userId) && isValidId(infoId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.uid == request.auth.uid;
+
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(infoId)
+          && isValidUserPrivateInfo(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(infoId)
+          && isValidUserPrivateInfo(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'authSource', 'updatedAt']);
+
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(infoId);
+      }
+
+      // 6. User Saved Prompts Subcollection
+      match /prompts/{promptId} {
+        allow get: if isValidId(userId) && isValidId(promptId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(promptId)
+          && isValidSavedPrompt(incoming(), userId, promptId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(promptId)
+          && isValidSavedPrompt(incoming(), userId, promptId)
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'config', 'messages', 'freeformText', 'projectId', 'clientUpdatedAt', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt'])
+          );
+
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(promptId);
+      }
+
+      // 7. User Chat Sessions Subcollection
+      match /chatSessions/{sessionId} {
+        allow get: if isValidId(userId) && isValidId(sessionId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(sessionId)
+          && isValidChatSession(incoming(), userId, sessionId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(sessionId)
+          && isValidChatSession(incoming(), userId, sessionId)
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'messages', 'model', 'projectId', 'clientUpdatedAt', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt'])
+          );
+
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(sessionId);
+      }
+
+      // 8. Custom Prompt Templates Subcollection
+      match /templates/{templateId} {
+        allow get: if isValidId(userId) && isValidId(templateId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(templateId)
+          && isValidPromptTemplate(incoming(), userId, templateId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(templateId)
+          && isValidPromptTemplate(incoming(), userId, templateId)
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'content', 'category', 'clientUpdatedAt', 'updatedAt']);
+
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(templateId);
+      }
+
+      // 9. Workspace Projects Metadata Subcollection (No Secrets)
+      match /projects/{projectId} {
+        allow get: if isValidId(userId) && isValidId(projectId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(projectId)
+          && isValidWorkspaceProject(incoming(), userId, projectId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(projectId)
+          && isValidWorkspaceProject(incoming(), userId, projectId)
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['name', 'defaultModel', 'status', 'clientUpdatedAt', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt'])
+          );
+
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(projectId);
+      }
+    }
+  }
+}

@@ -335,55 +335,65 @@ export class GeminiStreamService implements IGeminiStreamService {
         signal?.addEventListener("abort", onAbort, { once: true });
       });
 
-    const linked = createLinkedController(options?.signal);
-    let timedOutReason: string | null = null;
+    const requestBody = JSON.stringify({
+      ...payload,
+      providerId,
+      baseUrl: payload.baseUrl || resolvedConn?.baseUrl,
+      stream: true,
+    });
 
-    const reqOptions: RequestInit = {
-      method: "POST",
-      headers,
-      signal: linked.controller?.signal ?? options?.signal,
-      body: JSON.stringify({
-        ...payload,
-        providerId,
-        baseUrl: payload.baseUrl || resolvedConn?.baseUrl,
-        stream: true,
-      }),
+    let activeLinked: { controller: AbortController | null; cleanup: () => void } = {
+      controller: null,
+      cleanup: () => {},
     };
+    let timedOutReason: string | null = null;
 
     const totalAttempts = Math.max(1, 1 + this.maxConnectRetries);
     try {
       for (let attempt = 0; attempt < totalAttempts; attempt++) {
+        const attemptLinked = createLinkedController(options?.signal);
+        let attemptTimeoutMsg: string | null = null;
         let connectTimer: unknown = null;
-        if (linked.controller && this.connectTimeoutMs > 0) {
+
+        if (attemptLinked.controller && this.connectTimeoutMs > 0) {
           connectTimer = this.platformService.setTimeout(() => {
-            timedOutReason = `Connection timed out after ${Math.round(this.connectTimeoutMs / 1000)}s.`;
-            linked.controller?.abort();
+            attemptTimeoutMsg = `Connection timed out after ${Math.round(this.connectTimeoutMs / 1000)}s.`;
+            attemptLinked.controller?.abort(new Error(attemptTimeoutMsg));
           }, this.connectTimeoutMs);
         }
+
+        const reqOptions: RequestInit = {
+          method: "POST",
+          headers,
+          signal: attemptLinked.controller?.signal ?? options?.signal,
+          body: requestBody,
+        };
+
         try {
           response = await this.apiClient.fetchStream("/api/generate", reqOptions);
+          activeLinked = attemptLinked;
           break;
         } catch (err: unknown) {
           if (connectTimer !== null) {
             this.platformService.clearTimeout(connectTimer);
             connectTimer = null;
           }
-          if (timedOutReason) {
-            const timeoutErr = new GeminiApiError(timedOutReason, 504);
-            errorReporter.report("stream_error", timeoutErr.message, {
-              scope: providerId,
-              metadata: { statusCode: 504 },
-            });
-            throw timeoutErr;
-          }
-          if (isAbortError(err)) {
+          attemptLinked.cleanup();
+
+          if (options?.signal?.aborted || (isAbortError(err) && !attemptTimeoutMsg)) {
             throw new GeminiApiError("Generation stopped by user.");
           }
-          const statusCode = err instanceof BaseApiError ? err.statusCode : 500;
+
+          const statusCode = attemptTimeoutMsg
+            ? 504
+            : err instanceof BaseApiError
+              ? err.statusCode
+              : 500;
           const canRetry =
             attempt < totalAttempts - 1 &&
             !options?.signal?.aborted &&
             RETRYABLE_STREAM_INIT_STATUSES.has(statusCode);
+
           if (canRetry) {
             let retryDelay = this.retryDelayMs * (attempt + 1);
             if (err instanceof BaseApiError && err.headers) {
@@ -403,6 +413,17 @@ export class GeminiStreamService implements IGeminiStreamService {
             await delayWithAbort(retryDelay, options?.signal);
             continue;
           }
+
+          if (attemptTimeoutMsg) {
+            timedOutReason = attemptTimeoutMsg;
+            const timeoutErr = new GeminiApiError(attemptTimeoutMsg, 504);
+            errorReporter.report("stream_error", timeoutErr.message, {
+              scope: providerId,
+              metadata: { statusCode: 504 },
+            });
+            throw timeoutErr;
+          }
+
           if (err instanceof BaseApiError) {
             const apiErr = new GeminiApiError(err.message, err.statusCode);
             errorReporter.report("stream_error", apiErr.message, {
@@ -427,7 +448,7 @@ export class GeminiStreamService implements IGeminiStreamService {
         }
       }
     } catch (initErr: unknown) {
-      linked.cleanup();
+      activeLinked.cleanup();
       if (isAbortError(initErr) && !timedOutReason) {
         throw new GeminiApiError("Generation stopped by user.");
       }
@@ -436,19 +457,20 @@ export class GeminiStreamService implements IGeminiStreamService {
 
     const reader = response.body?.getReader();
     if (!reader) {
-      linked.cleanup();
+      activeLinked.cleanup();
       throw new GeminiApiError("Streaming is not supported by the network response.");
     }
 
     const decoder = this.platformService.createTextDecoder();
     if (!decoder) {
-      linked.cleanup();
+      activeLinked.cleanup();
       await reader.cancel().catch(() => {});
       throw new GeminiApiError("TextDecoder is not supported in this environment.");
     }
     let accumulatedText = "";
     let durationMs = 0;
     let totalTokens = 0;
+    let receivedAnyEvent = false;
 
     // We define a helper that processes the JSON payload from the SSE message
     const handleData = (dataStr: string) => {
@@ -466,11 +488,13 @@ export class GeminiStreamService implements IGeminiStreamService {
         }
 
         if (parsed.text) {
+          receivedAnyEvent = true;
           accumulatedText += parsed.text;
           callbacks.onChunk(accumulatedText);
         }
 
         if (parsed.done) {
+          receivedAnyEvent = true;
           durationMs = parsed.durationMs ?? durationMs;
           if (parsed.usageMetadata?.totalTokenCount) {
             totalTokens = parsed.usageMetadata.totalTokenCount;
@@ -488,32 +512,57 @@ export class GeminiStreamService implements IGeminiStreamService {
       handleData(dataStr);
     });
 
+    const streamSignal = activeLinked.controller?.signal ?? options?.signal;
+
     const readChunkWithTimeout = async (): Promise<ReadableStreamReadResult<Uint8Array>> => {
-      if (this.chunkIdleTimeoutMs <= 0) {
+      if (streamSignal?.aborted && !timedOutReason) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+      if (this.chunkIdleTimeoutMs <= 0 && !streamSignal) {
         return reader.read();
       }
       return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
         let settled = false;
-        const timer = this.platformService.setTimeout(() => {
+        const onAbort = () => {
           if (settled) return;
           settled = true;
-          timedOutReason = `Stream stalled with no data for ${Math.round(this.chunkIdleTimeoutMs / 1000)}s.`;
-          linked.controller?.abort();
-          reject(new GeminiApiError(timedOutReason, 504));
-        }, this.chunkIdleTimeoutMs);
+          if (timer !== null) {
+            this.platformService.clearTimeout(timer);
+          }
+          reject(new DOMException("Aborted", "AbortError"));
+        };
+        const timer =
+          this.chunkIdleTimeoutMs > 0
+            ? this.platformService.setTimeout(() => {
+                if (settled) return;
+                settled = true;
+                streamSignal?.removeEventListener("abort", onAbort);
+                timedOutReason = `Stream stalled with no data for ${Math.round(this.chunkIdleTimeoutMs / 1000)}s.`;
+                activeLinked.controller?.abort();
+                reject(new GeminiApiError(timedOutReason, 504));
+              }, this.chunkIdleTimeoutMs)
+            : null;
+
+        streamSignal?.addEventListener("abort", onAbort, { once: true });
 
         reader
           .read()
           .then((res) => {
             if (settled) return;
             settled = true;
-            this.platformService.clearTimeout(timer);
+            if (timer !== null) {
+              this.platformService.clearTimeout(timer);
+            }
+            streamSignal?.removeEventListener("abort", onAbort);
             resolve(res);
           })
           .catch((err) => {
             if (settled) return;
             settled = true;
-            this.platformService.clearTimeout(timer);
+            if (timer !== null) {
+              this.platformService.clearTimeout(timer);
+            }
+            streamSignal?.removeEventListener("abort", onAbort);
             reject(err);
           });
       });
@@ -534,6 +583,10 @@ export class GeminiStreamService implements IGeminiStreamService {
         sseParser.processChunk(trailing);
       }
       sseParser.flush();
+
+      if (!receivedAnyEvent && accumulatedText.length === 0 && !options?.signal?.aborted) {
+        throw new GeminiApiError("Stream closed unexpectedly without receiving a response.", 502);
+      }
 
       if (!totalTokens && accumulatedText.length > 0) {
         totalTokens = Math.max(1, Math.round(accumulatedText.length / 4));
@@ -563,7 +616,7 @@ export class GeminiStreamService implements IGeminiStreamService {
       callbacks.onError?.(formatted);
       throw formatted;
     } finally {
-      linked.cleanup();
+      activeLinked.cleanup();
       try {
         await reader.cancel();
       } catch {

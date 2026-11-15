@@ -3,6 +3,7 @@ import { PromptTemplate, ComposePromptPayload, PromptTemplateCategory } from "..
 import { STORAGE_KEYS, DefaultStorageFactory, IStorageFactory } from "../utils/storage";
 import { IMutableCollection } from "../utils/storage/types";
 import { IIdGenerator, DefaultIdGenerator } from "../utils/idGenerator";
+import { IFirestoreSyncService } from "./firestoreSyncService";
 
 export interface IPromptTemplateService {
   getBuiltinTemplates(): PromptTemplate[];
@@ -13,6 +14,7 @@ export interface IPromptTemplateService {
   deleteCustomTemplate(id: string): boolean;
   bulkDeleteCustomTemplates(ids: string[]): boolean;
   clearCustomTemplates(): void;
+  mergeRemoteTemplates?(remoteTemplates: PromptTemplate[]): void;
   composePrompt(selectedTemplateIds: string[], userText: string): ComposePromptPayload;
 }
 
@@ -85,6 +87,7 @@ export interface PromptTemplateServiceConfig {
   storageFactory?: IStorageFactory;
   idGenerator?: IIdGenerator;
   timeProvider?: ITimeProvider;
+  firestoreSyncService?: IFirestoreSyncService;
 }
 
 export class PromptTemplateService implements IPromptTemplateService {
@@ -92,11 +95,13 @@ export class PromptTemplateService implements IPromptTemplateService {
   private builtinTemplates: PromptTemplate[];
   private idGenerator: IIdGenerator;
   private timeProvider: ITimeProvider;
+  private firestoreSyncService?: IFirestoreSyncService;
 
   constructor(config: PromptTemplateServiceConfig) {
     this.builtinTemplates = config?.builtinTemplates || BUILTIN_PROMPT_TEMPLATES;
     this.idGenerator = config?.idGenerator || new DefaultIdGenerator();
     this.timeProvider = config?.timeProvider || new DefaultTimeProvider();
+    this.firestoreSyncService = config?.firestoreSyncService;
 
     if (config?.customTemplatesCollection) {
       this.customTemplatesCollection = config.customTemplatesCollection;
@@ -160,6 +165,7 @@ export class PromptTemplateService implements IPromptTemplateService {
     };
 
     this.customTemplatesCollection.upsert(savedTemplate, false);
+    void this.firestoreSyncService?.syncCustomTemplate(savedTemplate)?.catch(() => {});
 
     return savedTemplate;
   }
@@ -174,6 +180,10 @@ export class PromptTemplateService implements IPromptTemplateService {
     this.customTemplatesCollection.delete(id);
     const itemsAfter = this.customTemplatesCollection.load().length;
 
+    if (itemsAfter !== itemsBefore) {
+      void this.firestoreSyncService?.deleteCustomTemplate(id)?.catch(() => {});
+    }
+
     return itemsAfter !== itemsBefore;
   }
 
@@ -184,11 +194,28 @@ export class PromptTemplateService implements IPromptTemplateService {
     // Built-ins must not be in this collection anyway
     const filtered = this.customTemplatesCollection.bulkDelete(ids);
 
+    if (filtered.length !== itemsBefore) {
+      ids.forEach((id) => void this.firestoreSyncService?.deleteCustomTemplate(id)?.catch(() => {}));
+    }
+
     return filtered.length !== itemsBefore;
   }
 
   public clearCustomTemplates(): void {
     this.customTemplatesCollection.clear();
+  }
+
+  public mergeRemoteTemplates(remoteTemplates: PromptTemplate[]): void {
+    if (!remoteTemplates || remoteTemplates.length === 0) return;
+    const local = this.customTemplatesCollection.load();
+    const mergedMap = new Map<string, PromptTemplate>(local.map((t) => [t.id, t]));
+    for (const r of remoteTemplates) {
+      const existing = mergedMap.get(r.id);
+      if (!existing || (r.updatedAt || 0) >= (existing.updatedAt || 0)) {
+        mergedMap.set(r.id, { ...r, isBuiltin: false });
+      }
+    }
+    this.customTemplatesCollection.save(Array.from(mergedMap.values()));
   }
 
   /**

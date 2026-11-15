@@ -21,7 +21,7 @@ export const FALLBACK_MODEL_ID = "gemini-2.5-flash";
 export const CURATED_MODELS: ModelInfo[] = [
   {
     id: "gemini-2.5-flash",
-    name: "Gemini 3.8 Flash",
+    name: "Gemini 2.5 Flash",
     category: "Recommended",
     description: "Google's premier model for versatile text, code, multimodal reasoning, and rapid turnarounds.",
     contextWindow: "1M tokens",
@@ -69,17 +69,6 @@ export const CURATED_MODELS: ModelInfo[] = [
     category: "Stable Production",
     description: "Always points to the latest stable, production-ready Gemini Pro release.",
     contextWindow: "2M tokens",
-    supportsVision: true,
-    supportsAudio: true,
-    supportsSystemInstruction: true,
-    supportsJson: true,
-  },
-  {
-    id: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    category: "Stable Production",
-    description: "Proven 2.5-generation multimodal workhorse supporting up to 1 million tokens.",
-    contextWindow: "1M tokens",
     supportsVision: true,
     supportsAudio: true,
     supportsSystemInstruction: true,

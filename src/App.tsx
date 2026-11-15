@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   ChatMessage,
   MessageAttachment,
@@ -158,18 +158,21 @@ export default function App() {
   const [activeWorkspaceFilePath, setActiveWorkspaceFilePath] = useState<string | null>(null);
   const [isLoadingWorkspaceFile, setIsLoadingWorkspaceFile] = useState(false);
   const [workspaceFileError, setWorkspaceFileError] = useState<string | null>(null);
+  const latestIdeFileRequestRef = useRef<string | null>(null);
 
   const handleOpenFileInIDE = useCallback(
     async (filePath: string) => {
       const normalized = filePath.replace(/\\/g, "/").replace(/^\/+/, "");
       if (!normalized) return;
 
+      latestIdeFileRequestRef.current = normalized;
       setPromptType("code");
       setActiveWorkspaceFilePath(normalized);
       setWorkspaceFileError(null);
 
       const alreadyOpen = openedWorkspaceFiles.some((f) => f.path === normalized);
       if (alreadyOpen) {
+        setIsLoadingWorkspaceFile(false);
         return;
       }
 
@@ -192,9 +195,13 @@ export default function App() {
           ];
         });
       } catch (err: unknown) {
-        setWorkspaceFileError(err instanceof Error ? err.message : "Failed to load file into IDE");
+        if (latestIdeFileRequestRef.current === normalized) {
+          setWorkspaceFileError(err instanceof Error ? err.message : "Failed to load file into IDE");
+        }
       } finally {
-        setIsLoadingWorkspaceFile(false);
+        if (latestIdeFileRequestRef.current === normalized) {
+          setIsLoadingWorkspaceFile(false);
+        }
       }
     },
     [openedWorkspaceFiles, setPromptType, stubsClient]
@@ -334,15 +341,20 @@ export default function App() {
     };
     setMessages([...updatedMessages, placeholderModelMsg]);
 
-    // Build payload messages
-    const apiMessages: IncomingMessage[] = updatedMessages.map((m) => ({
-      role: m.role,
-      text: m.text,
-      images: m.images?.map((img) => ({
-        mimeType: img.mimeType,
-        data: img.data,
-      })),
-    }));
+    // Build payload messages (omit stripped/empty restored image placeholders)
+    const apiMessages: IncomingMessage[] = updatedMessages.map((m) => {
+      const validImages = m.images
+        ?.filter((img) => Boolean(img.data && img.data.trim().length > 0))
+        .map((img) => ({
+          mimeType: img.mimeType,
+          data: img.data,
+        }));
+      return {
+        role: m.role,
+        text: m.text,
+        ...(validImages && validImages.length > 0 ? { images: validImages } : {}),
+      };
+    });
 
     const result = await startStream(
       {
@@ -403,6 +415,10 @@ export default function App() {
   // Regenerate last response
   const handleRegenerate = () => {
     if (messages.length === 0 || isGenerating || (!isOnline && !isActiveModelLocal)) return;
+    if (!hasApiKey && !isActiveModelLocal) {
+      handleOpenSettings("account");
+      return;
+    }
     const lastUserIdx = messages.map((m) => m.role).lastIndexOf("user");
     if (lastUserIdx === -1) return;
 
@@ -410,9 +426,12 @@ export default function App() {
     const lastUser = trimmed[trimmed.length - 1];
     const baseHistory = trimmed.slice(0, -1);
     setMessages(baseHistory);
+    const validAttachments = lastUser.images?.filter(
+      (img) => Boolean(img.data && img.data.trim().length > 0)
+    );
     void handleSendMessage(
       lastUser.text,
-      lastUser.images,
+      validAttachments && validAttachments.length > 0 ? validAttachments : undefined,
       lastUser.templateIds,
       lastUser.rawUserText,
       baseHistory

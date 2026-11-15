@@ -13,7 +13,7 @@ export function useProjectManager(
   promptType: PromptType,
   config: PromptConfig
 ) {
-  const { chatHistoryService, projectService, generalSettingsService, draftStateService, logger, idGenerator } = useServices();
+  const { chatHistoryService, projectService, generalSettingsService, draftStateService, firestoreSyncService, logger, idGenerator } = useServices();
   const projectManagerStore = useStore(projectService.projectsManager);
   const projects = projectManagerStore.items;
 
@@ -76,14 +76,26 @@ export function useProjectManager(
     setClipboardToastKey(null);
 
     chatSession.setCurrentSessionId(idGenerator.generate("sess"));
+    void firestoreSyncService?.syncWorkspaceProject(project)?.catch((err) => {
+      logger.warn("Background project sync failed:", err);
+    });
   };
 
   const handleRenameProject = (id: string, newName: string) => {
     projectService.projectsManager.collection.update(id, { name: newName });
+    const updatedProj = projectService.projectsManager.getItems().find((p) => p.id === id);
+    if (updatedProj) {
+      void firestoreSyncService?.syncWorkspaceProject(updatedProj)?.catch((err) => {
+        logger.warn("Background project rename sync failed:", err);
+      });
+    }
   };
 
   const handleDeleteProject = (id: string, onStopStream?: () => void) => {
     projectService.projectsManager.collection.delete(id);
+    void firestoreSyncService?.deleteWorkspaceProject(id)?.catch((err) => {
+      logger.warn("Background project delete sync failed:", err);
+    });
     try {
       chatHistoryService.clearAllChatSessions.bind(chatHistoryService)(id);
     } catch(e) {
@@ -103,6 +115,11 @@ export function useProjectManager(
 
   const handleBulkDeleteProjects = (ids: string[], onStopStream?: () => void) => {
     projectService.projectsManager.collection.bulkDelete(ids);
+    ids.forEach((id) => {
+      void firestoreSyncService?.deleteWorkspaceProject(id)?.catch((err) => {
+        logger.warn("Background bulk project delete sync failed:", err);
+      });
+    });
     try {
       ids.forEach(id => chatHistoryService.clearAllChatSessions.bind(chatHistoryService)(id));
     } catch(e) {

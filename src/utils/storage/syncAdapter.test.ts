@@ -225,4 +225,41 @@ describe('NetworkStorageSyncAdapter', () => {
             })
         );
     });
+
+    it('enqueues coalesced pending mutation behind failed in-flight transmit instead of bypassing FIFO order', async () => {
+        const mockNetworkStatusProvider: INetworkStatusProvider = {
+            isOnline: vi.fn().mockReturnValue(true),
+            getObservable: vi.fn().mockReturnValue(new Observable<NetworkStatus>({ isOnline: true, wasOffline: false }))
+        };
+
+        let rejectFirst!: (err: Error) => void;
+        const firstPromise = new Promise((_, reject) => {
+            rejectFirst = reject;
+        });
+
+        mockApiClient.fetch.mockReturnValueOnce(firstPromise as Promise<unknown>);
+        mockOfflineService.enqueueOfflineMutation.mockResolvedValue(undefined);
+
+        const transport = new ApiClientSyncTransport(mockApiClient);
+        const adapter = new NetworkStorageSyncAdapter({
+            transport,
+            offlineService: mockOfflineService,
+            networkStatusProvider: mockNetworkStatusProvider,
+            retryStrategy: defaultRetryStrategy,
+            logger: noOpLogger,
+            endpoint: '/api/prompts',
+            method: 'PUT',
+        });
+
+        adapter.syncItem({ v: 1 }, 'saved_prompts');
+        adapter.syncItem({ v: 2 }, 'saved_prompts');
+
+        rejectFirst(new Error('Connection reset'));
+        await new Promise((r) => setTimeout(r, 15));
+
+        // Second item must NOT be transmitted directly over HTTP out-of-order; both must be enqueued FIFO
+        expect(mockApiClient.fetch).toHaveBeenCalledTimes(1);
+        expect(mockOfflineService.enqueueOfflineMutation).toHaveBeenNthCalledWith(1, 'saved_prompts', { v: 1 });
+        expect(mockOfflineService.enqueueOfflineMutation).toHaveBeenNthCalledWith(2, 'saved_prompts', { v: 2 });
+    });
 });

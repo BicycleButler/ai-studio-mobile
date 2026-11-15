@@ -44,6 +44,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
   private pendingUtterances: SpeechSynthesisUtterance[] = [];
   private isSpeaking = false;
   private isFinalized = false;
+  private runGeneration = 0;
   private heartbeatTimer: unknown = null;
   private options: SentenceQueueOptions;
 
@@ -149,14 +150,17 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
       }
 
       const idx = this.sentenceCount++;
+      const gen = this.runGeneration;
 
       utterance.onstart = () => {
+        if (gen !== this.runGeneration) return;
         this.isSpeaking = true;
         this.startHeartbeat();
         this.options.onSentenceStart?.(spokenText, idx);
       };
 
       utterance.onend = () => {
+        if (gen !== this.runGeneration) return;
         // Remove from pending list
         this.pendingUtterances = this.pendingUtterances.filter((u) => u !== utterance);
         this.options.onSentenceEnd?.(spokenText, idx);
@@ -173,6 +177,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
       };
 
       utterance.onerror = (e) => {
+        if (gen !== this.runGeneration) return;
         // "interrupted" or "canceled" are standard when stop/cancel is called
         if (e.error !== "interrupted" && e.error !== "canceled") {
           this.options.onError?.(e);
@@ -223,6 +228,7 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
    * Immediately stops all pending and active speech
    */
   public cancel(): void {
+    this.runGeneration++;
     this.stopHeartbeat();
     this.pendingUtterances = [];
     this.isSpeaking = false;

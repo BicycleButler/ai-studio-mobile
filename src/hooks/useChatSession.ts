@@ -5,7 +5,7 @@ import { IPromptTemplateService } from "../services/promptTemplateService";
 import { useStore } from "./useStore";
 
 export function useChatSession(initialDraft: { messages?: ChatMessage[]; freeformText?: string; structuredExamples?: StructuredExample[] }, promptType: PromptType, config: PromptConfig, activeProject: ProjectInfo | null, promptTemplateService: IPromptTemplateService) {
-  const { savedPromptsService, idGenerator, timeProvider } = useServices();
+  const { savedPromptsService, firestoreSyncService, idGenerator, timeProvider, logger } = useServices();
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => idGenerator.generate("sess"));
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (initialDraft.messages && initialDraft.messages.length > 0) {
@@ -24,7 +24,7 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
   const setSavedPrompts = useCallback((promptsOrUpdater: React.SetStateAction<SavedPrompt[]>) => {
       const nextPrompts = typeof promptsOrUpdater === 'function' ? promptsOrUpdater(savedPrompts) : promptsOrUpdater;
       savedPromptsService.savedPromptsManager.collection.save(nextPrompts);
-  }, [savedPrompts]);
+  }, [savedPrompts, savedPromptsService]);
 
   const handleStartNewChat = useCallback((onStopStream?: () => void) => {
     if (onStopStream) {
@@ -33,7 +33,7 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
     const newSessionId = idGenerator.generate("sess");
     setCurrentSessionId(newSessionId);
     setMessages([]);
-  }, []);
+  }, [idGenerator]);
 
   const handleSaveCurrentPrompt = useCallback((title: string) => {
     const newSaved: SavedPrompt = {
@@ -46,16 +46,27 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
       projectId: activeProject?.id,
     };
     savedPromptsService.savedPromptsManager.collection.upsert(newSaved, true);
-  }, [promptType, config, messages, activeProject?.id]);
+    void firestoreSyncService?.syncSavedPrompt(newSaved)?.catch((err) => {
+      logger.warn("Background saved prompt sync failed:", err);
+    });
+  }, [promptType, config, messages, activeProject?.id, savedPromptsService, firestoreSyncService, idGenerator, timeProvider, logger]);
 
   const handleDeleteSavedPrompt = useCallback((id: string) => {
     savedPromptsService.savedPromptsManager.collection.delete(id);
-  }, []);
+    void firestoreSyncService?.deleteSavedPrompt(id)?.catch((err) => {
+      logger.warn("Background saved prompt delete sync failed:", err);
+    });
+  }, [savedPromptsService, firestoreSyncService, logger]);
 
   const handleBulkDeleteSavedPrompts = useCallback((ids: string[]) => {
     savedPromptsService.savedPromptsManager.collection.bulkDelete(ids);
     promptTemplateService.bulkDeleteCustomTemplates(ids);
-  }, [promptTemplateService]);
+    ids.forEach((id) => {
+      void firestoreSyncService?.deleteSavedPrompt(id)?.catch((err) => {
+        logger.warn("Background bulk prompt delete sync failed:", err);
+      });
+    });
+  }, [promptTemplateService, savedPromptsService, firestoreSyncService, logger]);
 
   return {
     currentSessionId,

@@ -2,7 +2,6 @@ import { IPlatformService } from "./IPlatformService";
 import { AuthSignInResult, IAuthProvider } from "./authProvider";
 import { GoogleUser } from "../types";
 import {
-  getAuth,
   signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -10,14 +9,12 @@ import {
   User as FirebaseUser,
   Auth
 } from "firebase/auth";
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import firebaseConfig from "../../firebase-applet-config.json";
+import { getFirebaseAuthInstance } from "./firebase";
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
-import { BrowserPlatformService } from "../services/platformService"
+import { BrowserPlatformService } from "../services/platformService";
 
 
 export class FirebaseAuthProvider implements IAuthProvider {
-  private firebaseAppInstance: FirebaseApp | null = null;
   private firebaseAuthInstance: Auth | null = null;
   private googleAuthProviderInstance: GoogleAuthProvider | null = null;
   private logger: ILogger;
@@ -39,10 +36,7 @@ export class FirebaseAuthProvider implements IAuthProvider {
         return null;
       }
 
-      if (!this.firebaseAppInstance) {
-        this.firebaseAppInstance = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-      }
-      this.firebaseAuthInstance = getAuth(this.firebaseAppInstance);
+      this.firebaseAuthInstance = getFirebaseAuthInstance();
       return this.firebaseAuthInstance;
     } catch (err: unknown) {
       this.logger.error("Failed to initialize Firebase Auth:", err);

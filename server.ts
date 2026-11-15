@@ -135,6 +135,9 @@ export interface CreateAppOptions {
   stateStore?: ServerStateStore;
   verifyGoogleCredentials?: GoogleCredentialVerifier;
   rateLimits?: RateLimitConfig;
+  getGenAIClient?: (customKey?: string) => ReturnType<typeof getGenAIClient>;
+  genAiCallTimeoutMs?: number;
+  genAiStreamIdleTimeoutMs?: number;
 }
 
 const DEFAULT_FALLBACK_MODELS = CURATED_MODELS;
@@ -144,6 +147,15 @@ const MAX_MODEL_CACHE_ENTRIES = 50;
 const GENAI_CALL_TIMEOUT_MS = 30_000;
 const GENAI_STREAM_IDLE_TIMEOUT_MS = 60_000;
 const AUTH_VERIFY_TIMEOUT_MS = 10_000;
+const TRANSIENT_RETRY_STATUSES = new Set([429, 502, 503, 504]);
+const TRANSIENT_NETWORK_CODES = new Set([
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
 
 function parseCookies(cookieHeader: string | undefined): Record<string, string> {
   const result: Record<string, string> = {};
@@ -176,7 +188,9 @@ function getOrCreateSessionId(req: Request, res: Response): string {
   const attrs = isHttps
     ? "Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000"
     : "Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000";
-  res.setHeader("Set-Cookie", `ais_sid=${encodeURIComponent(sid)}; ${attrs}`);
+  if (!res.headersSent) {
+    res.setHeader("Set-Cookie", `ais_sid=${encodeURIComponent(sid)}; ${attrs}`);
+  }
   return sid;
 }
 
@@ -205,18 +219,101 @@ function attachClientDisconnectAbort(req: Request, res: Response): {
   };
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string,
+  onTimeout?: () => void
+): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  promise.catch(() => {});
   try {
     return await Promise.race([
       promise,
       new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+        timer = setTimeout(() => {
+          try {
+            onTimeout?.();
+          } catch {
+            // ignore abort callback errors
+          }
+          const err = new Error(`${label} timed out after ${timeoutMs}ms`) as Error & { status?: number };
+          err.status = 504;
+          reject(err);
+        }, timeoutMs);
       }),
     ]);
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+function isTransientGenAIError(err: unknown): boolean {
+  const status = getErrorStatus(err);
+  if (TRANSIENT_RETRY_STATUSES.has(status)) {
+    return true;
+  }
+  if (typeof err === "object" && err !== null) {
+    const code = (err as { code?: unknown; cause?: { code?: unknown } }).code
+      ?? (err as { cause?: { code?: unknown } }).cause?.code;
+    if (typeof code === "string" && TRANSIENT_NETWORK_CODES.has(code)) {
+      return true;
+    }
+  }
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase();
+    if (
+      msg.includes("econnreset") ||
+      msg.includes("socket hang up") ||
+      msg.includes("fetch failed") ||
+      msg.includes("service is currently unavailable")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function delayWithSignal(ms: number, signal?: AbortSignal): Promise<void> {
+  if (ms <= 0) return;
+  if (signal?.aborted) {
+    throw new DOMException("Client disconnected", "AbortError");
+  }
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException("Client disconnected", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function withTransientRetry<T>(
+  operation: () => Promise<T>,
+  signal?: AbortSignal,
+  maxAttempts: number = 2,
+  baseDelayMs: number = 300
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (signal?.aborted) {
+      throw new DOMException("Client disconnected", "AbortError");
+    }
+    try {
+      return await operation();
+    } catch (err: unknown) {
+      lastError = err;
+      if (signal?.aborted || attempt >= maxAttempts - 1 || !isTransientGenAIError(err)) {
+        throw err;
+      }
+      await delayWithSignal(baseDelayMs * (attempt + 1), signal);
+    }
+  }
+  throw lastError;
 }
 
 const DEFAULT_RATE_WINDOW_MS = 60_000;
@@ -345,6 +442,9 @@ export function createApp(options: CreateAppOptions = {}): {
 } {
   const app = express();
   const stateStore = options.stateStore || new ServerStateStore();
+  const resolveGenAIClient = options.getGenAIClient || getGenAIClient;
+  const callTimeoutMs = options.genAiCallTimeoutMs ?? GENAI_CALL_TIMEOUT_MS;
+  const streamIdleTimeoutMs = options.genAiStreamIdleTimeoutMs ?? GENAI_STREAM_IDLE_TIMEOUT_MS;
 
   app.use(express.json({ limit: "25mb" }));
   app.use(express.urlencoded({ extended: true, limit: "25mb" }));
@@ -851,17 +951,17 @@ app.post("/api/projects", handleProjectsSync);
 app.put("/api/projects", handleProjectsSync);
 
 // Dedicated authentication verification endpoint
-app.post("/api/auth/verify", async (req: Request, res: Response): Promise<void> => {
+app.post("/api/auth/verify", aiRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { user } = getScopeKey(req, res);
     const customKey = req.headers["x-gemini-api-key"] as string | undefined;
-    const ai = getGenAIClient(customKey);
+    const ai = resolveGenAIClient(customKey);
     const countResult = await withTimeout(
       ai.models.countTokens({
         model: "gemini-2.5-flash",
         contents: "ping",
       }),
-      GENAI_CALL_TIMEOUT_MS,
+      callTimeoutMs,
       "Auth verification"
     );
     res.json({
@@ -894,7 +994,7 @@ app.post("/api/verify-key", aiRateLimiter, async (req: Request, res: Response): 
     }
 
     const testModel = (typeof req.body === "object" && req.body?.model) ? String(req.body.model) : "gemini-2.5-flash";
-    const ai = getGenAIClient(candidateKey);
+    const ai = resolveGenAIClient(candidateKey);
 
     // Lightweight verification call with explicit timeout
     const result = await withTimeout(
@@ -902,7 +1002,7 @@ app.post("/api/verify-key", aiRateLimiter, async (req: Request, res: Response): 
         model: testModel,
         contents: "ping",
       }),
-      GENAI_CALL_TIMEOUT_MS,
+      callTimeoutMs,
       "Key verification"
     );
 
@@ -936,13 +1036,13 @@ app.post("/api/providers/verify", aiRateLimiter, async (req: Request, res: Respo
     const candidateKey = (bodyKey || headerKey || "").trim();
 
     if (providerId === "google") {
-      const ai = getGenAIClient(candidateKey || undefined);
+      const ai = resolveGenAIClient(candidateKey || undefined);
       const countResult = await withTimeout(
         ai.models.countTokens({
           model: "gemini-2.5-flash",
           contents: "ping",
         }),
-        GENAI_CALL_TIMEOUT_MS,
+        callTimeoutMs,
         "Provider verification"
       );
       res.json({
@@ -1077,8 +1177,8 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const ai = getGenAIClient(customKey);
-    const pager = await withTimeout(ai.models.list(), GENAI_CALL_TIMEOUT_MS, "Model list");
+    const ai = resolveGenAIClient(customKey);
+    const pager = await withTimeout(ai.models.list(), callTimeoutMs, "Model list");
 
     const liveModels: Array<{
       id: string;
@@ -1142,14 +1242,13 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
       // Prioritize recommended models at top
       liveModels.sort((a, b) => {
         const priority = (id: string) => {
-          if (id === "gemini-2.5-flash") return 1;
-          if (id === "gemini-3.1-pro-preview") return 2;
-          if (id === "gemini-3.1-flash-lite") return 3;
-          if (id === "gemini-flash-latest") return 4;
-          if (id === "gemini-pro-latest") return 5;
-          if (id === "gemini-3.7-flash") return 6;
-          if (id === "gemini-2.5-flash") return 7;
-          if (id === "gemini-2.5-pro") return 8;
+          if (id === "gemini-4-hydrogen") return 1;
+          if (id === "gemini-2.5-flash") return 2;
+          if (id === "gemini-3.1-pro-preview") return 3;
+          if (id === "gemini-3.1-flash-lite") return 4;
+          if (id === "gemini-flash-latest") return 5;
+          if (id === "gemini-pro-latest") return 6;
+          if (id === "gemini-2.5-pro") return 7;
           return 20;
         };
         return priority(a.id) - priority(b.id);
@@ -1186,7 +1285,7 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
 });
 
 // Count tokens endpoint
-app.post("/api/count-tokens", async (req: Request, res: Response): Promise<void> => {
+app.post("/api/count-tokens", aiRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const parseResult = CountTokensRequestSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -1195,7 +1294,7 @@ app.post("/api/count-tokens", async (req: Request, res: Response): Promise<void>
     }
 
     const customKey = req.headers["x-gemini-api-key"] as string | undefined;
-    const ai = getGenAIClient(customKey);
+    const ai = resolveGenAIClient(customKey);
     const { model: rawModel, contents } = parseResult.data;
     const model = sanitizeModelId(rawModel);
 
@@ -1204,7 +1303,7 @@ app.post("/api/count-tokens", async (req: Request, res: Response): Promise<void>
         model,
         contents: contents as string,
       }),
-      GENAI_CALL_TIMEOUT_MS,
+      callTimeoutMs,
       "Count tokens"
     );
 
@@ -1310,7 +1409,7 @@ app.post(
       }
 
       const customKey = req.headers["x-gemini-api-key"] as string | undefined;
-      const ai = getGenAIClient(customKey);
+      const ai = resolveGenAIClient(customKey);
       const model = sanitizeModelId(rawModel, providerId);
 
       // Convert messages to GenAI contents format
@@ -1340,107 +1439,185 @@ app.post(
         };
       });
 
+      let attemptAbortCtrl = new AbortController();
+      let requestTimedOut = false;
+      const onDisconnectAbort = () => attemptAbortCtrl.abort(disconnect.signal.reason);
+      if (disconnect.signal.aborted) {
+        attemptAbortCtrl.abort(disconnect.signal.reason);
+      } else {
+        disconnect.signal.addEventListener("abort", onDisconnectAbort, { once: true });
+      }
+
       // Build config object
-      const config: GenerateContentConfig = {
-        abortSignal: disconnect.signal,
-      };
+      const isGemini4Model = model.startsWith("gemini-4-");
+      const baseConfig: GenerateContentConfig = {};
       if (systemInstruction && systemInstruction.trim()) {
-        config.systemInstruction = systemInstruction.trim();
+        baseConfig.systemInstruction = systemInstruction.trim();
       }
-      if (typeof temperature === "number") {
-        config.temperature = temperature;
-      }
-      if (typeof topP === "number") {
-        config.topP = topP;
-      }
-      if (typeof topK === "number") {
-        config.topK = topK;
+      if (!isGemini4Model) {
+        if (typeof temperature === "number") {
+          baseConfig.temperature = temperature;
+        }
+        if (typeof topP === "number") {
+          baseConfig.topP = topP;
+        }
+        if (typeof topK === "number") {
+          baseConfig.topK = topK;
+        }
       }
       if (typeof maxOutputTokens === "number" && maxOutputTokens > 0) {
-        config.maxOutputTokens = maxOutputTokens;
+        baseConfig.maxOutputTokens = maxOutputTokens;
       }
       if (responseMimeType) {
-        config.responseMimeType = responseMimeType;
+        baseConfig.responseMimeType = responseMimeType;
       }
       if (responseSchema && Object.keys(responseSchema).length > 0) {
-        config.responseSchema = responseSchema;
+        baseConfig.responseSchema = responseSchema;
       }
 
-      if (stream) {
-        // Set SSE headers
-        res.setHeader("Content-Type", "text/event-stream");
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Connection", "keep-alive");
-
-        const responseStream = await withTimeout(
-          ai.models.generateContentStream({
-            model,
-            contents,
-            config,
-          }),
-          GENAI_CALL_TIMEOUT_MS,
-          "Gemini stream start"
-        );
-
-        let usageMetadata: unknown = null;
-        const iterator = responseStream[Symbol.asyncIterator]();
-
-        while (true) {
-          if (disconnect.signal.aborted || res.writableEnded) break;
-          const next = await withTimeout(
-            iterator.next(),
-            GENAI_STREAM_IDLE_TIMEOUT_MS,
-            "Gemini stream chunk"
+      try {
+        if (stream) {
+          const responseStream = await withTransientRetry(
+            async () => {
+              attemptAbortCtrl = new AbortController();
+              requestTimedOut = false;
+              const attemptCtrl = attemptAbortCtrl;
+              const onDisc = () => attemptCtrl.abort(disconnect.signal.reason);
+              disconnect.signal.addEventListener("abort", onDisc, { once: true });
+              try {
+                return await withTimeout(
+                  ai.models.generateContentStream({
+                    model,
+                    contents,
+                    config: { ...baseConfig, abortSignal: attemptCtrl.signal },
+                  }),
+                  callTimeoutMs,
+                  "Gemini stream start",
+                  () => {
+                    requestTimedOut = true;
+                    attemptCtrl.abort(new Error("Gemini stream start timed out"));
+                  }
+                );
+              } finally {
+                disconnect.signal.removeEventListener("abort", onDisc);
+              }
+            },
+            disconnect.signal
           );
-          if (next.done) break;
-          const chunk = next.value;
-          const chunkText = chunk.text || "";
-          if (chunk.usageMetadata) {
-            usageMetadata = chunk.usageMetadata;
-          }
-          if (!res.writableEnded) {
-            res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
-          }
-        }
 
-        if (!disconnect.signal.aborted && !res.writableEnded) {
+          // Set SSE headers only after upstream stream is initialized
+          res.setHeader("Content-Type", "text/event-stream");
+          res.setHeader("Cache-Control", "no-cache");
+          res.setHeader("Connection", "keep-alive");
+
+          const streamAbortCtrl = attemptAbortCtrl;
+          const onStreamDisconnect = () => streamAbortCtrl.abort(disconnect.signal.reason);
+          if (disconnect.signal.aborted) {
+            streamAbortCtrl.abort(disconnect.signal.reason);
+          } else {
+            disconnect.signal.addEventListener("abort", onStreamDisconnect, { once: true });
+          }
+
+          let usageMetadata: unknown = null;
+          const iterator = responseStream[Symbol.asyncIterator]();
+
+          try {
+            while (true) {
+              if (disconnect.signal.aborted || streamAbortCtrl.signal.aborted || res.writableEnded) break;
+              const next = await withTimeout(
+                iterator.next(),
+                streamIdleTimeoutMs,
+                "Gemini stream chunk",
+                () => {
+                  requestTimedOut = true;
+                  streamAbortCtrl.abort(new Error("Gemini stream chunk timed out"));
+                }
+              );
+              if (next.done) break;
+              const chunk = next.value;
+              const chunkText = chunk.text || "";
+              if (chunk.usageMetadata) {
+                usageMetadata = chunk.usageMetadata;
+              }
+              if (!res.writableEnded && !disconnect.signal.aborted) {
+                res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+              }
+            }
+          } catch (streamErr) {
+            streamAbortCtrl.abort(streamErr);
+            throw streamErr;
+          } finally {
+            disconnect.signal.removeEventListener("abort", onStreamDisconnect);
+            await iterator.return?.(undefined).catch(() => {});
+          }
+
+          if (!disconnect.signal.aborted && !res.writableEnded) {
+            const durationMs = timeProvider.now() - startTime;
+            res.write(
+              `data: ${JSON.stringify({
+                done: true,
+                durationMs,
+                usageMetadata,
+              })}\n\n`
+            );
+            res.end();
+          }
+          return;
+        } else {
+          const response = await withTransientRetry(
+            async () => {
+              attemptAbortCtrl = new AbortController();
+              requestTimedOut = false;
+              const attemptCtrl = attemptAbortCtrl;
+              const onDisc = () => attemptCtrl.abort(disconnect.signal.reason);
+              disconnect.signal.addEventListener("abort", onDisc, { once: true });
+              try {
+                return await withTimeout(
+                  ai.models.generateContent({
+                    model,
+                    contents,
+                    config: { ...baseConfig, abortSignal: attemptCtrl.signal },
+                  }),
+                  callTimeoutMs,
+                  "Gemini generate",
+                  () => {
+                    requestTimedOut = true;
+                    attemptCtrl.abort(new Error("Gemini generate timed out"));
+                  }
+                );
+              } finally {
+                disconnect.signal.removeEventListener("abort", onDisc);
+              }
+            },
+            disconnect.signal
+          );
+
           const durationMs = timeProvider.now() - startTime;
-          res.write(
-            `data: ${JSON.stringify({
-              done: true,
-              durationMs,
-              usageMetadata,
-            })}\n\n`
-          );
-          res.end();
+          res.json({
+            text: response.text || "",
+            durationMs,
+            usageMetadata: response.usageMetadata,
+          });
+          return;
         }
-        return;
-      } else {
-        const response = await withTimeout(
-          ai.models.generateContent({
-            model,
-            contents,
-            config,
-          }),
-          GENAI_CALL_TIMEOUT_MS,
-          "Gemini generate"
-        );
-
-        const durationMs = timeProvider.now() - startTime;
-        res.json({
-          text: response.text || "",
-          durationMs,
-          usageMetadata: response.usageMetadata,
-        });
-        return;
+      } catch (genErr: unknown) {
+        if (requestTimedOut) {
+          const timeoutErr = (genErr instanceof Error ? genErr : new Error("Gemini request timed out")) as Error & { status?: number };
+          timeoutErr.status = 504;
+          throw timeoutErr;
+        }
+        throw genErr;
+      } finally {
+        disconnect.signal.removeEventListener("abort", onDisconnectAbort);
       }
     } catch (err: unknown) {
-      if (disconnect.signal.aborted || (err instanceof Error && err.name === "AbortError")) {
+      if (disconnect.signal.aborted || (err instanceof Error && err.name === "AbortError" && getErrorStatus(err) !== 504)) {
         if (!res.writableEnded) res.end();
         return;
       }
       defaultLogger.error("Gemini API Error:", err);
       const statusCode = getErrorStatus(err);
+      const safeStatus = statusCode >= 400 && statusCode < 600 ? statusCode : 500;
       const errorMessage = getErrorMessage(err) || "Failed to generate AI Studio response.";
 
       if (res.headersSent) {
@@ -1451,7 +1628,7 @@ app.post(
         return;
       }
 
-      res.status(statusCode).json({
+      res.status(safeStatus).json({
         error: errorMessage,
       });
       return;
@@ -1499,28 +1676,46 @@ app.post("/api/tts", aiRateLimiter, async (req: Request, res: Response): Promise
   const { text, voiceName } = validationResult.data;
   const disconnect = attachClientDisconnectAbort(req, res);
 
+  let ttsTimedOut = false;
   try {
     const customKey = req.headers["x-gemini-api-key"] as string | undefined;
-    const ai = getGenAIClient(customKey);
+    const ai = resolveGenAIClient(customKey);
 
-    const response = await withTimeout(
-      ai.models.generateContent({
-        model: "gemini-3.1-flash-tts-preview",
-        contents: text,
-        config: {
-          abortSignal: disconnect.signal,
-          responseModalities: ["AUDIO"],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: voiceName || "Puck",
+    const response = await withTransientRetry(
+      async () => {
+        const ttsAbortCtrl = new AbortController();
+        ttsTimedOut = false;
+        const onDisc = () => ttsAbortCtrl.abort(disconnect.signal.reason);
+        disconnect.signal.addEventListener("abort", onDisc, { once: true });
+        try {
+          return await withTimeout(
+            ai.models.generateContent({
+              model: "gemini-3.1-flash-tts-preview",
+              contents: text,
+              config: {
+                abortSignal: ttsAbortCtrl.signal,
+                responseModalities: ["AUDIO"],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: {
+                      voiceName: voiceName || "Puck",
+                    },
+                  },
+                },
               },
-            },
-          },
-        },
-      }),
-      GENAI_CALL_TIMEOUT_MS,
-      "Gemini TTS"
+            }),
+            callTimeoutMs,
+            "Gemini TTS",
+            () => {
+              ttsTimedOut = true;
+              ttsAbortCtrl.abort(new Error("Gemini TTS timed out"));
+            }
+          );
+        } finally {
+          disconnect.signal.removeEventListener("abort", onDisc);
+        }
+      },
+      disconnect.signal
     );
 
     const candidate = response.candidates?.[0];
@@ -1555,12 +1750,12 @@ app.post("/api/tts", aiRateLimiter, async (req: Request, res: Response): Promise
       sampleRate: 24000,
     });
   } catch (err: unknown) {
-    if (disconnect.signal.aborted || (err instanceof Error && err.name === "AbortError")) {
+    if (disconnect.signal.aborted || (!ttsTimedOut && err instanceof Error && err.name === "AbortError")) {
       if (!res.writableEnded) res.end();
       return;
     }
     defaultLogger.error("Gemini TTS Error:", err);
-    const statusCode = getErrorStatus(err);
+    const statusCode = ttsTimedOut ? 504 : getErrorStatus(err);
     const errorMessage = getErrorMessage(err) || "Failed to generate speech with Gemini TTS.";
     res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
       error: errorMessage,
@@ -1918,9 +2113,14 @@ app.get("/api/integrations/oauth/:provider/url", (req: Request, res: Response): 
   const baseUrl = getAppBaseUrl(req);
   const redirectUri = `${baseUrl}/api/integrations/oauth/${provider}/callback`;
   const now = timeProvider.now();
-  // Prune expired state tokens older than 10 minutes
+  // Prune expired state tokens older than 10 minutes and cap map size
   for (const [k, v] of oauthPendingStates) {
     if (now - v.createdAt > 10 * 60_000) oauthPendingStates.delete(k);
+  }
+  while (oauthPendingStates.size >= 500) {
+    const oldestKey = oauthPendingStates.keys().next().value;
+    if (!oldestKey) break;
+    oauthPendingStates.delete(oldestKey);
   }
   const state = crypto.randomBytes(16).toString("hex");
   oauthPendingStates.set(state, { providerId: provider, createdAt: now });
@@ -2510,24 +2710,84 @@ function getErrorStatus(error: unknown): number {
 
 export async function startServer(): Promise<http.Server> {
   const { app, stateStore } = createApp();
+  const httpServer = http.createServer(app);
 
   // Vite dev middleware or static serving
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
+    const hmrDisabled = process.env.DISABLE_HMR === "true";
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: hmrDisabled ? false : { server: httpServer },
+      },
       appType: "spa",
     });
+    if (hmrDisabled) {
+      app.get("/@vite/client", (req: Request, res: Response, next: NextFunction) => {
+        delete req.headers["if-none-match"];
+        const origEnd = res.end.bind(res);
+        const origWrite = res.write.bind(res);
+        const chunks: Buffer[] = [];
+        let intercepted = false;
+
+        res.write = ((chunk: unknown, encoding?: unknown, cb?: unknown): boolean => {
+          if (res.statusCode === 200 && chunk) {
+            intercepted = true;
+            chunks.push(
+              Buffer.isBuffer(chunk)
+                ? chunk
+                : Buffer.from(String(chunk), typeof encoding === "string" ? (encoding as BufferEncoding) : "utf8")
+            );
+            if (typeof encoding === "function") (encoding as () => void)();
+            else if (typeof cb === "function") (cb as () => void)();
+            return true;
+          }
+          return (origWrite as (...args: unknown[]) => boolean)(chunk, encoding, cb);
+        }) as typeof res.write;
+
+        res.end = ((chunk?: unknown, encoding?: unknown, cb?: unknown): Response => {
+          if (res.statusCode === 200 && (intercepted || chunk)) {
+            if (chunk && typeof chunk !== "function") {
+              chunks.push(
+                Buffer.isBuffer(chunk)
+                  ? chunk
+                  : Buffer.from(String(chunk), typeof encoding === "string" ? (encoding as BufferEncoding) : "utf8")
+              );
+            }
+            const raw = Buffer.concat(chunks).toString("utf8");
+            const patched = raw.replace(
+              "transport.connect(createHMRHandler(handleMessage));",
+              "/* HMR disabled via DISABLE_HMR=true */"
+            );
+            const buf = Buffer.from(patched, "utf8");
+            res.setHeader("Content-Length", buf.length);
+            res.removeHeader("ETag");
+            return (origEnd as (...args: unknown[]) => Response)(
+              buf,
+              typeof chunk === "function" ? chunk : typeof encoding === "function" ? encoding : cb
+            );
+          }
+          return (origEnd as (...args: unknown[]) => Response)(chunk, encoding, cb);
+        }) as typeof res.end;
+
+        next();
+      });
+    }
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (_req: Request, res: Response): void => {
+    app.get("*", (req: Request, res: Response): void => {
+      if (req.path.startsWith("/api/")) {
+        res.status(404).json({ error: "API endpoint not found." });
+        return;
+      }
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
-  const server = app.listen(PORT, "0.0.0.0", () => {
+  const server = httpServer.listen(PORT, "0.0.0.0", () => {
     defaultLogger.info(`AI Studio Android Server listening on http://0.0.0.0:${PORT}`);
   });
 

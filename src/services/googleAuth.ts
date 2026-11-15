@@ -314,25 +314,36 @@ export class GoogleAuthService implements IGoogleAuthService {
       }
 
       const messageHandler = (event: MessageEvent) => {
-        if (event.data && event.data.type === "OAUTH_AUTH_SUCCESS") {
+        if (!event.data) return;
+        if (event.data.type === "OAUTH_AUTH_SUCCESS") {
           removeMessage();
           this.platformService.clearInterval(pollTimer);
           resolve({
             token: event.data.token,
             code: event.data.code,
           });
+        } else if (event.data.type === "OAUTH_AUTH_ERROR" || event.data.error) {
+          removeMessage();
+          this.platformService.clearInterval(pollTimer);
+          reject(new Error(String(event.data.error || "Authentication failed.")));
         }
       };
 
       const removeMessage = this.platformService.addEventListener("message", messageHandler);
 
       const pollTimer = this.platformService.setInterval(() => {
-        if (popup.closed) {
+        let isClosed = false;
+        try {
+          isClosed = Boolean(popup.closed);
+        } catch {
+          // Ignore Cross-Origin-Opener-Policy errors inspecting popup.closed
+        }
+        if (isClosed) {
           this.platformService.clearInterval(pollTimer);
           removeMessage();
           reject(new Error("Authentication popup closed before completing."));
         }
-      }, 800) ;
+      }, 800);
     });
   }
 }

@@ -133,7 +133,11 @@ export class LocalModelService implements ILocalModelService {
     }
 
     if (this.loadingModelPromise) {
-      await this.loadingModelPromise;
+      try {
+        await this.loadingModelPromise;
+      } catch {
+        // Prior model load failed; allow loading the requested model
+      }
       if (this.loadedWebLLMModelId === modelId) return;
     }
 
@@ -427,19 +431,20 @@ export class LocalModelService implements ILocalModelService {
     }
     return new Promise((resolve, reject) => {
       let settled = false;
-      const timer = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        onTimeoutAbort?.();
-        reject(new Error(`Local server stream stalled for ${Math.round(idleTimeoutMs / 1000)}s.`));
-      }, idleTimeoutMs);
-
       const onAbort = () => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
         reject(new DOMException("Generation stopped by user.", "AbortError"));
       };
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        parentSignal?.removeEventListener("abort", onAbort);
+        onTimeoutAbort?.();
+        reject(new Error(`Local server stream stalled for ${Math.round(idleTimeoutMs / 1000)}s.`));
+      }, idleTimeoutMs);
 
       parentSignal?.addEventListener("abort", onAbort, { once: true });
 
@@ -687,11 +692,16 @@ export class LocalModelService implements ILocalModelService {
     }
 
     // Ollama native /api/chat NDJSON stream
-    const ollamaMessages = payload.messages.map((m) => ({
-      role: m.role === "model" || m.role === "assistant" ? "assistant" : "user",
-      content: m.text || "",
-      ...(m.images && m.images.length > 0 ? { images: m.images.map((i) => i.data) } : {}),
-    }));
+    const ollamaMessages = payload.messages.map((m) => {
+      const validImages = m.images
+        ?.map((i) => i.data)
+        .filter((d) => Boolean(d && d.trim().length > 0));
+      return {
+        role: m.role === "model" || m.role === "assistant" ? "assistant" : "user",
+        content: m.text || "",
+        ...(validImages && validImages.length > 0 ? { images: validImages } : {}),
+      };
+    });
     if (payload.systemInstruction?.trim()) {
       ollamaMessages.unshift({ role: "system", content: payload.systemInstruction.trim() });
     }

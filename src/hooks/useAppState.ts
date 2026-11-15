@@ -13,7 +13,7 @@ import { PromptType, ChatMessage, ChatSession, SavedPrompt, ProjectInfo } from "
 
 export function useAppState() {
   // External Services
-  const { chatHistoryService, appAuthManager, promptTemplateService, draftStateService, projectService, platformService, timeProvider } = useServices();
+  const { chatHistoryService, appAuthManager, promptTemplateService, draftStateService, projectService, savedPromptsService, firestoreSyncService, platformService, timeProvider, logger } = useServices();
 
   // Load initial app draft safely before deriving other states
   const initialActiveProjectId = projectService.getActiveProjectId();
@@ -89,10 +89,15 @@ export function useAppState() {
 
 
 
+  const pendingDraftSaveRef = useRef<(() => void) | null>(null);
+  const pendingChatSaveRef = useRef<(() => void) | null>(null);
+  const lastStreamSaveAtRef = useRef<number>(0);
+
   const handleSelectChatSession = (session: ChatSession, onStopStream?: () => void) => {
     if (onStopStream) {
       onStopStream();
     }
+    pendingDraftSaveRef.current?.();
     pendingChatSaveRef.current?.();
     chatSession.setCurrentSessionId(session.id);
     chatSession.setMessages(session.messages || []);
@@ -105,6 +110,7 @@ export function useAppState() {
     if (onStopStream) {
       onStopStream();
     }
+    pendingDraftSaveRef.current?.();
     pendingChatSaveRef.current?.();
     chatSession.handleStartNewChat();
   };
@@ -113,51 +119,59 @@ export function useAppState() {
     if (onStopStream) {
       onStopStream();
     }
+    pendingDraftSaveRef.current?.();
     pendingChatSaveRef.current?.();
     projectManager.handleProjectActivated(project);
   };
 
-  // Draft Save Effect
+  // Draft Save Effect (debounced + flushable on background/unmount)
   useEffect(() => {
-    const timeout = platformService.setTimeout(() => {
-      draftStateService.saveDraftState(
-        {
-          promptType,
-          config,
-          freeformText: chatSession.freeformText,
-          structuredExamples: chatSession.structuredExamples,
-          selectedTemplateIds: promptTemplates.selectedTemplateIds,
-          messages: chatSession.messages,
-        },
-        activeProject?.id
-      );
-    }, 500);
+    const projectId = activeProject?.id;
+    const draftSnapshot = {
+      promptType,
+      config,
+      freeformText: chatSession.freeformText,
+      structuredExamples: chatSession.structuredExamples,
+      selectedTemplateIds: promptTemplates.selectedTemplateIds,
+      messages: chatSession.messages,
+    };
+    const persistDraft = () => {
+      pendingDraftSaveRef.current = null;
+      draftStateService.saveDraftState(draftSnapshot, projectId);
+    };
+    pendingDraftSaveRef.current = persistDraft;
+    const timeout = platformService.setTimeout(persistDraft, 500);
     return () => platformService.clearTimeout(timeout);
-  }, [promptType, config, chatSession.freeformText, chatSession.structuredExamples, chatSession.messages, promptTemplates.selectedTemplateIds, activeProject?.id, platformService]);
+  }, [promptType, config, chatSession.freeformText, chatSession.structuredExamples, chatSession.messages, promptTemplates.selectedTemplateIds, activeProject?.id, draftStateService, platformService]);
 
-  const pendingChatSaveRef = useRef<(() => void) | null>(null);
-
-  // Flush any pending debounced chat save on pagehide or unmount
+  // Flush any pending debounced draft/chat save on pagehide, visibility hidden, or unmount
   useEffect(() => {
-    if (!platformService.isBrowserEnv()) {
-      return () => {
-        pendingChatSaveRef.current?.();
-      };
-    }
-    const flush = () => {
+    const flushAll = () => {
+      pendingDraftSaveRef.current?.();
       pendingChatSaveRef.current?.();
     };
-    const removePageHide = platformService.addEventListener("pagehide", flush);
+    if (!platformService.isBrowserEnv()) {
+      return flushAll;
+    }
+    const handleVisibilityChange = () => {
+      if (platformService.getDocument()?.visibilityState === "hidden") {
+        flushAll();
+      }
+    };
+    const removePageHide = platformService.addEventListener("pagehide", flushAll);
+    const removeVisibility = platformService.addDocumentListener("visibilitychange", handleVisibilityChange);
     return () => {
       removePageHide();
-      pendingChatSaveRef.current?.();
+      removeVisibility();
+      flushAll();
     };
   }, [platformService]);
 
-  // Chat Session Persistence Effect (debounced while streaming, immediate on completion)
+  // Chat Session Persistence Effect (throttled + debounced while streaming, immediate on completion)
   useEffect(() => {
     if (!chatSession.messages || chatSession.messages.length === 0 || !chatSession.currentSessionId) {
       pendingChatSaveRef.current = null;
+      lastStreamSaveAtRef.current = 0;
       return;
     }
 
@@ -179,21 +193,36 @@ export function useAppState() {
       pendingChatSaveRef.current = null;
       const existing = chatHistoryService.getChatSessionById(sessionId, projectId);
       const now = timeProvider.now();
-      chatHistoryService.saveChatSession(
-        {
-          id: sessionId,
-          title: chatHistoryService.generateSessionTitle(messagesSnapshot),
-          messages: messagesSnapshot,
-          createdAt: existing?.createdAt || now,
-          updatedAt: now,
-          model: modelSnapshot,
-          projectId,
-        },
-        projectId
-      );
+      if (isStreaming) {
+        lastStreamSaveAtRef.current = now;
+      }
+      const sessionToSave: ChatSession = {
+        id: sessionId,
+        title: chatHistoryService.generateSessionTitle(messagesSnapshot),
+        messages: messagesSnapshot,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+        model: modelSnapshot,
+        projectId,
+      };
+      chatHistoryService.saveChatSession(sessionToSave, projectId);
+      if (!isStreaming) {
+        void firestoreSyncService?.syncChatSession(sessionToSave)?.catch((err) => {
+          logger.warn("Background chat session sync failed:", err);
+        });
+      }
     };
 
     if (!isStreaming) {
+      lastStreamSaveAtRef.current = 0;
+      persistSession();
+      return;
+    }
+
+    const now = timeProvider.now();
+    if (lastStreamSaveAtRef.current === 0) {
+      lastStreamSaveAtRef.current = now;
+    } else if (now - lastStreamSaveAtRef.current >= 2000) {
       persistSession();
       return;
     }
@@ -203,14 +232,57 @@ export function useAppState() {
     return () => {
       platformService.clearTimeout(timeout);
     };
-  }, [chatSession.messages, chatSession.currentSessionId, activeProject?.id, config.model, chatHistoryService, platformService, timeProvider]);
+  }, [chatSession.messages, chatSession.currentSessionId, activeProject?.id, config.model, chatHistoryService, firestoreSyncService, platformService, timeProvider, logger]);
 
-  // Init Effects
+  // Init & Authenticated Cloud Firestore Sync Effects
   useEffect(() => {
     chatHistoryService.purgeMockSessionsFromStorage();
 
+    if (!firestoreSyncService) return;
+    const unsubFirestore = firestoreSyncService.subscribeUserData({
+      onRemotePrompts: (remotePrompts) => {
+        if (remotePrompts.length === 0) return;
+        const local = savedPromptsService.loadSavedPrompts();
+        const mergedMap = new Map<string, SavedPrompt>(local.map((p) => [p.id, p]));
+        for (const r of remotePrompts) {
+          const existing = mergedMap.get(r.id);
+          if (!existing || (r.updatedAt || 0) > (existing.updatedAt || 0)) {
+            mergedMap.set(r.id, r);
+          }
+        }
+        savedPromptsService.savedPromptsManager.collection.save(Array.from(mergedMap.values()), { skipSync: true });
+      },
+      onRemoteChatSessions: (remoteSessions) => {
+        for (const r of remoteSessions) {
+          const existing = chatHistoryService.getChatSessionById(r.id, r.projectId);
+          if (!existing || (r.updatedAt || 0) > (existing.updatedAt || 0)) {
+            chatHistoryService.saveChatSession(r, r.projectId, { preserveTimestamp: true });
+          }
+        }
+      },
+      onRemoteTemplates: (remoteTemplates) => {
+        promptTemplateService.mergeRemoteTemplates?.(remoteTemplates);
+      },
+      onRemoteProjects: (remoteProjects) => {
+        if (remoteProjects.length === 0) return;
+        const local = projectService.projectsManager.getItems();
+        const mergedMap = new Map<string, ProjectInfo>(local.map((p) => [p.id, p]));
+        for (const r of remoteProjects) {
+          const existing = mergedMap.get(r.id);
+          if (!existing) {
+            mergedMap.set(r.id, { ...r, apiKey: "" });
+          } else if ((r.updatedAt || 0) > (existing.updatedAt || 0)) {
+            mergedMap.set(r.id, { ...r, apiKey: existing.apiKey });
+          }
+        }
+        projectService.projectsManager.collection.save(Array.from(mergedMap.values()), { skipSync: true });
+      },
+    });
 
-  }, [appAuthManager, chatHistoryService]);
+    return () => {
+      unsubFirestore();
+    };
+  }, [appAuthManager, chatHistoryService, firestoreSyncService, savedPromptsService, promptTemplateService, projectService, logger]);
 
 
   return {

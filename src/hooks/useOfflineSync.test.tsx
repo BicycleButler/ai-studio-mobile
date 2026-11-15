@@ -188,4 +188,62 @@ describe("useOfflineSync resilience", () => {
     expect(result.current.deadLetterCount).toBe(0);
     expect(offlineService.processOfflineMutations).toHaveBeenCalled();
   });
+
+  it("resets reconnectState to idle and sets syncWarning if processOfflineMutations throws", async () => {
+    const { offlineService, wrapper } = createHarness([
+      { id: "m_err", type: "saved_prompts", payload: [], timestamp: 1 },
+    ]);
+    (offlineService.processOfflineMutations as import("vitest").Mock).mockRejectedValueOnce(
+      new Error("IndexedDB transaction failed")
+    );
+
+    const { result } = renderHook(() => useOfflineSync(offlineService), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.syncWarning).toBe("IndexedDB transaction failed");
+    });
+
+    expect(result.current.reconnectState).toBe("idle");
+    expect(errorReporter.getEvents().some((e) => e.category === "unhandled_error")).toBe(true);
+  });
+
+  it("handles queue conflicts without spurious syncWarning and does not double-drain after overwrite", async () => {
+    const { offlineService, wrapper } = createHarness([
+      { id: "m_conf", type: "projects", payload: [{ id: "p1" }], timestamp: 1 },
+    ]);
+    (offlineService.processOfflineMutations as import("vitest").Mock)
+      .mockResolvedValueOnce({
+        success: false,
+        conflicts: [
+          {
+            id: "m_conf",
+            type: "projects",
+            localData: [{ id: "p1" }],
+            remoteData: [{ id: "p2" }],
+            remoteVersion: 4,
+          },
+        ],
+        droppedIds: [],
+      })
+      .mockResolvedValueOnce({
+        success: false,
+        conflicts: [],
+        droppedIds: [],
+      });
+
+    const { result } = renderHook(() => useOfflineSync(offlineService), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.reconnectState).toBe("conflict");
+    });
+    expect(result.current.syncWarning).toBeNull();
+    expect(errorReporter.getEvents().some((e) => e.category === "sync_dropped")).toBe(false);
+
+    await act(async () => {
+      await result.current.handleResolveConflict("overwrite");
+    });
+
+    // 1 startup drain + 1 drain from overwrite = 2 total (not 3 from duplicate drain)
+    expect(offlineService.processOfflineMutations).toHaveBeenCalledTimes(2);
+  });
 });

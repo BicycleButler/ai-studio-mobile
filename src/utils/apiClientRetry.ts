@@ -98,6 +98,9 @@ export class ExponentialBackoffRetryStrategy implements IRetryStrategy {
       }
 
       const retryAfterMs = parseRetryAfterMs(lastResponse);
+      if (lastResponse?.body && !lastResponse.bodyUsed) {
+        void lastResponse.body.cancel().catch(() => {});
+      }
       const delay =
         retryAfterMs !== null ? retryAfterMs : this.delayStrategy.getNextDelayMs(attempt + 1, lastError);
 

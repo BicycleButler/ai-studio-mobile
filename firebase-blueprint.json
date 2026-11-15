@@ -1,0 +1,350 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Non-PII root user profile document acting as the master parent gate for user subcollections.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication user UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional avatar image URL.",
+          "maxLength": 1024
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["uid", "displayName", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated PII record containing user email and auth metadata, strictly accessible by the owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified user email address.",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "authSource": {
+          "type": "string",
+          "description": "Authentication provider source identifier.",
+          "enum": ["google_oauth", "google_identity", "google_account"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["uid", "email", "authSource", "createdAt", "updatedAt"]
+    },
+    "SavedPromptDoc": {
+      "title": "SavedPromptDoc",
+      "description": "User-saved prompt configuration and conversation snapshot synced across devices.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Saved prompt document identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the prompt owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the saved prompt.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "type": {
+          "type": "string",
+          "description": "Workspace prompt mode.",
+          "enum": ["chat", "code", "stubs"]
+        },
+        "config": {
+          "type": "object",
+          "description": "Model and generation configuration map."
+        },
+        "messages": {
+          "type": "array",
+          "description": "Bounded array of conversation messages."
+        },
+        "freeformText": {
+          "type": "string",
+          "description": "Optional freeform prompt text.",
+          "maxLength": 50000
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Optional workspace project scope identifier.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "clientUpdatedAt": {
+          "type": "number",
+          "description": "Client-side epoch millisecond timestamp for ordering."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["id", "ownerId", "title", "type", "config", "messages", "createdAt", "updatedAt"]
+    },
+    "ChatSessionDoc": {
+      "title": "ChatSessionDoc",
+      "description": "Persisted user chat conversation session.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Chat session identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the session owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Session display title.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "messages": {
+          "type": "array",
+          "description": "Bounded array of chat messages without inline image data blobs."
+        },
+        "model": {
+          "type": "string",
+          "description": "Active model identifier used in this session.",
+          "maxLength": 128
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Optional workspace project scope ID.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "clientCreatedAt": {
+          "type": "number",
+          "description": "Client creation epoch milliseconds."
+        },
+        "clientUpdatedAt": {
+          "type": "number",
+          "description": "Client update epoch milliseconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["id", "ownerId", "title", "messages", "createdAt", "updatedAt"]
+    },
+    "PromptTemplateDoc": {
+      "title": "PromptTemplateDoc",
+      "description": "User-authored custom reusable prompt template.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Custom template identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the template author.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Template title.",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional template description.",
+          "maxLength": 500
+        },
+        "content": {
+          "type": "string",
+          "description": "Template instruction body.",
+          "minLength": 1,
+          "maxLength": 20000
+        },
+        "category": {
+          "type": "string",
+          "description": "Prompt template category.",
+          "enum": ["coding", "reasoning", "tone", "formatting", "analysis", "custom"]
+        },
+        "clientCreatedAt": {
+          "type": "number",
+          "description": "Client creation epoch milliseconds."
+        },
+        "clientUpdatedAt": {
+          "type": "number",
+          "description": "Client update epoch milliseconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["id", "ownerId", "title", "content", "category", "createdAt", "updatedAt"]
+    },
+    "WorkspaceProjectDoc": {
+      "title": "WorkspaceProjectDoc",
+      "description": "Non-secret AI Studio workspace project metadata synced across devices (API keys remain local-only).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Workspace project identifier.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the project owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Project display name.",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "defaultModel": {
+          "type": "string",
+          "description": "Default Gemini model ID for this project.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "status": {
+          "type": "string",
+          "description": "Project connection status.",
+          "enum": ["active", "invalid_key", "attention_required", "revoked"]
+        },
+        "clientCreatedAt": {
+          "type": "number",
+          "description": "Client creation epoch milliseconds."
+        },
+        "clientUpdatedAt": {
+          "type": "number",
+          "description": "Client update epoch milliseconds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["id", "ownerId", "name", "defaultModel", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublicProfile" },
+      "description": "Non-PII root user profile document serving as the parent gate for user-owned subcollections."
+    },
+    "/users/{userId}/private/{infoId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Owner-isolated PII document storing verified email and auth source."
+    },
+    "/users/{userId}/prompts/{promptId}": {
+      "schema": { "$ref": "#/entities/SavedPromptDoc" },
+      "description": "User-saved prompts and prompt snapshots synced via Cloud Firestore."
+    },
+    "/users/{userId}/chatSessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/ChatSessionDoc" },
+      "description": "User chat conversation history synced across sessions."
+    },
+    "/users/{userId}/templates/{templateId}": {
+      "schema": { "$ref": "#/entities/PromptTemplateDoc" },
+      "description": "Custom reusable prompt templates authored by the user."
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/WorkspaceProjectDoc" },
+      "description": "Non-secret workspace project metadata (API keys stay local and are never persisted here)."
+    }
+  }
+}

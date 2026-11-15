@@ -1,7 +1,20 @@
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
+import firebaseRulesPlugin from "@firebase/eslint-plugin-security-rules";
 
 export default [
+  {
+    ignores: [
+      "dist/**/*",
+      "dev-dist/**",
+      "node_modules/**",
+      ".vite/**",
+      "*.cjs",
+      "server.js",
+      "eslint.config.js",
+      "vite.config.ts",
+    ],
+  },
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
@@ -41,16 +54,5 @@ export default [
       "@typescript-eslint/no-explicit-any": "off",
     },
   },
-  {
-    ignores: [
-      "dist/**",
-      "dev-dist/**",
-      "node_modules/**",
-      ".vite/**",
-      "*.cjs",
-      "server.js",
-      "eslint.config.js",
-      "vite.config.ts",
-    ],
-  },
+  firebaseRulesPlugin.configs["flat/recommended"],
 ];

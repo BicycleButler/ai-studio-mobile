@@ -106,6 +106,15 @@ export function useOfflineSync(customOfflineService?: IOfflineService) {
       if (mountedRef.current) {
         handleProcessResult(conflicts, droppedIds);
       }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to process offline sync queue.";
+      if (mountedRef.current) {
+        setReconnectState((prev) => (prev === "conflict" ? prev : "idle"));
+        setSyncWarning(msg);
+      }
+      errorReporter.report("unhandled_error", msg, {
+        scope: "offline_sync",
+      });
     } finally {
       isDrainingRef.current = false;
     }
@@ -208,13 +217,15 @@ export function useOfflineSync(customOfflineService?: IOfflineService) {
     if (!mountedRef.current) return;
     setConflictData(null);
 
-    const queueLength = await offlineService.getOfflineQueueLength();
-    if (!mountedRef.current) return;
-    if (queueLength > 0) {
-      const { conflicts, droppedIds } = await offlineService.processOfflineMutations();
-      handleProcessResult(conflicts, droppedIds);
-    } else if (action !== 'overwrite') {
-      handleProcessResult([]);
+    if (action !== 'overwrite') {
+      const queueLength = await offlineService.getOfflineQueueLength();
+      if (!mountedRef.current) return;
+      if (queueLength > 0) {
+        const { conflicts, droppedIds } = await offlineService.processOfflineMutations();
+        handleProcessResult(conflicts, droppedIds);
+      } else {
+        handleProcessResult([]);
+      }
     }
   }, [conflictData, offlineService, handleProcessResult, projectService, savedPromptsService]);
 

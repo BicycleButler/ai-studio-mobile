@@ -97,12 +97,16 @@ describe('Express server reliability & security', () => {
     expect(body.error).toBeTruthy();
   });
 
-  it('returns curated fallback models for /api/models', async () => {
+  it('returns curated fallback models with unique IDs for /api/models', async () => {
     const resNoKey = await fetch(`${baseUrl}/api/models`);
     expect(resNoKey.status).toBe(200);
     const data = await resNoKey.json();
     expect(Array.isArray(data.models)).toBe(true);
     expect(data.models.length).toBeGreaterThan(0);
+    const ids = data.models.map((m: { id: string }) => m.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const flash25 = data.models.find((m: { id: string; name: string }) => m.id === 'gemini-2.5-flash');
+    expect(flash25?.name).toBe('Gemini 2.5 Flash');
   });
 
   it('rejects workspace path traversal attempts in stubsService', async () => {
@@ -382,6 +386,113 @@ describe('Express server reliability & security', () => {
       expect(store.getItemEntries('session:s1', 'prompts').map((e) => e.itemId)).toEqual(['p2']);
     } finally {
       store.close();
+    }
+  });
+
+  it('retries transient 503 errors on /api/generate and aborts upstream signal with 504 on timeout', async () => {
+    let generateAttempts = 0;
+    let streamAttempts = 0;
+    let observedAbortSignal: AbortSignal | undefined;
+
+    const mockGenAiClient = {
+      models: {
+        generateContent: async () => {
+          generateAttempts++;
+          if (generateAttempts === 1) {
+            const err = new Error('Temporary 503 unavailable') as Error & { status?: number };
+            err.status = 503;
+            throw err;
+          }
+          return { text: 'Recovered response', usageMetadata: { totalTokenCount: 5 } };
+        },
+        generateContentStream: async (params: { config?: { abortSignal?: AbortSignal } }) => {
+          streamAttempts++;
+          if (streamAttempts === 1) {
+            observedAbortSignal = params.config?.abortSignal;
+            // Hang until aborted when testing timeout, or throw 503 depending on prompt
+            const err = new Error('Transient stream 503') as Error & { status?: number };
+            err.status = 503;
+            throw err;
+          }
+          return (async function* () {
+            yield { text: 'Stream ' };
+            yield { text: 'OK', usageMetadata: { totalTokenCount: 3 } };
+          })();
+        },
+      },
+    };
+
+    const localStore = new ServerStateStore(':memory:');
+    const { app: testApp } = createApp({
+      stateStore: localStore,
+      getGenAIClient: () => mockGenAiClient as unknown as ReturnType<typeof import('./utils/genai').getGenAIClient>,
+      genAiCallTimeoutMs: 60,
+      genAiStreamIdleTimeoutMs: 60,
+    });
+    const localServer = http.createServer(testApp);
+    await new Promise<void>((resolve) => localServer.listen(0, '127.0.0.1', () => resolve()));
+    const localBaseUrl = `http://127.0.0.1:${(localServer.address() as AddressInfo).port}`;
+
+    try {
+      // 1. Non-streaming transient 503 retry succeeds on attempt 2
+      const genRes = await fetch(`${localBaseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          messages: [{ role: 'user', text: 'hello' }],
+          stream: false,
+        }),
+      });
+      expect(genRes.status).toBe(200);
+      const genData = await genRes.json();
+      expect(genData.text).toBe('Recovered response');
+      expect(generateAttempts).toBe(2);
+
+      // 2. Streaming transient 503 retry succeeds on attempt 2
+      const streamRes = await fetch(`${localBaseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          messages: [{ role: 'user', text: 'hello stream' }],
+          stream: true,
+        }),
+      });
+      expect(streamRes.status).toBe(200);
+      const sseText = await streamRes.text();
+      expect(sseText).toContain('"text":"Stream "');
+      expect(sseText).toContain('"text":"OK"');
+      expect(sseText).toContain('"done":true');
+      expect(streamAttempts).toBe(2);
+
+      // 3. Hanging non-streaming call triggers timeout -> aborts signal and returns HTTP 504
+      let timeoutAbortTriggered = false;
+      mockGenAiClient.models.generateContent = async (params?: { config?: { abortSignal?: AbortSignal } }) => {
+        observedAbortSignal = params?.config?.abortSignal;
+        observedAbortSignal?.addEventListener('abort', () => {
+          timeoutAbortTriggered = true;
+        });
+        await new Promise(() => {});
+        return { text: 'never', usageMetadata: { totalTokenCount: 0 } };
+      };
+
+      const timeoutRes = await fetch(`${localBaseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          messages: [{ role: 'user', text: 'hang' }],
+          stream: false,
+        }),
+      });
+      expect(timeoutRes.status).toBe(504);
+      const timeoutBody = await timeoutRes.json();
+      expect(timeoutBody.error).toMatch(/timed out/i);
+      expect(timeoutAbortTriggered).toBe(true);
+    } finally {
+      await new Promise<void>((resolve) => localServer.close(() => resolve()));
+      localStore.close();
     }
   });
 });

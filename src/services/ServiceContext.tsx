@@ -54,6 +54,7 @@ import { ProviderConnectionService, IProviderConnectionService } from "../utils/
 import { LocalModelService, ILocalModelService } from "./localModelService";
 import { IntegrationConnectionService, IIntegrationConnectionService } from "../utils/storage/integrations";
 import { IntegrationApiService, IIntegrationApiService } from "./integrationService";
+import { FirestoreSyncService, IFirestoreSyncService } from "./firestoreSyncService";
 
 export interface IServices {
   themeService: IThemeService;
@@ -72,6 +73,7 @@ export interface IServices {
   localModelService: ILocalModelService;
   integrationConnectionService: IIntegrationConnectionService;
   integrationApiService: IIntegrationApiService;
+  firestoreSyncService: IFirestoreSyncService;
   speechVoicesService: ISpeechVoicesService;
   createSentenceSpeechQueue: (options: SentenceQueueOptions) => ISentenceSpeechQueue;
   sseStreamParserFactory: import("../utils/sseParser").ISSEStreamParserFactory;
@@ -181,6 +183,8 @@ const explicitlyInjectedIntegrationApiService = new IntegrationApiService({
   platformService: explicitlyInjectedPlatformService,
 });
 
+const explicitlyInjectedFirestoreSyncService = new FirestoreSyncService(explicitlyInjectedLogger);
+
 const explicitlyInjectedGeminiStreamService = new GeminiStreamService({
   apiClient: explicitlyInjectedApiClient,
   logger: explicitlyInjectedLogger,
@@ -282,7 +286,8 @@ const explicitlyInjectedImageCompressor = new ImageCompressor({
 const explicitlyInjectedPromptTemplateService = new PromptTemplateService({
   builtinTemplates: BUILTIN_PROMPT_TEMPLATES,
   storageFactory: explicitlyInjectedStorageFactory,
-  idGenerator: explicitlyInjectedIdGenerator
+  idGenerator: explicitlyInjectedIdGenerator,
+  firestoreSyncService: explicitlyInjectedFirestoreSyncService,
 });
 
 const explicitlyInjectedCodeGeneratorService = new CodeGeneratorService({
@@ -316,6 +321,7 @@ const defaultServices: IServices = {
   localModelService: explicitlyInjectedLocalModelService,
   integrationConnectionService: explicitlyInjectedIntegrationConnectionService,
   integrationApiService: explicitlyInjectedIntegrationApiService,
+  firestoreSyncService: explicitlyInjectedFirestoreSyncService,
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
   createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
   sseStreamParserFactory: { create: (onEvent) => new SSEStreamParser(onEvent) },

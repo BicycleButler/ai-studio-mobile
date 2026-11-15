@@ -17,7 +17,7 @@ export interface IChatHistoryService {
   generateSessionTitle(messages: ChatMessage[], maxLength?: number): string;
   getChatCollection(projectId?: string): IMutableCollection<ChatSession>;
   getChatSessions(projectId?: string): ChatSession[];
-  saveChatSession(session: ChatSession, projectId?: string): void;
+  saveChatSession(session: ChatSession, projectId?: string, options?: { preserveTimestamp?: boolean }): void;
   getChatSessionById(sessionId: string, projectId?: string): ChatSession | null;
   deleteChatSession(sessionId: string, projectId?: string): boolean;
   clearAllChatSessions(projectId?: string): void;
@@ -146,6 +146,7 @@ export class ChatHistoryService implements IChatHistoryService {
   public sanitizeMessagesForHistory(messages: ChatMessage[]): ChatMessage[] {
     return messages.map((m) => ({
       ...m,
+      isStreaming: false,
       images: m.images?.map((img) => ({
         ...img,
         data: "", // Stripped to conserve storage quota
@@ -175,7 +176,11 @@ export class ChatHistoryService implements IChatHistoryService {
     return [...this.getChatCollection(projectId).load()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   }
 
-  public saveChatSession(session: ChatSession, projectId?: string): void {
+  public saveChatSession(
+    session: ChatSession,
+    projectId?: string,
+    options?: { preserveTimestamp?: boolean }
+  ): void {
     if (!session.id || !session.messages || this.isMockChatSession(session)) return;
 
     const collection = this.getChatCollection(projectId);
@@ -186,13 +191,17 @@ export class ChatHistoryService implements IChatHistoryService {
         ? session.title
         : this.generateSessionTitle(sanitizedMessages);
 
+    const now = this.timeProvider.now();
     const updatedSession: ChatSession = {
       ...session,
       title,
       messages: sanitizedMessages,
       projectId: projectId || session.projectId,
-      updatedAt: this.timeProvider.now(),
-      createdAt: session.createdAt || this.timeProvider.now(),
+      updatedAt:
+        options?.preserveTimestamp && typeof session.updatedAt === "number"
+          ? session.updatedAt
+          : now,
+      createdAt: session.createdAt || now,
     };
 
     collection.upsert(updatedSession, true);

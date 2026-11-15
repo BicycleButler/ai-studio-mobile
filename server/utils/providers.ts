@@ -90,19 +90,20 @@ async function readChunkWithIdleTimeout(
   }
   return new Promise((resolve, reject) => {
     let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      onTimeoutAbort?.();
-      reject(new Error(`Upstream stream stalled for ${idleTimeoutMs}ms`));
-    }, idleTimeoutMs);
-
     const onAbort = () => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       reject(new DOMException("Aborted", "AbortError"));
     };
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      parentSignal?.removeEventListener("abort", onAbort);
+      onTimeoutAbort?.();
+      reject(new Error(`Upstream stream stalled for ${idleTimeoutMs}ms`));
+    }, idleTimeoutMs);
 
     parentSignal?.addEventListener("abort", onAbort, { once: true });
 
@@ -123,6 +124,33 @@ async function readChunkWithIdleTimeout(
         reject(err);
       });
   });
+}
+
+async function readResponseWithTimeout<T>(
+  readFn: () => Promise<T>,
+  timeoutMs: number,
+  onTimeout: () => void
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const op = readFn();
+  op.catch(() => {});
+  try {
+    return await Promise.race([
+      op,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          try {
+            onTimeout();
+          } catch {
+            // ignore abort error
+          }
+          reject(new Error(`Upstream response body timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 function normalizeBaseUrl(rawUrl: string | undefined, providerId: ModelProviderId): string {
@@ -265,10 +293,14 @@ async function assertSafeResolvedHost(url: string, providerId: ModelProviderId):
     const records = await dns.lookup(hostname, { all: true });
     for (const rec of records) {
       if (isMetadataIp(rec.address)) {
-        throw new Error("Resolved provider address points to a blocked metadata endpoint.");
+        const err = new Error("Resolved provider address points to a blocked metadata endpoint.") as Error & { status?: number };
+        err.status = 400;
+        throw err;
       }
       if (providerId !== "local-ollama" && isPrivateOrLoopbackIp(rec.address)) {
-        throw new Error("Resolved provider address points to a private or loopback network.");
+        const err = new Error("Resolved provider address points to a private or loopback network.") as Error & { status?: number };
+        err.status = 400;
+        throw err;
       }
     }
   } catch (err) {
@@ -612,7 +644,9 @@ async function handleOpenAICompatibleGenerate(
 
   await assertSafeResolvedHost(baseUrl, ctx.providerId);
 
-  const connectTimeout = createTimeoutController(ctx.signal, STREAM_CONNECT_TIMEOUT_MS);
+  const streamAbortCtrl = new AbortController();
+  const streamLinked = combineSignals([ctx.signal, streamAbortCtrl.signal]);
+  const connectTimeout = createTimeoutController(streamLinked.signal, STREAM_CONNECT_TIMEOUT_MS);
   let upstream: Response;
   try {
     upstream = await fetch(endpoint, {
@@ -622,37 +656,63 @@ async function handleOpenAICompatibleGenerate(
       signal: connectTimeout.signal,
       redirect: "error",
     });
+  } catch (err) {
+    streamLinked.cleanup();
+    throw err;
   } finally {
     connectTimeout.cleanup();
   }
 
   if (!upstream.ok) {
-    const errText = await upstream.text();
-    let msg = `Provider error (${upstream.status}): ${errText}`;
     try {
-      const parsed = JSON.parse(errText) as { error?: { message?: string } };
-      if (parsed?.error?.message) msg = parsed.error.message;
-    } catch {
-      // keep raw text
+      const errText = await readResponseWithTimeout(
+        () => upstream.text(),
+        STREAM_CONNECT_TIMEOUT_MS,
+        () => {
+          streamAbortCtrl.abort(new Error("Upstream error body timed out"));
+          void upstream.body?.cancel().catch(() => {});
+        }
+      );
+      let msg = `Provider error (${upstream.status}): ${errText}`;
+      try {
+        const parsed = JSON.parse(errText) as { error?: { message?: string } };
+        if (parsed?.error?.message) msg = parsed.error.message;
+      } catch {
+        // keep raw text
+      }
+      const safeStatus = upstream.status >= 400 && upstream.status < 600 ? upstream.status : 502;
+      res.status(safeStatus).json({ error: msg });
+      return;
+    } finally {
+      streamLinked.cleanup();
     }
-    res.status(upstream.status).json({ error: msg });
-    return;
   }
 
   if (!payload.stream) {
-    const json = (await upstream.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-      usage?: { total_tokens?: number };
-    };
-    const text = json.choices?.[0]?.message?.content || "";
-    res.json({
-      text,
-      durationMs: Date.now() - startTime,
-      usageMetadata: json.usage?.total_tokens
-        ? { totalTokenCount: json.usage.total_tokens }
-        : undefined,
-    });
-    return;
+    try {
+      const json = (await readResponseWithTimeout(
+        () => upstream.json(),
+        STREAM_IDLE_TIMEOUT_MS,
+        () => {
+          streamAbortCtrl.abort(new Error("Upstream response body timed out"));
+          void upstream.body?.cancel().catch(() => {});
+        }
+      )) as {
+        choices?: Array<{ message?: { content?: string } }>;
+        usage?: { total_tokens?: number };
+      };
+      const text = json.choices?.[0]?.message?.content || "";
+      res.json({
+        text,
+        durationMs: Date.now() - startTime,
+        usageMetadata: json.usage?.total_tokens
+          ? { totalTokenCount: json.usage.total_tokens }
+          : undefined,
+      });
+      return;
+    } finally {
+      streamLinked.cleanup();
+    }
   }
 
   res.setHeader("Content-Type", "text/event-stream");
@@ -673,7 +733,12 @@ async function handleOpenAICompatibleGenerate(
   try {
     while (true) {
       if (ctx.signal?.aborted || res.writableEnded) break;
-      const { done, value } = await readChunkWithIdleTimeout(reader, STREAM_IDLE_TIMEOUT_MS, ctx.signal);
+      const { done, value } = await readChunkWithIdleTimeout(
+        reader,
+        STREAM_IDLE_TIMEOUT_MS,
+        streamLinked.signal,
+        () => streamAbortCtrl.abort(new Error("Upstream OpenAI stream idle timeout"))
+      );
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
@@ -748,6 +813,7 @@ async function handleOpenAICompatibleGenerate(
       res.end();
     }
   } finally {
+    streamLinked.cleanup();
     await reader.cancel().catch(() => {});
   }
 }
@@ -784,7 +850,9 @@ async function handleAnthropicGenerate(
 
   await assertSafeResolvedHost(baseUrl, ctx.providerId);
 
-  const connectTimeout = createTimeoutController(ctx.signal, STREAM_CONNECT_TIMEOUT_MS);
+  const streamAbortCtrl = new AbortController();
+  const streamLinked = combineSignals([ctx.signal, streamAbortCtrl.signal]);
+  const connectTimeout = createTimeoutController(streamLinked.signal, STREAM_CONNECT_TIMEOUT_MS);
   let upstream: Response;
   try {
     upstream = await fetch(endpoint, {
@@ -798,39 +866,65 @@ async function handleAnthropicGenerate(
       signal: connectTimeout.signal,
       redirect: "error",
     });
+  } catch (err) {
+    streamLinked.cleanup();
+    throw err;
   } finally {
     connectTimeout.cleanup();
   }
 
   if (!upstream.ok) {
-    const errText = await upstream.text();
-    let msg = `Anthropic error (${upstream.status}): ${errText}`;
     try {
-      const parsed = JSON.parse(errText) as { error?: { message?: string } };
-      if (parsed?.error?.message) msg = parsed.error.message;
-    } catch {
-      // keep raw
+      const errText = await readResponseWithTimeout(
+        () => upstream.text(),
+        STREAM_CONNECT_TIMEOUT_MS,
+        () => {
+          streamAbortCtrl.abort(new Error("Anthropic error body timed out"));
+          void upstream.body?.cancel().catch(() => {});
+        }
+      );
+      let msg = `Anthropic error (${upstream.status}): ${errText}`;
+      try {
+        const parsed = JSON.parse(errText) as { error?: { message?: string } };
+        if (parsed?.error?.message) msg = parsed.error.message;
+      } catch {
+        // keep raw
+      }
+      const safeStatus = upstream.status >= 400 && upstream.status < 600 ? upstream.status : 502;
+      res.status(safeStatus).json({ error: msg });
+      return;
+    } finally {
+      streamLinked.cleanup();
     }
-    res.status(upstream.status).json({ error: msg });
-    return;
   }
 
   if (!payload.stream) {
-    const json = (await upstream.json()) as {
-      content?: Array<{ type: string; text?: string }>;
-      usage?: { input_tokens?: number; output_tokens?: number };
-    };
-    const text = (json.content || [])
-      .filter((c) => c.type === "text" && c.text)
-      .map((c) => c.text)
-      .join("");
-    const total = (json.usage?.input_tokens || 0) + (json.usage?.output_tokens || 0);
-    res.json({
-      text,
-      durationMs: Date.now() - startTime,
-      usageMetadata: total ? { totalTokenCount: total } : undefined,
-    });
-    return;
+    try {
+      const json = (await readResponseWithTimeout(
+        () => upstream.json(),
+        STREAM_IDLE_TIMEOUT_MS,
+        () => {
+          streamAbortCtrl.abort(new Error("Anthropic response body timed out"));
+          void upstream.body?.cancel().catch(() => {});
+        }
+      )) as {
+        content?: Array<{ type: string; text?: string }>;
+        usage?: { input_tokens?: number; output_tokens?: number };
+      };
+      const text = (json.content || [])
+        .filter((c) => c.type === "text" && c.text)
+        .map((c) => c.text)
+        .join("");
+      const total = (json.usage?.input_tokens || 0) + (json.usage?.output_tokens || 0);
+      res.json({
+        text,
+        durationMs: Date.now() - startTime,
+        usageMetadata: total ? { totalTokenCount: total } : undefined,
+      });
+      return;
+    } finally {
+      streamLinked.cleanup();
+    }
   }
 
   res.setHeader("Content-Type", "text/event-stream");
@@ -852,7 +946,12 @@ async function handleAnthropicGenerate(
   try {
     while (true) {
       if (ctx.signal?.aborted || res.writableEnded) break;
-      const { done, value } = await readChunkWithIdleTimeout(reader, STREAM_IDLE_TIMEOUT_MS, ctx.signal);
+      const { done, value } = await readChunkWithIdleTimeout(
+        reader,
+        STREAM_IDLE_TIMEOUT_MS,
+        streamLinked.signal,
+        () => streamAbortCtrl.abort(new Error("Upstream Anthropic stream idle timeout"))
+      );
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
@@ -940,6 +1039,7 @@ async function handleAnthropicGenerate(
       res.end();
     }
   } finally {
+    streamLinked.cleanup();
     await reader.cancel().catch(() => {});
   }
 }
@@ -990,7 +1090,9 @@ async function handleOllamaGenerate(
 
   await assertSafeResolvedHost(baseUrl, "local-ollama");
 
-  const connectTimeout = createTimeoutController(ctx.signal, STREAM_CONNECT_TIMEOUT_MS);
+  const streamAbortCtrl = new AbortController();
+  const streamLinked = combineSignals([ctx.signal, streamAbortCtrl.signal]);
+  const connectTimeout = createTimeoutController(streamLinked.signal, STREAM_CONNECT_TIMEOUT_MS);
   let upstream: Response;
   try {
     upstream = await fetch(endpoint, {
@@ -1000,29 +1102,55 @@ async function handleOllamaGenerate(
       signal: connectTimeout.signal,
       redirect: "error",
     });
+  } catch (err) {
+    streamLinked.cleanup();
+    throw err;
   } finally {
     connectTimeout.cleanup();
   }
 
   if (!upstream.ok) {
-    const errText = await upstream.text();
-    res.status(upstream.status).json({ error: `Local server error (${upstream.status}): ${errText}` });
-    return;
+    try {
+      const errText = await readResponseWithTimeout(
+        () => upstream.text(),
+        STREAM_CONNECT_TIMEOUT_MS,
+        () => {
+          streamAbortCtrl.abort(new Error("Local server error body timed out"));
+          void upstream.body?.cancel().catch(() => {});
+        }
+      );
+      const safeStatus = upstream.status >= 400 && upstream.status < 600 ? upstream.status : 502;
+      res.status(safeStatus).json({ error: `Local server error (${upstream.status}): ${errText}` });
+      return;
+    } finally {
+      streamLinked.cleanup();
+    }
   }
 
   if (!payload.stream) {
-    const json = (await upstream.json()) as {
-      message?: { content?: string };
-      eval_count?: number;
-      prompt_eval_count?: number;
-    };
-    const total = (json.prompt_eval_count || 0) + (json.eval_count || 0);
-    res.json({
-      text: json.message?.content || "",
-      durationMs: Date.now() - startTime,
-      usageMetadata: total ? { totalTokenCount: total } : undefined,
-    });
-    return;
+    try {
+      const json = (await readResponseWithTimeout(
+        () => upstream.json(),
+        STREAM_IDLE_TIMEOUT_MS,
+        () => {
+          streamAbortCtrl.abort(new Error("Local server response body timed out"));
+          void upstream.body?.cancel().catch(() => {});
+        }
+      )) as {
+        message?: { content?: string };
+        eval_count?: number;
+        prompt_eval_count?: number;
+      };
+      const total = (json.prompt_eval_count || 0) + (json.eval_count || 0);
+      res.json({
+        text: json.message?.content || "",
+        durationMs: Date.now() - startTime,
+        usageMetadata: total ? { totalTokenCount: total } : undefined,
+      });
+      return;
+    } finally {
+      streamLinked.cleanup();
+    }
   }
 
   res.setHeader("Content-Type", "text/event-stream");
@@ -1043,7 +1171,12 @@ async function handleOllamaGenerate(
   try {
     while (true) {
       if (ctx.signal?.aborted || res.writableEnded) break;
-      const { done, value } = await readChunkWithIdleTimeout(reader, STREAM_IDLE_TIMEOUT_MS, ctx.signal);
+      const { done, value } = await readChunkWithIdleTimeout(
+        reader,
+        STREAM_IDLE_TIMEOUT_MS,
+        streamLinked.signal,
+        () => streamAbortCtrl.abort(new Error("Upstream Ollama stream idle timeout"))
+      );
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
@@ -1119,6 +1252,7 @@ async function handleOllamaGenerate(
       res.end();
     }
   } finally {
+    streamLinked.cleanup();
     await reader.cancel().catch(() => {});
   }
 }
