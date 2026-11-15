@@ -143,7 +143,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   };
 
   // Virtualization is technically needed for 10K items but standard combobox virtualization in React is complex
-  // Let's implement a simple slice virtualization to prevent DOM lockups
+  // Let us implement a simple slice virtualization to prevent DOM lockups
   const VIRTUAL_LIMIT = 50;
   const slicedOptions = filteredOptions.slice(0, VIRTUAL_LIMIT);
 

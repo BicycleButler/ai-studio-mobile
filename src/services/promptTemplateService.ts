@@ -181,7 +181,7 @@ export class PromptTemplateService implements IPromptTemplateService {
     if (!ids || ids.length === 0) return false;
 
     const itemsBefore = this.customTemplatesCollection.load().length;
-    // Built-ins shouldn't be in this collection anyway
+    // Built-ins must not be in this collection anyway
     const filtered = this.customTemplatesCollection.bulkDelete(ids);
 
     return filtered.length !== itemsBefore;

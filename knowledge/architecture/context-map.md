@@ -1,108 +1,38 @@
 ---
 title: Project Architecture Context Map
 type: context-map
-description: High-level architectural map of core domains, subsystem responsibilities, and data flows.
+description: High-level architectural map of core domains, subsystem responsibilities, and dependency flows.
 tags:
   - architecture
   - context-map
+  - agent-optimized
 ---
 
-# Project Architecture Context Map
+# Architecture Context Map
 
-## Purpose & Overview
-**AI Studio Mobile** is a responsive, mobile-first Google AI Studio prompt engineering environment and playground built with React 19, TypeScript, Vite, Tailwind CSS, and the `@google/genai` SDK. It empowers developers and prompt designers to experiment with Gemini models (Gemini 2.5 Flash, Gemini Pro, Thinking models, Vision, and Audio) with real-time streaming, speech-to-text, prompt templates, structured output JSON schema validation, and multi-language code export.
+## Routing & Entrypoints
+Entry (Layer 0): src/types.ts -> domain: core
+Entry (Layer 0): src/types/speechRecognition.ts -> domain: core
+Entry (Layer 0): src/types/stubs.ts -> domain: core
 
-## Domain Index & Architecture Map
+## Subsystem Matrix
+Utils Domain (L1): src/utils/platform.ts -> deps: none | caps: AppRuntime, isBrowserEnvironment, WindowWithMatchMedia, WindowWithSpeech
+Components Domain (L2): src/components/ui/index.ts -> deps: none | caps: AccountSettingsProps, ProjectSettingsProps, SpeechSettingsProps, LibrarySettingsProps
+Services Domain (L3): src/services/platformService.ts -> deps: none | caps: BrowserPlatformService, getStorageEventObservable, getStorageQuotaObservable, isInputFocused
+Hooks Domain (L4): src/hooks/useSpeechToText.ts -> deps: none | caps: ISpeechRecognitionFactory, UseSpeechToTextOptions, UseSpeechToTextReturn, useSpeechToText
+Core Entrypoints & Runtime (L5): src/types.ts -> deps: none | caps: PromptType, SettingsTab, ModelInfo, MessageAttachment
 
-| Domain | Subsystem / Responsibility | Context Map |
-| :--- | :--- | :--- |
-| **Auth & Identity** | Google OAuth 2.0, API key persistence, validation against GenAI API | [Auth Domain Map](domains/auth-domain-map.md) |
-| **Workspaces & UI** | Chat, Freeform, Structured, and Mobile IDE prompt interfaces, navigation, settings | [Workspaces Domain Map](domains/workspaces-domain-map.md) |
-| **Stubs Architecture Portal** | Interactive dependency graph and Stubs CLI API integration | [Stubs Domain Map](domains/stubs-domain-map.md) |
-| **Gemini Engine & Streaming** | `@google/genai` SDK streaming engine, speech-to-text, audio voices, image compression | [Gemini Engine Domain Map](domains/gemini-engine-domain-map.md) |
-| **Storage, Schemas & Utilities** | LocalStorage state, Zod schemas, starter templates, multi-language code export | [Storage & Schemas Domain Map](domains/data-storage-domain-map.md) |
+## Domain Maps & Specs
+- utils: knowledge/architecture/domains/utils-domain-map.md (hub: src/utils/platform.ts)
+- components: knowledge/architecture/domains/components-domain-map.md (hub: src/components/ui/index.ts)
+- services: knowledge/architecture/domains/services-domain-map.md (hub: src/services/platformService.ts)
+- hooks: knowledge/architecture/domains/hooks-domain-map.md (hub: src/hooks/useSpeechToText.ts)
+- core: knowledge/architecture/domains/core-domain-map.md (hub: src/types.ts)
 
----
+## Boundary Invariants
+- Downward dependencies only: consumers depend on lower layers, never higher layers.
+- Cross-domain calls must target the domain canonical hub module, never internal private helpers.
+- Repo-level architectural decisions recorded in knowledge/architecture/ADR/. Module nuances recorded in domain maps and sidecars.
 
-## High-Level Subsystem Communication Graph
-
-<!-- BEGIN STUBS DIAGRAM -->
-```mermaid
-flowchart TB
-  subgraph UI_Layer ["Workspaces & UI Domain"]
-    TopNav["TopAppBar / BottomNavBar"]
-    AppRoot["App.tsx Coordinator"]
-    Chat["ChatWorkspace"]
-    MobileIDE["MobileIDEWorkspace"]
-      Modals["Settings, Modals & Sheets"]
-  end
-
-  subgraph Auth_Domain ["Auth & Identity Domain"]
-    GoogleAuth["services/googleAuth.ts"]
-    KeyVerify["services/keyVerification.ts"]
-    ApiKeyModal["components/ApiKeyModal.tsx"]
-  end
-
-  subgraph Engine_Domain ["Gemini Engine & Streaming"]
-    StreamService["services/geminiStreamService.ts"]
-    StreamHook["hooks/useGeminiStream.ts"]
-    SpeechVoice["services/speechVoices.ts"]
-    SpeechHook["hooks/useSpeechToText.ts"]
-    GenAISDK["@google/genai SDK"]
-  end
-
-  subgraph Stubs_Domain ["Stubs Architecture Portal Domain"]
-    StubsService["services/stubsService.ts"]
-    StubsData["hooks/useStubsData.ts"]
-  end
-
-  subgraph Storage_Domain ["Storage & Utilities Domain"]
-    StorageUtil["utils/storage.ts"]
-    ValidationSchema["schemas/validation.ts"]
-    CodeGenerators["utils/codeGenerators.ts"]
-    TemplatesData["data/templates.ts"]
-  end
-
-  %% Relationships
-  AppRoot --> TopNav
-  AppRoot --> Chat & MobileIDE & StubsWorkspace
-  AppRoot --> Modals
-  AppRoot --> GoogleAuth
-  AppRoot --> StorageUtil
-
-  Chat --> StreamHook
-  StreamHook --> StreamService
-  StreamService --> GenAISDK
-
-  Chat --> SpeechHook
-  SpeechHook --> SpeechVoice
-
-  ApiKeyModal --> KeyVerify
-  KeyVerify --> GenAISDK
-  KeyVerify --> StorageUtil
-
-  MobileIDE --> CodeGenerators
-  StubsWorkspace --> StubsData
-  StubsData --> StubsService
-  StorageUtil --> ValidationSchema
-  Modals --> TemplatesData
-```
-<!-- END STUBS DIAGRAM -->
-
----
-
-## Architectural Hotspots & Hubs Analysis
-
-Based on the `stubs` SQLite dependency graph analysis (51 modules, 132 exported symbols, 165 graph edges), the following nodes act as core hubs:
-
-1. **`src/App.tsx`** (Fan-In: 1, Fan-Out: 27, Degree: 28): Root presentation coordinator connecting all workspaces, modal sheets, and reactive hooks.
-2. **`src/types.ts`** (Fan-In: 26, Fan-Out: 0, Degree: 26): Universal contract type registry defining `ChatMessage`, `PromptConfig`, `SavedPrompt`, and `ModelInfo`.
-3. **`src/components/UnifiedSettingsModal.tsx`** (Fan-In: 4, Fan-Out: 10, Degree: 14): Global settings manager handling credentials, prompt parameters, and preferences.
-4. **`src/components/ChatWorkspace.tsx`** (Fan-In: 1, Fan-Out: 11, Degree: 12): Primary conversational interface driving multimodal streams and voice interactions.
-5. **`src/utils/storage.ts`** (Fan-In: 8, Fan-Out: 2, Degree: 10): Central persistence hub for local state and prompt synchronization.
-6. **`src/components/TopAppBar.tsx`** (Fan-In: 1, Fan-Out: 7, Degree: 8): Primary action bar driving model selection and drawer toggles.
-
-> **Verification Status**:
-> - Circular dependency cycles: **0** (PASSED - DAG verified)
-> - Downward layer violations: **0** (PASSED - strict hierarchy verified)
-> - Domain boundary leaks: **0** (PASSED - encapsulated public interfaces)
+## Visual Architecture Map
+Human visual Mermaid diagrams: knowledge/architecture/visual-map.md (agents: do not read unless requested)

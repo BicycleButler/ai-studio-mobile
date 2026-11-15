@@ -60,7 +60,7 @@ export class FallbackStorageWrapper implements Storage {
         this.logger.warn(`Storage quota exceeded when writing ${key}. Attempting emergency purge...`);
         try {
            this.quotaExceededEvent.emit(); // Synchronous event dispatch for listeners to clear space
-           // Retry write after synchronous event dispatch which may have cleared space
+           // Retry write after synchronous event dispatch which can have cleared space
            this.activeStorage.setItem(key, value);
            this.logger.info(`Successfully recovered storage quota for write to ${key}`);
            return;

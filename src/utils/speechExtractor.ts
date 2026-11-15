@@ -10,7 +10,7 @@ export function extractSpokenText(markdown: string, isStreaming = false): string
 
   let cleaned = markdown;
 
-  // 1. Omit completed multi-line code blocks FIRST so greedy unclosed matching doesn't destroy earlier text
+  // 1. Omit completed multi-line code blocks FIRST so greedy unclosed matching does not destroy earlier text
   cleaned = cleaned.replace(/```[\s\S]*?```/g, " ");
 
   // 2. If currently streaming, safely strip unclosed trailing code block
@@ -36,13 +36,13 @@ export function extractSpokenText(markdown: string, isStreaming = false): string
   // 7. Retain link anchor text while omitting target URL: [Google](https://...) -> Google
   cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
 
-  // 8. Omit raw web URLs to avoid TTS spelling out domain characters
+  // 8. Omit raw web URLs to prevent TTS spelling out domain characters
   cleaned = cleaned.replace(/https?:\/\/\S+/gi, " ");
 
-  // 9. Omit HTML tags (<br>, <div>, etc.)
+  // 9. Omit HTML tags (<br>, <div>, and so on.)
   cleaned = cleaned.replace(/<[^>]+>/g, " ");
 
-  // 10. Strip Markdown headings (#, ##, ###, etc.)
+  // 10. Strip Markdown headings (#, ##, ###, and so on.)
   cleaned = cleaned.replace(/^#{1,6}\s+/gm, "");
 
   // 11. Strip Markdown blockquote markers (> )

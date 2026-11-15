@@ -12,7 +12,7 @@ define(['exports'], (function (exports) { 'use strict';
       https://opensource.org/licenses/MIT.
     */
     const logger = (() => {
-      // Don't overwrite this value if it's already set.
+      // Do not overwrite this value if it is already set.
       // See https://github.com/GoogleChrome/workbox/pull/2284#issuecomment-560470923
       if (!('__WB_DISABLE_DEV_LOGS' in globalThis)) {
         self.__WB_DISABLE_DEV_LOGS = false;
@@ -31,7 +31,7 @@ define(['exports'], (function (exports) { 'use strict';
           return;
         }
         if (method === 'groupCollapsed') {
-          // Safari doesn't print all console.groupCollapsed() arguments:
+          // Safari does not print all console.groupCollapsed() arguments:
           // https://bugs.webkit.org/show_bug.cgi?id=182754
           if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
             console[method](...args);
@@ -358,8 +358,8 @@ define(['exports'], (function (exports) { 'use strict';
       https://opensource.org/licenses/MIT.
     */
     /**
-     * Workbox errors should be thrown with this class.
-     * This allows use to ensure the type easily in tests,
+     * Workbox errors must be thrown with this class.
+     * This allows use to make sure that the type easily in tests,
      * helps developers identify errors from workbox
      * easily and allows use to optimise error
      * messages correctly.
@@ -372,7 +372,7 @@ define(['exports'], (function (exports) { 'use strict';
        * @param {string} errorCode The error code that
        * identifies this particular error.
        * @param {Object=} details Any relevant arguments
-       * that will help developers identify issues should
+       * that will help developers identify issues must
        * be added as a key on the context object.
        */
       constructor(errorCode, details) {
@@ -393,7 +393,7 @@ define(['exports'], (function (exports) { 'use strict';
     /*
      * This method throws if the supplied value is not an array.
      * The destructed values are required to produce a meaningful error for users.
-     * The destructed and restructured object is so it's clear what is
+     * The destructed and restructured object is so it is clear what is
      * needed.
      */
     const isArray = (value, details) => {
@@ -466,7 +466,7 @@ define(['exports'], (function (exports) { 'use strict';
       https://opensource.org/licenses/MIT.
     */
     /**
-     * The default HTTP method, 'GET', used when there's no specific method
+     * The default HTTP method, 'GET', used when there is no specific method
      * configured for a route.
      *
      * @type {string}
@@ -532,9 +532,9 @@ define(['exports'], (function (exports) { 'use strict';
     */
     /**
      * A `Route` consists of a pair of callback functions, "match" and "handler".
-     * The "match" callback determine if a route should be used to "handle" a
+     * The "match" callback determine if a route must be used to "handle" a
      * request by returning a non-falsy value if it can. The "handler" callback
-     * is called when there is a match and should return a Promise that resolves
+     * is called when there is a match and must return a Promise that resolves
      * to a `Response`.
      *
      * @memberof workbox-routing
@@ -626,12 +626,12 @@ define(['exports'], (function (exports) { 'use strict';
           url
         }) => {
           const result = regExp.exec(url.href);
-          // Return immediately if there's no match.
+          // Return immediately if there is no match.
           if (!result) {
             return;
           }
           // Require that the match start at the first character in the URL string
-          // if it's a cross-origin request.
+          // if it is a cross-origin request.
           // See https://github.com/GoogleChrome/workbox/issues/281 for the context
           // behind this behavior.
           if (url.origin !== location.origin && result.index !== 0) {
@@ -640,7 +640,7 @@ define(['exports'], (function (exports) { 'use strict';
             }
             return;
           }
-          // If the route matches, but there aren't any capture groups defined, then
+          // If the route matches, but there are not any capture groups defined, then
           // this will return [], which is truthy and therefore sufficient to
           // indicate a match.
           // If there are capture groups, then it will return their values.
@@ -660,7 +660,7 @@ define(['exports'], (function (exports) { 'use strict';
     const getFriendlyURL = url => {
       const urlObj = new URL(String(url), location.href);
       // See https://github.com/GoogleChrome/workbox/issues/2323
-      // We want to include everything, except for the origin if it's same-origin.
+      // We want to include everything, except for the origin if it is same-origin.
       return urlObj.href.replace(new RegExp(`^${location.origin}`), '');
     };
 
@@ -679,7 +679,7 @@ define(['exports'], (function (exports) { 'use strict';
      * If no route matches a given a request, the Router will use a "default"
      * handler if one is defined.
      *
-     * Should the matching Route throw an error, the Router will use a "catch"
+     * Must the matching Route throw an error, the Router will use a "catch"
      * handler if one is defined to gracefully deal with issues and respond with a
      * Request.
      *
@@ -698,7 +698,7 @@ define(['exports'], (function (exports) { 'use strict';
       }
       /**
        * @return {Map<string, Array<workbox-routing.Route>>} routes A `Map` of HTTP
-       * method name ('GET', etc.) to an array of all the corresponding `Route`
+       * method name ('GET', and so on.) to an array of all the corresponding `Route`
        * instances that are registered.
        */
       get routes() {
@@ -728,8 +728,8 @@ define(['exports'], (function (exports) { 'use strict';
        * This is useful to cache resources loaded on the page prior to when the
        * service worker started controlling it.
        *
-       * The format of the message data sent from the window should be as follows.
-       * Where the `urlsToCache` array may consist of URL strings or an array of
+       * The format of the message data sent from the window must be as follows.
+       * Where the `urlsToCache` array can consist of URL strings or an array of
        * URL string + `requestInit` object (the same as you'd pass to `fetch()`).
        *
        * ```
@@ -768,8 +768,8 @@ define(['exports'], (function (exports) { 'use strict';
                 event
               });
               // TODO(philipwalton): TypeScript errors without this typecast for
-              // some reason (probably a bug). The real type here should work but
-              // doesn't: `Array<Promise<Response> | undefined>`.
+              // some reason (probably a bug). The real type here must work but
+              // does not: `Array<Promise<Response> | undefined>`.
             })); // TypeScript
             event.waitUntil(requestPromises);
             // If a MessageChannel was used, reply to the message on success.
@@ -789,7 +789,7 @@ define(['exports'], (function (exports) { 'use strict';
        *     request.
        * @return {Promise<Response>|undefined} A promise is returned if a
        *     registered route can handle the request. If there is no matching
-       *     route and there's no `defaultHandler`, `undefined` is returned.
+       *     route and there is no `defaultHandler`, `undefined` is returned.
        */
       handleRequest({
         request,
@@ -830,8 +830,8 @@ define(['exports'], (function (exports) { 'use strict';
             }
           }
         }
-        // If we don't have a handler because there was no matching route, then
-        // fall back to defaultHandler if that's defined.
+        // If we do not have a handler because there was no matching route, then
+        // fall back to defaultHandler if that is defined.
         const method = request.method;
         if (!handler && this._defaultHandlerMap.has(method)) {
           {
@@ -842,7 +842,7 @@ define(['exports'], (function (exports) { 'use strict';
         if (!handler) {
           {
             // No handler so Workbox will do nothing. If logs is set of debug
-            // i.e. verbose, we should print out this information.
+            // that is, verbose, we must print out this information.
             logger.debug(`No route found for: ${getFriendlyURL(url)}`);
           }
           return;
@@ -861,7 +861,7 @@ define(['exports'], (function (exports) { 'use strict';
           logger.groupEnd();
         }
         // Wrap in try and catch in case the handle method throws a synchronous
-        // error. It should still callback to the catch handler.
+        // error. It must still callback to the catch handler.
         let responsePromise;
         try {
           responsePromise = handler.handle({
@@ -877,11 +877,11 @@ define(['exports'], (function (exports) { 'use strict';
         const catchHandler = route && route.catchHandler;
         if (responsePromise instanceof Promise && (this._catchHandler || catchHandler)) {
           responsePromise = responsePromise.catch(async err => {
-            // If there's a route catch handler, process that first
+            // If there is a route catch handler, process that first
             if (catchHandler) {
               {
                 // Still include URL here as it will be async from the console group
-                // and may not make sense without the URL
+                // and can not make sense without the URL
                 logger.groupCollapsed(`Error thrown when responding to: ` + ` ${getFriendlyURL(url)}. Falling back to route's Catch Handler.`);
                 logger.error(`Error thrown by:`, route);
                 logger.error(err);
@@ -903,7 +903,7 @@ define(['exports'], (function (exports) { 'use strict';
             if (this._catchHandler) {
               {
                 // Still include URL here as it will be async from the console group
-                // and may not make sense without the URL
+                // and can not make sense without the URL
                 logger.groupCollapsed(`Error thrown when responding to: ` + ` ${getFriendlyURL(url)}. Falling back to global Catch Handler.`);
                 logger.error(`Error thrown by:`, route);
                 logger.error(err);
@@ -922,7 +922,7 @@ define(['exports'], (function (exports) { 'use strict';
       }
       /**
        * Checks a request and URL (and optionally an event) against the list of
-       * registered routes, and if there's a match, returns the corresponding
+       * registered routes, and if there is a match, returns the corresponding
        * route along with any params generated by the match.
        *
        * @param {Object} options
@@ -944,7 +944,7 @@ define(['exports'], (function (exports) { 'use strict';
         const routes = this._routes.get(request.method) || [];
         for (const route of routes) {
           let params;
-          // route.match returns type any, not possible to change right now.
+          // route.match returns type `any`, not possible to change right now.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const matchResult = route.match({
             url,
@@ -973,7 +973,7 @@ define(['exports'], (function (exports) { 'use strict';
               params = undefined;
             } else if (typeof matchResult === 'boolean') {
               // For the boolean value true (rather than just something truth-y),
-              // don't set params.
+              // do not set params.
               // See https://github.com/GoogleChrome/workbox/pull/2134#issuecomment-513924353
               params = undefined;
             }
@@ -988,10 +988,10 @@ define(['exports'], (function (exports) { 'use strict';
         return {};
       }
       /**
-       * Define a default `handler` that's called when no routes explicitly
+       * Define a default `handler` that is called when no routes explicitly
        * match the incoming request.
        *
-       * Each HTTP method ('GET', 'POST', etc.) gets its own default handler.
+       * Each HTTP method ('GET', 'POST', and so on.) gets its own default handler.
        *
        * Without a default handler, unmatched requests will go against the
        * network as if there were no service worker present.
@@ -1252,8 +1252,8 @@ define(['exports'], (function (exports) { 'use strict';
       license that can be found in the LICENSE file or at
       https://opensource.org/licenses/MIT.
     */
-    // Callbacks to be executed whenever there's a quota error.
-    // Can't change Function type right now.
+    // Callbacks to be executed whenever there is a quota error.
+    // Cannot change Function type right now.
     // eslint-disable-next-line @typescript-eslint/ban-types
     const quotaErrorCallbacks = new Set();
 
@@ -1266,12 +1266,12 @@ define(['exports'], (function (exports) { 'use strict';
     */
     /**
      * Adds a function to the set of quotaErrorCallbacks that will be executed if
-     * there's a quota error.
+     * there is a quota error.
      *
      * @param {Function} callback
      * @memberof workbox-core
      */
-    // Can't change Function type
+    // Cannot change Function type
     // eslint-disable-next-line @typescript-eslint/ban-types
     function registerQuotaErrorCallback(callback) {
       {
@@ -1336,15 +1336,15 @@ define(['exports'], (function (exports) { 'use strict';
         if (value instanceof IDBCursor) {
           cursorRequestMap.set(value, request);
         }
-        // Catching to avoid "Uncaught Promise exceptions"
+        // Catching to prevent "Uncaught Promise exceptions"
       }).catch(() => {});
-      // This mapping exists in reverseTransformCache but doesn't doesn't exist in transformCache. This
+      // This mapping exists in reverseTransformCache but does not does not exist in transformCache. This
       // is because we create many promises from a single IDBRequest.
       reverseTransformCache.set(promise, request);
       return promise;
     }
     function cacheDonePromiseForTransaction(tx) {
-      // Early bail if we've already created a done promise for this transaction.
+      // Early bail if we have already created a done promise for this transaction.
       if (transactionDoneMap.has(tx)) return;
       const done = new Promise((resolve, reject) => {
         const unlisten = () => {
@@ -1401,7 +1401,7 @@ define(['exports'], (function (exports) { 'use strict';
     function wrapFunction(func) {
       // Due to expected object equality (which is enforced by the caching in `wrap`), we
       // only create one new func per func.
-      // Edge doesn't support objectStoreNames (booo), so we polyfill it here.
+      // Edge does not support objectStoreNames (booo), so we polyfill it here.
       if (func === IDBDatabase.prototype.transaction && !('objectStoreNames' in IDBTransaction.prototype)) {
         return function (storeNames, ...args) {
           const tx = func.call(unwrap(this), storeNames, ...args);
@@ -1411,7 +1411,7 @@ define(['exports'], (function (exports) { 'use strict';
       }
       // Cursor methods are special, as the behaviour is a little more different to standard IDB. In
       // IDB, you advance the cursor and wait for a new 'success' on the IDBRequest that gave you the
-      // cursor. It's kinda like a promise that can resolve with many values. That doesn't make sense
+      // cursor. It is kinda like a promise that can resolve with many values. That does not make sense
       // with real promises, so each advance methods returns a new promise for the cursor object, or
       // undefined if the end of the cursor has been reached.
       if (getCursorAdvanceMethods().includes(func)) {
@@ -1430,23 +1430,23 @@ define(['exports'], (function (exports) { 'use strict';
     }
     function transformCachableValue(value) {
       if (typeof value === 'function') return wrapFunction(value);
-      // This doesn't return, it just creates a 'done' promise for the transaction,
+      // This does not return, it just creates a 'done' promise for the transaction,
       // which is later returned for transaction.done (see idbObjectHandler).
       if (value instanceof IDBTransaction) cacheDonePromiseForTransaction(value);
       if (instanceOfAny(value, getIdbProxyableTypes())) return new Proxy(value, idbProxyTraps);
-      // Return the same value back if we're not going to transform it.
+      // Return the same value back if we are not going to transform it.
       return value;
     }
     function wrap(value) {
       // We sometimes generate multiple promises from a single IDBRequest (eg when cursoring), because
-      // IDB is weird and a single IDBRequest can yield many responses, so these can't be cached.
+      // IDB is weird and a single IDBRequest can yield many responses, so these cannot be cached.
       if (value instanceof IDBRequest) return promisifyRequest(value);
-      // If we've already transformed this value before, reuse the transformed value.
+      // If we have already transformed this value before, reuse the transformed value.
       // This is faster, but it also provides object equality.
       if (transformCache.has(value)) return transformCache.get(value);
       const newValue = transformCachableValue(value);
       // Not all types are transformed.
-      // These may be primitive types, so they can't be WeakMap keys.
+      // These can be primitive types, so they cannot be WeakMap keys.
       if (newValue !== value) {
         transformCache.set(value, newValue);
         reverseTransformCache.set(newValue, value);
@@ -1516,7 +1516,7 @@ define(['exports'], (function (exports) { 'use strict';
       const useIndex = prop !== targetFuncName;
       const isWrite = writeMethods.includes(targetFuncName);
       if (
-      // Bail if the target doesn't exist on the target. Eg, getAll isn't in Edge.
+      // Bail if the target does not exist on the target. Eg, getAll is not in Edge.
       !(targetFuncName in (useIndex ? IDBIndex : IDBObjectStore).prototype) || !(isWrite || readMethods.includes(targetFuncName))) {
         return;
       }
@@ -1526,10 +1526,10 @@ define(['exports'], (function (exports) { 'use strict';
         let target = tx.store;
         if (useIndex) target = target.index(args.shift());
         // Must reject if op rejects.
-        // If it's a write operation, must reject if tx.done rejects.
+        // If it is a write operation, must reject if tx.done rejects.
         // Must reject with op rejection first.
         // Must resolve with op value.
-        // Must handle both promises (no unhandled rejections)
+        // Must handle the two promises (no unhandled rejections)
         return (await Promise.all([target[targetFuncName](...args), isWrite && tx.done]))[0];
       };
       cachedMethods.set(prop, method);
@@ -1576,23 +1576,23 @@ define(['exports'], (function (exports) { 'use strict';
         this._cacheName = cacheName;
       }
       /**
-       * Performs an upgrade of indexedDB.
+       * Does an upgrade of indexedDB.
        *
        * @param {IDBPDatabase<CacheDbSchema>} db
        *
        * @private
        */
       _upgradeDb(db) {
-        // TODO(philipwalton): EdgeHTML doesn't support arrays as a keyPath, so we
-        // have to use the `id` keyPath here and create our own values (a
+        // TODO(philipwalton): EdgeHTML does not support arrays as a keyPath, so we
+        // must use the `id` keyPath here and create our own values (a
         // concatenation of `url + cacheName`) instead of simply using
         // `keyPath: ['url', 'cacheName']`, which is supported in other browsers.
         const objStore = db.createObjectStore(CACHE_OBJECT_STORE, {
           keyPath: 'id'
         });
-        // TODO(philipwalton): once we don't have to support EdgeHTML, we can
+        // TODO(philipwalton): once we do not must support EdgeHTML, we can
         // create a single index with the keyPath `['cacheName', 'timestamp']`
-        // instead of doing both these indexes.
+        // instead of doing the two these indexes.
         objStore.createIndex('cacheName', 'cacheName', {
           unique: false
         });
@@ -1601,7 +1601,7 @@ define(['exports'], (function (exports) { 'use strict';
         });
       }
       /**
-       * Performs an upgrade of indexedDB and deletes deprecated DBs.
+       * Does an upgrade of indexedDB and deletes deprecated DBs.
        *
        * @param {IDBPDatabase<CacheDbSchema>} db
        *
@@ -1625,7 +1625,7 @@ define(['exports'], (function (exports) { 'use strict';
           url,
           timestamp,
           cacheName: this._cacheName,
-          // Creating an ID from the URL and cache name won't be necessary once
+          // Creating an ID from the URL and cache name will not be necessary once
           // Edge switches to Chromium and all browsers we support work with
           // array keyPaths.
           id: this._getId(url)
@@ -1669,18 +1669,18 @@ define(['exports'], (function (exports) { 'use strict';
         while (cursor) {
           const result = cursor.value;
           // TODO(philipwalton): once we can use a multi-key index, we
-          // won't have to check `cacheName` here.
+          // will not must check `cacheName` here.
           if (result.cacheName === this._cacheName) {
-            // Delete an entry if it's older than the max age or
+            // Delete an entry if it is older than the max age or
             // if we already have the max number allowed.
             if (minTimestamp && result.timestamp < minTimestamp || maxCount && entriesNotDeletedCount >= maxCount) {
-              // TODO(philipwalton): we should be able to delete the
+              // TODO(philipwalton): we must be able to delete the
               // entry right here, but doing so causes an iteration
               // bug in Safari stable (fixed in TP). Instead we can
               // store the keys of the entries to delete, and then
               // delete the separate transactions.
               // https://github.com/GoogleChrome/workbox/issues/1978
-              // cursor.delete();
+              // cursor.delete().
               // We only need to return the URL, not the whole entry.
               entriesToDelete.push(cursor.value);
             } else {
@@ -1690,7 +1690,7 @@ define(['exports'], (function (exports) { 'use strict';
           cursor = await cursor.continue();
         }
         // TODO(philipwalton): once the Safari bug in the following issue is fixed,
-        // we should be able to remove this loop and do the entry deletion in the
+        // we must be able to remove this loop and do the entry deletion in the
         // cursor loop above:
         // https://github.com/GoogleChrome/workbox/issues/1978
         const urlsDeleted = [];
@@ -1709,7 +1709,7 @@ define(['exports'], (function (exports) { 'use strict';
        * @private
        */
       _getId(url) {
-        // Creating an ID from the URL and cache name won't be necessary once
+        // Creating an ID from the URL and cache name will not be necessary once
         // Edge switches to Chromium and all browsers we support work with
         // array keyPaths.
         return this._cacheName + '|' + normalizeURL(url);
@@ -1753,7 +1753,7 @@ define(['exports'], (function (exports) { 'use strict';
        * @param {number} [config.maxEntries] The maximum number of entries to cache.
        * Entries used the least will be removed as the maximum is reached.
        * @param {number} [config.maxAgeSeconds] The maximum age of an entry before
-       * it's treated as stale and removed.
+       * it is treated as stale and removed.
        * @param {Object} [config.matchOptions] The [`CacheQueryOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete#Parameters)
        * that will be used when calling `delete()` on the cache.
        */
@@ -1830,7 +1830,7 @@ define(['exports'], (function (exports) { 'use strict';
         }
       }
       /**
-       * Update the timestamp for the given URL. This ensures the when
+       * Update the timestamp for the given URL. This makes sure that the when
        * removing entries based on maximum entries, most recently used
        * is accurate or when expiring, the timestamp is up-to-date.
        *
@@ -1848,7 +1848,7 @@ define(['exports'], (function (exports) { 'use strict';
         await this._timestampModel.setTimestamp(url, Date.now());
       }
       /**
-       * Can be used to check if a URL has expired or not before it's used.
+       * Can be used to check if a URL has expired or not before it is used.
        *
        * This requires a look up from IndexedDB, so can be slow.
        *
@@ -1877,7 +1877,7 @@ define(['exports'], (function (exports) { 'use strict';
        * metadata.
        */
       async delete() {
-        // Make sure we don't attempt another rerun if we're called in the middle of
+        // Make sure we do not attempt another rerun if we are called in the middle of
         // a cache expiration.
         this._rerunRequested = false;
         await this._timestampModel.expireEntries(Infinity); // Expires all.
@@ -1897,16 +1897,16 @@ define(['exports'], (function (exports) { 'use strict';
      *
      * It can only be used with `workbox-strategy` instances that have a
      * [custom `cacheName` property set](/web/tools/workbox/guides/configure-workbox#custom_cache_names_in_strategies).
-     * In other words, it can't be used to expire entries in strategy that uses the
+     * In other words, it cannot be used to expire entries in strategy that uses the
      * default runtime cache name.
      *
      * Whenever a cached response is used or updated, this plugin will look
      * at the associated cache and remove any old or extra responses.
      *
-     * When using `maxAgeSeconds`, responses may be used *once* after expiring
+     * When using `maxAgeSeconds`, responses can be used *once* after expiring
      * because the expiration clean up will not have occurred until *after* the
      * cached response has been used. If the response has a "Date" header, then
-     * a light weight expiration check is performed and the response will not be
+     * a light weight expiration check is did and the response will not be
      * used immediately.
      *
      * When using `maxEntries`, the entry least-recently requested will be removed
@@ -1920,7 +1920,7 @@ define(['exports'], (function (exports) { 'use strict';
        * @param {number} [config.maxEntries] The maximum number of entries to cache.
        * Entries used the least will be removed as the maximum is reached.
        * @param {number} [config.maxAgeSeconds] The maximum age of an entry before
-       * it's treated as stale and removed.
+       * it is treated as stale and removed.
        * @param {Object} [config.matchOptions] The [`CacheQueryOptions`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete#Parameters)
        * that will be used when calling `delete()` on the cache.
        * @param {boolean} [config.purgeOnQuotaError] Whether to opt this cache in to
@@ -1937,9 +1937,9 @@ define(['exports'], (function (exports) { 'use strict';
          *
          * @param {Object} options
          * @param {string} options.cacheName Name of the cache the response is in.
-         * @param {Response} options.cachedResponse The `Response` object that's been
-         *     read from a cache and whose freshness should be checked.
-         * @return {Response} Either the `cachedResponse`, if it's
+         * @param {Response} options.cachedResponse The `Response` object that is been
+         *     read from a cache and whose freshness must be checked.
+         * @return {Response} Either the `cachedResponse`, if it is
          *     fresh, or `null` if the `Response` is older than `maxAgeSeconds`.
          *
          * @private
@@ -1954,19 +1954,19 @@ define(['exports'], (function (exports) { 'use strict';
             return null;
           }
           const isFresh = this._isResponseDateFresh(cachedResponse);
-          // Expire entries to ensure that even if the expiration date has
+          // Expire entries to make sure that that even if the expiration date has
           // expired, it'll only be used once.
           const cacheExpiration = this._getCacheExpiration(cacheName);
           dontWaitFor(cacheExpiration.expireEntries());
           // Update the metadata for the request URL to the current timestamp,
-          // but don't `await` it as we don't want to block the response.
+          // but do not `await` it as we do not want to block the response.
           const updateTimestampDone = cacheExpiration.updateTimestamp(request.url);
           if (event) {
             try {
               event.waitUntil(updateTimestampDone);
             } catch (error) {
               {
-                // The event may not be a fetch event; only log the URL if it is.
+                // The event can not be a fetch event. Only log the URL if it is.
                 if ('request' in event) {
                   logger.warn(`Unable to ensure service worker stays alive when ` + `updating cache entry for ` + `'${getFriendlyURL(event.request.url)}'.`);
                 }
@@ -2067,7 +2067,7 @@ define(['exports'], (function (exports) { 'use strict';
        */
       _isResponseDateFresh(cachedResponse) {
         if (!this._maxAgeSeconds) {
-          // We aren't expiring by age, so return true, it's fresh
+          // We are not expiring by age, so return true, it is fresh
           return true;
         }
         // Check if the 'date' header will suffice a quick expiration check.
@@ -2075,7 +2075,7 @@ define(['exports'], (function (exports) { 'use strict';
         // discussion.
         const dateHeaderTimestamp = this._getDateHeaderTimestamp(cachedResponse);
         if (dateHeaderTimestamp === null) {
-          // Unable to parse date, so assume it's fresh.
+          // Unable to parse date, so assume it is fresh.
           return true;
         }
         // If we have a valid headerTime, then our response is fresh iff the
@@ -2107,7 +2107,7 @@ define(['exports'], (function (exports) { 'use strict';
         return headerTime;
       }
       /**
-       * This is a helper method that performs two operations:
+       * This is a helper method that does two operations:
        *
        * - Deletes *all* the underlying Cache instances associated with this plugin
        * instance, by calling caches.delete() on your behalf.
@@ -2115,15 +2115,15 @@ define(['exports'], (function (exports) { 'use strict';
        * details for each Cache instance.
        *
        * When using cache expiration, calling this method is preferable to calling
-       * `caches.delete()` directly, since this will ensure that the IndexedDB
+       * `caches.delete()` directly, since this will make sure that that the IndexedDB
        * metadata is also cleanly removed and open IndexedDB instances are deleted.
        *
-       * Note that if you're *not* using cache expiration for a given cache, calling
-       * `caches.delete()` and passing in the cache's name should be sufficient.
+       * Note that if you are *not* using cache expiration for a given cache, calling
+       * `caches.delete()` and passing in the cache's name must be sufficient.
        * There is no Workbox-specific method needed for cleanup in that case.
        */
       async deleteCacheAndMetadata() {
-        // Do this one at a time instead of all at once via `Promise.all()` to
+        // Do this one at a time instead of all at once through `Promise.all()` to
         // reduce the chance of inconsistency if a promise rejects.
         for (const [cacheName, cacheExpiration] of this._cacheExpirations) {
           await self.caches.delete(cacheName);
@@ -2159,7 +2159,7 @@ define(['exports'], (function (exports) { 'use strict';
        * To construct a new CacheableResponse instance you must provide at least
        * one of the `config` properties.
        *
-       * If both `statuses` and `headers` are specified, then both conditions must
+       * If the two `statuses` and `headers` are specified, then the two conditions must
        * be met for the `Response` to be considered cacheable.
        *
        * @param {Object} config
@@ -2199,7 +2199,7 @@ define(['exports'], (function (exports) { 'use strict';
         this._headers = config.headers;
       }
       /**
-       * Checks a response to see whether it's cacheable or not, based on this
+       * Checks a response to see whether it is cacheable or not, based on this
        * object's configuration.
        *
        * @param {Response} response The response whose cacheability is being
@@ -2260,7 +2260,7 @@ define(['exports'], (function (exports) { 'use strict';
     */
     /**
      * A class implementing the `cacheWillUpdate` lifecycle callback. This makes it
-     * easier to add in cacheability checks to requests made via Workbox's built-in
+     * easier to add in cacheability checks to requests made through Workbox's built-in
      * strategies.
      *
      * @memberof workbox-cacheable-response
@@ -2270,7 +2270,7 @@ define(['exports'], (function (exports) { 'use strict';
        * To construct a new CacheableResponsePlugin instance you must provide at
        * least one of the `config` properties.
        *
-       * If both `statuses` and `headers` are specified, then both conditions must
+       * If the two `statuses` and `headers` are specified, then the two conditions must
        * be met for the `Response` to be considered cacheable.
        *
        * @param {Object} config
@@ -2326,7 +2326,7 @@ define(['exports'], (function (exports) { 'use strict';
      */
     async function cacheMatchIgnoreParams(cache, request, ignoreParams, matchOptions) {
       const strippedRequestURL = stripParams(request.url, ignoreParams);
-      // If the request doesn't include any ignored params, match as normal.
+      // If the request does not include any ignored params, match as normal.
       if (request.url === strippedRequestURL) {
         return cache.match(request, matchOptions);
       }
@@ -2354,7 +2354,7 @@ define(['exports'], (function (exports) { 'use strict';
     /**
      * The Deferred class composes Promises in a way that allows for them to be
      * resolved or rejected from outside the constructor. In most cases promises
-     * should be used directly, but Deferreds can be necessary when the logic to
+     * must be used directly, but Deferreds can be necessary when the logic to
      * resolve a promise must be separate.
      *
      * @private
@@ -2438,14 +2438,14 @@ define(['exports'], (function (exports) { 'use strict';
      * {@link workbox-strategies.Strategy~handle} or
      * {@link workbox-strategies.Strategy~handleAll} that wraps all fetch and
      * cache actions around plugin callbacks and keeps track of when the strategy
-     * is "done" (i.e. all added `event.waitUntil()` promises have resolved).
+     * is "done" (that is, all added `event.waitUntil()` promises have resolved).
      *
      * @memberof workbox-strategies
      */
     class StrategyHandler {
       /**
        * Creates a new instance associated with the passed strategy and event
-       * that's handling the request.
+       * that is handling the request.
        *
        * The constructor also initializes the state that will be passed to each of
        * the plugins handling this request.
@@ -2462,7 +2462,7 @@ define(['exports'], (function (exports) { 'use strict';
       constructor(strategy, options) {
         this._cacheKeys = {};
         /**
-         * The request the strategy is performing (passed to the strategy's
+         * The request the strategy is doing (passed to the strategy's
          * `handle()` or `handleAll()` method).
          * @name request
          * @instance
@@ -2511,8 +2511,8 @@ define(['exports'], (function (exports) { 'use strict';
         this._strategy = strategy;
         this._handlerDeferred = new Deferred();
         this._extendLifetimePromises = [];
-        // Copy the plugins list (since it's mutable on the strategy),
-        // so any mutations don't affect this handler instance.
+        // Copy the plugins list (since it is mutable on the strategy),
+        // so any mutations do not affect this handler instance.
         this._plugins = [...strategy.plugins];
         this._pluginStateMap = new Map();
         for (const plugin of this._plugins) {
@@ -2548,8 +2548,8 @@ define(['exports'], (function (exports) { 'use strict';
           }
         }
         // If there is a fetchDidFail plugin, we need to save a clone of the
-        // original request before it's either modified by a requestWillFetch
-        // plugin or before the original request's body is consumed via fetch().
+        // original request before it is either modified by a requestWillFetch
+        // plugin or before the original request's body is consumed through fetch().
         const originalRequest = this.hasCallback('fetchDidFail') ? request.clone() : null;
         try {
           for (const cb of this.iterateCallbacks('requestWillFetch')) {
@@ -2567,7 +2567,7 @@ define(['exports'], (function (exports) { 'use strict';
         }
         // The request can be altered by plugins with `requestWillFetch` making
         // the original request (most likely from a `fetch` event) different
-        // from the Request we make. Pass both to `fetchDidFail` to aid debugging.
+        // from the Request we make. Pass the two to `fetchDidFail` to aid debugging.
         const pluginFilteredRequest = request.clone();
         try {
           let fetchResponse;
@@ -2606,7 +2606,7 @@ define(['exports'], (function (exports) { 'use strict';
        * the response generated by `this.fetch()`.
        *
        * The call to `this.cachePut()` automatically invokes `this.waitUntil()`,
-       * so you do not have to manually call `waitUntil()` on the event.
+       * so you do not must manually call `waitUntil()` on the event.
        *
        * @param {Request|string} input The request or URL to fetch and cache.
        * @return {Promise<Response>}
@@ -2676,7 +2676,7 @@ define(['exports'], (function (exports) { 'use strict';
        */
       async cachePut(key, response) {
         const request = toRequest(key);
-        // Run in the next task to avoid blocking other cache reads.
+        // Run in the next task to prevent blocking other cache reads.
         // https://github.com/w3c/ServiceWorker/issues/1397
         await timeout(0);
         const effectiveRequest = await this.getCacheKey(request, 'write');
@@ -2764,7 +2764,7 @@ define(['exports'], (function (exports) { 'use strict';
               mode,
               request: effectiveRequest,
               event: this.event,
-              // params has a type any can't change right now.
+              // params has a type `any` cannot change right now.
               params: this.params // eslint-disable-line
             }));
           }
@@ -2792,7 +2792,7 @@ define(['exports'], (function (exports) { 'use strict';
        * given param object (merged ith the current plugin state) as the only
        * argument.
        *
-       * Note: since this method runs all plugins, it's not suitable for cases
+       * Note: since this method runs all plugins, it is not suitable for cases
        * where the return value of a callback needs to be applied prior to calling
        * the next callback. See
        * {@link workbox-strategies.StrategyHandler#iterateCallbacks}
@@ -2806,13 +2806,13 @@ define(['exports'], (function (exports) { 'use strict';
       async runCallbacks(name, param) {
         for (const callback of this.iterateCallbacks(name)) {
           // TODO(philipwalton): not sure why `any` is needed. It seems like
-          // this should work with `as WorkboxPluginCallbackParam[C]`.
+          // this must work with `as WorkboxPluginCallbackParam[C]`.
           await callback(param);
         }
       }
       /**
        * Accepts a callback and returns an iterable of matching plugin callbacks,
-       * where each callback is wrapped with the current handler state (i.e. when
+       * where each callback is wrapped with the current handler state (that is, when
        * you call each callback, whatever object parameter you pass it will
        * be merged with the plugin's current state).
        *
@@ -2828,7 +2828,7 @@ define(['exports'], (function (exports) { 'use strict';
                 state
               });
               // TODO(philipwalton): not sure why `any` is needed. It seems like
-              // this should work with `as WorkboxPluginCallbackParam[C]`.
+              // this must work with `as WorkboxPluginCallbackParam[C]`.
               return plugin[name](statefulParam);
             };
             yield statefulCallback;
@@ -2857,9 +2857,9 @@ define(['exports'], (function (exports) { 'use strict';
        * {@link workbox-strategies.StrategyHandler~waitUntil}
        * have settled.
        *
-       * Note: any work done after `doneWaiting()` settles should be manually
+       * Note: any work done after `doneWaiting()` settles must be manually
        * passed to an event's `waitUntil()` method (not this handler's
-       * `waitUntil()` method), otherwise the service worker thread may be killed
+       * `waitUntil()` method), otherwise the service worker thread can be killed
        * prior to your work completing.
        */
       async doneWaiting() {
@@ -2956,7 +2956,7 @@ define(['exports'], (function (exports) { 'use strict';
        * `fetch()` requests made by this strategy.
        * @param {Object} [options.matchOptions] The
        * [`CacheQueryOptions`]{@link https://w3c.github.io/ServiceWorker/#dictdef-cachequeryoptions}
-       * for any `cache.match()` or `cache.put()` calls made by this strategy.
+       * for each `cache.match()` or `cache.put()` calls made by this strategy.
        */
       constructor(options = {}) {
         /**
@@ -2986,14 +2986,14 @@ define(['exports'], (function (exports) { 'use strict';
         /**
          * The
          * [`CacheQueryOptions`]{@link https://w3c.github.io/ServiceWorker/#dictdef-cachequeryoptions}
-         * for any `cache.match()` or `cache.put()` calls made by this strategy.
+         * for each `cache.match()` or `cache.put()` calls made by this strategy.
          *
          * @type {Object}
          */
         this.matchOptions = options.matchOptions;
       }
       /**
-       * Perform a request strategy and returns a `Promise` that will resolve with
+       * Do a request strategy and returns a `Promise` that will resolve with
        * a `Response`, invoking all relevant plugin callbacks.
        *
        * When a strategy instance is registered with a Workbox
@@ -3021,9 +3021,9 @@ define(['exports'], (function (exports) { 'use strict';
        * it will return an tuple of `[response, done]` promises, where the former
        * (`response`) is equivalent to what `handle()` returns, and the latter is a
        * Promise that will resolve once any promises that were added to
-       * `event.waitUntil()` as part of performing the strategy have completed.
+       * `event.waitUntil()` as part of doing the strategy have completed.
        *
-       * You can await the `done` promise to ensure any extra work performed by
+       * You can await the `done` promise to make sure that any extra work did by
        * the strategy (usually caching responses) completes successfully.
        *
        * @param {FetchEvent|Object} options A `FetchEvent` or an object with the
@@ -3067,8 +3067,8 @@ define(['exports'], (function (exports) { 'use strict';
         try {
           response = await this._handle(request, handler);
           // The "official" Strategy subclasses all throw this error automatically,
-          // but in case a third-party Strategy doesn't, ensure that we have a
-          // consistent failure when there's no response or an error response.
+          // but in case a third-party Strategy does not, make sure that that we have a
+          // consistent failure when there is no response or an error response.
           if (!response || response.type === 'error') {
             throw new WorkboxError('no-response', {
               url: request.url
@@ -3108,7 +3108,7 @@ define(['exports'], (function (exports) { 'use strict';
         try {
           response = await responseDone;
         } catch (error) {
-          // Ignore errors, as response errors should be caught via the `response`
+          // Ignore errors, as response errors must be caught through the `response`
           // promise above. The `done` promise will only throw for errors in
           // promises passed to `handler.waitUntil()`.
         }
@@ -3137,9 +3137,9 @@ define(['exports'], (function (exports) { 'use strict';
       }
     }
     /**
-     * Classes extending the `Strategy` based class should implement this method,
+     * Classes extending the `Strategy` based class must implement this method,
      * and leverage the {@link workbox-strategies.StrategyHandler}
-     * arg to perform all fetching and cache logic, which will ensure all relevant
+     * arg to do all fetching and cache logic, which will make sure that all relevant
      * cache, cache options, fetch options and plugins are used (per the current
      * strategy instance).
      *
@@ -3321,7 +3321,7 @@ define(['exports'], (function (exports) { 'use strict';
           entry
         });
       }
-      // If a precache manifest entry is a string, it's assumed to be a versioned
+      // If a precache manifest entry is a string, it is assumed to be a versioned
       // URL, like '/app.abcd1234.js'. Return as-is.
       if (typeof entry === 'string') {
         const urlObject = new URL(entry, location.href);
@@ -3339,7 +3339,7 @@ define(['exports'], (function (exports) { 'use strict';
           entry
         });
       }
-      // If there's just a URL and no revision, then it's also assumed to be a
+      // If there is just a URL and no revision, then it is also assumed to be a
       // versioned URL.
       if (!revision) {
         const urlObject = new URL(url, location.href);
@@ -3380,7 +3380,7 @@ define(['exports'], (function (exports) { 'use strict';
           request,
           state
         }) => {
-          // TODO: `state` should never be undefined...
+          // TODO: `state` must never be undefined...
           if (state) {
             state.originalRequest = request;
           }
@@ -3392,7 +3392,7 @@ define(['exports'], (function (exports) { 'use strict';
         }) => {
           if (event.type === 'install') {
             if (state && state.originalRequest && state.originalRequest instanceof Request) {
-              // TODO: `state` should never be undefined...
+              // TODO: `state` must never be undefined...
               const url = state.originalRequest.url;
               if (cachedResponse) {
                 this.notUpdatedURLs.push(url);
@@ -3427,7 +3427,7 @@ define(['exports'], (function (exports) { 'use strict';
           request,
           params
         }) => {
-          // Params is type any, can't change right now.
+          // Params is type `any`, cannot change right now.
           /* eslint-disable */
           const cacheKey = (params === null || params === void 0 ? void 0 : params.cacheKey) || this._precacheController.getCacheKeyForURL(request.url);
           /* eslint-enable */
@@ -3561,7 +3561,7 @@ define(['exports'], (function (exports) { 'use strict';
     */
     /**
      * Allows developers to copy a response and modify its `headers`, `status`,
-     * or `statusText` values (the values settable via a
+     * or `statusText` values (the values settable through a
      * [`ResponseInit`]{@link https://developer.mozilla.org/en-US/docs/Web/API/Response/Response#Syntax}
      * object in the constructor).
      * To modify these values, pass a function as the second argument. That
@@ -3580,7 +3580,7 @@ define(['exports'], (function (exports) { 'use strict';
      */
     async function copyResponse(response, modifier) {
       let origin = null;
-      // If response.url isn't set, assume it's cross-origin and keep origin null.
+      // If response.url is not set, assume it is cross-origin and keep origin null.
       if (response.url) {
         const responseURL = new URL(response.url);
         origin = responseURL.origin;
@@ -3617,10 +3617,10 @@ define(['exports'], (function (exports) { 'use strict';
      * A {@link workbox-strategies.Strategy} implementation
      * specifically designed to work with
      * {@link workbox-precaching.PrecacheController}
-     * to both cache and fetch precached assets.
+     * to the two cache and fetch precached assets.
      *
      * Note: an instance of this class is created automatically when creating a
-     * `PrecacheController`; it's generally not necessary to create this yourself.
+     * `PrecacheController`. It is generally not necessary to create this yourself.
      *
      * @extends workbox-strategies.Strategy
      * @memberof workbox-precaching
@@ -3639,9 +3639,9 @@ define(['exports'], (function (exports) { 'use strict';
        * of all fetch() requests made by this strategy.
        * @param {Object} [options.matchOptions] The
        * {@link https://w3c.github.io/ServiceWorker/#dictdef-cachequeryoptions|CacheQueryOptions}
-       * for any `cache.match()` or `cache.put()` calls made by this strategy.
+       * for each `cache.match()` or `cache.put()` calls made by this strategy.
        * @param {boolean} [options.fallbackToNetwork=true] Whether to attempt to
-       * get the response from the network if there's a precache miss.
+       * get the response from the network if there is a precache miss.
        */
       constructor(options = {}) {
         options.cacheName = cacheNames.getPrecacheName(options.cacheName);
@@ -3649,7 +3649,7 @@ define(['exports'], (function (exports) { 'use strict';
         this._fallbackToNetwork = options.fallbackToNetwork === false ? false : true;
         // Redirected responses cannot be used to satisfy a navigation request, so
         // any redirected response must be "copied" rather than cloned, so the new
-        // response doesn't contain the `redirected` flag. See:
+        // response does not contain the `redirected` flag. See:
         // https://bugs.chromium.org/p/chromium/issues/detail?id=669363&desc=2#c1
         this.plugins.push(PrecacheStrategy.copyRedirectedCacheableResponsesPlugin);
       }
@@ -3665,19 +3665,19 @@ define(['exports'], (function (exports) { 'use strict';
         if (response) {
           return response;
         }
-        // If this is an `install` event for an entry that isn't already cached,
+        // If this is an `install` event for an entry that is not already cached,
         // then populate the cache.
         if (handler.event && handler.event.type === 'install') {
           return await this._handleInstall(request, handler);
         }
-        // Getting here means something went wrong. An entry that should have been
-        // precached wasn't found in the cache.
+        // Getting here means something went wrong. An entry that must have been
+        // precached was not found in the cache.
         return await this._handleFetch(request, handler);
       }
       async _handleFetch(request, handler) {
         let response;
         const params = handler.params || {};
-        // Fall back to the network if we're configured to do so.
+        // Fall back to the network if we are configured to do so.
         if (this._fallbackToNetwork) {
           {
             logger.warn(`The precached response for ` + `${getFriendlyURL(request.url)} in ${this.cacheName} was not ` + `found. Falling back to the network.`);
@@ -3690,12 +3690,12 @@ define(['exports'], (function (exports) { 'use strict';
           response = await handler.fetch(new Request(request, {
             integrity: request.mode !== 'no-cors' ? integrityInRequest || integrityInManifest : undefined
           }));
-          // It's only "safe" to repair the cache if we're using SRI to guarantee
+          // It is only "safe" to repair the cache if we are using SRI to guarantee
           // that the response matches the precache manifest's expectations,
-          // and there's either a) no integrity property in the incoming request
+          // and there is either a) no integrity property in the incoming request
           // or b) there is an integrity, and it matches the precache manifest.
           // See https://github.com/GoogleChrome/workbox/issues/2858
-          // Also if the original request users no-cors we don't use integrity.
+          // Also if the original request users no-cors we do not use integrity.
           // See https://github.com/GoogleChrome/workbox/issues/3096
           if (integrityInManifest && noIntegrityConflict && request.mode !== 'no-cors') {
             this._useDefaultCacheabilityPluginIfNeeded();
@@ -3707,7 +3707,7 @@ define(['exports'], (function (exports) { 'use strict';
             }
           }
         } else {
-          // This shouldn't normally happen, but there are edge cases:
+          // This must not normally happen, but there are edge cases:
           // https://github.com/GoogleChrome/workbox/issues/1441
           throw new WorkboxError('missing-precache-entry', {
             cacheName: this.cacheName,
@@ -3734,11 +3734,11 @@ define(['exports'], (function (exports) { 'use strict';
         this._useDefaultCacheabilityPluginIfNeeded();
         const response = await handler.fetch(request);
         // Make sure we defer cachePut() until after we know the response
-        // should be cached; see https://github.com/GoogleChrome/workbox/issues/2737
+        // must be cached. See https://github.com/GoogleChrome/workbox/issues/2737
         const wasCached = await handler.cachePut(request, response.clone());
         if (!wasCached) {
           // Throwing here will lead to the `install` handler failing, which
-          // we want to do if *any* of the responses aren't safe to cache.
+          // we want to do if *any* of the responses are not safe to cache.
           throw new WorkboxError('bad-precaching-response', {
             url: request.url,
             status: response.status
@@ -3752,7 +3752,7 @@ define(['exports'], (function (exports) { 'use strict';
        * The `plugins` array can be set at construction, and/or it might be added to
        * to at any time before the strategy is used.
        *
-       * At the time the strategy is used (i.e. during an `install` event), there
+       * At the time the strategy is used (that is, during an `install` event), there
        * needs to be at least one plugin that implements `cacheWillUpdate` in the
        * array, other than `copyRedirectedCacheableResponsesPlugin`.
        *
@@ -3760,7 +3760,7 @@ define(['exports'], (function (exports) { 'use strict';
        * plugins, we need to add `defaultPrecacheCacheabilityPlugin`.
        *
        * - If this method is called and there is exactly one `cacheWillUpdate`, then
-       * we don't have to do anything (this might be a previously added
+       * we do not must do anything (this might be a previously added
        * `defaultPrecacheCacheabilityPlugin`, or it might be a custom plugin).
        *
        * - If this method is called and there is more than one `cacheWillUpdate`,
@@ -3792,7 +3792,7 @@ define(['exports'], (function (exports) { 'use strict';
         if (cacheWillUpdatePluginCount === 0) {
           this.plugins.push(PrecacheStrategy.defaultPrecacheCacheabilityPlugin);
         } else if (cacheWillUpdatePluginCount > 1 && defaultPluginIndex !== null) {
-          // Only remove the default plugin; multiple custom plugins are allowed.
+          // Only remove the default plugin. Multiple custom plugins are allowed.
           this.plugins.splice(defaultPluginIndex, 1);
         }
         // Nothing needs to be done if cacheWillUpdatePluginCount is 1
@@ -3824,7 +3824,7 @@ define(['exports'], (function (exports) { 'use strict';
       https://opensource.org/licenses/MIT.
     */
     /**
-     * Performs efficient precaching of assets.
+     * Does efficient precaching of assets.
      *
      * @memberof workbox-precaching
      */
@@ -3837,7 +3837,7 @@ define(['exports'], (function (exports) { 'use strict';
        * @param {string} [options.plugins] Plugins to use when precaching as well
        * as responding to fetch events for precached assets.
        * @param {boolean} [options.fallbackToNetwork=true] Whether to attempt to
-       * get the response from the network if there's a precache miss.
+       * get the response from the network if there is a precache miss.
        */
       constructor({
         cacheName,
@@ -3885,7 +3885,7 @@ define(['exports'], (function (exports) { 'use strict';
       }
       /**
        * This method will add items to the precache list, removing duplicates
-       * and ensuring the information is valid.
+       * and making sure that the information is valid.
        *
        * @param {Array<workbox-precaching.PrecacheController.PrecacheEntry|string>} entries
        *     Array of entries to precache.
@@ -4040,7 +4040,7 @@ define(['exports'], (function (exports) { 'use strict';
        *
        * @param {string} url A URL whose cache key you want to look up.
        * @return {string} The versioned URL that corresponds to a cache key
-       * for the original URL, or undefined if that URL isn't precached.
+       * for the original URL, or undefined if that URL is not precached.
        */
       getCacheKeyForURL(url) {
         const urlObject = new URL(url, location.href);
@@ -4049,7 +4049,7 @@ define(['exports'], (function (exports) { 'use strict';
       /**
        * @param {string} url A cache key whose SRI you want to look up.
        * @return {string} The subresource integrity associated with the cache key,
-       * or undefined if it's not set.
+       * or undefined if it is not set.
        */
       getIntegrityForCacheKey(cacheKey) {
         return this._cacheKeysToIntegrities.get(cacheKey);
@@ -4064,7 +4064,7 @@ define(['exports'], (function (exports) { 'use strict';
        * and it will automatically look up the correct cache key for the currently
        * active revision of that URL.
        *
-       * E.g., `matchPrecache('index.html')` will find the correct precached
+       * for example, `matchPrecache('index.html')` will find the correct precached
        * response for the currently active service worker, even if the actual cache
        * key is `'/index.html?__WB_REVISION__=1234abcd'`.
        *
@@ -4133,11 +4133,11 @@ define(['exports'], (function (exports) { 'use strict';
       https://opensource.org/licenses/MIT.
     */
     /**
-     * Removes any URL search parameters that should be ignored.
+     * Removes any URL search parameters that must be ignored.
      *
      * @param {URL} urlObject The original URL.
      * @param {Array<RegExp>} ignoreURLParametersMatching RegExps to test against
-     * each search parameter name. Matches mean that the search parameter should be
+     * each search parameter name. Matches mean that the search parameter must be
      * ignored.
      * @return {URL} The URL with any ignored search parameters removed.
      *
@@ -4146,7 +4146,7 @@ define(['exports'], (function (exports) { 'use strict';
      */
     function removeIgnoredSearchParams(urlObject, ignoreURLParametersMatching = []) {
       // Convert the iterable into an array at the start of the loop to make sure
-      // deletion doesn't mess up iteration.
+      // deletion does not mess up iteration.
       for (const paramName of [...urlObject.searchParams.keys()]) {
         if (ignoreURLParametersMatching.some(regExp => regExp.test(paramName))) {
           urlObject.searchParams.delete(paramName);
@@ -4222,7 +4222,7 @@ define(['exports'], (function (exports) { 'use strict';
     class PrecacheRoute extends Route {
       /**
        * @param {PrecacheController} precacheController A `PrecacheController`
-       * instance used to both match requests and respond to fetch events.
+       * instance used to the two match requests and respond to fetch events.
        * @param {Object} [options] Options to control how requests are matched
        * against the list of precached URLs.
        * @param {string} [options.directoryIndex=index.html] The `directoryIndex` will
@@ -4233,8 +4233,8 @@ define(['exports'], (function (exports) { 'use strict';
        * @param {boolean} [options.cleanURLs=true] The `cleanURLs` option will
        * check the cache for the URL with a `.html` added to the end of the end.
        * @param {workbox-precaching~urlManipulation} [options.urlManipulation]
-       * This is a function that should take a URL and return an array of
-       * alternative URLs that should be checked for precache matches.
+       * This is a function that must take a URL and return an array of
+       * alternative URLs that must be checked for precache matches.
        */
       constructor(precacheController, options) {
         const match = ({
@@ -4272,7 +4272,7 @@ define(['exports'], (function (exports) { 'use strict';
      * [network requests]{@link https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers#Custom_responses_to_requests}
      * with precached assets.
      *
-     * Requests for assets that aren't precached, the `FetchEvent` will not be
+     * Requests for assets that are not precached, the `FetchEvent` will not be
      * responded to, allowing the event to fall through to other `fetch` event
      * listeners.
      *
@@ -4358,11 +4358,11 @@ define(['exports'], (function (exports) { 'use strict';
      *
      * This is meant to be called as part of the `activate` event.
      *
-     * This should be safe to use as long as you don't include `substringToFind`
+     * This must be safe to use as long as you do not include `substringToFind`
      * (defaulting to `-precache-`) in your non-precache cache names.
      *
      * @param {string} currentPrecacheName The cache name currently in use for
-     * precaching. This cache won't be deleted.
+     * precaching. This cache will not be deleted.
      * @param {string} [substringToFind='-precache-'] Cache names which include this
      * substring will be deleted (excluding `currentPrecacheName`).
      * @return {Array<string>} A list of all the cache names that were deleted.
@@ -4423,35 +4423,35 @@ define(['exports'], (function (exports) { 'use strict';
      * is set to `navigate`.
      *
      * You can optionally only apply this route to a subset of navigation requests
-     * by using one or both of the `denylist` and `allowlist` parameters.
+     * by using one or the two of the `denylist` and `allowlist` parameters.
      *
      * @memberof workbox-routing
      * @extends workbox-routing.Route
      */
     class NavigationRoute extends Route {
       /**
-       * If both `denylist` and `allowlist` are provided, the `denylist` will
+       * If the two `denylist` and `allowlist` are provided, the `denylist` will
        * take precedence and the request will not match this route.
        *
        * The regular expressions in `allowlist` and `denylist`
        * are matched against the concatenated
        * [`pathname`]{@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLHyperlinkElementUtils/pathname}
        * and [`search`]{@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLHyperlinkElementUtils/search}
-       * portions of the requested URL.
+       * parts of the requested URL.
        *
-       * *Note*: These RegExps may be evaluated against every destination URL during
-       * a navigation. Avoid using
+       * *Note*: These RegExps can be evaluated against every destination URL during
+       * a navigation. Prevent using
        * [complex RegExps](https://github.com/GoogleChrome/workbox/issues/3077),
-       * or else your users may see delays when navigating your site.
+       * or else your users can see delays when navigating your site.
        *
        * @param {workbox-routing~handlerCallback} handler A callback
        * function that returns a Promise resulting in a Response.
        * @param {Object} options
-       * @param {Array<RegExp>} [options.denylist] If any of these patterns match,
+       * @param {Array<RegExp>} [options.denylist] If present of these patterns match,
        * the route will not handle the request (even if a allowlist RegExp matches).
-       * @param {Array<RegExp>} [options.allowlist=[/./]] If any of these patterns
+       * @param {Array<RegExp>} [options.allowlist=[/./]] If present of these patterns
        * match the URL's pathname and search parameter, the route will handle the
-       * request (assuming the denylist doesn't match).
+       * request (assuming the denylist does not match).
        */
       constructor(handler, {
         allowlist = [/./],
@@ -4533,7 +4533,7 @@ define(['exports'], (function (exports) { 'use strict';
      * @param {string} url The precached URL which will be used to lookup the
      * `Response`.
      * @param {boolean} [fallbackToNetwork=true] Whether to attempt to get the
-     * response from the network if there's a precache miss.
+     * response from the network if there is a precache miss.
      * @return {workbox-routing~handlerCallback}
      *
      * @memberof workbox-precaching

@@ -35,7 +35,7 @@ export const TokenCounterVisualization: React.FC<TokenCounterVisualizationProps>
   const strokeWidth = 2.2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  // Ensure a tiny visible notch when tokens > 0 even if ratio is tiny
+  // Make sure that a tiny visible notch when tokens > 0 even if ratio is tiny
   const minStrokeOffset = safeTokens > 0 ? Math.min(circumference - 3, circumference * (1 - ratio)) : circumference;
 
   // Status styling based on context window utilization per ADR 0036 (neutral at rest)

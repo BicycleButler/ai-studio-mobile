@@ -48,8 +48,8 @@ export class StorageEventNotifier implements ICrossTabNotifier {
         const payload = this.serializer.serialize({ message, timestamp: this.timeProvider.now() });
         localStorage.setItem(this.key, payload);
         // We do NOT clear it immediately because that might fire a second storage event
-        // with a null newValue that could confuse listeners if they aren't careful,
-        // although we handle e.newValue above. It's safe to just overwrite it next time.
+        // with a null newValue that could confuse listeners if they are not careful,
+        // although we handle e.newValue above. It is safe to just overwrite it next time.
       } catch (e) {
         this.logger.error("Failed to post message via StorageEvent", e);
       }

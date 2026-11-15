@@ -127,7 +127,7 @@ describe('OfflineQueueStore Error Propagation', () => {
             .rejects.toThrow('Storage write failed artificially');
 
         const q = await store.getQueue();
-        expect(q.length).toBe(0); // Should remain empty
+        expect(q.length).toBe(0); // Must remain empty
     });
     it('should propagate errors correctly and unlock mutex for subsequent calls', async () => {
         const store = new OfflineQueueStore({
@@ -143,7 +143,7 @@ describe('OfflineQueueStore Error Propagation', () => {
         await expect(store.enqueue({ type: 't1', payload: 'p1', timestamp: 1, id: 'id1' }))
             .rejects.toThrow('Storage write failed artificially');
 
-        // Test that mutex is released by asserting that a second call rejects cleanly and doesn't timeout
+        // Test that mutex is released by asserting that a second call rejects cleanly and does not timeout
         await expect(store.clear()).rejects.toThrow('Storage write failed artificially');
     });
 });

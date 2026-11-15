@@ -24,7 +24,7 @@ describe('testChatHistoryService', () => {
     throw new Error("Expected mock session to be flagged by isMockChatSession");
   }
 
-  // Attempting to save mock session should be safely ignored
+  // Attempting to save mock session must be safely ignored
   service.clearAllChatSessions(activeProjectId);
   service.saveChatSession(mockCandidateSession, activeProjectId);
   if (service.getChatSessions(activeProjectId).length !== 0) {

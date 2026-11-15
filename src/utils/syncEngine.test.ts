@@ -66,8 +66,8 @@ describe('SyncEngine', () => {
     const result = await engine.processOfflineMutations();
 
     expect(result.success).toBe(false);
-    expect(callCount).toBe(2); // Should stop after first failure
-    expect(mockQueueStore.removeMany).toHaveBeenCalledWith(['1']); // Only 1 should be removed
+    expect(callCount).toBe(2); // Must stop after first failure
+    expect(mockQueueStore.removeMany).toHaveBeenCalledWith(['1']); // Only 1 must be removed
   });
 
   it('should drop non-retryable failures and continue', async () => {
@@ -86,6 +86,6 @@ describe('SyncEngine', () => {
     const result = await engine.processOfflineMutations();
 
     expect(result.success).toBe(true); // Process finishes
-    expect(mockQueueStore.removeMany).toHaveBeenCalledWith(['1', '2']); // Both should be removed (one dropped, one succeeded)
+    expect(mockQueueStore.removeMany).toHaveBeenCalledWith(['1', '2']); // The two must be removed (one dropped, one succeeded)
   });
 });

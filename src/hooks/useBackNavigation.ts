@@ -10,7 +10,7 @@ import { useEffect, useRef } from "react";
  * When the drawer opens, a history entry is pushed so that pressing "Back"
  * closes the drawer instead of exiting the application or losing workspace context.
  *
- * When the drawer is closed via UI (such as an "X" button at the top right,
+ * When the drawer is closed through UI (such as an "X" button at the top right,
  * an on-screen "Back" button, or Escape key), the history entry is cleanly reverted.
  */
 export function useBackNavigation(

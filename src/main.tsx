@@ -22,7 +22,7 @@ import { registerSW } from 'virtual:pwa-register';
 
 const appServices = createServices();
 
-// Initialize auth provider via dependency injection
+// Initialize auth provider through dependency injection
 appServices.googleAuthService.setAuthProvider(new FirebaseAuthProvider(appServices.logger));
 
 // Initialize core services on startup

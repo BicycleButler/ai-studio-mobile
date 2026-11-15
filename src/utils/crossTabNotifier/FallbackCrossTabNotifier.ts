@@ -16,7 +16,7 @@ export class FallbackCrossTabNotifier implements ICrossTabNotifier {
         this.activeNotifier = notifier;
         break;
       } else if (!notifier.isSupported) {
-        // If the notifier doesn't explicitly expose isSupported, we assume it's a valid fallback
+        // If the notifier does not explicitly expose isSupported, we assume it is a valid fallback
         this.activeNotifier = notifier;
         break;
       }

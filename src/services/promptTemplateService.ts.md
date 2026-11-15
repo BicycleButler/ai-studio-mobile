@@ -56,4 +56,4 @@ export interface ComposePromptPayload {
 3. **Step-by-Step Reasoner** (`reasoning`): "Think through this problem methodically step-by-step. Break down your reasoning before presenting the final conclusion."
 4. **Valid JSON Output** (`formatting`): "Format your response strictly as valid, raw JSON conforming to standard syntax. Do not include markdown code ticks, preamble, or trailing commentary."
 5. **Security & Edge-Case Auditor** (`analysis`): "Critically analyze the provided solution for security vulnerabilities, edge-case failures, concurrency hazards, and input sanitization gaps."
-6. **Simple & Intuitive (ELI5)** (`tone`): "Explain the concept in simple, accessible language using intuitive real-world analogies. Avoid unnecessary technical jargon."
+6. **Simple & Intuitive (ELI5)** (`tone`): "Explain the concept in simple, accessible language using intuitive real-world analogies. Prevent unnecessary technical jargon."

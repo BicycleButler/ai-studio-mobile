@@ -71,7 +71,7 @@ export class ActiveItemManager<T> extends ComputedStore<ActiveItemManagerState<T
   }
 
   public getSnapshot(): ActiveItemManagerState<T> {
-    // Because ComputedStore may defer state re-computation via a microtask for batching,
+    // Because ComputedStore can defer state re-computation through a microtask for batching,
     // we must call super.getSnapshot() here instead of simply returning this.currentState!
     // to force a synchronous evaluation of any dirty dependencies before returning.
     const state = super.getSnapshot()!;

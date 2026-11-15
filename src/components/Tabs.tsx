@@ -34,7 +34,7 @@ export function Tabs({
     onChange: onValueChange,
   });
 
-  // Ensure activeTab is typed as a non-optional string for the context
+  // Make sure that activeTab is typed as a non-optional string for the context
   const resolvedTab = activeTab ?? "";
 
   const tabRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());

@@ -103,7 +103,7 @@ export function isWindowsPlatform(): boolean {
 }
 
 /**
- * Checks if the application is running inside a Capacitor native app wrapper.
+ * Checks if the application runs inside a Capacitor native app wrapper.
  */
 export function isCapacitor(): boolean {
   if (!isBrowserEnvironment()) return false;
@@ -116,7 +116,7 @@ export function isCapacitor(): boolean {
 }
 
 /**
- * Checks if the application is running in installed PWA standalone mode.
+ * Checks if the application runs in installed PWA standalone mode.
  */
 export function isPWA(): boolean {
   const win = getSafeWindowMatchMedia();

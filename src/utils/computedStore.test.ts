@@ -56,15 +56,15 @@ describe('ComputedStore', () => {
     store1.notify(10);
     store1.notify(20);
 
-    // Synchronous state should not have changed yet if we don't call getSnapshot
-    // expect(notifyCount).toBe(0);
+    // Synchronous state must not have changed yet if we do not call getSnapshot
+    // expect(notifyCount).toBe(0).
 
     // Force microtasks to resolve
     await new Promise(resolve => setTimeout(resolve, 0));
 
     expect(notifiedValue).toBe(40);
     expect(notifyCount).toBe(1);
-    expect(computeCount).toBe(1); // Should only compute once for the batch
+    expect(computeCount).toBe(1); // Must only compute once for the batch
   });
 
   it('should still notify if getSnapshot is called during a dirty window', async () => {
@@ -94,16 +94,16 @@ describe('ComputedStore', () => {
     expect(computed.getSnapshot()).toBe(10);
     expect(computeCount).toBe(1); // Evaluated synchronously
 
-    // But ComputedStore notification hasn't fired yet
-    // expect(notifyCount).toBe(0);
+    // But ComputedStore notification has not fired yet
+    // expect(notifyCount).toBe(0).
 
     // Wait for ComputedStore's microtask
     await new Promise(resolve => queueMicrotask(() => resolve(undefined)));
 
-    // Notification should fire with the updated value
+    // Notification must fire with the updated value
     expect(notifyCount).toBe(1);
     expect(notifiedValue).toBe(10);
-    // Should not recompute again in the microtask since it was already resolved
+    // Must not recompute again in the microtask since it was already resolved
     expect(computeCount).toBe(1);
   });
 
@@ -117,6 +117,6 @@ describe('ComputedStore', () => {
     computed.dispose();
 
     store1.notify(5);
-    expect(computed.getSnapshot()).toBe(2); // Should not have been recomputed
+    expect(computed.getSnapshot()).toBe(2); // Must not have been recomputed
   });
 });

@@ -160,7 +160,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const historyPopoverRef = useRef<HTMLDivElement>(null);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Filter out any mock/test sessions to ensure purely authentic history
+  // Filter out any mock/test sessions to make sure that purely authentic history
 
   // Prompt Templates State (Strict FIFO selection order)
   const [internalSelectedTemplateIds, setInternalSelectedTemplateIds] = useState<string[]>([]);
@@ -312,7 +312,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   // Mobile virtual keyboard focus & visibility state
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
 
-  // Expanded card height (250% of 80px = 200px) toggled via the borderless transparent button
+  // Expanded card height (250% of 80px = 200px) toggled through the borderless transparent button
   const [isInputHeightExpanded, setIsInputHeightExpanded] = useState<boolean>(false);
 
   const hasDraftContent = Boolean(
@@ -651,7 +651,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           void handleToggleSpeech(lastModelMessage.text);
         }
       } else if (isVoiceModeActive && !sentenceQueueRef.current && !isSpeaking && !isBufferingAudio) {
-        // Recover to listening state if generation finished without speaking (e.g. error, code-only, or stopped)
+        // Recover to listening state if generation finished without speaking (for example, error, code-only, or stopped)
         platformService.setTimeout(() => {
           if (isVoiceModeActiveRef.current && !sentenceQueueRef.current && !isSpeaking) {
             speechBaseTextRef.current = "";
@@ -1785,7 +1785,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     </div>
                   </div>
 
-                  {/* Right 50%: Hands-Free Voice Button (Only shown in Footer mode to avoid duplicate with FAB) */}
+                  {/* Right 50%: Hands-Free Voice Button (Only shown in Footer mode to prevent duplicate with FAB) */}
                   {speechSettings.voiceButtonPlacement !== "fab" && (
                     <button
                       type="button"

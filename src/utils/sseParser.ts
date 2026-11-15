@@ -21,7 +21,7 @@ export class SSEStreamParser implements ISSEStreamParser {
   private currentData: string[] = [];
 
   /**
-   * @param onEvent Callback triggered when a complete SSE event (data payload) is parsed.
+   * @param onEvent Callback triggered when completed SSE event (data payload) is parsed.
    */
   constructor(onEvent: SSEEventCallback) {
     this.onEvent = onEvent;
@@ -42,7 +42,7 @@ export class SSEStreamParser implements ISSEStreamParser {
 
   /**
    * Flushes any remaining data in the buffer.
-   * Useful when the stream is closed to ensure final lines are processed.
+   * Useful when the stream is closed to make sure that final lines are processed.
    */
   public flush(): void {
     if (this.buffer) {

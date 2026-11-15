@@ -12,13 +12,13 @@ describe('Observable Batching', () => {
         obs.notify(2);
         obs.notify(3);
 
-        // Listener shouldn't be called yet
+        // Listener must not be called yet
         expect(listener).not.toHaveBeenCalled();
 
         // Let microtasks run
         await Promise.resolve();
 
-        // Should only be called once with the final state
+        // Must only be called once with the final state
         expect(listener).toHaveBeenCalledTimes(1);
         expect(listener).toHaveBeenCalledWith(3);
     });
@@ -29,7 +29,7 @@ describe('Observable Batching', () => {
         obs.subscribe(listener);
 
         obs.notify(1); // Queue async update
-        obs.notifySync(2); // Execute sync update, should cancel async
+        obs.notifySync(2); // Execute sync update, must cancel async
 
         expect(listener).toHaveBeenCalledTimes(1);
         expect(listener).toHaveBeenCalledWith(2);
@@ -37,7 +37,7 @@ describe('Observable Batching', () => {
         // Let microtasks run
         await Promise.resolve();
 
-        // Shouldn't have been called again by the async flush
+        // Must not have been called again by the async flush
         expect(listener).toHaveBeenCalledTimes(1);
     });
 });

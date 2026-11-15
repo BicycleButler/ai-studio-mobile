@@ -63,7 +63,7 @@ export function useClipboardKeySniffer({
     return null;
   }, [activeApiKey, enabled, onKeyDetected]);
 
-  // Dismiss detected key so it won't prompt again in the same session
+  // Dismiss detected key so it will not prompt again in the same session
   const dismissDetectedKey = useCallback(() => {
     if (detectedKey) {
       dismissedKeyRef.current = detectedKey;

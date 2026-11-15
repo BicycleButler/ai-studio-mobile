@@ -165,7 +165,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
   const handleRunScript = async () => {
     if (isRunning) return;
     setIsRunning(true);
-    // On small screens, open the drawer; on desktop split view
+    // On small screens, open the drawer. On desktop split view
     setIsConsoleDrawerOpen(true);
     const win = platformService.getWindow();
     if (win && win.innerWidth >= 640 && activeView === "editor") {

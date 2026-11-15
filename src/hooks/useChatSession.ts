@@ -20,7 +20,7 @@ export function useChatSession(initialDraft: { messages?: ChatMessage[]; freefor
   const savedPromptsStore = useStore(savedPromptsService.savedPromptsManager);
   const savedPrompts = savedPromptsStore.items;
 
-  // Backwards compatibility for setSavedPrompts (should ideally only be modified via the manager)
+  // Backwards compatibility for setSavedPrompts (must ideally only be modified through the manager)
   const setSavedPrompts = useCallback((promptsOrUpdater: React.SetStateAction<SavedPrompt[]>) => {
       const nextPrompts = typeof promptsOrUpdater === 'function' ? promptsOrUpdater(savedPrompts) : promptsOrUpdater;
       savedPromptsService.savedPromptsManager.collection.save(nextPrompts);

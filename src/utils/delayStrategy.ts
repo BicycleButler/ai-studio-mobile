@@ -28,7 +28,7 @@ export class ExponentialBackoffDelayStrategy implements IDelayStrategy {
 
   getNextDelayMs(attempt: number, lastError?: unknown): number {
     if (lastError) {
-      // If there's an error, apply exponential backoff
+      // If there is an error, apply exponential backoff
       const backoff = this.baseDelayMs * Math.pow(this.multiplier, attempt - 1);
       const delay = Math.min(backoff, this.maxDelayMs);
       return delay + this.randomProvider.random() * this.jitterMax; // Add jitter

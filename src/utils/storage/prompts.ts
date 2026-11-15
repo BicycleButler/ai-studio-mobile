@@ -37,7 +37,7 @@ export class SavedPromptsService implements ISavedPromptsService {
             ...m,
             images: m.images?.map((img) => ({
               ...img,
-              data: "", // don't persist heavy base64 strings in storage
+              data: "", // do not persist heavy base64 strings in storage
             })),
           })),
         }),

@@ -84,7 +84,7 @@ export class ApiClient implements IApiClient {
       if (isAbortError(err)) {
         throw err;
       }
-      // Ensure we don't leak raw DOM exceptions; wrap them cleanly
+      // Make sure that we do not leak raw DOM exceptions. Wrap them cleanly
       const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : defaultErrorMessage;
       throw BaseApiError.fromResponse(msg, 0, undefined, endpoint, err);
     }

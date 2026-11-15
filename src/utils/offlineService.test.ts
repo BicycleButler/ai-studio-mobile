@@ -71,7 +71,7 @@ describe('OfflineService', () => {
     const result = await service.processOfflineMutations();
 
     expect(result.success).toBe(false);
-    expect(callCount).toBe(2); // Should stop after first failure
+    expect(callCount).toBe(2); // Must stop after first failure
 
     const queue = await service.getOfflineQueue();
     expect(queue.length).toBe(2);
@@ -109,7 +109,7 @@ describe('FallbackAsyncStorage', () => {
         const v = await memStorage.getItem('k');
         expect(v).toBe('v');
 
-        // Second time, failStorage should succeed and be used
+        // Second time, failStorage must succeed and be used
         await fallback.setItem('k', 'v2');
         const v2 = await memStorage.getItem('k');
         expect(v2).toBe('v'); // unchanged because it went to failStorage

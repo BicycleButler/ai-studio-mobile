@@ -6,7 +6,7 @@ export function usePWAInstall() {
   const { pwaInstallService } = useServices();
 
   useEffect(() => {
-    // Initialize listeners inside useEffect to avoid updating state during render
+    // Initialize listeners inside useEffect to prevent updating state during render
     pwaInstallService.initListeners();
   }, [pwaInstallService]);
 

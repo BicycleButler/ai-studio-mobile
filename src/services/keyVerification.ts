@@ -66,7 +66,7 @@ export class KeyVerificationService implements IKeyVerificationService {
       return trimmed;
     }
 
-    // Embedded match inside copied configuration text (e.g. `GEMINI_API_KEY="AIza..."`)
+    // Embedded match inside copied configuration text (for example, `GEMINI_API_KEY="AIza..."`)
     const match = trimmed.match(EMBEDDED_KEY_REGEX);
     if (match && match[1]) {
       return match[1];

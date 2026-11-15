@@ -124,6 +124,6 @@ export class BatchSelectionManager extends Observable<BatchSelectionState> imple
 
     if (!hasSelected) return 'none';
     if (!hasUnselected) return 'all';
-    return 'some'; // Should not be reached but keeps TypeScript happy
+    return 'some'; // Must not be reached but keeps TypeScript happy
   }
 }

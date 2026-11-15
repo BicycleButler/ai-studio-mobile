@@ -62,7 +62,7 @@ describe('testSpeechToText', () => {
     throw new Error(`Speech extractor lost trailing text after table: got "${spokenTable}"`);
   }
 
-  // Test 7: Sentence speech queue does not split prematurely on abbreviations like e.g. or vs.
+  // Test 7: Sentence speech queue does not split prematurely on abbreviations like for example, or against.
   const sentenceWithAbbr = "You can use an option, e.g. the fast mode. It works well.";
   const { sentences } = SentenceSpeechQueue.extractSentences(sentenceWithAbbr, true);
   if (sentences.length !== 2) {

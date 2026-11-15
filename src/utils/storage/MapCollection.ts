@@ -55,7 +55,7 @@ export class MapCollection<T> implements ICollectionEngine<T> {
       const replacement = newItemsMap.get(id);
 
       if (replacement !== undefined) {
-        newItemsMap.delete(id); // Mark as updated so it's not appended later
+        newItemsMap.delete(id); // Mark as updated so it is not appended later
 
         if (!fastDeepEqual(existing, replacement)) {
           if (!nextItems) nextItems = [...items];

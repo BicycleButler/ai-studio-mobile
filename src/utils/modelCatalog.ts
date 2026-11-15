@@ -99,7 +99,7 @@ export const CURATED_MODELS: ModelInfo[] = [
 ];
 
 /**
- * Identifies deprecated, legacy, or non-chat/tuner models that should never be
+ * Identifies deprecated, legacy, or non-chat/tuner models that must never be
  * shown in the AI Studio Model & Tuners menu.
  */
 export function isDeprecatedOrUnusableModel(rawId: string): boolean {

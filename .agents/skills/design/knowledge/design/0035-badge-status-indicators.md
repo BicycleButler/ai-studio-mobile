@@ -12,7 +12,7 @@ Legacy UI patterns relied on static status pills, colored dot indicators (`•`)
 
 > [!CAUTION]
 > ### Total Deprecation Notice
-> The `badge.tsx` component, static status pills, colored status dots (`•`), and standalone colored status text are **completely deprecated system-wide**. No new features may consume `badge.tsx` or introduce pill/dot status indicators.
+> The `badge.tsx` component, static status pills, colored status dots (`•`), and standalone colored status text are **completely deprecated system-wide**. No new features can consume `badge.tsx` or introduce pill/dot status indicators.
 
 ## Decision
 
@@ -22,7 +22,7 @@ Legacy UI patterns relied on static status pills, colored dot indicators (`•`)
 
 ### 2 — System-Sanctioned Replacements
 
-All categorical data, entity tiers, lifecycle states, and status metadata must be displayed using the sanctioned **Sub-label Stacking** (sub-label stacking) and **Margin Wash Variant** (left-edge margin wash) patterns. **Full specs are defined in [ADR 0034 §2 — Table Design Standards](0034-table-design-standards.md#2--categorical-data-tier-patterns) — refer there for implementation details.** Do not re-define or diverge from the specs in that ADR.
+All categorical data, entity tiers, lifecycle states, and status metadata must be displayed using the sanctioned **Sub-label Stacking** (sub-label stacking) and **Margin Wash Variant** (left-edge margin wash) patterns. **Full specs are defined in [0034-table-design-standards.md#2--categorical-data-tier-patterns] — refer there for implementation details.** Do not re-define or diverge from the specs in that ADR.
 
 ### 3 — Unread & Notification Indicators
 Numeric unread counts or system updates must be represented as plain text numbers or inline typography integrated into item sub-labels, rather than floating colored badges.

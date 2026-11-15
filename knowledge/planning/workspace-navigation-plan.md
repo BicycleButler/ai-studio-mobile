@@ -29,19 +29,19 @@ Following Grilling Round 1, the user determined:
 
 ```
 Workspace Navigation & Prompt Modalities
-├── 1. Primary Bottom Navigation Taxonomy [SETTLED: 4-Slot Bar]
-│   ├── 1.1 Chat (Conversational multimodal AI)
-│   ├── 1.2 Mobile IDE (Code execution & client generation)
-│   ├── 1.3 Jules (Autonomous GitHub coding agent)
-│   └── 1.4 Stubs (Architecture-as-Code PWM Portal)
-├── 2. Prompt Tools inside Chat [SETTLED: Absorbed into PromptTemplateDrawer]
-│   ├── 2.1 Directive Templates (Existing library of modular prompts)
-│   ├── 2.2 Few-Shot Builder (Structured Input/Output pair generator & injector)
-│   └── 2.3 Variable Prompt Tool (Mustache {{var}} interpolator & injector)
-└── 3. State & Draft Recovery Fallback [SETTLED: Hard reset to 'chat']
-    ├── 3.1 storage.ts: loadDraftState maps unknown/legacy modes to 'chat'
-    ├── 3.2 types.ts: PromptType union pruned to "chat" | "code" | "jules" | "stubs"
-    └── 3.3 App.tsx: Top-level routing cleaned of standalone Freeform/Structured screens
+- 1. Primary Bottom Navigation Taxonomy [SETTLED: 4-Slot Bar]
+- 1.1 Chat (Conversational multimodal AI)
+- 1.2 Mobile IDE (Code execution & client generation)
+- 1.3 Jules (Autonomous GitHub coding agent)
+- 1.4 Stubs (Architecture-as-Code PWM Portal)
+- 2. Prompt Tools inside Chat [SETTLED: Absorbed into PromptTemplateDrawer]
+- 2.1 Directive Templates (Existing library of modular prompts)
+- 2.2 Few-Shot Builder (Structured Input/Output pair generator & injector)
+- 2.3 Variable Prompt Tool (Mustache {{var}} interpolator & injector)
+- 3. State & Draft Recovery Fallback [SETTLED: Hard reset to 'chat']
+- 3.1 storage.ts: loadDraftState maps unknown/legacy modes to 'chat'
+- 3.2 types.ts: PromptType union pruned to "chat" | "code" | "jules" | "stubs"
+- 3.3 App.tsx: Top-level routing cleaned of standalone Freeform/Structured screens
 ```
 
 ## Round 1 Decisions (Grill Log)
@@ -71,4 +71,4 @@ Workspace Navigation & Prompt Modalities
 ### Phase 4: App Cleanup & Verification
 - [x] Remove top-level rendering of `FreeformWorkspace` and `StructuredWorkspace` in `src/App.tsx`.
 - [x] Update `src/components/MobileIDE.test.ts` to assert the 4 distinct prompt modes.
-- [x] Run `lint_applet` and `compile_applet` to ensure clean build.
+- [x] Run `lint_applet` and `compile_applet` to make sure that clean build.

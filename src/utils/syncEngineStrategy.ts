@@ -52,7 +52,7 @@ export class StrictFifoQueueProcessingStrategy implements IQueueProcessingStrate
         }
 
         // Strict FIFO Halting: Break out of the processing loop entirely on the first retryable failure.
-        // This ensures causal consistency (e.g. don't try to sync an "update" if the "create" failed).
+        // This makes sure that causal consistency (for example, do not try to sync an "update" if the "create" failed).
         processSuccess = false;
 
         // Push the failed mutation and ALL subsequent mutations to the remaining queue

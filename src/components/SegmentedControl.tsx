@@ -32,7 +32,7 @@ export function SegmentedControl({
     onChange: onValueChange,
   });
 
-  // Ensure activeValue is correctly typed as string for the context since defaultProp guarantees a string
+  // Make sure that activeValue is correctly typed as string for the context since defaultProp guarantees a string
   const resolvedValue = activeValue ?? "";
 
   const itemRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());

@@ -19,7 +19,7 @@ A system-wide standard is required to mandate overlay scrollbars that are visibl
 - **Hidden at Rest:** Scrollbars must be completely invisible (`opacity: 0`) when a surface or container is static / idle.
 - **Active Scroll Trigger:** Scrollbars transition to visible (`opacity: 1`) strictly during active scroll events (touch, wheel, trackpad, keyboard scroll).
 - **300ms Idle Persistence:** When scrolling ceases, the scrollbar must persist for exactly **300ms** before initiating fade-out.
-- **Fade Duration:** Scrollbars transition out smoothly with a **150ms–200ms ease-out** transition (complying with [ADR 0022](0022-animations-microinteractions.md)).
+- **Fade Duration:** Scrollbars transition out smoothly with a **150ms–200ms ease-out** transition (complying with [0022-animations-microinteractions.md]).
 
 ### 2. Zero-Width Overlay Layout
 - Scrollbar tracks must function as **zero-width absolute overlays** so that showing or hiding the scrollbar never alters container padding, content width, or triggers layout reflow.
@@ -38,9 +38,9 @@ A system-wide standard is required to mandate overlay scrollbars that are visibl
 - Mandated CSS class: `.scrollbar-auto-hide` or global root scrollbar auto-hide behaviors.
 
 ### 4. Exceptions & Prohibitions
-- **Toolbars:** Toolbar surfaces continue to strictly prohibit scrollbars of any kind (`overflow-x-auto` & `overflow-y-auto` remain banned per [ADR 0039](0039-toolbar-header-standards.md)).
+- **Toolbars:** Toolbar surfaces continue to strictly prohibit scrollbars of any kind (`overflow-x-auto` & `overflow-y-auto` remain banned per [0039-toolbar-header-standards.md]).
 - **Hover-Only Triggers Banned:** Scrollbars MUST NOT appear statically on hover alone unless active scroll motion occurs.
 
 ## Compliance & Enforcement
-- Enforced via `SKILL.md` checklist.
+- Enforced through `SKILL.md` checklist.
 - All new scrollable containers must use `<ScrollArea />` with `type="scroll"` + `scrollHideDelay={300}` or apply `.scrollbar-auto-hide`.

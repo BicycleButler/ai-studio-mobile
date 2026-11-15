@@ -69,7 +69,7 @@ describe('CrossTabNotifier', () => {
         newValue: payload
       });
 
-      // Manually trigger the bound listener if dispatchEvent isn't fully mocked
+      // Manually trigger the bound listener if dispatchEvent is not fully mocked
       const boundListener = (notifier as unknown as { boundListener: (e: Event) => void }).boundListener;
       if (boundListener) {
           boundListener(event);

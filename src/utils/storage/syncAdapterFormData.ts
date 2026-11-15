@@ -18,7 +18,7 @@ export class FormDataSyncTransport<T> implements ISyncTransport<T> {
 
     const requestInit: RequestInit = {
       method,
-      // Note: When using FormData with fetch, you should NOT set the Content-Type header manually.
+      // Note: When using FormData with fetch, you must NOT set the Content-Type header manually.
       // The browser will automatically set it to multipart/form-data with the correct boundary.
       body: formData,
     };

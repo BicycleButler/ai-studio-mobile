@@ -8,7 +8,7 @@ import { BrowserPlatformService } from "../services/platformService"
  * - Chunks streaming tokens at natural sentence boundaries (. ! ? \n)
  * - Feeds complete sentences sequentially into browser SpeechSynthesis
  * - Starts speech playback within ~250-400ms instead of waiting for entire generation
- * - Fixes Chrome 15s SpeechSynthesis stall bug via an anti-freeze heartbeat
+ * - Fixes Chrome 15s SpeechSynthesis stall bug through an anti-freeze heartbeat
  * - Fully 100% free and client-side (no external API calls or network fees)
  */
 
@@ -71,18 +71,18 @@ export class SentenceSpeechQueue implements ISentenceSpeechQueue {
 
     this.buffer = fullStreamedText;
 
-    // Look for new complete sentences beyond what we've already dispatched
+    // Look for new complete sentences beyond what we have already dispatched
     const remaining = this.buffer.slice(this.processedIndex);
 
     // Sentence splitting regex: matches sentence endings (. ! ? or \n\n) followed by whitespace
-    // Avoids splitting on common abbreviations like e.g., i.e., vs.
+    // Prevents splitting on common abbreviations like for example, that is, against.
     const sentenceSplitRegex = /(?<=[.!?])\s+|\n\n+/g;
     let match: RegExpExecArray | null;
     let lastMatchEnd = 0;
 
     while ((match = sentenceSplitRegex.exec(remaining)) !== null) {
       const rawCandidate = remaining.slice(lastMatchEnd, match.index).trim();
-      // Avoid premature splitting on common abbreviations
+      // Prevent premature splitting on common abbreviations
       if (/(?:e\.g|i\.e|vs|mr|mrs|ms|dr|prof|etc)\.$/i.test(rawCandidate)) {
         continue;
       }

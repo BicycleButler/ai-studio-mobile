@@ -142,10 +142,10 @@ describe('StubsClient Stream Config', () => {
             "[stubs stream] EventSource is not supported in this environment"
         );
 
-        // should return a callable cleanup function
+        // must return a callable cleanup function
         expect(typeof cleanup).toBe('function');
 
-        // executing cleanup should not crash
+        // executing cleanup must not crash
         cleanup();
     });
 });

@@ -18,45 +18,43 @@ A secondary issue: `Card` was semantically conflated with structural layout regi
 
 The 5-tier shadow scale from ADR 0027 is now minted as CSS custom properties in `globals.css` `@theme inline`, intentionally overriding Tailwind defaults:
 
-| Token | Value | ADR 0027 Tier |
-|---|---|---|
-| `--shadow-xs` | `0 1px 2px 0 rgb(0 0 0 / 0.04)` | Resting |
-| `--shadow-sm` | `0 2px 4px + 0 1px 2px -1px` (rgb 0.06/0.04) | Raised / hover |
-| `--shadow-md` | `0 4px 8px -2px + 0 2px 4px -2px` (rgb 0.10/0.06) | Floating / dropdown |
-| `--shadow-lg` | `0 12px 24px -4px + 0 4px 8px -2px` (rgb 0.12/0.08) | Overlay / modal |
-| `--shadow-xl` | `0 20px 40px -8px + 0 8px 16px -4px` (rgb 0.18/0.10) | Top-level / toast |
+- Token | Value | ADR 0027 Tier
+- `--shadow-xs` | `0 1px 2px 0 rgb(0 0 0 / 0.04)` | Resting
+- `--shadow-sm` | `0 2px 4px + 0 1px 2px -1px` (rgb 0.06/0.04) | Raised / hover
+- `--shadow-md` | `0 4px 8px -2px + 0 2px 4px -2px` (rgb 0.10/0.06) | Floating / dropdown
+- `--shadow-lg` | `0 12px 24px -4px + 0 4px 8px -2px` (rgb 0.12/0.08) | Overlay / modal
+- `--shadow-xl` | `0 20px 40px -8px + 0 8px 16px -4px` (rgb 0.18/0.10) | Top-level / toast
 
 **Layering Consistency:** Higher-elevation elements always cast larger shadows. A shadowless element must never appear above a shadowed element in the same stacking context.
 
 **Modal Backdrop:** Modal overlays use `backdrop-filter: blur(4px)` with a semi-transparent scrim. Light mode: `rgba(0,0,0,0.5)`. Dark mode: `rgba(0,0,0,0.7)`.
 
-Surface tier tokens (`--surface-raised-*`, `--surface-flat-*`, etc.) are also minted as documentation anchors — components consume them indirectly via their CVA class definitions.
+Surface tier tokens (`--surface-raised-*`, `--surface-flat-*`, and so on.) are also minted as documentation anchors — components consume them indirectly through their CVA class definitions.
 
 ### 2 — Surface Options & Tiers
 
-All `Card` and `ContainerPanel` components expose a `surface` prop supporting both **bordered** and **borderless** design system options. Each tier owns its complete elevation signature: border, shadow, and background.
+All `Card` and `ContainerPanel` components expose a `surface` prop supporting the two **bordered** and **borderless** design system options. Each tier owns its complete elevation signature: border, shadow, and background.
 
-| `surface` | Border | Shadow | Background | Dark Mode Compensator | Purpose |
-|---|---|---|---|---|---|
-| `raised` *(default)* | none (`border-0`) | `shadow-sm` | `bg-card` | `ring-1 ring-border/20` | Borderless primary card elevated via shadow |
-| `flat` | none (`border-0`) | `shadow-xs` | `bg-card` | `ring-1 ring-border/20` | Borderless nested info group |
-| `bordered` | explicit (`border border-border`) | `shadow-xs` | `bg-card` | Standard border | Bordered option for explicit framing |
-| `flush` | none (`border-0`) | none | `bg-transparent` | **Parent must provide elevation context.** | Structural region; no visual decoration |
-| `inset` | none (`border-0`) | `shadow-md` | `bg-muted/40` | Heavier shadow depth | Recessed read-only / metadata block |
+- `surface` | Border | Shadow | Background | Dark Mode Compensator | Purpose
+- `raised` *(default)* | none (`border-0`) | `shadow-sm` | `bg-card` | `ring-1 ring-border/20` | Borderless primary card elevated through shadow
+- `flat` | none (`border-0`) | `shadow-xs` | `bg-card` | `ring-1 ring-border/20` | Borderless nested info group
+- `bordered` | explicit (`border border-border`) | `shadow-xs` | `bg-card` | Standard border | Bordered option for explicit framing
+- `flush` | none (`border-0`) | none | `bg-transparent` | **Parent must provide elevation context.** | Structural region. No visual decoration
+- `inset` | none (`border-0`) | `shadow-md` | `bg-muted/40` | Heavier shadow depth | Recessed read-only / metadata block
 
-> **Design System Policy — Bordered vs Borderless:**
-> Both `bordered` and `borderless` options are first-class primitives in the design system. Applications using this design system may standardize on `borderless` or `bordered` surfaces. For data-dense applications, content cards and data tables standardly use **borderless** (`raised` / `flat`) for a clean visual hierarchy, while Main Layout structural dividers (sidebar, header, sticky footer), Form Controls (`input`, `select`), and Overlay Surfaces (`dialog`, `popover`, `dropdown`, `toast`) retain structural borders.
+> **Design System Policy — Bordered against Borderless:**
+> The two `bordered` and `borderless` options are first-class primitives in the design system. Applications using this design system can standardize on `borderless` or `bordered` surfaces. For data-dense applications, content cards and data tables standardly use **borderless** (`raised` / `flat`) for a clean visual hierarchy, while Main Layout structural dividers (sidebar, header, sticky footer), Form Controls (`input`, `select`), and Overlay Surfaces (`dialog`, `popover`, `dropdown`, `toast`) retain structural borders.
 
 ### 3 — Usage Rules
 
-#### Rule 1 — Card vs. ContainerPanel
+#### Rule 1 — Card against. ContainerPanel
 - **`Card`**: Use for discrete, interactive data units — a container that a user can scan, click, or act on. Semantically equivalent to a "record" or "widget".
-- **`ContainerPanel`**: Use for structural layout regions — inspector panes, sidebar wrappers, page section groupings — where `Card` semantics are wrong. `ContainerPanel` has no default padding and no `gap`/`py` defaults; callers own their internal spacing.
+- **`ContainerPanel`**: Use for structural layout regions — inspector panes, sidebar wrappers, page section groupings — where `Card` semantics are wrong. `ContainerPanel` has no default padding and no `gap`/`py` defaults. Callers own their internal spacing.
 
 > **Decision rule:** If removing the container's border and shadow would leave the content perfectly readable because it sits inside an already-elevated parent, use `ContainerPanel surface="flush"` or `Card surface="flush"`. If the container itself *is* the elevation boundary, use `raised`.
 
 #### Rule 2 — Default Is `raised`
-The `surface` prop defaults to `"raised"` on both `Card` and `ContainerPanel`. Existing `<Card>` usages without a `surface` prop are unaffected — output is identical to the previous implementation.
+The `surface` prop defaults to `"raised"` on the two `Card` and `ContainerPanel`. Existing `<Card>` usages without a `surface` prop are unaffected — output is identical to the previous implementation.
 
 #### Rule 3 — `flush` Requires Parent Context
 `flush` surfaces have **no border, no shadow, and transparent background**. They are only valid when rendered inside a `raised` or `flat` container that provides the visual boundary. Using `flush` at the top/canvas level on dark themes produces visual bleed — the content will merge into the background.
@@ -86,7 +84,7 @@ Do **not** use `inset` for full-page content areas — it implies subordinate de
 `flat` is the middle ground: no border (grouping by proximity, per ADR 0017), but a resting `shadow-xs` keeps it slightly above its parent. Use `flat` for:
 - A sub-section card inside a dashboard column
 - A data module card inside the DynamicInspector grid (ADR 0040)
-- An empty-state card inside a `raised` panel (with a dashed border override via `className` to signal vacancy)
+- An empty-state card inside a `raised` panel (with a dashed border override through `className` to signal vacancy)
 
 #### Rule 6 — className Overrides for Semantic Color Only
 `className` on `Card` or `ContainerPanel` is reserved for:
@@ -147,13 +145,12 @@ import { ContainerPanel } from '@/components/ui/container-panel'
 
 ### 4 — Affected Files
 
-| File | Change |
-|---|---|
-| `src/app/globals.css` | `--shadow-xs` → `--shadow-xl` tokens minted; surface tier anchor tokens added |
-| `src/components/ui/card.tsx` | CVA refactor; `surface` prop added; `raised` is default |
-| `src/components/ui/container-panel.tsx` | New primitive |
-| `src/components/ui/split-pane-layout.tsx` | Inspector pane migrated from raw div to `ContainerPanel surface="raised"` |
-| Multiple Card consumers | Redundant elevation `className` overrides removed or replaced with `surface` prop |
+- File | Change
+- `src/app/globals.css` | `--shadow-xs` → `--shadow-xl` tokens minted. Surface tier anchor tokens added
+- `src/components/ui/card.tsx` | CVA refactor; `surface` prop added; `raised` is default
+- `src/components/ui/container-panel.tsx` | New primitive
+- `src/components/ui/split-pane-layout.tsx` | Inspector pane migrated from raw div to `ContainerPanel surface="raised"`
+- Multiple Card consumers | Redundant elevation `className` overrides removed or replaced with `surface` prop
 
 ## Consequences
 - Elevation intent is expressed at the prop level, not buried in `className` strings — greppable, type-safe, and agent-auditable.
@@ -163,8 +160,8 @@ import { ContainerPanel } from '@/components/ui/container-panel'
 - All existing `<Card>` usages default to `raised` — **zero breaking changes.**
 
 ## Cross-References
-- [ADR 0017 - Layout & Structure Standards](0017-layout-structure.md) — Rule 5: whitespace over borders; borders for interactive affordances
-- [ADR 0028 - Theming & Dark Mode](0028-theming-dark-mode.md) — ring supplement rule for dark surfaces
-- [ADR 0040 - Split Pane Detail Cards](0040-split-pane-detail-cards.md) — DynamicInspector uses `ContainerPanel` + `Card surface="flat"` for sub-modules
+- [0017-layout-structure.md] — Rule 5: whitespace over borders. Borders for interactive affordances
+- [0028-theming-dark-mode.md] — ring supplement rule for dark surfaces
+- [0040-split-pane-detail-cards.md] — DynamicInspector uses `ContainerPanel` + `Card surface="flat"` for sub-modules
 
 > **Note:** ADR 0027 (Elevation & Depth Standards) has been absorbed into this document. All elevation rules, shadow scale tokens, and backdrop specifications are now authoritative here.

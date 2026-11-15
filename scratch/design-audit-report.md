@@ -9,12 +9,10 @@
 
 ## Violation Breakdown by Rule
 
-| Rule | ADR | Count |
-|---|---|---|
+- Rule | ADR | Count
 
 ## Violation Breakdown by Directory
 
-| Directory | Violations | Status |
-|---|---|---|
+- Directory | Violations | Status
 
 ## Detailed Violation Log

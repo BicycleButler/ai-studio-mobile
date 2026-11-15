@@ -293,8 +293,8 @@ export async function getImpact(targetFile: string): Promise<StubsImpactResult> 
 }
 
 /**
- * Performs architectural lint checks:
- * 1. Layer hierarchy violations (e.g. lower layer importing higher layer)
+ * Does architectural lint checks:
+ * 1. Layer hierarchy violations (for example, lower layer importing higher layer)
  * 2. Circular dependency cycles
  */
 export async function lintArchitecture(): Promise<{
@@ -312,7 +312,7 @@ export async function lintArchitecture(): Promise<{
   }
 
   // 1. Check layer hierarchy inversions
-  // Rule: Modules in layer L should only import modules in layer <= L (with allowed same-layer or downward)
+  // Rule: Modules in layer L must only import modules in layer <= L (with allowed same-layer or downward)
   // Specifically: Layer 0 (types/contracts) must NEVER import Layer 1, 2, 3, 4, 5, 6
   for (const edge of graph.edges) {
     const src = nodeMap.get(edge.source);
@@ -532,7 +532,7 @@ export async function materializeSpec(relPath: string): Promise<{ targetFile: st
 }
 
 /**
- * Runs a CLI command via child process, streaming lines to SSE subscribers
+ * Runs a CLI command through child process, streaming lines to SSE subscribers
  */
 export async function runCliCommand(
   command: "scan" | "lint-arch" | "diagram" | "impact" | "sand",

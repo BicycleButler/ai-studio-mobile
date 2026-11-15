@@ -366,7 +366,7 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  // Backoff protection: if upstream returned 503 or transient failure recently, avoid hammering
+  // Backoff protection: if upstream returned 503 or transient failure recently, prevent hammering
   if (!forceRefresh && lastModelFetchErrorTimestamp && now - lastModelFetchErrorTimestamp < 60_000) {
     res.json({
       models: cachedLiveModels || DEFAULT_FALLBACK_MODELS,
@@ -432,7 +432,7 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Ensure all standard curated models are included in the available menu
+    // Make sure that all standard curated models are included in the available menu
     for (const curated of CURATED_MODELS) {
       if (!liveModels.some((lm) => lm.id === curated.id)) {
         liveModels.push(curated);
@@ -469,7 +469,7 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
     }
   } catch {
     lastModelFetchErrorTimestamp = now;
-    // Upstream service may be temporarily unavailable (e.g. 503 UNAVAILABLE) or rate-limited.
+    // Upstream service can be temporarily unavailable (for example, 503 UNAVAILABLE) or rate-limited.
     // Gracefully fall back to stable default models without logging alarms to console.
   }
 

@@ -19,7 +19,7 @@ describe('StorageCollection', () => {
         transformOut: (i) => ({ ...i, val: (i.val || 0) * 2 })
     });
     // save bypasses transformOut, it only runs when read. Wait, transformIn runs on save.
-    // Let's test the pipeline directly.
+    // Let us test the pipeline directly.
     collection.save([{ id: '1', val: 1 }, { id: '2', val: -1 }, { id: '3', val: 2 }]);
     const loaded = collection.load();
     expect(loaded).toEqual([{ id: '1', val: 2 }, { id: '3', val: 4 }]);

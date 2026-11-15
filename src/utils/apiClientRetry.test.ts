@@ -90,6 +90,6 @@ describe('ExponentialBackoffRetryStrategy', () => {
           retryableStatusCodes: new Set([500]),
       })).rejects.toThrow(abortError);
 
-      expect(mockFetcher).toHaveBeenCalledTimes(1); // Should only call once
+      expect(mockFetcher).toHaveBeenCalledTimes(1); // Must only call once
   });
 });
