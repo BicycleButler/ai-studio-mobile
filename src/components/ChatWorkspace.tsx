@@ -15,8 +15,6 @@ import {
   Volume2,
   Plus,
   MessageSquare,
-  Bot,
-  FolderGit2,
   Layers,
   Mic,
   Maximize2,
@@ -29,7 +27,6 @@ import {
   ChatMessage,
   MessageAttachment,
   ChatSession,
-  JulesSession,
 } from "../types";
 import { extractSpokenText } from "../utils/speechExtractor";
 import {
@@ -38,7 +35,6 @@ import {
 import { ISentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { useStore } from "../hooks/useStore";
-import { JulesActivityCard } from "./JulesActivityCard";
 import { GoogleIcon } from "./GoogleIcon";
 import { PromptTemplateDrawer } from "./PromptTemplateDrawer";
 import { useServices } from "../services/ServiceContext";
@@ -60,12 +56,6 @@ interface ChatWorkspaceProps {
   currentSessionId?: string | null;
   onSelectSession?: (session: ChatSession) => void;
   onNewChat?: () => void;
-  isJulesMode?: boolean;
-  activeJulesSession?: JulesSession | null;
-  onOpenJulesSessions?: () => void;
-  onApproveJulesPlan?: (taskId: string) => void;
-  onRejectJulesPlan?: (taskId: string) => void;
-  isApprovingJulesPlan?: boolean;
 }
 
 export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
@@ -78,12 +68,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   currentSessionId,
   onSelectSession,
   onNewChat,
-  isJulesMode = false,
-  activeJulesSession = null,
-  onOpenJulesSessions,
-  onApproveJulesPlan,
-  onRejectJulesPlan,
-  isApprovingJulesPlan = false,
 }) => {
   const {
     config: _config,
@@ -121,23 +105,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const { julesStorageService, chatHistoryService, imageCompressor } = useServices();
+  const { chatHistoryService, imageCompressor } = useServices();
   const rawChatSessions = useStore(chatHistoryService.getChatCollection(activeProjectId));
-  const julesSessionsState = useStore(julesStorageService.julesSessionsManager);
 
   const historySessions = useMemo<ChatSession[]>(() => {
-    if (isJulesMode) {
-      return julesSessionsState.items.map((js) => ({
-        id: js.id,
-        title: js.title || js.repository,
-        messages: js.messages || [],
-        createdAt: js.createdAt,
-        updatedAt: js.updatedAt,
-        model: "Jules Agent",
-      }));
-    }
     return [...rawChatSessions].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  }, [isJulesMode, julesSessionsState.items, rawChatSessions]);
+  }, [rawChatSessions]);
 
   const validHistorySessions = useMemo(() => {
     return historySessions.filter((s) => !chatHistoryService.isMockChatSession(s));
@@ -951,24 +924,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   };
 
   const handleDeleteSession = (sessionId: string) => {
-    if (isJulesMode) {
-      const all = julesStorageService.julesSessionsManager.getItems().filter((s) => s.id !== sessionId);
-      julesStorageService.julesSessionsManager.collection.save(all);
-      if (sessionId === currentSessionId) {
-        if (onNewChat) {
-          onNewChat();
-        } else {
-          onClearMessages();
-        }
-      }
-    } else {
-      chatHistoryService.deleteChatSession(sessionId, activeProjectId);
-      if (sessionId === currentSessionId) {
-        if (onNewChat) {
-          onNewChat();
-        } else {
-          onClearMessages();
-        }
+    chatHistoryService.deleteChatSession(sessionId, activeProjectId);
+    if (sessionId === currentSessionId) {
+      if (onNewChat) {
+        onNewChat();
+      } else {
+        onClearMessages();
       }
     }
   };
@@ -980,39 +941,18 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     "Refactor this function to be more memory-efficient",
   ];
 
-  const julesStarterChips = [
-    "Fix syntax errors or failing linter checks in this repository",
-    "Refactor the authentication flow to use modern token-based auth",
-    "Add comprehensive unit test coverage with Vitest or Jest",
-    "Optimize mobile responsive layouts and improve touch targets",
-  ];
-
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden bg-background relative">
       {/* Floating Action Controls on Right Side of Screen (Stacked vertically, borderless & transparent) */}
       <div className="absolute top-3 end-3 z-30 flex flex-col items-center gap-1.5 pointer-events-auto">
-        {/* Jules Task / Session Switcher (Jules mode only) */}
-        {isJulesMode && onOpenJulesSessions && (
-          <button
-            type="button"
-            id="jules-switch-task-btn"
-            onClick={onOpenJulesSessions}
-            className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl bg-transparent border-0 text-purple-400 hover:text-purple-300 hover:bg-muted/40 transition-colors cursor-pointer active:scale-95 focus:outline-none touch-manipulation"
-            title="Manage Jules Tasks & Sessions"
-            aria-label="Manage Jules Tasks & Sessions"
-          >
-            <Bot className="w-4 h-4" />
-          </button>
-        )}
-
         {/* Start New Chat & History Trigger (Stacked above Prompt Templates) */}
         <div className="relative group/newchat flex items-center justify-center">
           <button
             ref={historyButtonRef}
             type="button"
             id="chat-top-right-new-chat-btn"
-            aria-label={isJulesMode ? "Start new task or select history" : "New chat or select history"}
-            title={isJulesMode ? "Start new task or select history" : "New chat or select history"}
+            aria-label="New chat or select history"
+            title="New chat or select history"
             aria-haspopup="dialog"
             aria-expanded={isHistoryOpen}
             aria-controls="chat-window-history-popover"
@@ -1036,14 +976,13 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               role="tooltip"
               className="absolute end-full me-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-popover/95 backdrop-blur-sm text-foreground text-[11px] font-medium rounded-lg whitespace-nowrap shadow-md pointer-events-none opacity-0 group-hover/newchat:opacity-100 transition-colors duration-150 z-20"
             >
-              {isJulesMode ? "New task or history" : "New chat or history"}
+              New chat or history
             </div>
           )}
 
           {/* Anchored History & New Chat Popover Menu */}
           {isHistoryOpen && (
             <ChatHistoryPopover
-              isJulesMode={!!isJulesMode}
               historySessions={historySessions}
               validHistorySessions={validHistorySessions}
               selectedHistoryIds={selectedHistoryIds}
@@ -1056,8 +995,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               popoverRef={historyPopoverRef}
               getHistorySelectionState={getHistorySelectionState}
               timeProvider={useServices().timeProvider}
-
-
             />
           )}
 
@@ -1096,81 +1033,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         }}
       >
         {messages.length === 0 ? (
-          isJulesMode ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-md mx-auto">
-              <div className="w-12 h-12 rounded-2xl bg-muted/40 flex items-center justify-center mb-3">
-                <Bot className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-base font-semibold text-foreground mb-1">
-                Google Jules Autonomous Agent
-              </h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                Autonomous task execution on GitHub repositories. Jules explores the codebase, builds a plan, implements code changes, and creates a pull request.
-              </p>
-
-              {activeJulesSession ? (
-                <div className="w-full mb-3.5 p-3 rounded-xl bg-muted/40 text-start flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-mono tracking-wider text-primary">
-                      Active Repository
-                    </span>
-                    <div className="text-xs font-semibold text-foreground font-mono truncate">
-                      {activeJulesSession?.repository}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      Base branch: <span className="font-mono text-foreground">{activeJulesSession?.branch}</span>
-                    </div>
-                  </div>
-                  {onOpenJulesSessions && (
-                    <button
-                      type="button"
-                      onClick={onOpenJulesSessions}
-                      className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-medium transition-colors shrink-0 cursor-pointer"
-                    >
-                      Change
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="w-full mb-3.5 p-3.5 rounded-2xl bg-card text-start shadow-sm">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <FolderGit2 className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-xs text-foreground">
-                      Select or create a Jules task
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mb-3">
-                    Choose which authorized GitHub repository Jules should clone, plan, and commit changes to.
-                  </p>
-                  {onOpenJulesSessions && (
-                    <button
-                      type="button"
-                      onClick={onOpenJulesSessions}
-                      className="w-full py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-sm active:scale-95 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Choose Repository & Task</span>
-                      <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-2 w-full text-start">
-                {julesStarterChips.map((chip, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => onSendMessage(chip)}
-                    className="p-2.5 rounded-xl bg-card hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition-colors text-start flex items-center justify-between group cursor-pointer"
-                  >
-                    <span className="truncate">{chip}</span>
-                    <span className="text-primary opacity-0 group-hover:opacity-100 transition-colors ms-2 shrink-0">
-                      →
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-md mx-auto">
               <h3 className="text-base font-semibold text-foreground mb-1">
                 Google AI Studio Playground
@@ -1239,7 +1101,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                 ))}
               </div>
             </div>
-          )
         ) : (
           messages.map((msg) => (
             <div
@@ -1252,16 +1113,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               <div className="flex items-center gap-1.5 mb-1 px-1 text-[11px] text-muted-foreground">
                 {msg.role === "user" ? (
                   <span className="font-medium text-foreground">User</span>
-                ) : msg.julesActivity ? (
-                  <div className="flex items-center gap-1 text-foreground">
-                    <Bot className="w-3.5 h-3.5 text-primary" />
-                    <span className="font-medium">Jules Coding Agent</span>
-                    {activeJulesSession && (
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        • {activeJulesSession?.repository}
-                      </span>
-                    )}
-                  </div>
                 ) : (
                   <div className="flex items-center gap-1">
                     <span className="font-medium text-foreground">Gemini</span>
@@ -1305,22 +1156,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                   </div>
                 )}
 
-                {/* Jules Activity Card if present */}
-                {msg.julesActivity ? (
-                  <div className="w-full">
-                    {msg.text && (
-                      <p className="text-xs text-foreground mb-2 font-medium">
-                        {msg.text}
-                      </p>
-                    )}
-                    <JulesActivityCard
-                      activity={msg.julesActivity}
-                      onApprovePlan={onApproveJulesPlan}
-                      onRejectPlan={onRejectJulesPlan}
-                      isApproving={isApprovingJulesPlan}
-                    />
-                  </div>
-                ) : msg.role === "model" ? (
+                {/* Message content */}
+                {msg.role === "model" ? (
                   <div className="prose dark:prose-invert prose-xs sm:prose-sm max-w-none break-words [&>pre]:bg-muted [&>pre]:p-3 [&>pre]:rounded-xl [&>pre]:border [&>pre]:border-border [&>pre]:overflow-x-auto [&>code]:text-primary [&>code]:bg-muted [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>ul]:list-disc [&>ul]:ps-4 [&>ol]:list-decimal [&>ol]:ps-4">
                     <Markdown>{msg.text || (msg.isStreaming ? "Thinking..." : "")}</Markdown>
                     {msg.isStreaming && (
@@ -1785,13 +1622,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       }, 150);
                     }}
                     onKeyDown={handleKeyDown}
-                    placeholder={
-                      isJulesMode
-                        ? activeJulesSession
-                          ? `Describe a task or fix for Jules on ${activeJulesSession?.repository}...`
-                          : "Select a repository to dispatch a Jules task..."
-                        : "Type prompt or test instructions..."
-                    }
+                    placeholder="Type prompt or test instructions..."
                     rows={isInputHeightExpanded ? 5 : 1}
                     className={`bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none py-2 px-1 overflow-y-auto leading-relaxed ${
                       isInputHeightExpanded
@@ -1857,10 +1688,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                                 ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm active:scale-95 cursor-pointer"
                                 : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                             }`}
-                            title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
-                            aria-label={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                            title="Run prompt"
+                            aria-label="Run prompt"
                           >
-                            {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                            <Send className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -1905,10 +1736,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                               ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm active:scale-95 cursor-pointer"
                               : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                           }`}
-                          title={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
-                          aria-label={isJulesMode ? "Dispatch Jules task" : "Run prompt"}
+                          title="Run prompt"
+                          aria-label="Run prompt"
                         >
-                          {isJulesMode ? <Bot className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                          <Send className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -1947,8 +1778,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                       <span className="text-xs sm:text-sm truncate">
                         {inputText ? (
                           <span className="text-foreground font-medium">{inputText}</span>
-                        ) : isJulesMode ? (
-                          "Dispatch task..."
                         ) : (
                           "Type message..."
                         )}

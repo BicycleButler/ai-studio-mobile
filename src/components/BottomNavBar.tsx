@@ -58,8 +58,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       className="!px-2 !pt-1.5 !pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] select-none"
     >
       <nav role="navigation" aria-label="Workspace navigation" aria-expanded={true}>
-        {/* 4-Slot Workspace layout with generous touch ergonomics */}
-        <div className="grid grid-cols-4 max-w-lg mx-auto mt-0.5 gap-1">
+        {/* 3-Slot Workspace layout with generous touch ergonomics */}
+        <div className="grid grid-cols-3 max-w-lg mx-auto mt-0.5 gap-1">
           {WORKSPACE_NAV_CONFIG.map((ws) => {
             const Icon = ws.icon;
             const isActive = activeWorkspace === ws.id;

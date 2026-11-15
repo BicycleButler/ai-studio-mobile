@@ -12,51 +12,37 @@ import {
   ShieldCheck,
   ArrowRight,
   ClipboardPaste,
-  Bot,
   ArrowLeft,
 } from "lucide-react";
 import { useServices } from "../services/ServiceContext";
 import { useBackNavigation } from "../hooks/useBackNavigation";
 
 
-export type CredentialTargetService = "aistudio" | "jules";
-
 interface CustomTabBrowserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImportKey: (key: string, service?: CredentialTargetService) => void;
+  onImportKey: (key: string) => void;
   activeApiKey?: string;
-  initialService?: CredentialTargetService;
 }
 
 const AI_STUDIO_URL = "https://aistudio.google.com/app/apikey";
-const JULES_SETTINGS_URL = "https://jules.google.com/settings";
 
 export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
   isOpen,
   onClose,
   onImportKey,
   activeApiKey = "",
-  initialService = "aistudio",
 }) => {
   const { keyVerificationService, clipboardService } = useServices();
 
   // Enable device/browser back navigation to dismiss browser smoothly
   useBackNavigation(isOpen, onClose, "custom-tab-browser");
 
-  const [activeService, setActiveService] = useState<CredentialTargetService>(initialService);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [isCheckingClipboard, setIsCheckingClipboard] = useState(false);
   const [detectedKey, setDetectedKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (initialService) {
-      setActiveService(initialService);
-    }
-  }, [initialService, isOpen]);
-
-  const targetUrl = activeService === "jules" ? JULES_SETTINGS_URL : AI_STUDIO_URL;
-  const isJules = activeService === "jules";
+  const targetUrl = AI_STUDIO_URL;
 
   // When opening or focusing, automatically check clipboard
   const checkClipboard = async () => {
@@ -64,10 +50,10 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
     try {
       const text = await clipboardService.readText();
       if (text) {
-          const found = isJules ? (keyVerificationService.detectJulesApiKey(text) || keyVerificationService.detectGoogleApiKey(text)) : keyVerificationService.detectGoogleApiKey(text);
-          if (found && found !== activeApiKey.trim()) {
-            setDetectedKey(found);
-          }
+        const found = keyVerificationService.detectGoogleApiKey(text);
+        if (found && found !== activeApiKey.trim()) {
+          setDetectedKey(found);
+        }
       }
     } catch {
       // Ignore clipboard permission errors
@@ -87,7 +73,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
       void checkClipboard();
     }, 2000);
     return () => platformService.clearInterval(interval);
-  }, [isOpen, activeApiKey, activeService, platformService]);
+  }, [isOpen, activeApiKey, platformService]);
 
   const handleOpenSystemBrowser = () => {
     platformService.getWindow()?.open(targetUrl, "_blank", "noopener,noreferrer");
@@ -105,7 +91,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
 
   const handleProceedWithDetectedKey = () => {
     if (detectedKey) {
-      onImportKey(detectedKey, activeService);
+      onImportKey(detectedKey);
       onClose();
     }
   };
@@ -150,10 +136,10 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
               <Lock className="w-3 h-3 text-primary shrink-0" />
               <div className="flex flex-col min-w-0 text-start">
                 <span className="text-[10px] font-semibold text-foreground truncate leading-tight">
-                  {isJules ? "Google Jules Agent" : "Google AI Studio"}
+                  Google AI Studio
                 </span>
                 <span className="text-[9px] text-muted-foreground font-mono truncate leading-tight">
-                  {isJules ? "jules.google.com/settings" : "aistudio.google.com/app/apikey"}
+                  aistudio.google.com/app/apikey
                 </span>
               </div>
             </div>
@@ -194,41 +180,6 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
           </div>
         </div>
 
-        {/* Service Switcher Tabs */}
-        <div className="px-4 pt-3 pb-1 border-b border-border flex items-center gap-2 bg-card">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveService("aistudio");
-              setDetectedKey(null);
-            }}
-            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-              !isJules
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Google AI Studio</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveService("jules");
-              setDetectedKey(null);
-            }}
-            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-              isJules
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <Bot className="w-3.5 h-3.5" />
-            <span>Google Jules</span>
-          </button>
-        </div>
-
         {/* Chrome Custom Tab Content Container */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-background">
           {/* Detected Key Floating Alert Banner if found */}
@@ -240,7 +191,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs font-semibold text-foreground block">
-                    {isJules ? "Jules API Key Intercepted!" : "AI Studio Key Intercepted!"}
+                    AI Studio Key Intercepted!
                   </span>
                   <span className="text-[11px] font-mono text-muted-foreground block truncate">
                     {keyVerificationService.maskApiKey(detectedKey)}
@@ -260,22 +211,14 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
 
           {/* Header Card */}
           <div className="p-4 rounded-2xl bg-card border border-border text-center space-y-2">
-            <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-inner ${
-                isJules
-                  ? "bg-primary/15 border border-primary/30 text-primary"
-                  : "bg-primary/15 border border-primary/30 text-primary"
-              }`}
-            >
-              {isJules ? <Bot className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />}
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-inner bg-primary/15 border border-primary/30 text-primary">
+              <Sparkles className="w-6 h-6" />
             </div>
             <h2 className="text-base font-semibold text-foreground">
-              {isJules ? "Google Jules Key Ingestion" : "Google AI Studio Key Launcher"}
+              Google AI Studio Key Launcher
             </h2>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
-              {isJules
-                ? "Open Jules settings at jules.google.com/settings to view or generate your personal API Key. Copy your key and return here for instant auto-detection!"
-                : "Launch Google AI Studio in a shared session with your existing Google credentials. Copy your API key, and return here for instant auto-detection!"}
+              Launch Google AI Studio in a shared session with your existing Google credentials. Copy your API key, and return here for instant auto-detection!
             </p>
 
             <div className="pt-2">
@@ -285,7 +228,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                 onClick={handleOpenSystemBrowser}
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 mx-auto transition-colors shadow-lg active:scale-95 bg-primary text-primary-foreground cursor-pointer"
               >
-                <span>{isJules ? "Open Google Jules Settings Tab" : "Open Google AI Studio Tab"}</span>
+                <span>Open Google AI Studio Tab</span>
                 <ExternalLink className="w-4 h-4" />
               </button>
             </div>
@@ -294,7 +237,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
           {/* 3-Step Guide Card */}
           <div className="p-4 rounded-xl bg-card border border-border space-y-3">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-              {isJules ? "Jules Credential Flow" : "Quick Ingestion Workflow"}
+              Quick Ingestion Workflow
             </span>
             <div className="space-y-2.5 text-xs">
               <div className="flex items-start gap-3">
@@ -305,9 +248,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                 </div>
                 <div className="text-muted-foreground">
                   <span className="font-medium text-foreground">Open Settings:</span>{" "}
-                  {isJules
-                    ? "Tap the button above to navigate to jules.google.com/settings."
-                    : "Tap the button above to open AI Studio with your signed-in Google account."}
+                  Tap the button above to open AI Studio with your signed-in Google account.
                 </div>
               </div>
 
@@ -319,9 +260,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                 </div>
                 <div className="text-muted-foreground">
                   <span className="font-medium text-foreground">Copy API Key:</span>{" "}
-                  {isJules
-                    ? "Under 'API Key', copy your key (single key covers all authorized GitHub repos)."
-                    : "Click 'Create API key' or copy an existing key starting with AIza... or AQ...."}
+                  Click &apos;Create API key&apos; or copy an existing key starting with AIza... or AQ....
                 </div>
               </div>
 
@@ -356,7 +295,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
                 Clipboard Radar Active
               </h4>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Monitoring clipboard for {isJules ? "Google Jules" : "Google AI Studio"} keys upon return
+                Monitoring clipboard for Google AI Studio keys upon return
               </p>
             </div>
 
@@ -380,7 +319,7 @@ export const CustomTabBrowserModal: React.FC<CustomTabBrowserModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  onImportKey("", activeService);
+                  onImportKey("");
                   onClose();
                 }}
                 className="px-3.5 py-1.5 rounded-lg bg-card hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-medium border border-border flex items-center gap-1.5 transition-colors cursor-pointer"

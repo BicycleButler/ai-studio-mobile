@@ -15,18 +15,14 @@ export const MOCK_SESSION_TITLES = [
 export const MOCK_MESSAGE_IDS = ["m1", "m2", "msg_1", "msg_2", "msg_3"];
 export const MOCK_MESSAGE_TEXTS = ["alpha", "beta", "sample test prompt"];
 
-// Jules Session Mock Definitions
-export const MOCK_JULES_TITLE_PATTERNS = ["mock", "test task"];
-export const MOCK_JULES_REPO_PATTERNS = ["mock", "test/repo", "sample/repo"];
-
 /**
  * Universal Mock Data Detection Utility
- * Safely identifies test/mock objects across Chat and Jules sessions to prevent
+ * Safely identifies test/mock objects in Chat sessions to prevent
  * storage pollution or UI rendering of synthetic data.
  */
 export function isMockSession(
-  session: Partial<{ id: string; title: string; projectId: string; repository: string; messages: unknown[] }> | null | undefined,
-  type: "chat" | "jules"
+  session: Partial<{ id: string; title: string; projectId: string; messages: unknown[] }> | null | undefined,
+  type: "chat" = "chat"
 ): boolean {
   if (!session) return true;
 
@@ -69,18 +65,6 @@ export function isMockSession(
         return MOCK_MESSAGE_IDS.includes(mid) || MOCK_MESSAGE_TEXTS.includes(text);
       });
       if (hasMockMessage) return true;
-    }
-  }
-
-  if (type === "jules") {
-    const repo = (session.repository || "").toLowerCase();
-
-    if (MOCK_JULES_TITLE_PATTERNS.some((pattern) => title.includes(pattern))) {
-      return true;
-    }
-
-    if (MOCK_JULES_REPO_PATTERNS.some((pattern) => repo.includes(pattern))) {
-      return true;
     }
   }
 

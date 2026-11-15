@@ -5,19 +5,15 @@ import { GoogleAuthCard } from "../GoogleAuthCard";
 import { useServices } from "../../services/ServiceContext";
 import { ServerConfigSection } from "./ServerConfigSection";
 import { AIStudioKeySection } from "./AIStudioKeySection";
-import { JulesKeySection } from "./JulesKeySection";
 import { ActiveProjectsSection } from "./ActiveProjectsSection";
 
 export interface SettingsAccountTabProps {
   customApiKey: string;
   hasServerKey: boolean;
   onRefreshServerAuth?: () => void;
-  onOpenCustomTabBrowser: (service: "aistudio" | "jules") => void;
+  onOpenCustomTabBrowser: () => void;
   isVerifyingKey: boolean;
   localKeyValidationResult: { valid: boolean; error?: string; verifiedAt?: number } | null;
-  julesApiKey: string;
-  isVerifyingJulesKey: boolean;
-  julesKeyValidationResult: { valid: boolean; error?: string; verifiedAt?: number } | null;
   activeProject: ProjectInfo | null;
   projects: ProjectInfo[];
   onOpenImportProject: () => void;
@@ -41,9 +37,6 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
   onOpenCustomTabBrowser,
   isVerifyingKey,
   localKeyValidationResult,
-  julesApiKey,
-  isVerifyingJulesKey,
-  julesKeyValidationResult,
   activeProject,
   projects,
   onOpenImportProject,
@@ -84,13 +77,6 @@ export const SettingsAccountTab: React.FC<SettingsAccountTabProps> = ({
         localKeyValidationResult={localKeyValidationResult}
         onOpenCustomTabBrowser={onOpenCustomTabBrowser}
         onOpenImportProject={onOpenImportProject}
-      />
-
-      <JulesKeySection
-        julesApiKey={julesApiKey}
-        isVerifyingJulesKey={isVerifyingJulesKey}
-        julesKeyValidationResult={julesKeyValidationResult}
-        onOpenCustomTabBrowser={onOpenCustomTabBrowser}
       />
 
       <ActiveProjectsSection

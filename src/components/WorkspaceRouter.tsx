@@ -7,8 +7,6 @@ import {
   ChatMessage,
   StructuredExample,
   MessageAttachment,
-  JulesSession,
-
   ChatSession,
 } from "../types";
 
@@ -31,29 +29,12 @@ export interface IDEWorkspaceProps {
   onSwitchToPrompt: () => void;
 }
 
-export interface JulesWorkspaceProps {
-  activeJulesSession: JulesSession | null;
-  onOpenJulesSessions: () => void;
-  onApproveJulesPlan: (taskId: string) => Promise<void> | void;
-  onRejectJulesPlan: (taskId: string) => Promise<void> | void;
-  isApprovingJulesPlan: boolean;
-  messages: ChatMessage[];
-  onSendMessage: (text: string, attachments?: MessageAttachment[], templateIds?: string[], rawUserText?: string) => Promise<boolean | void> | void;
-  onClearMessages: () => void;
-  onStopGeneration: () => void;
-  isGenerating: boolean;
-  hasJulesApiKey: boolean;
-  onSelectJulesSession: (s: Partial<JulesSession>) => void;
-  onRegenerate: () => void;
-}
-
 import { StubsWorkspaceProps } from "./StubsWorkspace";
 
 export interface WorkspaceRouterProps {
   promptType: PromptType;
   chatProps: ChatWorkspaceProps;
   ideProps: IDEWorkspaceProps;
-  julesProps: JulesWorkspaceProps;
   stubsProps?: StubsWorkspaceProps;
 }
 
@@ -61,7 +42,6 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
   promptType,
   chatProps,
   ideProps,
-  julesProps,
   stubsProps,
 }) => {
   return (
@@ -71,9 +51,6 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
       )}
       {promptType === "code" && (
         <MobileIDEWorkspace {...ideProps} />
-      )}
-      {promptType === "jules" && (
-        <ChatWorkspace isJulesMode={true} {...julesProps} />
       )}
       {promptType === "stubs" && (
         <StubsWorkspace {...(stubsProps as StubsWorkspaceProps)} />

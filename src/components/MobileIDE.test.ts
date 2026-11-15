@@ -13,9 +13,9 @@ function assert(condition: boolean, message: string) {
 describe('testMobileIDEAndPromptModes', () => {
   test('main', () => {
   // Test 1: Validate PromptType union values
-  const validModes: PromptType[] = ["chat", "code", "jules", "stubs"];
+  const validModes: PromptType[] = ["chat", "code", "stubs"];
   assert(validModes.includes("code"), "PromptType must support 'code'");
-  assert(validModes.length === 4, "PromptType must support 4 distinct prompt modes");
+  assert(validModes.length === 3, "PromptType must support 3 distinct prompt modes");
 
   // Test 2: Code generators properly populate from config & messages
   const sampleConfig: PromptConfig = {

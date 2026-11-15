@@ -36,14 +36,12 @@ import { SettingsTab } from "../types";
 export interface AccountSettingsProps {
   customApiKey: string;
   onSaveCustomApiKey: (key: string) => void;
-  julesApiKey?: string;
-  onSaveJulesApiKey?: (key: string) => void;
   hasServerKey: boolean;
   onRefreshServerAuth?: () => void;
 }
 
 export interface ProjectSettingsProps {
-  onOpenCustomTabBrowser?: (service?: "aistudio" | "jules") => void;
+  onOpenCustomTabBrowser?: () => void;
   onOpenImportProject?: () => void;
   activeProjectName?: string;
   projects?: ProjectInfo[];
@@ -99,8 +97,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   initialTab = "account",
   customApiKey,
   onSaveCustomApiKey: _onSaveCustomApiKey,
-  julesApiKey = "",
-  onSaveJulesApiKey: _onSaveJulesApiKey,
   hasServerKey,
   onRefreshServerAuth,
   liveModelsCount = 55,
@@ -199,7 +195,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
 
   const { appAuthManager } = useServices();
   const hasAnyAuth = appAuthManager.hasAnyApiKey();
-  const isJulesConfigured = Boolean(julesApiKey.trim());
 
   const activeTabConfig = SETTINGS_TABS_CONFIG.find(t => t.id === activeTab) || SETTINGS_TABS_CONFIG[0];
   const ActiveTabIcon = activeTabConfig.icon;
@@ -303,12 +298,9 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               customApiKey={customApiKey}
               hasServerKey={hasServerKey}
               onRefreshServerAuth={onRefreshServerAuth}
-              onOpenCustomTabBrowser={() => {}} // Replace if there's a real handler
+              onOpenCustomTabBrowser={() => _onOpenCustomTabBrowser && _onOpenCustomTabBrowser()}
               isVerifyingKey={false}
               localKeyValidationResult={null}
-              julesApiKey={julesApiKey}
-              isVerifyingJulesKey={false}
-              julesKeyValidationResult={null}
               activeProject={activeProject}
               projects={projects}
               onOpenImportProject={() => onOpenImportProject && onOpenImportProject()}
@@ -437,9 +429,7 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
               </span>
               <span className="truncate hidden sm:inline">
                 {hasAnyAuth
-                  ? isJulesConfigured
-                    ? "Gemini & Jules Active"
-                    : "Gemini AI Studio Connected"
+                  ? "Gemini AI Studio Connected"
                   : "API Key Required"}
               </span>
             </div>

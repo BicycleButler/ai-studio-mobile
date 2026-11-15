@@ -13,13 +13,6 @@ import {
 } from "lucide-react";
 import mermaid from "mermaid";
 
-import {
-
-
-
-  JulesRepository,
-} from "../types";
-
 
 import { StubsTerminalTab } from "./stubs/StubsTerminalTab";
 import { StubsLintTab } from "./stubs/StubsLintTab";
@@ -43,11 +36,9 @@ type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal
 
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
   const { onOpenBottomNav: _onOpenBottomNav, onOpenParameters: _onOpenParameters } = useWorkspace();
-  const { julesClient, logger, clipboardService, platformService } = useServices();
+  const { logger, clipboardService, platformService } = useServices();
     // Navigation & Sub-views
   const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
-  const [repositories, setRepositories] = useState<JulesRepository[]>([]);
-  const [selectedRepo, setSelectedRepo] = useState<string>("Active Workspace (ai-studio-mobile)");
 
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -122,17 +113,6 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
       logger.warn("Mermaid initialization warning: suppressed");
     }
   }, [logger]);
-
-  // Fetch Jules Repositories for top switcher
-  useEffect(() => {
-    julesClient.fetchRepositories()
-      .then((repos) => {
-        if (Array.isArray(repos)) {
-          setRepositories(repos);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // Auto-scroll terminal
   useEffect(() => {
@@ -292,29 +272,13 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
         </button>
         </div>
 
-        {/* Right Zone: Repository Selector & Scan AST Trigger (ADR 0039) */}
+        {/* Right Zone: Workspace Target & Scan AST Trigger (ADR 0039) */}
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center gap-1.5 bg-muted/60 border border-input rounded-lg px-2.5 py-1 text-xs text-foreground">
             <GitBranch className="w-3.5 h-3.5 text-primary shrink-0" />
-            <select
-              id="stubs-repo-selector"
-              value={selectedRepo}
-              onChange={(e) => {
-                setSelectedRepo(e.target.value);
-                showToast(`Switched workspace target to: ${e.target.value}`);
-              }}
-              className="bg-transparent text-xs font-medium text-foreground focus:outline-none cursor-pointer max-w-[120px] xs:max-w-[170px] sm:max-w-[220px] truncate"
-              aria-label="Select workspace repository"
-            >
-              <option value="Active Workspace (ai-studio-mobile)" className="bg-slate-900 text-slate-100">
-                Active Workspace (ai-studio-mobile)
-              </option>
-              {repositories.map((repo) => (
-                <option key={repo.id} value={repo.fullName} className="bg-slate-900 text-slate-100">
-                  {repo.fullName}
-                </option>
-              ))}
-            </select>
+            <span className="text-xs font-medium text-foreground max-w-[160px] sm:max-w-[220px] truncate">
+              Active Workspace (ai-studio-mobile)
+            </span>
           </div>
 
           <button

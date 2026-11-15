@@ -30,9 +30,6 @@ import { ProjectService, IProjectService } from "../utils/storage/projects";
 import { SavedPromptsService, ISavedPromptsService } from "../utils/storage/prompts";
 import { GeneralSettingsService, IGeneralSettingsService } from "../utils/storage/general";
 import { DraftStateService, IDraftStateService } from "../utils/storage/draftState";
-import { JulesStorageService, IJulesStorageService } from "../utils/storage/jules";
-import { IJulesClient, JulesClient } from "./julesService";
-import { IJulesSessionOrchestrator, JulesSessionOrchestrator } from "./julesSessionOrchestrator";
 import { SpeechVoicesService, ISpeechVoicesService } from "./speechVoices";
 import { ISentenceSpeechQueue, SentenceSpeechQueue, SentenceQueueOptions } from "./sentenceSpeechQueue";
 import { GeminiStreamService, IGeminiStreamService } from "./geminiStreamService";
@@ -65,9 +62,6 @@ export interface IServices {
   savedPromptsService: ISavedPromptsService;
   generalSettingsService: IGeneralSettingsService;
   draftStateService: IDraftStateService;
-  julesStorageService: IJulesStorageService;
-  julesClient: IJulesClient;
-  julesSessionOrchestrator: IJulesSessionOrchestrator;
   speechVoicesService: ISpeechVoicesService;
   createSentenceSpeechQueue: (options: SentenceQueueOptions) => ISentenceSpeechQueue;
   sseStreamParserFactory: import("../utils/sseParser").ISSEStreamParserFactory;
@@ -149,37 +143,6 @@ const explicitlyInjectedKeyVerificationService = new KeyVerificationService({
   logger: explicitlyInjectedLogger
 });
 
-
-const explicitlyInjectedJulesStorageService = new JulesStorageService({
-  activeItemManagerFactory: explicitlyInjectedActiveItemManagerFactory,
-  logger: explicitlyInjectedLogger,
-  apiClient: explicitlyInjectedApiClient,
-  julesSessionsManager: undefined,
-  storageFactory: explicitlyInjectedStorageFactory,
-  idGenerator: explicitlyInjectedIdGenerator,
-  syncAdapter: new NetworkStorageSyncAdapter({
-    transport: new ApiClientSyncTransport(explicitlyInjectedApiClient),
-    offlineService: explicitlyInjectedOfflineService,
-    networkStatusProvider: new BrowserNetworkStatusProvider(explicitlyInjectedPlatformService),
-    retryStrategy: new DefaultOfflineRetryStrategy(),
-    logger: explicitlyInjectedLogger,
-    endpoint: "/api/jules/sessions"
-  }),
-});
-
-const explicitlyInjectedJulesClient = new JulesClient({
-  getApiKey: () => explicitlyInjectedJulesStorageService.loadStoredJulesApiKey(),
-  getSettings: () => explicitlyInjectedJulesStorageService.loadStoredJulesSettings(),
-  apiClient: explicitlyInjectedApiClient,
-});
-
-const explicitlyInjectedJulesSessionOrchestrator = new JulesSessionOrchestrator({
-  julesClient: explicitlyInjectedJulesClient,
-  julesStorageService: explicitlyInjectedJulesStorageService,
-  timeProvider: explicitlyInjectedTimeProvider,
-  idGenerator: explicitlyInjectedIdGenerator,
-  logger: explicitlyInjectedLogger,
-});
 
 const explicitlyInjectedStubsClient = new StubsClient({ apiClient: explicitlyInjectedApiClient, logger: explicitlyInjectedLogger });
 
@@ -264,9 +227,6 @@ const defaultServices: IServices = {
   savedPromptsService: explicitlyInjectedSavedPromptsService,
   generalSettingsService: explicitlyInjectedGeneralSettingsService,
   draftStateService: explicitlyInjectedDraftStateService,
-  julesStorageService: explicitlyInjectedJulesStorageService,
-  julesClient: explicitlyInjectedJulesClient,
-  julesSessionOrchestrator: explicitlyInjectedJulesSessionOrchestrator,
   speechVoicesService: explicitlyInjectedSpeechVoicesService,
   createSentenceSpeechQueue: (options) => new SentenceSpeechQueue(options),
   sseStreamParserFactory: { create: (onEvent) => new SSEStreamParser(onEvent) },

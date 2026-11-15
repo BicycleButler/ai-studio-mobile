@@ -74,7 +74,7 @@ export class DraftStateService implements IDraftStateService {
       updatedAt: this.timeProvider.now(),
     };
 
-    const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
+    const validPromptTypes: PromptType[] = ["chat", "code", "stubs"];
 
     const sanitizeType = (typeVal: unknown): PromptType => {
       if (typeof typeVal === "string" && validPromptTypes.includes(typeVal as PromptType)) {

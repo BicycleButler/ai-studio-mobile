@@ -4,7 +4,6 @@ import { IOfflineService } from "./offlineService";
 import { IApiClient } from "./apiClient";
 
 export const DEFAULT_SYNC_HANDLERS: SyncHandlerConfig[] = [
-  { mutationType: "jules_sessions", endpoint: "/api/jules/sessions" },
   { mutationType: "saved_prompts", endpoint: "/api/prompts", payloadWrapper: (payload: unknown) => ({ prompts: payload }) },
   { mutationType: "projects", endpoint: "/api/projects", payloadWrapper: (payload: unknown) => ({ projects: payload }) }
 ];

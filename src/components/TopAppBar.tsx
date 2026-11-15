@@ -6,11 +6,10 @@ import {
   LayoutGrid,
   Sliders,
   MoreVertical,
-  FolderGit2,
   Layers,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { PromptType, ProjectInfo, JulesSession } from "../types";
+import { PromptType, ProjectInfo } from "../types";
 import { SettingsTab } from "../types";
 import { useTheme } from "../hooks/useTheme";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
@@ -37,15 +36,12 @@ export interface TopAppBarProps {
   activeProject?: ProjectInfo | null;
   projects?: ProjectInfo[];
   onSelectProject?: (project: ProjectInfo) => void;
-  activeJulesSession?: JulesSession | null;
-  onOpenJulesSessions?: () => void;
   onOpenPromptTemplates?: () => void;
   selectedTemplateCount?: number;
 }
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
-
-  promptType,
+  promptType: _promptType,
   currentModelName,
   onOpenParameters,
   onOpenSettings,
@@ -55,8 +51,6 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   maxTokens = 1_000_000,
   activeProjectName,
   activeProject = null,
-  activeJulesSession = null,
-  onOpenJulesSessions,
   onOpenPromptTemplates,
   selectedTemplateCount = 0,
 }) => {
@@ -272,32 +266,6 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     </span>
                   </div>
                 </button>
-
-                {/* Optional Jules Sessions Switcher if Jules Mode */}
-                {promptType === "jules" && onOpenJulesSessions && (
-                  <button
-                    type="button"
-                    id="overflow-nav-jules-sessions"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onOpenJulesSessions();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted text-start transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    <div className="w-7 h-7 rounded-lg bg-muted text-muted-foreground group-hover:text-foreground flex items-center justify-center shrink-0 transition-colors">
-                      <FolderGit2 className="w-4 h-4" />
-                    </div>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-xs font-semibold text-foreground tracking-tight">
-                        Jules Sessions
-                      </span>
-                      <span className="text-[11px] text-muted-foreground truncate">
-                        {activeJulesSession ? activeJulesSession.repository : "Switch Repository"}
-                      </span>
-                    </div>
-                  </button>
-                )}
               </div>
             </motion.div>
           )}

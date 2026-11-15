@@ -15,7 +15,7 @@ tags:
 [← Back to Root Context Map](../context-map.md)
 
 ## Domain Overview & Responsibilities
-The **Workspaces & UI** domain constitutes the interactive prompt engineering environment for mobile devices, offering four prompt modes: **Chat**, **Mobile IDE**, **Jules**, and **Stubs**.
+The **Workspaces & UI** domain constitutes the interactive prompt engineering environment for mobile devices, offering three prompt modes: **Chat**, **Mobile IDE**, and **Stubs**.
 
 ### Key Invariants:
 1. **Responsive Mobile Shell**: Supports Android frame simulations, bottom navigation, and top action bars.
@@ -30,9 +30,7 @@ The **Workspaces & UI** domain constitutes the interactive prompt engineering en
 | [`src/components/ChatWorkspace.tsx`](../../src/components/ChatWorkspace.tsx) | Multi-turn conversational chat UI with streaming and markdown rendering | `useGeminiStream`, `storage.ts`, `speechVoices.ts` |
 | [`src/components/StubsWorkspace.tsx`](../../src/components/StubsWorkspace.tsx) | Architecture-as-Code PWM Portal | `types.ts` |
 | [`src/components/MobileIDEWorkspace.tsx`](../../src/components/MobileIDEWorkspace.tsx) | Code generation and preview environment with export capabilities | `codeGenerators.ts`, `CodeExportModal` |
-| [`src/components/JulesSessionDrawer.tsx`](../../src/components/JulesSessionDrawer.tsx) | Dedicated Jules session and task management slide-over drawer | `types.ts`, `useJules.ts` |
 | [`src/components/PromptTemplateDrawer.tsx`](../../src/components/PromptTemplateDrawer.tsx) | Bottom sheet for inserting templates, composing variables, and few-shot examples | `data/templates.ts`, `promptTemplateService.ts` |
-| [`src/components/JulesActivityCard.tsx`](../../src/components/JulesActivityCard.tsx) | Interactive structured activity cards for Jules plan and diff rendering | `lucide-react`, `types.ts` |
 | [`src/components/prompt-tools/FewShotBuilderTool.tsx`](../../src/components/prompt-tools/FewShotBuilderTool.tsx) | Tooling for building structured few-shot prompt examples | `types.ts` |
 | [`src/components/prompt-tools/VariablePromptTool.tsx`](../../src/components/prompt-tools/VariablePromptTool.tsx) | Tooling for mustache-style prompt variables | `types.ts` |
 | [`src/components/MobileIDE.test.ts`](../../src/components/MobileIDE.test.ts) | Unit tests for mobile IDE mode resolution and code generator triggers | `MobileIDEWorkspace.tsx` |
@@ -60,7 +58,6 @@ flowchart TD
   App --> Chat[ChatWorkspace]
   App --> Stubs[StubsWorkspace]
   App --> MobileIDE[MobileIDEWorkspace]
-  App --> JulesSessionDrawer[JulesSessionDrawer]
   App --> Tuner[TunerBottomSheet]
   App --> Settings[UnifiedSettingsModal]
 ```

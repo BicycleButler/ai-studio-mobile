@@ -3,13 +3,12 @@ import { isMockSession } from "../mockDefinitions";
 export interface EntityMapper {
   id?: string;
   title?: string;
-  repository?: string;
   messages?: unknown[];
 }
 
 export function cleanMockData<T>(
   items: T[],
-  type: "chat" | "jules" = "chat",
+  type: "chat" = "chat",
   mapFn?: (item: T) => EntityMapper
 ): T[] {
   if (!Array.isArray(items)) return [];
@@ -21,7 +20,6 @@ export function cleanMockData<T>(
     const defaultMapped: EntityMapper = mapFn ? mapFn(item) : {
       id: String(rec.id || ""),
       title: String(rec.title || rec.text || ""),
-      repository: typeof rec.repository === "string" ? rec.repository : undefined,
       messages: Array.isArray(rec.messages) ? rec.messages : undefined,
     };
 

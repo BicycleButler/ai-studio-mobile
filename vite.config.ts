@@ -23,7 +23,7 @@ export default defineConfig(() => {
           name: 'Client for Google AI Studio',
           short_name: 'AI Studio',
           description:
-            'Mobile-optimized Android client and Progressive Web App (PWA) for Google AI Studio with offline caching, installable standalone shell, Jules GitHub agent, and Capacitor native mobile readiness.',
+            'Mobile-optimized Android client and Progressive Web App (PWA) for Google AI Studio with offline caching, installable standalone shell, and Capacitor native mobile readiness.',
           theme_color: '#1a73e8',
           background_color: '#131314',
           display: 'standalone',

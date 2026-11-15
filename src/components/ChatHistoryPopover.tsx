@@ -13,7 +13,6 @@ import { BatchSelectionHeader } from "./BatchSelectionHeader";
 
 export interface ChatHistoryPopoverProps {
   timeProvider: import("../utils/timeProvider").ITimeProvider;
-  isJulesMode: boolean;
   historySessions?: ChatSession[];
   validHistorySessions: ChatSession[];
   selectedHistoryIds: Set<string>;
@@ -28,8 +27,6 @@ export interface ChatHistoryPopoverProps {
 }
 
 export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
-
-  isJulesMode,
   validHistorySessions,
   selectedHistoryIds,
   toggleHistorySelection,
@@ -46,7 +43,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
       ref={popoverRef}
       id="chat-window-history-popover"
       role="dialog"
-      aria-label={isJulesMode ? "New task and history menu" : "New chat and history menu"}
+      aria-label="New chat and history menu"
       className="absolute end-0 top-full mt-2 z-40 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-2xl bg-popover/98 shadow-xl overflow-hidden backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 ease-out"
     >
       {/* Arrow Indicator pointing up to Plus button */}
@@ -64,10 +61,10 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
         </div>
         <div className="flex-1 min-w-0">
           <div className="leading-tight text-foreground font-medium">
-            {isJulesMode ? "Start New Task" : "Start New Chat"}
+            Start New Chat
           </div>
           <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
-            {isJulesMode ? "Create a clean task workspace" : "Fresh conversation & clean context"}
+            Fresh conversation & clean context
           </div>
         </div>
         <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:rtl:-translate-x-0.5 transition-[color,transform]" />
@@ -79,7 +76,7 @@ export const ChatHistoryPopover: React.FC<ChatHistoryPopoverProps> = ({
       <div className="px-3 py-2 bg-muted/40 flex items-center justify-between border-b border-border/60">
         <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>{isJulesMode ? "Task History" : "Recent Chats"}</span>
+          <span>Recent Chats</span>
         </span>
         <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-mono font-medium text-muted-foreground border border-border/40">
           {validHistorySessions.length} {validHistorySessions.length === 1 ? "chat" : "chats"}

@@ -18,9 +18,6 @@ export function useUIState() {
   const [candidateClipboardKey, setCandidateClipboardKey] = useState<string>("");
   const [clipboardToastKey, setClipboardToastKey] = useState<string | null>(null);
 
-  const [showJulesDrawer, setShowJulesDrawer] = useState(false);
-  const [browserService, setBrowserService] = useState<"aistudio" | "jules">("aistudio");
-
   const handleOpenSettings = (tab: SettingsTab = "account") => {
     setSettingsTab(tab);
     setShowSettingsModal(true);
@@ -54,10 +51,6 @@ export function useUIState() {
     setCandidateClipboardKey,
     clipboardToastKey,
     setClipboardToastKey,
-    showJulesDrawer,
-    setShowJulesDrawer,
-    browserService,
-    setBrowserService,
     handleOpenSettings,
   };
 }

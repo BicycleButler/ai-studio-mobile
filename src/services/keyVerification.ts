@@ -8,7 +8,6 @@ import { IClipboardService } from "./clipboardService";
 // Base string patterns for dynamic regex composition
 const BASE_STANDARD_GOOGLE_KEY = "AIza[0-9A-Za-z\\-_]{35}";
 const BASE_AISTUDIO_PROJECT_KEY = "AQ\\.[0-9A-Za-z\\-_]{10,}";
-const BASE_JULES_PREFIXED_KEY = "jules_[0-9A-Za-z\\-_]{20,}";
 
 /**
  * Standard Google API keys: `AIza` followed by 35 alphanumeric/dash/underscore characters.
@@ -25,24 +24,7 @@ export const AISTUDIO_PROJECT_KEY_REGEX = new RegExp(`^${BASE_AISTUDIO_PROJECT_K
  */
 const EMBEDDED_KEY_REGEX = new RegExp(`(${BASE_STANDARD_GOOGLE_KEY}|${BASE_AISTUDIO_PROJECT_KEY})`);
 
-/**
- * Jules API keys: either standard Google API keys (`AIza...`), Jules prefixed keys (`jules_...`),
- * or project keys (`AQ....`).
- */
-export const JULES_KEY_REGEX = new RegExp(`^(${BASE_STANDARD_GOOGLE_KEY}|${BASE_AISTUDIO_PROJECT_KEY}|${BASE_JULES_PREFIXED_KEY})$`);
-
-/**
- * Embedded Jules key search pattern.
- */
-const EMBEDDED_JULES_KEY_REGEX = new RegExp(`(${BASE_STANDARD_GOOGLE_KEY}|${BASE_AISTUDIO_PROJECT_KEY}|${BASE_JULES_PREFIXED_KEY})`);
-
-/**
- * Validates whether a raw candidate string strictly matches Jules API key specifications.
- */
-
 export interface IKeyVerificationService {
-  isValidJulesApiKeyFormat(key: string): boolean;
-  detectJulesApiKey(text: string): string | null;
   isValidGoogleApiKeyFormat(key: string): boolean;
   detectGoogleApiKey(text: string): string | null;
   maskApiKey(key: string): string;
@@ -68,28 +50,6 @@ export class KeyVerificationService implements IKeyVerificationService {
     this.logger = config.logger;
     this.clipboardService = config.clipboardService;
     this.timeProvider = config.timeProvider || new DefaultTimeProvider();
-  }
-
-  public isValidJulesApiKeyFormat(key: string): boolean {
-    if (!key) return false;
-    const trimmed = key.trim();
-    return JULES_KEY_REGEX.test(trimmed) || (trimmed.length >= 24 && /^[0-9A-Za-z\-_.]+$/.test(trimmed));
-  }
-
-  public detectJulesApiKey(text: string): string | null {
-    if (!text || typeof text !== "string") return null;
-    const trimmed = text.trim();
-
-    if (this.isValidJulesApiKeyFormat(trimmed)) {
-      return trimmed;
-    }
-
-    const match = trimmed.match(EMBEDDED_JULES_KEY_REGEX);
-    if (match && match[1]) {
-      return match[1];
-    }
-
-    return null;
   }
 
   public isValidGoogleApiKeyFormat(key: string): boolean {

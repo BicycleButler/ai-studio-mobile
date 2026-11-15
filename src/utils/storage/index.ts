@@ -4,7 +4,6 @@ export * from "./helpers";
 export * from "./general";
 export * from "./draftState";
 export * from "./projects";
-export * from "./jules";
 export * from "./prompts";
 export * from "./core";
 

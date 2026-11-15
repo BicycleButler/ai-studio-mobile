@@ -68,7 +68,7 @@ export function useAppState() {
   const modelConfig = useModelConfig(customApiKey);
 
   const handleLoadPrompt = (prompt: SavedPrompt) => {
-    const validPromptTypes: PromptType[] = ["chat", "code", "jules", "stubs"];
+    const validPromptTypes: PromptType[] = ["chat", "code", "stubs"];
     const targetType: PromptType = validPromptTypes.includes(prompt.type as PromptType)
       ? (prompt.type as PromptType)
       : "chat";

@@ -13,13 +13,11 @@ import { BottomNavBar } from "./components/BottomNavBar";
 import { CustomTabBrowserModal } from "./components/CustomTabBrowserModal";
 import { ImportProjectSheet } from "./components/ImportProjectSheet";
 import { SecurePrivacyShield } from "./components/SecurePrivacyShield";
-import { JulesSessionDrawer } from "./components/JulesSessionDrawer";
 import { ClipboardKeyBanner } from "./components/ClipboardKeyBanner";
 import { AuthRequiredBanner } from "./components/AuthRequiredBanner";
 import { StreamErrorBanner } from "./components/StreamErrorBanner";
 import { WorkspaceProvider } from "./contexts/WorkspaceContext";
 import { useGeminiStream } from "./hooks/useGeminiStream";
-import { useJules } from "./hooks/useJules";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import { useClipboardKeySniffer } from "./hooks/useClipboardKeySniffer";
 import { useWindowSecurity } from "./hooks/useWindowSecurity";
@@ -76,10 +74,6 @@ export default function App() {
     freeformText,
     structuredExamples,
     savedPrompts,
-    showJulesDrawer,
-    setShowJulesDrawer,
-    browserService,
-    setBrowserService,
     handleToggleTemplate,
     handleRemoveTemplate,
     handleClearAllTemplates,
@@ -97,23 +91,6 @@ export default function App() {
     handleDeleteSavedPrompt,
     handleBulkDeleteSavedPrompts
   } = useAppState();
-
-  const {
-    julesApiKey,
-    handleSaveJulesApiKey,
-    activeJulesSession,
-    julesMessages: _julesMessages,
-    isJulesExecuting: _isJulesExecuting,
-    isApprovingJulesPlan,
-    handleSendJulesMessage,
-    handleRegenerateJulesMessage,
-    handleClearJulesMessages,
-    handleStopJulesPolling,
-    handleApproveJulesPlan,
-    handleRejectJulesPlan,
-    handleSelectSession: handleSelectJulesSession,
-    handleBulkDeleteJulesSessions
-  } = useJules();
 
   // Dedicated resilient streaming hook
   const {
@@ -275,7 +252,7 @@ export default function App() {
 
   const totalTokensEstimate = (() => {
     const sysTokens = Math.round((config.systemInstruction?.length || 0) / 4);
-    if (promptType === "chat" || promptType === "jules") {
+    if (promptType === "chat") {
       const msgTokens = messages.reduce((acc, m) => {
         return acc + (m.tokenCount || Math.round((m.text?.length || 0) / 4));
       }, 0);
@@ -300,15 +277,11 @@ export default function App() {
         onSelectPromptType={(type) => {
           setPromptType(type);
         }}
-        currentModelName={
-          promptType === "jules"
-            ? "Google Jules Agent"
-            : currentModelName
-        }
+        currentModelName={currentModelName}
         onOpenParameters={() => setShowTunerSheet(true)}
         onOpenSettings={handleOpenSettings}
         onOpenBottomNav={() => setShowBottomNav(true)}
-        hasApiKey={promptType === "jules" ? Boolean(julesApiKey.trim()) : hasApiKey}
+        hasApiKey={hasApiKey}
         totalTokens={totalTokensEstimate}
         maxTokens={1_000_000}
         systemInstruction={config.systemInstruction}
@@ -316,7 +289,6 @@ export default function App() {
           setConfig((prev) => ({ ...prev, systemInstruction: inst }))
         }
         onOpenCustomTabBrowser={() => {
-          setBrowserService(promptType === "jules" ? "jules" : "aistudio");
           setShowCustomTabBrowser(true);
         }}
         onOpenImportProject={() => {
@@ -327,10 +299,8 @@ export default function App() {
         activeProject={activeProject}
         projects={projects}
         onSelectProject={(p) => handleProjectActivated(p, stopStream)}
-        activeJulesSession={activeJulesSession}
-        onOpenJulesSessions={() => setShowJulesDrawer(true)}
         onOpenPromptTemplates={() => {
-          if (promptType !== "chat" && promptType !== "jules") {
+          if (promptType !== "chat") {
             setPromptType("chat");
           }
           setIsTemplateDrawerOpen(true);
@@ -426,19 +396,6 @@ export default function App() {
             onSwitchToPrompt: () => { setPromptType("chat"); }
           }}
           stubsProps={{}}
-          julesProps={{
-            activeJulesSession,
-            onOpenJulesSessions: () => setShowJulesDrawer(true),
-            onApproveJulesPlan: (taskId) => void handleApproveJulesPlan(taskId),
-            onRejectJulesPlan: (taskId) => void handleRejectJulesPlan(taskId),
-            isApprovingJulesPlan, messages: _julesMessages, onSendMessage: (text, atts, tplIds, rawUserText) => handleSendJulesMessage(text, atts, tplIds, rawUserText),
-            onClearMessages: handleClearJulesMessages,
-            onStopGeneration: handleStopJulesPolling,
-            isGenerating: _isJulesExecuting,
-            hasJulesApiKey: Boolean(julesApiKey.trim()),
-            onSelectJulesSession: handleSelectJulesSession,
-            onRegenerate: handleRegenerateJulesMessage,
-          }}
         />
       </WorkspaceProvider>
 
@@ -507,36 +464,15 @@ export default function App() {
         onBulkDeleteProjects={(ids) => handleBulkDeleteProjects(ids, stopStream)}
       />
 
-      {/* Phase 2: In-App AI Studio Launcher & Jules Settings (Chrome Custom Tab style) */}
+      {/* Phase 2: In-App AI Studio Launcher (Chrome Custom Tab style) */}
       <CustomTabBrowserModal
         isOpen={showCustomTabBrowser}
         onClose={() => setShowCustomTabBrowser(false)}
-        initialService={browserService}
-        activeApiKey={browserService === "jules" ? julesApiKey : customApiKey}
-        onImportKey={(key, service) => {
-          if (service === "jules") {
-            handleSaveJulesApiKey(key);
-            setShowCustomTabBrowser(false);
-          } else {
-            setCandidateClipboardKey(key);
-            setShowImportModal(true);
-            setShowCustomTabBrowser(false);
-          }
-        }}
-      />
-
-      {/* Google Jules Autonomous Agent Task & Session Management Drawer */}
-      <JulesSessionDrawer
-        isOpen={showJulesDrawer}
-        onClose={() => setShowJulesDrawer(false)}
-        activeSessionId={activeJulesSession?.id || null}
-        onSelectSession={(session) => {
-          handleSelectJulesSession(session);
-          setShowJulesDrawer(false);
-        }}
-        onBulkDeleteSessions={handleBulkDeleteJulesSessions}
-        onOpenApiKeyModal={() => {
-          handleOpenSettings("account");
+        activeApiKey={customApiKey}
+        onImportKey={(key) => {
+          setCandidateClipboardKey(key);
+          setShowImportModal(true);
+          setShowCustomTabBrowser(false);
         }}
       />
 

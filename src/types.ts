@@ -1,37 +1,5 @@
 export * from "./types/stubs";
-export type PromptType = "chat" | "code" | "jules" | "stubs";
-
-
-
-
-
-
-
-export type JulesTaskStatus =
-  | "idle"
-  | "queued"
-  | "analyzing"
-  | "planning"
-  | "awaiting_approval"
-  | "executing"
-  | "review_ready"
-  | "completed"
-  | "failed";
-
-export interface JulesExecutionStep {
-  id: string;
-  title?: string;
-  description?: string;
-  detail?: string;
-  status: "pending" | "running" | "in_progress" | "completed" | "failed";
-  timestamp?: number;
-  filesChanged?: string[];
-  diffSummary?: {
-    filesChanged: number;
-    additions: number;
-    deletions: number;
-  };
-}
+export type PromptType = "chat" | "code" | "stubs";
 
 export type SettingsTab =
   | "account"
@@ -50,69 +18,6 @@ export type SettingsTab =
   | "tune"
   | "model"
   | "models";
-
-export interface JulesPullRequest {
-  number: number;
-  title: string;
-  url: string;
-  branch: string;
-  state: "open" | "merged" | "closed";
-}
-
-export interface JulesRepository {
-  id: string;
-  fullName: string;
-  owner: string;
-  name: string;
-  defaultBranch: string;
-  isPrivate: boolean;
-  description?: string;
-}
-
-export interface JulesActivity {
-  type: "plan" | "step" | "diff" | "pull_request" | "error";
-  status: JulesTaskStatus;
-  taskId?: string;
-  title?: string;
-  planDescription?: string;
-  plan?: string[];
-  currentStep?: JulesExecutionStep;
-  steps?: JulesExecutionStep[];
-  pullRequest?: JulesPullRequest;
-  pullRequestUrl?: string;
-  pullRequestNumber?: number;
-  diff?: string;
-  diffContent?: string;
-  diffStats?: {
-    filesChanged: number;
-    additions: number;
-    deletions: number;
-  };
-  requiresApproval?: boolean;
-  error?: string;
-  errorMessage?: string;
-}
-
-export interface JulesSession {
-  id: string;
-  title: string;
-  repository: string;
-  branch: string;
-  targetBranch?: string;
-  status: JulesTaskStatus;
-  plan?: string[];
-  steps: JulesExecutionStep[];
-  pullRequest?: JulesPullRequest;
-  messages: ChatMessage[];
-  autoApprovePlan?: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface JulesSettings {
-  autoApprovePlans: boolean;
-  defaultBranch: string;
-}
 
 export interface ModelInfo {
   id: string;
@@ -170,7 +75,6 @@ export interface ChatMessage {
   durationMs?: number;
   isStreaming?: boolean;
   error?: string;
-  julesActivity?: JulesActivity;
   templateIds?: string[];
   rawUserText?: string;
 }
