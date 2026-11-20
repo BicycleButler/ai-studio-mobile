@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useCallback, useEffect } from "react";
-import { highlightCodeToHtml } from "../utils/syntaxHighlight";
+import React, { useMemo, useRef, useCallback, useEffect, useDeferredValue } from "react";
+import { highlightCodeToHtml, countLines } from "../utils/syntaxHighlight";
 
 export interface CodeEditorProps {
   value: string;
@@ -13,6 +13,8 @@ export interface CodeEditorProps {
   onKeyUp?: () => void;
   onClick?: () => void;
 }
+
+const DEFER_HIGHLIGHT_THRESHOLD = 8_000;
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
   value,
@@ -28,14 +30,24 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 }) => {
   const gutterRef = useRef<HTMLDivElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
+  const scrollRafRef = useRef<number | null>(null);
 
-  const lines = useMemo(() => value.split("\n"), [value]);
-  const highlightedHtml = useMemo(
-    () => highlightCodeToHtml(value, language, filePath),
-    [value, language, filePath]
+  const lineCount = useMemo(() => countLines(value), [value]);
+  const lineNumbers = useMemo(
+    () => Array.from({ length: lineCount }, (_, idx) => idx + 1),
+    [lineCount]
   );
 
-  const syncScroll = useCallback(() => {
+  // Keep keystrokes instantaneous on large files by deferring syntax highlighting updates
+  const deferredValue = useDeferredValue(value);
+  const highlightSource = value.length > DEFER_HIGHLIGHT_THRESHOLD ? deferredValue : value;
+
+  const highlightedHtml = useMemo(
+    () => highlightCodeToHtml(highlightSource, language, filePath),
+    [highlightSource, language, filePath]
+  );
+
+  const applyScrollSync = useCallback(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
     if (gutterRef.current) {
@@ -47,9 +59,30 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [textareaRef]);
 
+  const syncScroll = useCallback(() => {
+    if (typeof requestAnimationFrame !== "function") {
+      applyScrollSync();
+      return;
+    }
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      applyScrollSync();
+    });
+  }, [applyScrollSync]);
+
   useEffect(() => {
     syncScroll();
   }, [value, wordWrap, syncScroll]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null && typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+    };
+  }, []);
 
   const wrapClass = wordWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre";
 
@@ -61,8 +94,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         className="w-10 py-2.5 select-none text-end pe-2.5 font-mono text-[11px] tabular-nums text-muted-foreground bg-muted/50 border-e border-border overflow-hidden leading-5 shrink-0"
         aria-hidden="true"
       >
-        {lines.map((_, idx) => (
-          <div key={idx}>{idx + 1}</div>
+        {lineNumbers.map((lineNum) => (
+          <div key={lineNum}>{lineNum}</div>
         ))}
       </div>
 

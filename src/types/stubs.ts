@@ -58,6 +58,119 @@ export interface StubsHarnessCheckpoint {
   designViolations: number;
   contextMapsSynced: number;
   durationMs: number;
+  changedModulesCount?: number;
+  changedModules?: string[];
+  activeTaskId?: string;
+}
+
+export type StubsTaskStatus = "planning" | "in_progress" | "verifying" | "completed" | "blocked";
+
+export type StubsContractStatus = "intact" | "expanded" | "breaking";
+
+export interface StubsTaskTargetItem {
+  path: string;
+  domain: string;
+  layer: number;
+  orderIndex: number;
+  role: "target" | "dependency" | "caller";
+  riskScore: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  baselineAstHash?: string;
+  currentAstHash?: string;
+  driftedSinceBaseline: boolean;
+  baselineExports?: string[];
+  currentExports?: string[];
+  addedExports?: string[];
+  removedExports?: string[];
+  contractStatus?: StubsContractStatus;
+  hasSidecar?: boolean;
+  sidecarDrifted?: boolean;
+  status: "pending" | "edited" | "verified";
+}
+
+export interface StubsTaskStep {
+  id: string;
+  phase: "pre-flight" | "edit" | "test" | "sanding" | "verification";
+  label: string;
+  status: "pending" | "completed" | "failed";
+  detail?: string;
+  updatedAt?: number;
+}
+
+export interface StubsTaskVerificationReport {
+  verifiedAt: number;
+  passed: boolean;
+  checkpointId?: string;
+  preFlightSafe: boolean;
+  lintErrors: number;
+  lintWarnings: number;
+  driftedSidecars: number;
+  designViolations: number;
+  driftedTargetsCount: number;
+  breakingContractsCount: number;
+  affectedTests: string[];
+  recommendedTestCommand: string;
+  summary: string;
+}
+
+export interface StubsAgenticTask {
+  id: string;
+  title: string;
+  goal: string;
+  status: StubsTaskStatus;
+  createdAt: number;
+  updatedAt: number;
+  autonomyLevel: string;
+  guardThreshold: "low" | "medium" | "high" | "critical";
+  targetFiles: string[];
+  editPlan: StubsTaskTargetItem[];
+  steps: StubsTaskStep[];
+  baselineCheckpointId?: string;
+  latestCheckpointId?: string;
+  baselineAstSnapshots?: Record<string, string>;
+  baselineExportsSnapshots?: Record<string, string[]>;
+  affectedTests?: string[];
+  recommendedTestCommand?: string;
+  verificationReport?: StubsTaskVerificationReport;
+  notes?: string[];
+}
+
+export interface StubsBatchPreFlightResult {
+  targets: string[];
+  safe: boolean;
+  overallRiskScore: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  maxNumericRisk: number;
+  guardThreshold: "low" | "medium" | "high" | "critical";
+  autonomyLevel: string;
+  blockedReasons: string[];
+  unifiedEditOrder: string[];
+  directCallersUnion: string[];
+  dependenciesUnion: string[];
+  domainBoundariesCrossed: string[];
+  estimatedTotalTokens: number;
+  affectedTests?: string[];
+  recommendedTestCommand?: string;
+}
+
+export interface StubsSessionHandoff {
+  generatedAt: number;
+  projectName: string;
+  activeTask?: StubsAgenticTask;
+  lastCheckpoint?: StubsHarnessCheckpoint;
+  previousCheckpoint?: StubsHarnessCheckpoint;
+  changedModules: Array<{
+    path: string;
+    domain: string;
+    layer: number;
+    previousHash?: string;
+    currentHash?: string;
+    status: "modified" | "added" | "drifted-sidecar";
+  }>;
+  driftedSidecars: string[];
+  affectedTests?: string[];
+  recommendedTestCommand?: string;
+  contractAlerts?: string[];
+  nextRecommendedActions: string[];
+  handoffMarkdown: string;
 }
 
 export interface StubsGraphData {
@@ -66,6 +179,9 @@ export interface StubsGraphData {
   autonomyLevel?: string;
   cliAvailable?: boolean;
   lastCheckpoint?: StubsHarnessCheckpoint;
+  checkpoints?: StubsHarnessCheckpoint[];
+  activeTask?: StubsAgenticTask;
+  tasks?: StubsAgenticTask[];
   nodes: StubsNode[];
   edges: StubsEdge[];
   summary: {
@@ -81,7 +197,18 @@ export interface StubsGraphData {
   };
 }
 
-export type StubsQueryMode = "explain" | "path" | "blast" | "map" | "stub" | "pkg" | "search";
+export type StubsQueryMode =
+  | "explain"
+  | "path"
+  | "blast"
+  | "map"
+  | "stub"
+  | "pkg"
+  | "drift"
+  | "hubs"
+  | "task"
+  | "tests"
+  | "search";
 
 export interface StubsQueryMatch {
   node: StubsNode;
@@ -131,6 +258,40 @@ export interface StubsQueryResult {
       fanIn: number;
       exportsCount: number;
     }>;
+  };
+  driftResult?: {
+    baselineCheckpointId?: string;
+    changedModules: Array<{
+      path: string;
+      domain: string;
+      layer: number;
+      previousHash?: string;
+      currentHash?: string;
+      status: "modified" | "added" | "drifted-sidecar";
+    }>;
+    driftedSidecars: string[];
+  };
+  hubsResult?: {
+    hubs: Array<{
+      id: string;
+      domain: string;
+      layer: number;
+      fanIn: number;
+      fanOut: number;
+      degree: number;
+      exports: string[];
+    }>;
+  };
+  taskResult?: {
+    activeTask?: StubsAgenticTask;
+    totalTasks: number;
+  };
+  testsResult?: {
+    targets: string[];
+    directTests: string[];
+    callerTests: string[];
+    allTests: string[];
+    recommendedCommand: string;
   };
 }
 
@@ -257,6 +418,9 @@ export interface StubsRunResult {
   driftedSidecars: number;
   contextMapsCount: number;
   designViolations?: number;
+  changedModulesCount?: number;
+  changedModules?: string[];
+  activeTaskId?: string;
   checkpointId?: string;
   durationMs: number;
   steps: StubsRunStep[];
@@ -278,7 +442,9 @@ export type StubsCommandName =
   | "phase"
   | "context"
   | "map"
-  | "harness";
+  | "harness"
+  | "task"
+  | "handoff";
 
 export interface StubsWorkspaceFileContent {
   path: string;

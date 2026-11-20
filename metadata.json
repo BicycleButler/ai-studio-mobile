@@ -1,6 +1,6 @@
 {
-  "name": "Client for Google AI Studio",
-  "description": "Mobile-optimized Android client and Progressive Web App (PWA) for Google AI Studio with offline caching, installable standalone shell, and Capacitor native mobile readiness.",
+  "name": "Helm",
+  "description": "Model-agnostic agentic coding tool for mobile with multi-provider cloud and local on-device models, offline caching, and Progressive Web App support.",
   "requestFramePermissions": [
     "camera",
     "microphone"

@@ -126,7 +126,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       id: "c-0",
       timestamp: timeProvider.date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
       type: "system",
-      message: `Google AI Studio Mobile IDE v2.5 initialized [Target Model: ${config.model}]`,
+      message: `Helm Mobile IDE v2.5 initialized [Target Model: ${config.model}]`,
     },
     {
       id: "c-1",
@@ -352,7 +352,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
     }
 
     try {
-      addConsoleLog("info", `[IDE] Sending payload to Google AI Studio (/api/generate)...`);
+      addConsoleLog("info", `[IDE] Sending payload to model runtime (/api/generate)...`);
       addConsoleLog("info", `[IDE] Target Model: ${config.model} | System: ${config.systemInstruction ? "Active" : "None"}`);
 
       const data = await geminiStreamService.fetchGenerateContent({
@@ -454,7 +454,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
       id: newId,
       name: `scratch_${files.length + 1}.ts`,
       language: "typescript",
-      content: `// Scratchpad script for Google AI Studio\n// Write quick experimentation code here\n\nimport { GoogleGenAI } from "@google/genai";\n\nconsole.log("Ready to test!");\n`,
+      content: `// Scratchpad script for Helm\n// Write quick experimentation code here\n\nimport { GoogleGenAI } from "@google/genai";\n\nconsole.log("Ready to test!");\n`,
       isCustom: true,
     };
     setFiles((prev) => [...prev, newFile]);

@@ -462,8 +462,8 @@ export async function discoverProviderModels(
       headers["Authorization"] = `Bearer ${apiKey.trim()}`;
     }
     if (providerId === "openrouter") {
-      headers["HTTP-Referer"] = "https://aistudio-client.local";
-      headers["X-Title"] = "AI Studio Multi-Provider Client";
+      headers["HTTP-Referer"] = "https://helm.local";
+      headers["X-Title"] = "Helm";
     }
 
     const modelsEndpoint = buildOpenAICompatibleEndpoint(baseUrl, "/models");
@@ -609,8 +609,8 @@ async function handleOpenAICompatibleGenerate(
     headers["Authorization"] = `Bearer ${ctx.apiKey.trim()}`;
   }
   if (ctx.providerId === "openrouter") {
-    headers["HTTP-Referer"] = "https://aistudio-client.local";
-    headers["X-Title"] = "AI Studio Multi-Provider Client";
+    headers["HTTP-Referer"] = "https://helm.local";
+    headers["X-Title"] = "Helm";
   }
 
   const isReasoningModel =

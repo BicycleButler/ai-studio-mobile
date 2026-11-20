@@ -196,8 +196,6 @@ export interface GenerateRequestBody {
 
 export type ActiveTab = "chat" | "parameters" | "library" | "export" | "companion";
 
-export type DeviceFrameMode = "responsive" | "pixel" | "tablet";
-
 export interface ProjectInfo {
   id: string;
   name: string;

@@ -1,7 +1,7 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { ChatWorkspace } from "./ChatWorkspace";
-import { MobileIDEWorkspace } from "./MobileIDEWorkspace";
-import { StubsWorkspace } from "./StubsWorkspace";
+import type { StubsWorkspaceProps } from "./StubsWorkspace";
+import { ErrorBoundary } from "./ErrorBoundary";
 import {
   PromptType,
   ChatMessage,
@@ -10,6 +10,19 @@ import {
   ChatSession,
 } from "../types";
 import { RemoteFileSource } from "../types/integrations";
+
+const MobileIDEWorkspace = lazy(() =>
+  import("./MobileIDEWorkspace").then((m) => ({ default: m.MobileIDEWorkspace }))
+);
+const StubsWorkspace = lazy(() =>
+  import("./StubsWorkspace").then((m) => ({ default: m.StubsWorkspace }))
+);
+
+const WorkspaceFallback: React.FC = () => (
+  <div className="flex-1 flex items-center justify-center bg-background text-muted-foreground text-xs">
+    Loading workspace...
+  </div>
+);
 
 export interface ChatWorkspaceProps {
   messages: ChatMessage[];
@@ -56,9 +69,6 @@ export interface IDEWorkspaceProps {
   onUpdateRemoteSource?: (filePath: string, remoteSource: RemoteFileSource, syncedContent: string) => void;
 }
 
-import { StubsWorkspaceProps } from "./StubsWorkspace";
-import { ErrorBoundary } from "./ErrorBoundary";
-
 export interface WorkspaceRouterProps {
   promptType: PromptType;
   chatProps: ChatWorkspaceProps;
@@ -81,12 +91,16 @@ export const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({
       )}
       {promptType === "code" && (
         <ErrorBoundary scope="code" key="code">
-          <MobileIDEWorkspace {...ideProps} />
+          <Suspense fallback={<WorkspaceFallback />}>
+            <MobileIDEWorkspace {...ideProps} />
+          </Suspense>
         </ErrorBoundary>
       )}
       {promptType === "stubs" && (
         <ErrorBoundary scope="stubs" key="stubs">
-          <StubsWorkspace {...(stubsProps as StubsWorkspaceProps)} />
+          <Suspense fallback={<WorkspaceFallback />}>
+            <StubsWorkspace {...(stubsProps as StubsWorkspaceProps)} />
+          </Suspense>
         </ErrorBoundary>
       )}
     </main>

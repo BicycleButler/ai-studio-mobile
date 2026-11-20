@@ -19,6 +19,8 @@ const SUPPORTED_COMMANDS = new Set<StubsCommandName>([
   "context",
   "map",
   "harness",
+  "task",
+  "handoff",
 ]);
 
 function printUsage(): void {
@@ -28,8 +30,19 @@ Usage:
   npx stubs <command> [args...]
 
 Core Commands:
-  run                           Execute 5-stage pipeline (scan -> maps & sand -> lint-arch -> prune -> design-audit)
-  harness                       Alias for 'run' with durable checkpoint verification
+  run [--check] [--json]        Execute 5-stage pipeline (scan -> maps & sand -> lint-arch -> prune -> design-audit)
+  harness [--json]              Alias for 'run' with durable checkpoint verification & delta tracking
+  task [subcommand] [args...]   Manage durable agentic coding tasks & multi-file topological edit plans:
+                                  - list                          List active and recent durable tasks
+                                  - start "<title>" --targets a,b Create a new durable task with topological edit plan
+                                  - verify [taskId]               Run automated 5-phase durable task verification gate
+                                  - step <stepId> [completed]     Advance or toggle a task verification step
+                                  - target <file> [edited]        Advance or toggle a target module edit status
+                                  - resume <taskId>               Set or resume a task as the active durable task
+                                  - note "<journal note>"         Append a timestamped entry to the task execution journal
+                                  - reset-baseline [taskId]       Re-snapshot task AST and exported symbol baselines
+                                  - complete [taskId]             Mark durable task as verified & completed
+  handoff [taskId] [--json]     Synthesize a Durable Session Handoff & Context Resumption Packet
   scan                          Perform TypeScript AST scan and synchronize .stubs/graph.sqlite
   query "<query>"               Execute GraphRAG & surgical graph query:
                                   - "map:"               Level 0 Macro Map
@@ -38,10 +51,15 @@ Core Commands:
                                   - "path: <A> to <B>"   Shortest directed dependency chain
                                   - "blast: <target>"    Downstream impact radius & topological edit order
                                   - "pkg:<package>"      Package-scoped consumer audit
+                                  - "drift:"             Modified AST modules & drifted sidecars since baseline checkpoint
+                                  - "hubs:"              Top high-centrality architectural hubs across all 7 layers
+                                  - "task:"              Active durable agentic task & topological edit status
+                                  - "tests: <target>"    AST-discovered direct & upstream caller unit test suites
   map [--generate]              Synchronize prerequisite domain maps + root context-map.md from live AST graph
-  lint-arch                     Verify 7-layer dependency hierarchy, cycle freedom, and sidecar manifest parity
-  prune                         Audit phantom sidecars, zombie exports, and stale DB nodes
-  pre-flight <target>           Evaluate blast radius safety gate and topological edit order before editing
+  lint-arch [--json]            Verify 7-layer dependency hierarchy, cycle freedom, and sidecar manifest parity
+  prune [--json]                Audit phantom sidecars, zombie exports, and stale DB nodes
+  pre-flight <t1> [t2...]       Evaluate single or multi-target blast radius safety gate & unified topological edit order
+                                  Flags: --guard <low|medium|high|critical> --order <files...> --context --json
   impact <target>               Compute direct/transitive callers and domain boundary crossings
   context <target>              Generate L0/L1/L2 tiered agent context briefing with L1 interface stub
   sand [file.ts.md]             Reverse-sand sidecar frontmatter (ast_hash, depends_on, status_flag) from AST

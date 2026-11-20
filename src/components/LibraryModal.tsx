@@ -140,7 +140,7 @@ export const LibraryModal: React.FC<LibraryModalProps> = ({
       {/* 1. Starter Templates */}
       <div className="space-y-2">
         <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-1">
-          Google AI Studio Templates
+          Helm Starter Templates
         </div>
         <div className="grid grid-cols-1 gap-2">
           {getStarterTemplates(timeProvider).map((tmpl) => (

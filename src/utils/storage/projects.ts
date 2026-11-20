@@ -110,7 +110,7 @@ export class ProjectService implements IProjectService {
     const savedProject = {
       ...projectData,
       id,
-      name: projectData.name.trim() || `AI Studio Project ${this.projectsManager.getItems().length + 1}`,
+      name: projectData.name.trim() || `Helm Project ${this.projectsManager.getItems().length + 1}`,
       apiKey: projectData.apiKey.trim(),
       defaultModel: projectData.defaultModel || "gemini-2.5-flash",
       createdAt: now,

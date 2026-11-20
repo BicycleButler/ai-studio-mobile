@@ -1,18 +1,15 @@
 import { useWorkspace } from "../contexts/WorkspaceContext";
 import { ChatHistoryPopover } from "./ChatHistoryPopover";
+import { ChatMessageItem } from "./ChatMessageItem";
 import { useBatchSelection } from "../hooks/useBatchSelection";
-import React, { useState, useRef, useEffect, useMemo , useCallback} from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import {
   Send,
   Square,
   Image as ImageIcon,
   X,
-  Copy,
-  Check,
-  RotateCcw,
   Loader2,
   ArrowRight,
-  Volume2,
   Plus,
   MessageSquare,
   Layers,
@@ -20,13 +17,13 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import Markdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
 import { BatchDeleteOverlay } from "./BatchDeleteOverlay";
 import {
   ChatMessage,
   MessageAttachment,
   ChatSession,
+  PromptTemplate,
 } from "../types";
 import { extractSpokenText } from "../utils/speechExtractor";
 import {
@@ -36,9 +33,11 @@ import { ISentenceSpeechQueue } from "../services/sentenceSpeechQueue";
 import { useSpeechToText } from "../hooks/useSpeechToText";
 import { useStore } from "../hooks/useStore";
 import { GoogleIcon } from "./GoogleIcon";
-import { PromptTemplateDrawer } from "./PromptTemplateDrawer";
 import { useServices } from "../services/ServiceContext";
-import { PromptTemplate } from "../types";
+
+const PromptTemplateDrawer = lazy(() =>
+  import("./PromptTemplateDrawer").then((m) => ({ default: m.PromptTemplateDrawer }))
+);
 
 
 interface ChatWorkspaceProps {
@@ -96,7 +95,30 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [isOptimizingImage, setIsOptimizingImage] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const { speechVoicesService, logger, clipboardService, platformService, createSentenceSpeechQueue } = useServices();
+  const {
+    speechVoicesService,
+    logger,
+    clipboardService,
+    platformService,
+    createSentenceSpeechQueue,
+    chatHistoryService,
+    imageCompressor,
+    promptTemplateService,
+    timeProvider,
+  } = useServices();
+
+  const scheduledTimersRef = useRef<Set<ReturnType<typeof platformService.setTimeout>>>(new Set());
+  const scheduleTimer = useCallback(
+    (cb: () => void, delayMs: number) => {
+      const handle = platformService.setTimeout(() => {
+        scheduledTimersRef.current.delete(handle);
+        cb();
+      }, delayMs);
+      scheduledTimersRef.current.add(handle);
+      return handle;
+    },
+    [platformService]
+  );
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBufferingAudio, setIsBufferingAudio] = useState(false);
@@ -107,7 +129,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   // History & New Chat Popover State
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const { chatHistoryService, imageCompressor } = useServices();
   const rawChatSessions = useStore(chatHistoryService.getChatCollection(activeProjectId));
 
   const historySessions = useMemo<ChatSession[]>(() => {
@@ -177,7 +198,6 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       ? propIsTemplateDrawerOpen
       : internalIsTemplateDrawerOpen;
 
-  const { promptTemplateService } = useServices();
   const [expandedMessageIds, setExpandedMessageIds] = useState<Set<string>>(new Set());
   const [allTemplatesList, setAllTemplatesList] = useState<PromptTemplate[]>(() => promptTemplateService.getAllTemplates());
 
@@ -232,7 +252,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
   };
 
-  const toggleMessageExpanded = (messageId: string) => {
+  const toggleMessageExpanded = useCallback((messageId: string) => {
     setExpandedMessageIds((prev) => {
       const next = new Set(prev);
       if (next.has(messageId)) {
@@ -242,7 +262,15 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
       return next;
     });
-  };
+  }, []);
+
+  const getTemplateTitle = useCallback(
+    (tplId: string) => {
+      const tpl = promptTemplateService.getTemplateById(tplId);
+      return tpl ? tpl.title : tplId;
+    },
+    [promptTemplateService]
+  );
 
   // Resolve selected template objects in strict FIFO order
   const selectedTemplateObjects = useMemo(() => {
@@ -310,6 +338,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const touchIsDraggingRef = useRef<boolean>(false);
+  const isNearBottomRef = useRef<boolean>(true);
+  const prevMessageCountRef = useRef<number>(messages.length);
 
   // Mobile virtual keyboard focus & visibility state
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
@@ -463,7 +493,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       // Auto-expand into 100% text input interface if user spoke or has draft text
       if (inputText.trim()) {
         setIsInputFocused(true);
-        platformService.setTimeout(() => {
+        scheduleTimer(() => {
           textareaRef.current?.focus();
           const len = textareaRef.current?.value.length || 0;
           textareaRef.current?.setSelectionRange(len, len);
@@ -491,7 +521,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
   };
 
-  const stopAllPlayback = () => {
+  const stopAllPlayback = useCallback(() => {
     if (sentenceQueueRef.current) {
       sentenceQueueRef.current.cancel();
       sentenceQueueRef.current = null;
@@ -513,11 +543,21 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
     setIsSpeaking(false);
     setIsBufferingAudio(false);
-  };
+  }, [platformService]);
 
-  // Scroll anchoring: Keep latest message pinned on messages update
+  // Smart scroll anchoring: only auto-scroll when user is near the bottom or just added a message,
+  // and use instant scrolling during rapid streaming to avoid smooth-scroll frame thrashing.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const messageAdded = messages.length > prevMessageCountRef.current;
+    prevMessageCountRef.current = messages.length;
+    if (messageAdded) {
+      isNearBottomRef.current = true;
+    }
+    if (!isNearBottomRef.current) return;
+    messagesEndRef.current?.scrollIntoView({
+      behavior: isGenerating ? "auto" : "smooth",
+      block: "end",
+    });
   }, [messages, isGenerating]);
 
   // visualViewport scroll anchoring: dynamically re-anchor messages on mobile keyboard resize
@@ -573,21 +613,37 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     }
   }, [isGenerating]);
 
-  // Clean up speech synthesis on component unmount
+  // Clean up speech synthesis and scheduled timers on component unmount
   useEffect(() => {
     return () => {
       stopAllPlayback();
+      scheduledTimersRef.current.forEach((handle) => {
+        platformService.clearTimeout(handle);
+      });
+      scheduledTimersRef.current.clear();
     };
-  }, []);
+  }, [platformService, stopAllPlayback]);
 
-  // Identify the most recent response from the model/agent
-  const lastModelMessage = [...messages]
-    .reverse()
-    .find((m) => m.role === "model" && m.text && m.text.trim().length > 0);
+  // Identify the most recent response from the model/agent without allocating a reversed array copy
+  const lastModelMessage = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === "model" && m.text && m.text.trim().length > 0) {
+        return m;
+      }
+    }
+    return undefined;
+  }, [messages]);
 
   // Streaming sentence-pipelined speech playback
   const streamingModelMessage = useMemo(() => {
-    return messages.find((m) => m.role === "model" && m.isStreaming);
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === "model" && m.isStreaming) {
+        return m;
+      }
+    }
+    return undefined;
   }, [messages]);
 
   const prevStreamingTextRef = useRef<string>("");
@@ -614,7 +670,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               sentenceQueueRef.current = null;
               if (isVoiceModeActiveRef.current) {
                 // Wait 350ms acoustic grace period to prevent microphone echo
-                platformService.setTimeout(() => {
+                scheduleTimer(() => {
                   if (isVoiceModeActiveRef.current) {
                     speechBaseTextRef.current = "";
                     clearTranscript();
@@ -654,7 +710,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         }
       } else if (isVoiceModeActive && !sentenceQueueRef.current && !isSpeaking && !isBufferingAudio) {
         // Recover to listening state if generation finished without speaking (for example, error, code-only, or stopped)
-        platformService.setTimeout(() => {
+        scheduleTimer(() => {
           if (isVoiceModeActiveRef.current && !sentenceQueueRef.current && !isSpeaking) {
             speechBaseTextRef.current = "";
             clearTranscript();
@@ -666,7 +722,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       }
     } else if (!isGenerating && isVoiceModeActive && voiceState === "processing") {
       // Fallback recovery if voiceState is stuck on processing
-      platformService.setTimeout(() => {
+      scheduleTimer(() => {
         if (isVoiceModeActiveRef.current && !sentenceQueueRef.current && !isSpeaking) {
           speechBaseTextRef.current = "";
           clearTranscript();
@@ -725,7 +781,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       setIsSpeaking(false);
       if (isVoiceModeActiveRef.current) {
         // Acoustic echo safety: delay 350ms before opening mic
-        platformService.setTimeout(() => {
+        scheduleTimer(() => {
           if (isVoiceModeActiveRef.current) {
             speechBaseTextRef.current = "";
             clearTranscript();
@@ -744,7 +800,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       setIsSpeaking(false);
       setIsBufferingAudio(false);
       if (isVoiceModeActiveRef.current) {
-        platformService.setTimeout(() => {
+        scheduleTimer(() => {
           if (isVoiceModeActiveRef.current) {
             speechBaseTextRef.current = "";
             clearTranscript();
@@ -799,7 +855,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
           setIsSpeaking(false);
           activeAudioRef.current = null;
           if (isVoiceModeActiveRef.current) {
-            platformService.setTimeout(() => {
+            scheduleTimer(() => {
               if (isVoiceModeActiveRef.current) {
                 speechBaseTextRef.current = "";
                 clearTranscript();
@@ -827,6 +883,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
       fallbackToDeviceSpeech(contentToSpeak);
     }
   };
+
+  const handleToggleSpeechRef = useRef(handleToggleSpeech);
+  handleToggleSpeechRef.current = handleToggleSpeech;
+  const handleToggleSpeechStable = useCallback((text: string) => {
+    void handleToggleSpeechRef.current(text);
+  }, []);
 
   const handleSend = () => {
     if (
@@ -898,11 +960,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const handleCopy = async (id: string, text: string) => {
-    await clipboardService.writeText(text);
-    setCopiedId(id);
-    platformService.setTimeout(() => setCopiedId(null), 2000);
-  };
+  const handleCopy = useCallback(
+    async (id: string, text: string) => {
+      await clipboardService.writeText(text);
+      setCopiedId(id);
+      scheduleTimer(() => setCopiedId(null), 2000);
+    },
+    [clipboardService, scheduleTimer]
+  );
 
   const handleStartNewChat = () => {
     stopAllPlayback();
@@ -912,7 +977,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
     } else {
       onClearMessages();
     }
-    platformService.setTimeout(() => {
+    scheduleTimer(() => {
       textareaRef.current?.focus();
     }, 100);
   };
@@ -996,7 +1061,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
               currentSessionId={currentSessionId || null}
               popoverRef={historyPopoverRef}
               getHistorySelectionState={getHistorySelectionState}
-              timeProvider={useServices().timeProvider}
+              timeProvider={timeProvider}
             />
           )}
 
@@ -1028,7 +1093,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         onTouchEnd={() => {
           touchIsDraggingRef.current = false;
         }}
-        onScroll={() => {
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+          isNearBottomRef.current = distanceFromBottom < 120;
           if (isInputFocused && touchIsDraggingRef.current) {
             hideKeyboard();
           }
@@ -1037,14 +1105,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-md mx-auto">
               <h3 className="text-base font-semibold text-foreground mb-1">
-                {activeModelInfo?.providerName && activeModelInfo.providerName !== "Google"
+                {activeModelInfo?.providerName && activeModelInfo.providerName !== "Google" && activeModelInfo.providerName !== "Google Gemini"
                   ? `${activeModelInfo.providerName} · ${activeModelInfo.name}`
-                  : "AI Studio & Multi-Provider Playground"}
+                  : "Helm — Multi-Provider Agentic Workspace"}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
                 {activeModelInfo?.isLocal
                   ? `Running ${activeModelInfo.name} locally on-device with zero cloud transfer.`
-                  : `Active model: ${activeModelInfo?.name || _config.model}. Connect Google AI Studio, external API keys, or local on-device models.`}
+                  : `Active model: ${activeModelInfo?.name || _config.model}. Connect Google Gemini, external API keys, or local on-device models.`}
               </p>
 
               {/* Authentication prompt card if not authenticated */}
@@ -1059,7 +1127,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-                    Sign in with Google AI Studio, connect OpenAI / Anthropic / OpenRouter / Groq keys, or run WebGPU &amp; Ollama models offline.
+                    Connect Google Gemini (via Google AI Studio key), OpenAI / Anthropic / OpenRouter / Groq keys, or run WebGPU &amp; Ollama models offline.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2">
                     {onOpenAuth && (
@@ -1068,7 +1136,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                         onClick={onOpenAuth}
                         className="flex-1 py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-sm active:scale-95 transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                       >
-                        <span>Google AI Studio</span>
+                        <span>Google Gemini</span>
                         <ArrowRight className="rtl:rotate-180 w-3.5 h-3.5" />
                       </button>
                     )}
@@ -1119,178 +1187,27 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
             </div>
         ) : (
           messages.map((msg) => (
-            <div
+            <ChatMessageItem
               key={msg.id}
-              className={`flex flex-col ${
-                msg.role === "user" ? "items-end" : "items-start"
-              }`}
-            >
-              {/* Sender label */}
-              <div className="flex items-center gap-1.5 mb-1 px-1 text-[11px] text-muted-foreground">
-                {msg.role === "user" ? (
-                  <span className="font-medium text-foreground">User</span>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-foreground">
-                      {msg.modelName || activeModelInfo?.name || "Gemini"}
-                    </span>
-                    {msg.tokenCount && (
-                      <span className="text-[10px] text-muted-foreground tabular-nums">
-                        · {msg.tokenCount} tokens
-                      </span>
-                    )}
-                    {msg.durationMs && (
-                      <span className="text-[10px] text-muted-foreground tabular-nums">
-                        · {(msg.durationMs / 1000).toFixed(2)}s
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Message bubble */}
-              <div
-                className={`max-w-[95%] sm:max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-tr-none shadow-sm"
-                    : "bg-card text-card-foreground rounded-tl-none shadow-sm"
-                }`}
-              >
-                {/* Images preview if present */}
-                {msg.images && msg.images.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {msg.images.map((img) => (
-                      <div
-                        key={img.id}
-                        className="relative rounded-lg overflow-hidden max-w-[160px] max-h-[160px]"
-                      >
-                        <img
-                          src={img.previewUrl}
-                          alt={img.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Message content */}
-                {msg.role === "model" ? (
-                  <div className="prose dark:prose-invert prose-xs sm:prose-sm max-w-none break-words [&>pre]:bg-muted [&>pre]:p-3 [&>pre]:rounded-xl [&>pre]:border [&>pre]:border-border [&>pre]:overflow-x-auto [&>code]:text-primary [&>code]:bg-muted [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>ul]:list-disc [&>ul]:ps-4 [&>ol]:list-decimal [&>ol]:ps-4">
-                    <Markdown>
-                      {msg.text ||
-                        (msg.isStreaming
-                          ? webllmProgress?.status === "loading" && msg.providerId === "local-webllm"
-                            ? `Loading on-device weights (${Math.round(webllmProgress.progress * 100)}%)... ${webllmProgress.text}`
-                            : "Thinking..."
-                          : "")}
-                    </Markdown>
-                    {msg.isStreaming && (
-                      <span className="inline-block w-1.5 h-3.5 bg-primary ms-1 animate-pulse align-middle" />
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-1.5">
-                    {/* Question 4 Decision (Option B): Structured Provenance Display */}
-                    {msg.templateIds && msg.templateIds.length > 0 && (
-                      <div className="pb-1.5 border-b border-primary-foreground/20 flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {msg.templateIds.map((tplId, idx) => {
-                              const tpl = promptTemplateService.getTemplateById(tplId);
-                              return (
-                                <span
-                                  key={`${msg.id}-${tplId}-${idx}`}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/20 text-[10px] font-medium tracking-tight text-primary-foreground border border-primary-foreground/20"
-                                >
-                                  <span className="font-mono text-[9px] opacity-75 font-bold">
-                                    #{idx + 1}
-                                  </span>
-                                  <span>{tpl ? tpl.title : tplId}</span>
-                                </span>
-                              );
-                            })}
-                          </div>
-                          <button
-                            type="button"
-                            id={`toggle-composite-prompt-${msg.id}`}
-                            onClick={() => toggleMessageExpanded(msg.id)}
-                            className="text-[10px] text-primary-foreground/90 hover:text-white underline font-medium cursor-pointer"
-                          >
-                            {expandedMessageIds.has(msg.id)
-                              ? "Hide full prompt"
-                              : "Inspect full prompt"}
-                          </button>
-                        </div>
-
-                        {expandedMessageIds.has(msg.id) && (
-                          <div className="p-2 rounded-xl bg-black/30 border border-primary-foreground/20 text-[11px] font-mono text-primary-foreground whitespace-pre-wrap leading-relaxed animate-in fade-in">
-                            {msg.text}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <p className="whitespace-pre-wrap">
-                      {msg.rawUserText !== undefined ? msg.rawUserText : msg.text}
-                    </p>
-                  </div>
-                )}
-
-                {msg.error && (
-                  <div className="mt-2 p-2 rounded-lg bg-muted/40 border border-destructive/30 text-destructive text-xs">
-                    {msg.error}
-                  </div>
-                )}
-              </div>
-
-              {/* Action buttons on model responses */}
-              {msg.role === "model" && !msg.isStreaming && (
-                <div className="flex items-center gap-1 mt-1 px-1">
-                  <button
-                    onClick={() => handleCopy(msg.id, msg.text)}
-                    className="min-w-[44px] min-h-[44px] p-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation"
-                    title="Copy response"
-                    aria-label="Copy response"
-                  >
-                    {copiedId === msg.id ? (
-                      <Check className="w-4 h-4 text-primary" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                  <button
-                    onClick={onRegenerate}
-                    className="min-w-[44px] min-h-[44px] p-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center touch-manipulation"
-                    title="Regenerate"
-                    aria-label="Regenerate response"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isSpeaking) {
-                        stopAllPlayback();
-                      } else {
-                        handleToggleSpeech(msg.text);
-                      }
-                    }}
-                    className={`min-w-[44px] min-h-[44px] p-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer touch-manipulation ${
-                      isSpeaking ? "text-primary bg-primary/10" : ""
-                    }`}
-                    title={isSpeaking ? "Stop speech" : "Read aloud response"}
-                    aria-label={isSpeaking ? "Stop speech" : "Read aloud response"}
-                  >
-                    {isSpeaking ? (
-                      <Square className="w-4 h-4 fill-primary text-primary" />
-                    ) : (
-                      <Volume2 className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
+              msg={msg}
+              defaultModelName={activeModelInfo?.name || "Gemini"}
+              webllmLoadingText={
+                msg.isStreaming &&
+                msg.providerId === "local-webllm" &&
+                webllmProgress?.status === "loading"
+                  ? `Loading on-device weights (${Math.round(webllmProgress.progress * 100)}%)... ${webllmProgress.text}`
+                  : undefined
+              }
+              isExpanded={expandedMessageIds.has(msg.id)}
+              isCopied={copiedId === msg.id}
+              isSpeaking={isSpeaking}
+              getTemplateTitle={getTemplateTitle}
+              onToggleExpanded={toggleMessageExpanded}
+              onCopy={handleCopy}
+              onRegenerate={onRegenerate}
+              onToggleSpeech={handleToggleSpeechStable}
+              onStopPlayback={stopAllPlayback}
+            />
           ))
         )}
         <div ref={messagesEndRef} />
@@ -1635,12 +1552,12 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     onChange={(e) => setInputText(e.target.value)}
                     onFocus={() => {
                       setIsInputFocused(true);
-                      platformService.setTimeout(() => {
+                      scheduleTimer(() => {
                         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
                       }, 120);
                     }}
                     onBlur={() => {
-                      platformService.setTimeout(() => {
+                      scheduleTimer(() => {
                         if (platformService.getDocument()!.activeElement !== textareaRef.current) {
                           setIsInputFocused(false);
                         }
@@ -1780,14 +1697,14 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
                     tabIndex={0}
                     onClick={() => {
                       setIsInputFocused(true);
-                      platformService.setTimeout(() => {
+                      scheduleTimer(() => {
                         textareaRef.current?.focus();
                       }, 50);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         setIsInputFocused(true);
-                        platformService.setTimeout(() => {
+                        scheduleTimer(() => {
                           textareaRef.current?.focus();
                         }, 50);
                       }
@@ -1830,20 +1747,24 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* Full-Screen Mobile Drawer for Prompt Templates (Selection, Filtering, Authoring, Preview, Prompt Tools) */}
-      <PromptTemplateDrawer
-        isOpen={isTemplateDrawerOpen}
-        onClose={handleCloseTemplateDrawer}
-        selectedTemplateIds={selectedTemplateIds}
-        onToggleTemplate={handleToggleTemplate}
-        onRemoveTemplate={handleRemoveTemplate}
-        onClearAllTemplates={handleClearAllTemplates}
-        draftUserText={inputText}
-        onInsertText={(text) => {
-          setInputText((prev) => (prev.trim() ? `${prev}\n\n${text}` : text));
-          handleCloseTemplateDrawer();
-        }}
-      />
+      {/* Full-Screen Mobile Drawer for Prompt Templates (Lazy-loaded & mounted only when open) */}
+      {isTemplateDrawerOpen && (
+        <Suspense fallback={null}>
+          <PromptTemplateDrawer
+            isOpen={isTemplateDrawerOpen}
+            onClose={handleCloseTemplateDrawer}
+            selectedTemplateIds={selectedTemplateIds}
+            onToggleTemplate={handleToggleTemplate}
+            onRemoveTemplate={handleRemoveTemplate}
+            onClearAllTemplates={handleClearAllTemplates}
+            draftUserText={inputText}
+            onInsertText={(text) => {
+              setInputText((prev) => (prev.trim() ? `${prev}\n\n${text}` : text));
+              handleCloseTemplateDrawer();
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

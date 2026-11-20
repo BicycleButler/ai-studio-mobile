@@ -1,4 +1,4 @@
-// Google AI Studio Mobile - Progressive Web App Service Worker
+// Helm - Progressive Web App Service Worker
 const CACHE_NAME = "ai-studio-mobile-v2";
 const STATIC_ASSETS = [
   "/",

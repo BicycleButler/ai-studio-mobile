@@ -53,10 +53,35 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+          // Precache only the core shell, vendor bundles, stylesheets, and static assets.
+          // Heavy lazy-loaded workspaces (Mermaid, WebLLM, IDE, Stubs) cache on demand via runtimeCaching.
+          globPatterns: [
+            '**/*.{css,html,ico,png,svg,woff,woff2}',
+            'assets/index-*.js',
+            'assets/react-vendor-*.js',
+            'assets/firebase-vendor-*.js',
+            'assets/markdown-vendor-*.js',
+            'assets/motion-vendor-*.js',
+            'assets/lucide-vendor-*.js',
+          ],
           navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
           runtimeCaching: [
+            {
+              urlPattern: ({ sameOrigin, url }) =>
+                sameOrigin && url.pathname.startsWith('/assets/') && url.pathname.endsWith('.js'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'lazy-js-chunks-cache',
+                expiration: {
+                  maxEntries: 80,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
@@ -93,6 +118,39 @@ export default defineConfig(() => {
         },
       }),
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined;
+            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+              return 'react-vendor';
+            }
+            if (id.includes('/firebase/') || id.includes('/@firebase/')) {
+              return 'firebase-vendor';
+            }
+            if (
+              id.includes('/react-markdown/') ||
+              id.includes('/remark') ||
+              id.includes('/rehype') ||
+              id.includes('/unified/') ||
+              id.includes('/mdast') ||
+              id.includes('/hast') ||
+              id.includes('/micromark')
+            ) {
+              return 'markdown-vendor';
+            }
+            if (id.includes('/motion/') || id.includes('/framer-motion/')) {
+              return 'motion-vendor';
+            }
+            if (id.includes('/lucide-react/')) {
+              return 'lucide-vendor';
+            }
+            return undefined;
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

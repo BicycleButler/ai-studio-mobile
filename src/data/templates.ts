@@ -3,7 +3,7 @@ import { SavedPrompt } from "../types";
 
 export const DEFAULT_CONFIG = {
   model: "gemini-2.5-flash",
-  systemInstruction: "You are an intelligent, precise AI assistant inside Google AI Studio. Provide concise, clear, and actionable responses with clean code blocks when relevant.",
+  systemInstruction: "You are an intelligent, precise AI assistant in Helm. Provide concise, clear, and actionable responses with clean code blocks when relevant.",
   temperature: 1.0,
   topP: 0.95,
   topK: 40,

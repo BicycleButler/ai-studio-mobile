@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { DatabaseSync, StatementSync } from "node:sqlite";
 
 export interface GoogleSessionUser {
   email: string;
@@ -21,10 +21,25 @@ export interface SetItemsResult<T = Record<string, unknown>> {
 export const DEFAULT_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 export const MAX_SCOPED_ITEMS_JSON_BYTES = 5 * 1024 * 1024;
 const SESSION_PRUNE_THROTTLE_MS = 5 * 60 * 1000;
+const HEALTH_QUICK_CHECK_INTERVAL_MS = 60 * 1000;
 
 export class ServerStateStore {
   private db: DatabaseSync;
   private lastPruneAt = 0;
+  private lastQuickCheckAt = 0;
+
+  private stmtGetSession: StatementSync;
+  private stmtSetSession: StatementSync;
+  private stmtDeleteSession: StatementSync;
+  private stmtPruneSessions: StatementSync;
+  private stmtGetScopedItems: StatementSync;
+  private stmtSetScopedItems: StatementSync;
+  private stmtGetScopedItemEntries: StatementSync;
+  private stmtDeleteScopedItemEntries: StatementSync;
+  private stmtInsertScopedItemEntry: StatementSync;
+  private stmtDeleteSingleScopedItemEntry: StatementSync;
+  private stmtPingOk: StatementSync;
+  private stmtQuickCheck: StatementSync;
 
   constructor(dbPath: string = path.resolve(process.cwd(), ".stubs/app_state.sqlite")) {
     if (dbPath !== ":memory:") {
@@ -36,6 +51,9 @@ export class ServerStateStore {
     this.db = new DatabaseSync(dbPath);
     this.db.exec(`
       PRAGMA journal_mode = WAL;
+      PRAGMA synchronous = NORMAL;
+      PRAGMA temp_store = MEMORY;
+      PRAGMA cache_size = -16000;
       PRAGMA busy_timeout = 5000;
       CREATE TABLE IF NOT EXISTS sessions (
         session_id TEXT PRIMARY KEY,
@@ -64,6 +82,33 @@ export class ServerStateStore {
     if (!cols.some((c) => c.name === "version")) {
       this.db.exec("ALTER TABLE scoped_items ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
     }
+
+    this.stmtGetSession = this.db.prepare("SELECT user_json, updated_at FROM sessions WHERE session_id = ?");
+    this.stmtSetSession = this.db.prepare(
+      "INSERT OR REPLACE INTO sessions (session_id, user_json, updated_at) VALUES (?, ?, ?)"
+    );
+    this.stmtDeleteSession = this.db.prepare("DELETE FROM sessions WHERE session_id = ?");
+    this.stmtPruneSessions = this.db.prepare("DELETE FROM sessions WHERE updated_at < ?");
+    this.stmtGetScopedItems = this.db.prepare(
+      "SELECT data_json, version FROM scoped_items WHERE scope_key = ? AND kind = ?"
+    );
+    this.stmtSetScopedItems = this.db.prepare(
+      "INSERT OR REPLACE INTO scoped_items (scope_key, kind, data_json, version, updated_at) VALUES (?, ?, ?, ?, ?)"
+    );
+    this.stmtGetScopedItemEntries = this.db.prepare(
+      "SELECT item_id, item_json, updated_at FROM scoped_item_entries WHERE scope_key = ? AND kind = ?"
+    );
+    this.stmtDeleteScopedItemEntries = this.db.prepare(
+      "DELETE FROM scoped_item_entries WHERE scope_key = ? AND kind = ?"
+    );
+    this.stmtInsertScopedItemEntry = this.db.prepare(
+      "INSERT OR REPLACE INTO scoped_item_entries (scope_key, kind, item_id, item_json, updated_at) VALUES (?, ?, ?, ?, ?)"
+    );
+    this.stmtDeleteSingleScopedItemEntry = this.db.prepare(
+      "DELETE FROM scoped_item_entries WHERE scope_key = ? AND kind = ? AND item_id = ?"
+    );
+    this.stmtPingOk = this.db.prepare("SELECT 1 AS ok");
+    this.stmtQuickCheck = this.db.prepare("PRAGMA quick_check(1)");
   }
 
   private maybePruneExpiredSessions(now: number, maxAgeMs: number): void {
@@ -90,15 +135,11 @@ export class ServerStateStore {
     items: unknown[],
     now: number
   ): void {
-    const deleteAll = this.db.prepare("DELETE FROM scoped_item_entries WHERE scope_key = ? AND kind = ?");
-    deleteAll.run(scopeKey, kind);
-    const insertEntry = this.db.prepare(
-      "INSERT OR REPLACE INTO scoped_item_entries (scope_key, kind, item_id, item_json, updated_at) VALUES (?, ?, ?, ?, ?)"
-    );
+    this.stmtDeleteScopedItemEntries.run(scopeKey, kind);
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const itemId = this.extractItemId(item, i);
-      insertEntry.run(scopeKey, kind, itemId, JSON.stringify(item), now);
+      this.stmtInsertScopedItemEntry.run(scopeKey, kind, itemId, JSON.stringify(item), now);
     }
   }
 
@@ -109,9 +150,9 @@ export class ServerStateStore {
   ): GoogleSessionUser | null {
     if (!sessionId) return null;
     this.maybePruneExpiredSessions(now, maxAgeMs);
-    const row = this.db
-      .prepare("SELECT user_json, updated_at FROM sessions WHERE session_id = ?")
-      .get(sessionId) as { user_json?: string; updated_at?: number } | undefined;
+    const row = this.stmtGetSession.get(sessionId) as
+      | { user_json?: string; updated_at?: number }
+      | undefined;
     if (!row?.user_json) return null;
     if (typeof row.updated_at === "number" && maxAgeMs > 0 && now - row.updated_at > maxAgeMs) {
       this.clearSessionUser(sessionId);
@@ -126,14 +167,12 @@ export class ServerStateStore {
 
   public setSessionUser(sessionId: string, user: GoogleSessionUser, now: number = Date.now()): void {
     this.maybePruneExpiredSessions(now, DEFAULT_SESSION_MAX_AGE_MS);
-    this.db
-      .prepare("INSERT OR REPLACE INTO sessions (session_id, user_json, updated_at) VALUES (?, ?, ?)")
-      .run(sessionId, JSON.stringify(user), now);
+    this.stmtSetSession.run(sessionId, JSON.stringify(user), now);
   }
 
   public clearSessionUser(sessionId: string): void {
     if (!sessionId) return;
-    this.db.prepare("DELETE FROM sessions WHERE session_id = ?").run(sessionId);
+    this.stmtDeleteSession.run(sessionId);
   }
 
   public pruneExpiredSessions(
@@ -141,7 +180,7 @@ export class ServerStateStore {
     now: number = Date.now()
   ): number {
     const cutoff = now - maxAgeMs;
-    const result = this.db.prepare("DELETE FROM sessions WHERE updated_at < ?").run(cutoff);
+    const result = this.stmtPruneSessions.run(cutoff);
     return Number(result.changes || 0);
   }
 
@@ -149,9 +188,9 @@ export class ServerStateStore {
     scopeKey: string,
     kind: "prompts" | "projects"
   ): { items: T[]; version: number } {
-    const row = this.db
-      .prepare("SELECT data_json, version FROM scoped_items WHERE scope_key = ? AND kind = ?")
-      .get(scopeKey, kind) as { data_json?: string; version?: number } | undefined;
+    const row = this.stmtGetScopedItems.get(scopeKey, kind) as
+      | { data_json?: string; version?: number }
+      | undefined;
     if (!row?.data_json) return { items: [], version: 0 };
     try {
       const parsed = JSON.parse(row.data_json);
@@ -172,9 +211,11 @@ export class ServerStateStore {
     scopeKey: string,
     kind: "prompts" | "projects"
   ): Array<{ itemId: string; item: T; updatedAt: number }> {
-    const rows = this.db
-      .prepare("SELECT item_id, item_json, updated_at FROM scoped_item_entries WHERE scope_key = ? AND kind = ?")
-      .all(scopeKey, kind) as Array<{ item_id: string; item_json: string; updated_at: number }>;
+    const rows = this.stmtGetScopedItemEntries.all(scopeKey, kind) as Array<{
+      item_id: string;
+      item_json: string;
+      updated_at: number;
+    }>;
     const results: Array<{ itemId: string; item: T; updatedAt: number }> = [];
     for (const r of rows) {
       try {
@@ -204,9 +245,9 @@ export class ServerStateStore {
 
     this.db.exec("BEGIN IMMEDIATE");
     try {
-      const existing = this.db
-        .prepare("SELECT data_json, version FROM scoped_items WHERE scope_key = ? AND kind = ?")
-        .get(scopeKey, kind) as { data_json?: string; version?: number } | undefined;
+      const existing = this.stmtGetScopedItems.get(scopeKey, kind) as
+        | { data_json?: string; version?: number }
+        | undefined;
 
       const currentVersion = typeof existing?.version === "number" ? existing.version : existing ? 1 : 0;
 
@@ -234,11 +275,7 @@ export class ServerStateStore {
       }
 
       const nextVersion = currentVersion + 1;
-      this.db
-        .prepare(
-          "INSERT OR REPLACE INTO scoped_items (scope_key, kind, data_json, version, updated_at) VALUES (?, ?, ?, ?, ?)"
-        )
-        .run(scopeKey, kind, serialized, nextVersion, now);
+      this.stmtSetScopedItems.run(scopeKey, kind, serialized, nextVersion, now);
       this.syncScopedItemEntries(scopeKey, kind, items, now);
       this.db.exec("COMMIT");
       return {
@@ -263,9 +300,9 @@ export class ServerStateStore {
   ): { version: number; itemId: string } {
     this.db.exec("BEGIN IMMEDIATE");
     try {
-      const existing = this.db
-        .prepare("SELECT data_json, version FROM scoped_items WHERE scope_key = ? AND kind = ?")
-        .get(scopeKey, kind) as { data_json?: string; version?: number } | undefined;
+      const existing = this.stmtGetScopedItems.get(scopeKey, kind) as
+        | { data_json?: string; version?: number }
+        | undefined;
 
       const currentVersion = typeof existing?.version === "number" ? existing.version : existing ? 1 : 0;
       let items: T[] = [];
@@ -292,16 +329,8 @@ export class ServerStateStore {
       }
 
       const nextVersion = currentVersion + 1;
-      this.db
-        .prepare(
-          "INSERT OR REPLACE INTO scoped_items (scope_key, kind, data_json, version, updated_at) VALUES (?, ?, ?, ?, ?)"
-        )
-        .run(scopeKey, kind, serialized, nextVersion, now);
-      this.db
-        .prepare(
-          "INSERT OR REPLACE INTO scoped_item_entries (scope_key, kind, item_id, item_json, updated_at) VALUES (?, ?, ?, ?, ?)"
-        )
-        .run(scopeKey, kind, itemId, JSON.stringify(item), now);
+      this.stmtSetScopedItems.run(scopeKey, kind, serialized, nextVersion, now);
+      this.stmtInsertScopedItemEntry.run(scopeKey, kind, itemId, JSON.stringify(item), now);
       this.db.exec("COMMIT");
       return { version: nextVersion, itemId };
     } catch (err) {
@@ -322,9 +351,9 @@ export class ServerStateStore {
   ): { version: number; deleted: boolean } {
     this.db.exec("BEGIN IMMEDIATE");
     try {
-      const existing = this.db
-        .prepare("SELECT data_json, version FROM scoped_items WHERE scope_key = ? AND kind = ?")
-        .get(scopeKey, kind) as { data_json?: string; version?: number } | undefined;
+      const existing = this.stmtGetScopedItems.get(scopeKey, kind) as
+        | { data_json?: string; version?: number }
+        | undefined;
 
       const currentVersion = typeof existing?.version === "number" ? existing.version : existing ? 1 : 0;
       let items: unknown[] = [];
@@ -342,14 +371,8 @@ export class ServerStateStore {
       const nextVersion = deleted ? currentVersion + 1 : currentVersion;
 
       if (deleted) {
-        this.db
-          .prepare(
-            "INSERT OR REPLACE INTO scoped_items (scope_key, kind, data_json, version, updated_at) VALUES (?, ?, ?, ?, ?)"
-          )
-          .run(scopeKey, kind, JSON.stringify(nextItems), nextVersion, now);
-        this.db
-          .prepare("DELETE FROM scoped_item_entries WHERE scope_key = ? AND kind = ? AND item_id = ?")
-          .run(scopeKey, kind, itemId);
+        this.stmtSetScopedItems.run(scopeKey, kind, JSON.stringify(nextItems), nextVersion, now);
+        this.stmtDeleteSingleScopedItemEntry.run(scopeKey, kind, itemId);
       }
 
       this.db.exec("COMMIT");
@@ -364,11 +387,15 @@ export class ServerStateStore {
     }
   }
 
-  public ping(): boolean {
-    const row = this.db.prepare("SELECT 1 AS ok").get() as { ok?: number } | undefined;
+  public ping(now: number = Date.now()): boolean {
+    const row = this.stmtPingOk.get() as { ok?: number } | undefined;
     if (row?.ok !== 1) return false;
-    const integrity = this.db.prepare("PRAGMA quick_check(1)").get() as { quick_check?: string } | undefined;
-    return !integrity || integrity.quick_check === "ok";
+    if (now - this.lastQuickCheckAt >= HEALTH_QUICK_CHECK_INTERVAL_MS) {
+      this.lastQuickCheckAt = now;
+      const integrity = this.stmtQuickCheck.get() as { quick_check?: string } | undefined;
+      return !integrity || integrity.quick_check === "ok";
+    }
+    return true;
   }
 
   public close(): void {

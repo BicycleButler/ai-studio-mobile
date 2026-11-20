@@ -19,7 +19,7 @@ export const AuthRequiredBanner: React.FC<AuthRequiredBannerProps> = ({
       <div className="flex items-center gap-2 overflow-hidden">
         <Shield className="w-4 h-4 text-primary shrink-0" />
         <span className="truncate text-[11px] sm:text-xs">
-          <strong>Provider Required:</strong> Connect Google AI Studio, OpenAI/Anthropic/OpenRouter/Groq keys, or enable Local On-Device models.
+          <strong>Provider Required:</strong> Connect Google Gemini, OpenAI/Anthropic/OpenRouter/Groq keys, or enable Local On-Device models.
         </span>
       </div>
       <button

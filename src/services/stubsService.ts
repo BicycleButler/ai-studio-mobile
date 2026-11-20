@@ -16,6 +16,11 @@ import {
   StubsInterfaceStub,
   StubsWorkspaceFileContent,
   WorkspaceFileTreeResponse,
+  StubsAgenticTask,
+  StubsTaskStatus,
+  StubsTaskVerificationReport,
+  StubsBatchPreFlightResult,
+  StubsSessionHandoff,
 } from "../types";
 import { ILogger, DefaultLoggerFactory } from "../utils/logger";
 import { BrowserPlatformService } from "../services/platformService";
@@ -47,6 +52,31 @@ export interface StubsExecuteResponse {
   stderr: string;
 }
 
+export interface StubsTasksResponse {
+  activeTask?: StubsAgenticTask | null;
+  tasks: StubsAgenticTask[];
+}
+
+export interface StubsTaskUpdateInput {
+  taskId: string;
+  taskStatus?: StubsTaskStatus;
+  status?: StubsTaskStatus;
+  stepId?: string;
+  stepStatus?: "pending" | "completed" | "failed";
+  targetPath?: string;
+  targetFilePath?: string;
+  targetStatus?: "pending" | "edited" | "verified";
+  setActive?: boolean;
+  resetBaseline?: boolean;
+  note?: string;
+}
+
+export interface StubsTaskVerifyResponse {
+  task: StubsAgenticTask;
+  report: StubsTaskVerificationReport;
+  pipeline: StubsRunResult;
+}
+
 export interface IStubsClient {
   fetchGraphData(): Promise<StubsGraphData>;
   queryGraph(query: string, budget?: number): Promise<StubsQueryResult>;
@@ -56,12 +86,24 @@ export interface IStubsClient {
     target?: string
   ): Promise<StubsDiagramResponse>;
   fetchImpact(target: string, guard?: "low" | "medium" | "high" | "critical"): Promise<StubsImpactResult>;
+  runBatchPreFlight(targets: string[], guard?: "low" | "medium" | "high" | "critical"): Promise<StubsBatchPreFlightResult>;
   fetchContextPackage(target: string): Promise<StubsTieredContext>;
   fetchInterfaceStub(target: string): Promise<StubsInterfaceStub>;
   syncContextMaps(): Promise<{ updatedFiles: string[]; totalModules: number }>;
   fetchLintResults(): Promise<StubsLintResponse>;
   fetchPruneResults(): Promise<StubsPruneResult>;
   runPipeline(): Promise<StubsRunResult>;
+  fetchTasks(): Promise<StubsTasksResponse>;
+  createTask(input: {
+    title: string;
+    goal?: string;
+    targetFiles?: string[];
+    targets?: string[];
+    guardThreshold?: "low" | "medium" | "high" | "critical";
+  }): Promise<{ task: StubsAgenticTask }>;
+  updateTask(input: StubsTaskUpdateInput): Promise<{ task: StubsAgenticTask }>;
+  verifyTask(taskId?: string): Promise<StubsTaskVerifyResponse>;
+  fetchSessionHandoff(taskId?: string): Promise<StubsSessionHandoff>;
   fetchSidecarSpecs(): Promise<StubsSpecsResponse>;
   fetchSpecDetail(path: string): Promise<{ content: string; path: string }>;
   fetchWorkspaceFileTree(): Promise<WorkspaceFileTreeResponse>;
@@ -138,6 +180,21 @@ export class StubsClient implements IStubsClient {
     );
   }
 
+  public async runBatchPreFlight(
+    targets: string[],
+    guard?: "low" | "medium" | "high" | "critical"
+  ): Promise<StubsBatchPreFlightResult> {
+    return this.config.apiClient.fetch<StubsBatchPreFlightResult>(
+      "/api/stubs/pre-flight-batch",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targets, guard }),
+      },
+      "Failed to compute multi-target batch pre-flight"
+    );
+  }
+
   public async fetchContextPackage(target: string): Promise<StubsTieredContext> {
     return this.config.apiClient.fetch<StubsTieredContext>(
       `/api/stubs/context?target=${encodeURIComponent(target)}`,
@@ -178,6 +235,61 @@ export class StubsClient implements IStubsClient {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     }, "Failed to run Stubs pipeline");
+  }
+
+  public async fetchTasks(): Promise<StubsTasksResponse> {
+    return this.config.apiClient.fetch<StubsTasksResponse>("/api/stubs/tasks", undefined, "Failed to fetch durable agentic tasks");
+  }
+
+  public async createTask(input: {
+    title: string;
+    goal?: string;
+    targetFiles?: string[];
+    targets?: string[];
+    guardThreshold?: "low" | "medium" | "high" | "critical";
+  }): Promise<{ task: StubsAgenticTask }> {
+    return this.config.apiClient.fetch<{ task: StubsAgenticTask }>(
+      "/api/stubs/tasks",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+      "Failed to create durable agentic task"
+    );
+  }
+
+  public async updateTask(input: StubsTaskUpdateInput): Promise<{ task: StubsAgenticTask }> {
+    return this.config.apiClient.fetch<{ task: StubsAgenticTask }>(
+      "/api/stubs/tasks/update",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+      "Failed to update durable agentic task"
+    );
+  }
+
+  public async verifyTask(taskId?: string): Promise<StubsTaskVerifyResponse> {
+    return this.config.apiClient.fetch<StubsTaskVerifyResponse>(
+      "/api/stubs/tasks/verify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskId ? { taskId } : {}),
+      },
+      "Failed to verify durable agentic task gates"
+    );
+  }
+
+  public async fetchSessionHandoff(taskId?: string): Promise<StubsSessionHandoff> {
+    const url = taskId ? `/api/stubs/handoff?taskId=${encodeURIComponent(taskId)}` : "/api/stubs/handoff";
+    return this.config.apiClient.fetch<StubsSessionHandoff>(
+      url,
+      undefined,
+      "Failed to generate session handoff packet"
+    );
   }
 
   public async fetchSidecarSpecs(): Promise<StubsSpecsResponse> {

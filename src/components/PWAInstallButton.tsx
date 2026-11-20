@@ -85,7 +85,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             <div>
               <h4 className="text-sm font-semibold text-foreground">Install App on Device</h4>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Install Google AI Studio as a standalone home-screen app with offline caching and native responsiveness.
+                Install Helm as a standalone home-screen app with offline caching and native responsiveness.
               </p>
             </div>
           </div>
@@ -117,7 +117,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       >
         <div className="flex items-center gap-2">
           <Smartphone className="w-4 h-4 text-primary shrink-0" />
-          <span>Install Google AI Studio for faster launch and offline access.</span>
+          <span>Install Helm for faster launch and offline access.</span>
         </div>
         <button
           type="button"
@@ -174,7 +174,7 @@ const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose })
         <p className="text-xs text-muted-foreground leading-relaxed">
           {isIOS
             ? "Safari on iOS installs Progressive Web Apps using the system share menu:"
-            : "Install Google AI Studio as a standalone app directly from your browser:"}
+            : "Install Helm as a standalone app directly from your browser:"}
         </p>
 
         <div className="mt-3 space-y-2.5">
@@ -225,7 +225,7 @@ const InstallGuideModal: React.FC<InstallGuideModalProps> = ({ isIOS, onClose })
                 <div className="text-xs">
                   <span className="font-semibold text-foreground">Step 2: Select Install</span>
                   <p className="text-muted-foreground text-[11px] mt-0.5">
-                    Choose "Install Google AI Studio" or "Add to Home screen" to install as a standalone application.
+                    Choose "Install Helm" or "Add to Home screen" to install as a standalone application.
                   </p>
                 </div>
               </div>

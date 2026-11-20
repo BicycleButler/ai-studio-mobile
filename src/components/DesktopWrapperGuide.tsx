@@ -18,9 +18,6 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
   isEmbedded = false,
 }) => {
   const { platformService } = useServices();
-  const openDesktopAiStudio = () => {
-    platformService.openUrl("https://aistudio.google.com", "_blank");
-  };
 
   const openApiKeyPage = () => {
     platformService.openUrl("https://aistudio.google.com/app/apikey", "_blank");
@@ -40,41 +37,41 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
           </div>
           <div>
             <h2 className="text-sm font-bold text-foreground">
-              Google AI Studio Android Client
+              Helm — Mobile Agentic Coding
             </h2>
             <p className="text-xs text-muted-foreground">
-              Desktop wrapper & touch-optimized mobile workspace
+              Model-agnostic agentic coding &amp; prompt engineering workspace
             </p>
           </div>
         </div>
 
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Google AI Studio was built primarily for desktop multi-monitor monitors. This application solves mobile friction by redesigning the entire prompt engineering workflow for Android screens.
+          Helm is built from the ground up for mobile software engineering, orchestrating cloud frontier models (Google Gemini, OpenAI, Anthropic, OpenRouter, Groq) and local on-device WebGPU models in a touch-first environment.
         </p>
 
         <div className="flex flex-wrap gap-2 pt-1">
           <button
-            onClick={openDesktopAiStudio}
+            onClick={onOpenApiKeyModal}
             className="flex-1 min-w-[140px] px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-colors cursor-pointer"
           >
-            <span>Open Desktop Site</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <Key className="w-3.5 h-3.5" />
+            <span>Configure Providers</span>
           </button>
           <button
             onClick={openApiKeyPage}
             className="px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Key className="w-3.5 h-3.5 text-primary" />
-            <span>Get API Key</span>
+            <span>Get Gemini Key</span>
+            <ExternalLink className="w-3.5 h-3.5 text-primary" />
           </button>
         </div>
       </div>
 
-      {/* Why a specialized mobile wrapper is required */}
+      {/* Core Mobile Agentic Capabilities */}
       <div className="bg-card rounded-xl p-3.5 space-y-3">
         <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-primary" />
-          <span>Why Desktop AI Studio Needs This Mobile Wrapper</span>
+          <span>Built for Mobile Agentic Engineering</span>
         </div>
 
         <div className="grid grid-cols-1 gap-2.5 text-xs">
@@ -84,10 +81,10 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
             </div>
             <div>
               <strong className="text-foreground block mb-0.5">
-                Cramped Sidebars & Cutoffs
+                Model-Agnostic Multi-Provider Runtime
               </strong>
               <span className="text-muted-foreground text-[11px] leading-relaxed">
-                Desktop AI Studio pins a 300px parameter inspector and 240px navigation drawer. On a 390px mobile screen, there is virtually zero space left for the prompt text area. This app moves parameters into a tactile Android bottom sheet.
+                Switch seamlessly between Google Gemini, OpenAI, Anthropic Claude, OpenRouter, Groq, or run quantized models 100% locally via WebGPU and Ollama.
               </span>
             </div>
           </div>
@@ -98,10 +95,10 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
             </div>
             <div>
               <strong className="text-foreground block mb-0.5">
-                On-Screen Virtual Keyboard Handling
+                Tactile Mobile IDE &amp; Architecture Graph
               </strong>
               <span className="text-muted-foreground text-[11px] leading-relaxed">
-                Opening Gboard on mobile hides the Run button on desktop web. This client provides sticky keyboard clearance so you can type and execute prompts with one thumb.
+                Inspect live AST dependency graphs, run Stubs architecture audits, edit project files, and execute scripts with sticky virtual-keyboard clearance.
               </span>
             </div>
           </div>
@@ -112,10 +109,10 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
             </div>
             <div>
               <strong className="text-foreground block mb-0.5">
-                Touch-Target Friendly Sliders & Buttons
+                Precision Bottom-Sheet Parameter Tuners
               </strong>
               <span className="text-muted-foreground text-[11px] leading-relaxed">
-                Fine tuning temperature (e.g. 0.35) or Top-P on desktop web is notoriously difficult with finger drag. Our sliders feature high-precision stepped thumb controls and instant visual feedback.
+                Fine-tune temperature, Top-P, system directives, and JSON output schemas using thumb-friendly stepped sliders and modular prompt templates.
               </span>
             </div>
           </div>
@@ -126,17 +123,17 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
       <div className="bg-card rounded-xl p-3.5 space-y-2.5">
         <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
           <Download className="w-4 h-4 text-primary" />
-          <span>How to Install on Your Android Device</span>
+          <span>How to Install Helm on Your Mobile Device</span>
         </div>
 
         <ol className="space-y-2 text-xs text-muted-foreground">
           <li className="flex items-start gap-2">
             <span className="font-bold text-primary">Step 1:</span>
-            <span>Open this URL in <strong>Google Chrome</strong> or <strong>Samsung Internet</strong> on your Android phone or tablet.</span>
+            <span>Open this URL in <strong>Google Chrome</strong>, <strong>Safari</strong>, or <strong>Samsung Internet</strong> on your phone or tablet.</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="font-bold text-primary">Step 2:</span>
-            <span>Tap the browser menu button (<strong>⋮ 3 vertical dots</strong> in top-right corner).</span>
+            <span>Tap the browser menu button (<strong>⋮ 3 vertical dots</strong> on Android or <strong>Share</strong> on iOS).</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="font-bold text-primary">Step 3:</span>
@@ -144,7 +141,7 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
           </li>
           <li className="flex items-start gap-2">
             <span className="font-bold text-primary">Step 4:</span>
-            <span>Launch it directly from your Android app drawer or home screen as a native full-screen app!</span>
+            <span>Launch Helm directly from your app drawer or home screen as a native full-screen workspace.</span>
           </li>
         </ol>
       </div>
@@ -155,10 +152,10 @@ export const DesktopWrapperGuide: React.FC<DesktopWrapperGuideProps> = ({
           <Key className="w-4 h-4 text-primary" />
           <div>
             <span className="text-xs font-semibold text-foreground block">
-              Gemini API Key
+              Provider API Keys
             </span>
             <span className="text-[11px] text-muted-foreground">
-              Configured via Cloud Run server or custom key
+              Encrypted local keys or linked Google AI Studio key
             </span>
           </div>
         </div>

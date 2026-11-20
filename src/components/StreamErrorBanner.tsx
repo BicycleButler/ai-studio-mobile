@@ -49,7 +49,7 @@ export const StreamErrorBanner: React.FC<StreamErrorBannerProps> = ({
         )}
         <span className="truncate">
           {isInvalidKey
-            ? "API key expired or revoked — Update API Key in AI Studio to resume requests."
+            ? "API key expired or revoked — Update API Key in Settings to resume requests."
             : streamError}
         </span>
       </div>
@@ -62,7 +62,7 @@ export const StreamErrorBanner: React.FC<StreamErrorBannerProps> = ({
             className="px-2.5 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold flex items-center gap-1 text-[11px] shadow-sm transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
-            <span>Update in AI Studio</span>
+            <span>Update API Key</span>
           </button>
         ) : errorDetails?.isAuthError ? (
           <button

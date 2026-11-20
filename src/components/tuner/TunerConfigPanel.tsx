@@ -122,7 +122,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
   const getTemperatureDescription = (temp: number) => {
     if (temp <= 0.2) return "Deterministic • Best for code, math & structured JSON";
     if (temp <= 0.7) return "Focused & accurate • Standard factual reasoning";
-    if (temp <= 1.2) return "Balanced • Recommended AI Studio default";
+    if (temp <= 1.2) return "Balanced • Recommended default";
     return "High variance • Highly creative, conversational & exploratory";
   };
 
@@ -186,7 +186,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
             </span>
             <span className="text-[11px] block text-muted-foreground truncate">
               {hasApiKey
-                ? `Active: ${selectedModelInfo?.providerName || "Google AI Studio"} · Tap to manage`
+                ? `Active: ${selectedModelInfo?.providerName || "Google Gemini"} · Tap to manage`
                 : "Tap to connect API keys or enable local models"}
             </span>
           </div>
@@ -383,7 +383,7 @@ export const TunerConfigPanel: React.FC<TunerBottomSheetProps> = ({
           id="tuner-sys-prompt"
           value={config.systemInstruction}
           onChange={(e) => updateField("systemInstruction", e.target.value)}
-          placeholder="You are an intelligent, concise AI assistant inside Google AI Studio..."
+          placeholder="You are an intelligent, concise AI coding assistant in Helm..."
           rows={3}
           className="w-full bg-background rounded-lg p-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none font-mono"
         />

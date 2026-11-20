@@ -11,8 +11,34 @@ import {
   StubsRunResult,
   StubsDiagramGroupBy,
   StubsDiagramType,
+  StubsAgenticTask,
+  StubsBatchPreFlightResult,
+  StubsSessionHandoff,
 } from "../../types";
-import mermaid from "mermaid";
+import { StubsTaskUpdateInput } from "../../services/stubsService";
+
+type MermaidApi = typeof import("mermaid").default;
+let mermaidPromise: Promise<MermaidApi> | null = null;
+
+function getMermaid(): Promise<MermaidApi> {
+  if (!mermaidPromise) {
+    mermaidPromise = import("mermaid").then((mod) => {
+      const m = mod.default;
+      m.initialize({
+        startOnLoad: false,
+        theme: "dark",
+        securityLevel: "loose",
+        flowchart: {
+          useMaxWidth: true,
+          htmlLabels: true,
+          curve: "basis",
+        },
+      });
+      return m;
+    });
+  }
+  return mermaidPromise;
+}
 
 export function useStubsData(showToast: (msg: string) => void) {
   const { stubsClient, logger, timeProvider } = useServices();
@@ -28,6 +54,13 @@ export function useStubsData(showToast: (msg: string) => void) {
   // Pipeline (`stubs run`) state
   const [pipelineResult, setPipelineResult] = useState<StubsRunResult | null>(null);
   const [isRunningPipeline, setIsRunningPipeline] = useState(false);
+
+  // Durable Agentic Task & Session Handoff state
+  const [activeTask, setActiveTask] = useState<StubsAgenticTask | null>(null);
+  const [tasks, setTasks] = useState<StubsAgenticTask[]>([]);
+  const [isMutatingTask, setIsMutatingTask] = useState(false);
+  const [sessionHandoff, setSessionHandoff] = useState<StubsSessionHandoff | null>(null);
+  const [isLoadingHandoff, setIsLoadingHandoff] = useState(false);
 
   // Diagram state
   const [diagramGroupBy, setDiagramGroupBy] = useState<StubsDiagramGroupBy>("domain");
@@ -60,17 +93,110 @@ export function useStubsData(showToast: (msg: string) => void) {
   const [impactGuard, setImpactGuard] = useState<"low" | "medium" | "high" | "critical">("high");
   const [isLoadingImpact, setIsLoadingImpact] = useState(false);
 
+  // Multi-Target Batch Pre-Flight state
+  const [batchPreFlightResult, setBatchPreFlightResult] = useState<StubsBatchPreFlightResult | null>(null);
+  const [isLoadingBatchPreFlight, setIsLoadingBatchPreFlight] = useState(false);
+
   const loadGraph = useCallback(async () => {
     setIsLoadingGraph(true);
     try {
       const data = await stubsClient.fetchGraphData();
       setGraphData(data);
+      setActiveTask(data.activeTask ?? null);
+      if (data.tasks) {
+        setTasks(data.tasks);
+      }
     } catch (err: unknown) {
       showToast(`Failed to load graph: ${getErrorMessage(err)}`);
     } finally {
       setIsLoadingGraph(false);
     }
   }, [showToast, stubsClient]);
+
+  const createTask = useCallback(
+    async (input: {
+      title: string;
+      goal?: string;
+      targetFiles?: string[];
+      targets?: string[];
+      guardThreshold?: "low" | "medium" | "high" | "critical";
+    }) => {
+      setIsMutatingTask(true);
+      try {
+        const res = await stubsClient.createTask(input);
+        setActiveTask(res.task);
+        await loadGraph();
+        showToast(`Started durable task "${res.task.title}" (${res.task.editPlan.length} modules in topological plan).`);
+        return res.task;
+      } catch (err: unknown) {
+        showToast(`Failed to create task: ${getErrorMessage(err)}`);
+        return null;
+      } finally {
+        setIsMutatingTask(false);
+      }
+    },
+    [loadGraph, showToast, stubsClient]
+  );
+
+  const updateTask = useCallback(
+    async (input: StubsTaskUpdateInput) => {
+      setIsMutatingTask(true);
+      try {
+        const res = await stubsClient.updateTask(input);
+        if (res.task && res.task.status !== "completed") {
+          setActiveTask(res.task);
+        } else if (activeTask?.id === input.taskId) {
+          setActiveTask(null);
+        }
+        await loadGraph();
+        return res.task;
+      } catch (err: unknown) {
+        showToast(`Failed to update task: ${getErrorMessage(err)}`);
+        return null;
+      } finally {
+        setIsMutatingTask(false);
+      }
+    },
+    [activeTask?.id, loadGraph, showToast, stubsClient]
+  );
+
+  const verifyTask = useCallback(
+    async (taskId?: string) => {
+      setIsMutatingTask(true);
+      showToast("Verifying durable 5-phase task gates (AST scan, pre-flight, symbol contract parity, sidecar sanding, lint-arch)...");
+      try {
+        const res = await stubsClient.verifyTask(taskId);
+        setActiveTask(res.task);
+        setPipelineResult(res.pipeline);
+        await loadGraph();
+        showToast(res.report.summary);
+        return res;
+      } catch (err: unknown) {
+        showToast(`Task verification failed: ${getErrorMessage(err)}`);
+        return null;
+      } finally {
+        setIsMutatingTask(false);
+      }
+    },
+    [loadGraph, showToast, stubsClient]
+  );
+
+  const loadSessionHandoff = useCallback(
+    async (taskId?: string) => {
+      setIsLoadingHandoff(true);
+      try {
+        const handoff = await stubsClient.fetchSessionHandoff(taskId);
+        setSessionHandoff(handoff);
+        return handoff;
+      } catch (err: unknown) {
+        showToast(`Failed to generate session handoff: ${getErrorMessage(err)}`);
+        return null;
+      } finally {
+        setIsLoadingHandoff(false);
+      }
+    },
+    [showToast, stubsClient]
+  );
 
   const runQuery = useCallback(
     async (query: string, budget = 1500) => {
@@ -103,6 +229,7 @@ export function useStubsData(showToast: (msg: string) => void) {
       );
       setDiagramMermaid(res.mermaid);
       try {
+        const mermaid = await getMermaid();
         const id = `mermaid-svg-${timeProvider.now()}`;
         const { svg } = await mermaid.render(id, res.mermaid);
         setRenderedSvg(svg);
@@ -164,6 +291,27 @@ export function useStubsData(showToast: (msg: string) => void) {
     [showToast, stubsClient, impactGuard]
   );
 
+  const runBatchPreFlight = useCallback(
+    async (targets: string[], guardOverride?: "low" | "medium" | "high" | "critical") => {
+      if (targets.length === 0) {
+        setBatchPreFlightResult(null);
+        return null;
+      }
+      setIsLoadingBatchPreFlight(true);
+      try {
+        const res = await stubsClient.runBatchPreFlight(targets, guardOverride || impactGuard);
+        setBatchPreFlightResult(res);
+        return res;
+      } catch (err: unknown) {
+        showToast(`Failed to compute batch pre-flight: ${getErrorMessage(err)}`);
+        return null;
+      } finally {
+        setIsLoadingBatchPreFlight(false);
+      }
+    },
+    [impactGuard, showToast, stubsClient]
+  );
+
   const runPipeline = useCallback(async () => {
     setIsRunningPipeline(true);
     showToast("Running durable 5-stage harness pipeline (scan, maps & sand, lint-arch, prune, design audit)...");
@@ -219,6 +367,18 @@ export function useStubsData(showToast: (msg: string) => void) {
     runPipeline,
     syncMaps,
 
+    // Durable Agentic Tasks & Session Handoff
+    activeTask,
+    tasks,
+    isMutatingTask,
+    createTask,
+    updateTask,
+    verifyTask,
+    sessionHandoff,
+    isLoadingHandoff,
+    loadSessionHandoff,
+    clearSessionHandoff: () => setSessionHandoff(null),
+
     // Diagram
     diagramGroupBy,
     setDiagramGroupBy,
@@ -252,5 +412,9 @@ export function useStubsData(showToast: (msg: string) => void) {
     setImpactGuard,
     isLoadingImpact,
     loadImpact,
+    batchPreFlightResult,
+    isLoadingBatchPreFlight,
+    runBatchPreFlight,
+    clearBatchPreFlight: () => setBatchPreFlightResult(null),
   };
 }

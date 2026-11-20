@@ -13,7 +13,7 @@ export class KotlinGenerator extends BaseCodeGenerator {
     return `// In your Android app build.gradle.kts:
 // implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
-package com.example.aistudio
+package com.example.helm
 
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig

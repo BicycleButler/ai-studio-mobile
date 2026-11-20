@@ -20,6 +20,23 @@ hljs.registerLanguage("kotlin", kotlin);
 hljs.registerLanguage("bash", bash);
 
 const MAX_HIGHLIGHT_CHARS = 200_000;
+const MAX_CACHEABLE_CHARS = 100_000;
+const MAX_CACHE_ENTRIES = 40;
+
+const highlightCache = new Map<string, string>();
+
+export function clearHighlightCache(): void {
+  highlightCache.clear();
+}
+
+export function countLines(input: string): number {
+  if (!input) return 1;
+  let count = 1;
+  for (let i = 0; i < input.length; i++) {
+    if (input.charCodeAt(i) === 10) count++;
+  }
+  return count;
+}
 
 export function escapeHtml(input: string): string {
   return input
@@ -82,6 +99,19 @@ export function highlightCodeToHtml(
   if (!code) return "";
 
   const resolvedLang = normalizeEditorLanguage(language, filePath);
+  const canCache = code.length <= MAX_CACHEABLE_CHARS;
+  const cacheKey = canCache ? `${resolvedLang}\0${code}` : "";
+
+  if (canCache) {
+    const cached = highlightCache.get(cacheKey);
+    if (cached !== undefined) {
+      // Refresh LRU position
+      highlightCache.delete(cacheKey);
+      highlightCache.set(cacheKey, cached);
+      return cached;
+    }
+  }
+
   let html: string;
 
   if (resolvedLang === "text" || code.length > MAX_HIGHLIGHT_CHARS || !hljs.getLanguage(resolvedLang)) {
@@ -95,5 +125,17 @@ export function highlightCodeToHtml(
   }
 
   // Ensure a trailing newline occupies the final line box in <pre> just like <textarea>
-  return code.endsWith("\n") ? `${html} ` : html;
+  const result = code.endsWith("\n") ? `${html} ` : html;
+
+  if (canCache) {
+    if (highlightCache.size >= MAX_CACHE_ENTRIES) {
+      const oldestKey = highlightCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        highlightCache.delete(oldestKey);
+      }
+    }
+    highlightCache.set(cacheKey, result);
+  }
+
+  return result;
 }

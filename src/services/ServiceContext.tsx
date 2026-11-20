@@ -5,7 +5,7 @@ import { InterceptorManager } from "../utils/apiClientInterceptors";
 import { IAppAuthManager, AppAuthManager } from "./appAuthManager";
 import { BrowserPlatformService } from "../services/platformService"
 
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, useContext, useMemo, ReactNode } from "react";
 
 import { IApiClient, ApiClient } from "../utils/apiClient";
 import { SyncOrchestrator, ISyncOrchestrator } from "../utils/syncOrchestrator";
@@ -348,7 +348,10 @@ export const ServiceProvider: React.FC<{
   services?: Partial<IServices>;
   children: ReactNode;
 }> = ({ services, children }) => {
-  const value = { ...defaultServices, ...services };
+  const value = useMemo(
+    () => (services ? { ...defaultServices, ...services } : defaultServices),
+    [services]
+  );
   return (
     <ServiceContext.Provider value={value}>
       {children}

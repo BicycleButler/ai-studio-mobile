@@ -13,6 +13,8 @@ import { useEffect, useRef } from "react";
  * When the drawer is closed through UI (such as an "X" button at the top right,
  * an on-screen "Back" button, or Escape key), the history entry is cleanly reverted.
  */
+const pendingBackReverts = new Map<string, ReturnType<typeof setTimeout>>();
+
 export function useBackNavigation(
   isOpen: boolean,
   onClose: () => void,
@@ -29,25 +31,45 @@ export function useBackNavigation(
   }, [onClose]);
 
   useEffect(() => {
+    const stateKey = `drawer_${drawerId}`;
+
     if (!isOpen) {
       pushedRef.current = false;
       return;
     }
 
+    // Cancel any pending history.back() from a StrictMode double-invoke cleanup
+    // or immediate close/re-open of the same drawer.
+    const pendingRevert = pendingBackReverts.get(stateKey);
+    if (pendingRevert !== undefined) {
+      clearTimeout(pendingRevert);
+      pendingBackReverts.delete(stateKey);
+    }
+
     isPoppedBySystemRef.current = false;
     pushedRef.current = true;
 
-    const stateKey = `drawer_${drawerId}`;
-    const state = { [stateKey]: true, drawerId, timestamp: timeProvider.now() };
-
     try {
       const win = platformService.getWindow() as Window & { history?: History };
-      win?.history?.pushState(state, "");
+      const alreadyPushed = Boolean(win?.history?.state && win.history.state[stateKey]);
+      if (!alreadyPushed) {
+        const state = { [stateKey]: true, drawerId, timestamp: timeProvider.now() };
+        win?.history?.pushState(state, "");
+      }
     } catch {
       // Ignore security errors in sandboxed environments
     }
 
     const handlePopState = () => {
+      // Ignore popstate if our drawer's state entry is still the active entry
+      try {
+        const win = platformService.getWindow() as Window & { history?: History };
+        if (win?.history?.state && win.history.state[stateKey]) {
+          return;
+        }
+      } catch {
+        // Ignore
+      }
       // Marked as popped by browser/system back navigation
       isPoppedBySystemRef.current = true;
       onCloseRef.current();
@@ -58,18 +80,24 @@ export function useBackNavigation(
     return () => {
       removePopState();
 
-      // If closed by UI action (X button, UI Back button, Esc) rather than popstate
+      // If closed by UI action (X button, UI Back button, Esc) rather than popstate,
+      // defer history.back() by one macrotask so React StrictMode remounts can cancel it
+      // without firing a delayed popstate that would immediately close the remounted drawer.
       if (pushedRef.current && !isPoppedBySystemRef.current) {
-        try {
-          const win = platformService.getWindow() as Window & { history?: History };
-          if (win?.history?.state && win.history.state[stateKey]) {
-            win.history.back();
+        const timer = setTimeout(() => {
+          pendingBackReverts.delete(stateKey);
+          try {
+            const win = platformService.getWindow() as Window & { history?: History };
+            if (win?.history?.state && win.history.state[stateKey]) {
+              win.history.back();
+            }
+          } catch {
+            // Ignore
           }
-        } catch {
-          // Ignore
-        }
+        }, 0);
+        pendingBackReverts.set(stateKey, timer);
       }
       pushedRef.current = false;
     };
-  }, [isOpen, drawerId, platformService]);
+  }, [isOpen, drawerId, platformService, timeProvider]);
 }

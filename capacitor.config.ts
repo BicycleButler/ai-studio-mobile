@@ -25,7 +25,7 @@ export interface CapacitorConfig {
 
 const config: CapacitorConfig = {
   appId: "com.aistudio.mobile",
-  appName: "Client for Google AI Studio",
+  appName: "Helm",
   webDir: "dist",
   bundledWebRuntime: false,
   server: {

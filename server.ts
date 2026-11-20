@@ -5,6 +5,7 @@ import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import http from "node:http";
+import zlib from "node:zlib";
 import { GenerateContentConfig } from "@google/genai";
 import dotenv from "dotenv";
 import { ServerStateStore, GoogleSessionUser } from "./server/stateStore";
@@ -58,6 +59,12 @@ import {
   generateContextMaps,
   runStubsPipeline,
   runCliCommand,
+  getBatchPreFlight,
+  listAgenticTasks,
+  createAgenticTask,
+  updateAgenticTask,
+  verifyAgenticTask,
+  generateSessionHandoff,
   stubsEvents,
   closeStubsDatabase,
 } from "./server/stubsService";
@@ -448,8 +455,81 @@ export function createApp(options: CreateAppOptions = {}): {
   const callTimeoutMs = options.genAiCallTimeoutMs ?? GENAI_CALL_TIMEOUT_MS;
   const streamIdleTimeoutMs = options.genAiStreamIdleTimeoutMs ?? GENAI_STREAM_IDLE_TIMEOUT_MS;
 
+  app.disable("x-powered-by");
   app.use(express.json({ limit: "25mb" }));
   app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+
+  // Lightweight zero-dependency compression for compressible API responses (>= 1KB, excluding SSE)
+  const COMPRESSION_MIN_BYTES = 1024;
+  app.use("/api", (req: Request, res: Response, next: NextFunction): void => {
+    const acceptEncoding = String(req.headers["accept-encoding"] || "").toLowerCase();
+    const useBrotli = acceptEncoding.includes("br");
+    const useGzip = !useBrotli && acceptEncoding.includes("gzip");
+    if (!useBrotli && !useGzip) {
+      next();
+      return;
+    }
+
+    const origSend = res.send.bind(res);
+    res.send = ((body?: unknown): Response => {
+      if (
+        res.headersSent ||
+        res.statusCode < 200 ||
+        res.statusCode >= 300 ||
+        res.getHeader("Content-Encoding") ||
+        body === undefined ||
+        body === null
+      ) {
+        return origSend(body as never);
+      }
+
+      const contentType = String(res.getHeader("Content-Type") || "").toLowerCase();
+      if (contentType.includes("text/event-stream")) {
+        return origSend(body as never);
+      }
+
+      const isCompressible =
+        contentType.includes("application/json") ||
+        contentType.startsWith("text/") ||
+        contentType.includes("application/javascript") ||
+        contentType.includes("image/svg+xml");
+
+      if (!isCompressible) {
+        return origSend(body as never);
+      }
+
+      const buf = Buffer.isBuffer(body)
+        ? body
+        : typeof body === "string"
+          ? Buffer.from(body, "utf8")
+          : null;
+
+      if (!buf || buf.length < COMPRESSION_MIN_BYTES) {
+        return origSend(body as never);
+      }
+
+      try {
+        const compressed = useBrotli
+          ? zlib.brotliCompressSync(buf, {
+              params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 },
+            })
+          : zlib.gzipSync(buf, { level: 6 });
+
+        if (compressed.length < buf.length) {
+          res.setHeader("Content-Encoding", useBrotli ? "br" : "gzip");
+          res.vary("Accept-Encoding");
+          res.setHeader("Content-Length", compressed.length);
+          return origSend(compressed);
+        }
+      } catch {
+        // Fall through to uncompressed payload if compression fails
+      }
+
+      return origSend(body as never);
+    }) as typeof res.send;
+
+    next();
+  });
 
   const windowMs = options.rateLimits?.windowMs ?? DEFAULT_RATE_WINDOW_MS;
   const aiRateLimiter = createRateLimiter({
@@ -465,10 +545,14 @@ export function createApp(options: CreateAppOptions = {}): {
     nowFn: () => timeProvider.now(),
   });
 
-  // Per-key cached live models and backoff tracking
+  // Per-key cached live models, single-flight coalescing, and backoff tracking
   const modelCacheByKey = new Map<
     string,
     { models: typeof DEFAULT_FALLBACK_MODELS; timestamp: number }
+  >();
+  const inflightModelFetchByKey = new Map<
+    string,
+    Promise<typeof DEFAULT_FALLBACK_MODELS | null>
   >();
   const modelErrorTimestampByKey = new Map<string, number>();
 
@@ -592,19 +676,29 @@ app.get("/auth/callback", (_req: Request, res: Response): void => {
 </html>`);
 });
 
-function getFirebaseWebApiKey(): string {
-  if (process.env.FIREBASE_WEB_API_KEY) return process.env.FIREBASE_WEB_API_KEY;
+let cachedFirebaseAppletConfig: { apiKey?: string; oAuthClientId?: string } | null | undefined;
+
+function readFirebaseAppletConfig(): { apiKey?: string; oAuthClientId?: string } | null {
+  if (cachedFirebaseAppletConfig !== undefined) {
+    return cachedFirebaseAppletConfig;
+  }
   try {
     const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
     if (fs.existsSync(configPath)) {
       const raw = fs.readFileSync(configPath, "utf-8");
-      const parsed = JSON.parse(raw) as { apiKey?: string };
-      if (parsed.apiKey) return parsed.apiKey;
+      cachedFirebaseAppletConfig = JSON.parse(raw) as { apiKey?: string; oAuthClientId?: string };
+      return cachedFirebaseAppletConfig;
     }
   } catch {
     // ignore
   }
-  return "";
+  cachedFirebaseAppletConfig = null;
+  return null;
+}
+
+function getFirebaseWebApiKey(): string {
+  if (process.env.FIREBASE_WEB_API_KEY) return process.env.FIREBASE_WEB_API_KEY;
+  return readFirebaseAppletConfig()?.apiKey || "";
 }
 
 async function defaultVerifyGoogleCredentials(params: {
@@ -731,17 +825,7 @@ async function defaultVerifyGoogleCredentials(params: {
 function getOAuthClientId(): string {
   if (process.env.CLIENT_ID) return process.env.CLIENT_ID;
   if (process.env.GOOGLE_CLIENT_ID) return process.env.GOOGLE_CLIENT_ID;
-  try {
-    const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
-    if (fs.existsSync(configPath)) {
-      const raw = fs.readFileSync(configPath, "utf-8");
-      const parsed = JSON.parse(raw);
-      if (parsed.oAuthClientId) return parsed.oAuthClientId;
-    }
-  } catch {
-    // ignore
-  }
-  return "";
+  return readFirebaseAppletConfig()?.oAuthClientId || "";
 }
 
 // OAuth Authorization URL generator
@@ -1178,103 +1262,120 @@ app.get("/api/models", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  try {
-    const ai = resolveGenAIClient(customKey);
-    const pager = await withTimeout(ai.models.list(), callTimeoutMs, "Model list");
+  let inflight = !forceRefresh ? inflightModelFetchByKey.get(cacheKey) : undefined;
+  if (!inflight) {
+    inflight = (async (): Promise<typeof DEFAULT_FALLBACK_MODELS | null> => {
+      try {
+        const ai = resolveGenAIClient(customKey);
+        const pager = await withTimeout(ai.models.list(), callTimeoutMs, "Model list");
 
-    const liveModels: Array<{
-      id: string;
-      name: string;
-      category: string;
-      description: string;
-      contextWindow: string;
-      supportsVision: boolean;
-      supportsAudio: boolean;
-      supportsSystemInstruction: boolean;
-      supportsJson: boolean;
-    }> = [];
+        const liveModels: Array<{
+          id: string;
+          name: string;
+          category: string;
+          description: string;
+          contextWindow: string;
+          supportsVision: boolean;
+          supportsAudio: boolean;
+          supportsSystemInstruction: boolean;
+          supportsJson: boolean;
+        }> = [];
 
-    for await (const m of pager) {
-      if (m.name && m.supportedActions?.includes("generateContent")) {
-        const id = m.name.replace(/^models\//, "");
-        if (isDeprecatedOrUnusableModel(id)) {
-          continue; // Filter out deprecated, legacy, and non-chat models
-        }
+        for await (const m of pager) {
+          if (m.name && m.supportedActions?.includes("generateContent")) {
+            const id = m.name.replace(/^models\//, "");
+            if (isDeprecatedOrUnusableModel(id)) {
+              continue; // Filter out deprecated, legacy, and non-chat models
+            }
 
-        const inputLimit = m.inputTokenLimit;
-        const ctx = inputLimit
-          ? `${inputLimit >= 1_000_000 ? `${(inputLimit / 1_000_000).toFixed(0)}M` : `${Math.round(inputLimit / 1_000)}k`} tokens`
-          : "1M tokens";
+            const inputLimit = m.inputTokenLimit;
+            const ctx = inputLimit
+              ? `${inputLimit >= 1_000_000 ? `${(inputLimit / 1_000_000).toFixed(0)}M` : `${Math.round(inputLimit / 1_000)}k`} tokens`
+              : "1M tokens";
 
-        const curated = CURATED_MODELS.find((cm) => cm.id === id);
+            const curated = CURATED_MODELS.find((cm) => cm.id === id);
 
-        let category = curated?.category || "General";
-        if (!curated) {
-          if (id.includes("flash-lite")) {
-            category = "High Speed";
-          } else if (id.includes("flash")) {
-            category = "Recommended";
-          } else if (id.includes("pro")) {
-            category = "Complex Reasoning";
+            let category = curated?.category || "General";
+            if (!curated) {
+              if (id.includes("flash-lite")) {
+                category = "High Speed";
+              } else if (id.includes("flash")) {
+                category = "Recommended";
+              } else if (id.includes("pro")) {
+                category = "Complex Reasoning";
+              }
+            }
+
+            liveModels.push({
+              id,
+              name: curated?.name || m.displayName || id,
+              category,
+              description: curated?.description || m.description || `Google AI Studio ${id} model.`,
+              contextWindow: ctx,
+              supportsVision: true,
+              supportsAudio: curated?.supportsAudio ?? (id.includes("pro") || id.includes("flash")),
+              supportsSystemInstruction: true,
+              supportsJson: true,
+            });
           }
         }
 
-        liveModels.push({
-          id,
-          name: curated?.name || m.displayName || id,
-          category,
-          description: curated?.description || m.description || `Google AI Studio ${id} model.`,
-          contextWindow: ctx,
-          supportsVision: true,
-          supportsAudio: curated?.supportsAudio ?? (id.includes("pro") || id.includes("flash")),
-          supportsSystemInstruction: true,
-          supportsJson: true,
-        });
+        // Make sure that all standard curated models are included in the available menu
+        for (const curated of CURATED_MODELS) {
+          if (!liveModels.some((lm) => lm.id === curated.id)) {
+            liveModels.push(curated);
+          }
+        }
+
+        if (liveModels.length > 0) {
+          // Prioritize recommended models at top
+          liveModels.sort((a, b) => {
+            const priority = (id: string) => {
+              if (id === "gemini-4-hydrogen") return 1;
+              if (id === "gemini-2.5-flash") return 2;
+              if (id === "gemini-3.1-pro-preview") return 3;
+              if (id === "gemini-3.1-flash-lite") return 4;
+              if (id === "gemini-flash-latest") return 5;
+              if (id === "gemini-pro-latest") return 6;
+              if (id === "gemini-2.5-pro") return 7;
+              return 20;
+            };
+            return priority(a.id) - priority(b.id);
+          });
+
+          if (modelCacheByKey.size >= MAX_MODEL_CACHE_ENTRIES) {
+            const oldestKey = modelCacheByKey.keys().next().value;
+            if (oldestKey) modelCacheByKey.delete(oldestKey);
+          }
+          modelCacheByKey.set(cacheKey, { models: liveModels, timestamp: timeProvider.now() });
+          modelErrorTimestampByKey.delete(cacheKey);
+          return liveModels;
+        }
+        return null;
+      } catch {
+        recordModelErrorTimestamp(cacheKey, timeProvider.now());
+        // Upstream service can be temporarily unavailable (for example, 503 UNAVAILABLE) or rate-limited.
+        // Gracefully fall back to stable default models without logging alarms to console.
+        return null;
+      } finally {
+        if (inflightModelFetchByKey.get(cacheKey) === inflight) {
+          inflightModelFetchByKey.delete(cacheKey);
+        }
       }
-    }
+    })();
 
-    // Make sure that all standard curated models are included in the available menu
-    for (const curated of CURATED_MODELS) {
-      if (!liveModels.some((lm) => lm.id === curated.id)) {
-        liveModels.push(curated);
-      }
-    }
+    inflightModelFetchByKey.set(cacheKey, inflight);
+  }
 
-    if (liveModels.length > 0) {
-      // Prioritize recommended models at top
-      liveModels.sort((a, b) => {
-        const priority = (id: string) => {
-          if (id === "gemini-4-hydrogen") return 1;
-          if (id === "gemini-2.5-flash") return 2;
-          if (id === "gemini-3.1-pro-preview") return 3;
-          if (id === "gemini-3.1-flash-lite") return 4;
-          if (id === "gemini-flash-latest") return 5;
-          if (id === "gemini-pro-latest") return 6;
-          if (id === "gemini-2.5-pro") return 7;
-          return 20;
-        };
-        return priority(a.id) - priority(b.id);
-      });
-
-      if (modelCacheByKey.size >= MAX_MODEL_CACHE_ENTRIES) {
-        const oldestKey = modelCacheByKey.keys().next().value;
-        if (oldestKey) modelCacheByKey.delete(oldestKey);
-      }
-      modelCacheByKey.set(cacheKey, { models: liveModels, timestamp: now });
-      modelErrorTimestampByKey.delete(cacheKey);
-
-      res.json({
-        models: liveModels,
-        count: liveModels.length,
-        liveSynced: true,
-        cached: false,
-      });
-      return;
-    }
-  } catch {
-    recordModelErrorTimestamp(cacheKey, now);
-    // Upstream service can be temporarily unavailable (for example, 503 UNAVAILABLE) or rate-limited.
-    // Gracefully fall back to stable default models without logging alarms to console.
+  const liveModels = await inflight;
+  if (liveModels && liveModels.length > 0) {
+    res.json({
+      models: liveModels,
+      count: liveModels.length,
+      liveSynced: true,
+      cached: false,
+    });
+    return;
   }
 
   // Fallback to stable defaults if unable to list
@@ -1907,6 +2008,139 @@ app.post("/api/stubs/run", requireTrustedWorkspaceOrigin, stubsExecRateLimiter, 
   try {
     const result = await runStubsPipeline(true);
     res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * POST /api/stubs/pre-flight-batch - Computes unified multi-target pre-flight blast radius & topological edit sequence
+ */
+app.post("/api/stubs/pre-flight-batch", requireTrustedWorkspaceOrigin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawTargets = Array.isArray(req.body?.targets)
+      ? req.body.targets
+      : Array.isArray(req.body?.targetFiles)
+      ? req.body.targetFiles
+      : [];
+    const targets = rawTargets.filter((t: unknown): t is string => typeof t === "string" && t.trim().length > 0);
+    if (targets.length === 0) {
+      res.status(400).json({ error: "Missing required 'targets' array in request body." });
+      return;
+    }
+    const guardRaw = typeof req.body?.guard === "string" ? req.body.guard.toLowerCase() : undefined;
+    const guard =
+      guardRaw === "low" || guardRaw === "medium" || guardRaw === "high" || guardRaw === "critical"
+        ? guardRaw
+        : undefined;
+    const result = await getBatchPreFlight(targets, guard);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/tasks - Lists active and historical durable agentic coding tasks from .stubs/harness-ledger.json
+ */
+app.get("/api/stubs/tasks", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await listAgenticTasks();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * POST /api/stubs/tasks - Creates a new durable agentic coding task with a multi-target topological edit plan
+ */
+app.post("/api/stubs/tasks", requireTrustedWorkspaceOrigin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { title, goal, targetFiles, targets, guardThreshold } = req.body || {};
+    if (!title || typeof title !== "string") {
+      res.status(400).json({ error: "Missing required 'title' in request body." });
+      return;
+    }
+    const rawList = Array.isArray(targetFiles) ? targetFiles : Array.isArray(targets) ? targets : [];
+    const targetList = rawList.filter((t: unknown): t is string => typeof t === "string" && t.trim().length > 0);
+    const guardRaw = typeof guardThreshold === "string" ? guardThreshold.toLowerCase() : undefined;
+    const guard =
+      guardRaw === "low" || guardRaw === "medium" || guardRaw === "high" || guardRaw === "critical"
+        ? guardRaw
+        : undefined;
+    const task = await createAgenticTask({
+      title,
+      goal: typeof goal === "string" && goal.trim() ? goal : title,
+      targetFiles: targetList.length > 0 ? targetList : ["src/types/stubs.ts"],
+      guardThreshold: guard,
+    });
+    res.json({ task });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * POST /api/stubs/tasks/update - Updates step status, target file status, or overall task status on a durable task
+ */
+app.post("/api/stubs/tasks/update", requireTrustedWorkspaceOrigin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const {
+      taskId,
+      taskStatus,
+      status,
+      stepId,
+      stepStatus,
+      targetPath,
+      targetFilePath,
+      targetStatus,
+      setActive,
+      resetBaseline,
+      note,
+    } = req.body || {};
+    if (!taskId || typeof taskId !== "string") {
+      res.status(400).json({ error: "Missing required 'taskId' in request body." });
+      return;
+    }
+    const updated = await updateAgenticTask({
+      taskId,
+      taskStatus: taskStatus || status,
+      stepId,
+      stepStatus,
+      targetPath: targetPath || targetFilePath,
+      targetStatus,
+      setActive,
+      resetBaseline: Boolean(resetBaseline),
+      note,
+    });
+    res.json({ task: updated });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * POST /api/stubs/tasks/verify - Executes automated 5-phase durable task verification gate
+ */
+app.post("/api/stubs/tasks/verify", requireTrustedWorkspaceOrigin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const taskId = typeof req.body?.taskId === "string" ? req.body.taskId : undefined;
+    const verification = await verifyAgenticTask(taskId);
+    res.json(verification);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/handoff - Synthesizes a deterministic Session Handoff & Context Resumption Packet
+ */
+app.get("/api/stubs/handoff", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const taskId = typeof req.query.taskId === "string" ? req.query.taskId : undefined;
+    const handoff = await generateSessionHandoff(taskId);
+    res.json(handoff);
   } catch (error) {
     res.status(500).json({ error: getErrorMessage(error) });
   }
@@ -2742,6 +2976,8 @@ function getErrorStatus(error: unknown): number {
 export async function startServer(): Promise<http.Server> {
   const { app, stateStore } = createApp();
   const httpServer = http.createServer(app);
+  httpServer.keepAliveTimeout = 65_000;
+  httpServer.headersTimeout = 66_000;
 
   // Vite dev middleware or static serving
   if (process.env.NODE_ENV !== "production") {
@@ -2808,12 +3044,34 @@ export async function startServer(): Promise<http.Server> {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    app.use(
+      "/assets",
+      express.static(path.join(distPath, "assets"), {
+        maxAge: "1y",
+        immutable: true,
+        etag: true,
+      })
+    );
+    app.use(
+      express.static(distPath, {
+        etag: true,
+        setHeaders: (res, filePath) => {
+          if (
+            filePath.endsWith(".html") ||
+            filePath.endsWith("sw.js") ||
+            filePath.endsWith("manifest.json")
+          ) {
+            res.setHeader("Cache-Control", "no-cache");
+          }
+        },
+      })
+    );
     app.get("*", (req: Request, res: Response): void => {
       if (req.path.startsWith("/api/")) {
         res.status(404).json({ error: "API endpoint not found." });
         return;
       }
+      res.setHeader("Cache-Control", "no-cache");
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

@@ -13,7 +13,6 @@ import {
 import {
   PromptConfig,
   ModelInfo,
-  DeviceFrameMode,
   SavedPrompt,
   ChatMessage,
   ProjectInfo,
@@ -91,10 +90,6 @@ export interface UnifiedSettingsModalProps
   // Export
   messages?: ChatMessage[];
 
-  // Display & Appearance
-  deviceMode: DeviceFrameMode;
-  onSelectDeviceMode: (mode: DeviceFrameMode) => void;
-
   // Bi-directional IDE bridge
   openedWorkspaceFiles?: IDEOpenedFile[];
   activeWorkspaceFilePath?: string | null;
@@ -137,8 +132,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
   onDeletePrompt,
   onBulkDeletePrompts,
   messages = [],
-  deviceMode,
-  onSelectDeviceMode,
   openedWorkspaceFiles = [],
   activeWorkspaceFilePath = null,
   onOpenRemoteFileInIDE,
@@ -385,8 +378,6 @@ export const UnifiedSettingsModal: React.FC<UnifiedSettingsModalProps> = ({
             <SettingsDisplayTab
               themeMode={themeMode}
               setThemeMode={setThemeMode}
-              deviceMode={deviceMode}
-              onSelectDeviceMode={onSelectDeviceMode}
             />
           )}
 

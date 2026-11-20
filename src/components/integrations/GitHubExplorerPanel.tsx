@@ -243,7 +243,7 @@ export const GitHubExplorerPanel: React.FC<GitHubExplorerPanelProps> = ({
         owner,
         repo,
         branch: selectedBranch || "main",
-        message: commitMessage.trim() || `Sync ${filesToPush.length} workspace file(s) from AI Studio IDE`,
+        message: commitMessage.trim() || `Sync ${filesToPush.length} workspace file(s) from Helm IDE`,
         files: filesToPush.map((f) => ({ path: f.path.replace(/^\/+/, ""), content: f.content })),
       });
       setFeedbackMsg(`Pushed ${res.filesCount} file(s) to ${owner}/${repo}@${selectedBranch} (${res.commitSha.slice(0, 7)})`);

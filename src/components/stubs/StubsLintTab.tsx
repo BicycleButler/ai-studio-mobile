@@ -156,7 +156,7 @@ export const StubsLintTab: React.FC<StubsLintTabProps> = ({
                 <div className="flex items-start gap-2.5 min-w-0 flex-1">
                   <AlertTriangle
                     className={`w-4 h-4 mt-0.5 shrink-0 ${
-                      v.severity === "error" ? "text-destructive" : "text-warning"
+                      v.severity === "error" ? "text-foreground" : "text-muted-foreground"
                     }`}
                   />
                   <div className="min-w-0 space-y-1">

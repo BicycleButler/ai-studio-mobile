@@ -121,7 +121,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
                 <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                 Live Account Sync
               </span>
-              <span className="text-primary font-medium">Google AI Studio</span>
+              <span className="text-primary font-medium">Helm Cloud Sync</span>
             </div>
 
             <div className="flex items-center justify-between text-xs">
@@ -145,12 +145,12 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
 
           <div className="flex items-center justify-between pt-1">
             <a
-              href="https://aistudio.google.com"
+              href="https://aistudio.google.com/app/apikey"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors"
             >
-              <span>Manage in Google AI Studio</span>
+              <span>Manage API Keys in Google AI Studio</span>
               <ExternalLink className="w-3 h-3" />
             </a>
 
@@ -178,7 +178,7 @@ export const GoogleAuthCard: React.FC<GoogleAuthCardProps> = ({
                 Sign In with Google Account
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                Connect your Google account to synchronize prompts, models, and real AI Studio credentials.
+                Connect your Google account to synchronize prompts, projects, and workspace settings across devices in Helm.
               </p>
             </div>
           </div>

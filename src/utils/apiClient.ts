@@ -37,6 +37,7 @@ export class ApiClient implements IApiClient {
   private responseParser: IResponseParser;
   private urlBuilder: IUrlBuilder;
   private defaultTimeoutMs: number;
+  private inflightGets = new Map<string, Promise<unknown>>();
   public retryConfig: Required<Pick<RetryConfig, "retries" | "fetcher">> & { retryStrategy: IRetryStrategy, retryableStatusCodes?: Set<number> };
   constructor(config: ApiClientConfig) {
     const retryConfig = config.retryConfig || {};
@@ -59,6 +60,32 @@ export class ApiClient implements IApiClient {
   }
   public addResponseInterceptor(interceptor: ResponseInterceptor): void {
     this.interceptorManager.addResponseInterceptor(interceptor);
+  }
+  private getDedupKey(url: string, options: RequestInit): string | null {
+    const method = (options.method || "GET").toUpperCase();
+    if (method !== "GET" || options.signal || options.body !== undefined) {
+      return null;
+    }
+    let headersKey = "";
+    if (options.headers) {
+      if (options.headers instanceof Headers) {
+        const entries: string[] = [];
+        options.headers.forEach((v, k) => entries.push(`${k.toLowerCase()}:${v}`));
+        entries.sort();
+        headersKey = entries.join("|");
+      } else if (Array.isArray(options.headers)) {
+        headersKey = options.headers
+          .map(([k, v]) => `${k.toLowerCase()}:${v}`)
+          .sort()
+          .join("|");
+      } else {
+        headersKey = Object.entries(options.headers)
+          .map(([k, v]) => `${k.toLowerCase()}:${v}`)
+          .sort()
+          .join("|");
+      }
+    }
+    return `${url}\0${headersKey}`;
   }
   private async prepareRequest(
     endpoint: string,
@@ -112,26 +139,46 @@ export class ApiClient implements IApiClient {
     queryParams?: Record<string, string | number | boolean | (string | number | boolean)[]>
   ): Promise<T> {
     const { url, fetchOptions } = await this.prepareRequest(endpoint, options, queryParams);
-    let timeoutCtrl: AbortController | undefined;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let effectiveOptions = fetchOptions;
-
-    if (!fetchOptions.signal && this.defaultTimeoutMs > 0 && typeof AbortController !== "undefined") {
-      timeoutCtrl = new AbortController();
-      timer = setTimeout(() => {
-        timeoutCtrl?.abort(new DOMException(`Request to ${endpoint} timed out after ${this.defaultTimeoutMs}ms`, "TimeoutError"));
-      }, this.defaultTimeoutMs);
-      effectiveOptions = { ...fetchOptions, signal: timeoutCtrl.signal };
-    }
-
-    try {
-      const res = await this.executeRequest(url, effectiveOptions, defaultErrorMessage, false);
-      return await this.responseParser.parse<T>(res, endpoint);
-    } finally {
-      if (timer !== undefined) {
-        clearTimeout(timer);
+    const dedupKey = this.getDedupKey(url, fetchOptions);
+    if (dedupKey) {
+      const existing = this.inflightGets.get(dedupKey);
+      if (existing) {
+        return existing as Promise<T>;
       }
     }
+
+    const runFetch = async (): Promise<T> => {
+      let timeoutCtrl: AbortController | undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let effectiveOptions = fetchOptions;
+
+      if (!fetchOptions.signal && this.defaultTimeoutMs > 0 && typeof AbortController !== "undefined") {
+        timeoutCtrl = new AbortController();
+        timer = setTimeout(() => {
+          timeoutCtrl?.abort(new DOMException(`Request to ${endpoint} timed out after ${this.defaultTimeoutMs}ms`, "TimeoutError"));
+        }, this.defaultTimeoutMs);
+        effectiveOptions = { ...fetchOptions, signal: timeoutCtrl.signal };
+      }
+
+      try {
+        const res = await this.executeRequest(url, effectiveOptions, defaultErrorMessage, false);
+        return await this.responseParser.parse<T>(res, endpoint);
+      } finally {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+        }
+      }
+    };
+
+    if (!dedupKey) {
+      return runFetch();
+    }
+
+    const promise = runFetch().finally(() => {
+      this.inflightGets.delete(dedupKey);
+    });
+    this.inflightGets.set(dedupKey, promise);
+    return promise;
   }
   public async fetchStream(
     endpoint: string,

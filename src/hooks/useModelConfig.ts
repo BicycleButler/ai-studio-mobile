@@ -15,7 +15,7 @@ export function useModelConfig(
     CURATED_MODELS.map((m) => ({
       ...m,
       providerId: "google" as const,
-      providerName: "Google AI Studio",
+      providerName: "Google Gemini",
     }))
   );
   const [connections, setConnections] = useState<ProviderConnection[]>(() =>
@@ -38,7 +38,7 @@ export function useModelConfig(
           .map((m: ModelInfo) => ({
             ...m,
             providerId: m.providerId || ("google" as const),
-            providerName: m.providerName || "Google AI Studio",
+            providerName: m.providerName || "Google Gemini",
           }));
         if (cleaned.length > 0) {
           setGoogleModels(cleaned);

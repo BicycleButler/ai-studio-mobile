@@ -375,7 +375,7 @@ export function getProviderDefinition(providerId: ModelProviderId): ProviderDefi
 }
 
 export function getProviderDisplayName(providerId?: ModelProviderId): string {
-  if (!providerId || providerId === "google") return "Google AI Studio";
+  if (!providerId || providerId === "google") return "Google Gemini";
   return getProviderDefinition(providerId)?.shortName || providerId;
 }
 

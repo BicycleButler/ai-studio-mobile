@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { highlightCodeToHtml, normalizeEditorLanguage } from "./syntaxHighlight";
+import {
+  highlightCodeToHtml,
+  normalizeEditorLanguage,
+  clearHighlightCache,
+  countLines,
+} from "./syntaxHighlight";
 
 describe("syntaxHighlight", () => {
   it("normalizes common workspace extensions and generator languages", () => {
@@ -40,5 +45,28 @@ describe("syntaxHighlight", () => {
     const html = highlightCodeToHtml(huge, "typescript");
     expect(html).toContain("&lt;tag&gt;");
     expect(html).not.toContain("hljs-keyword");
+  });
+
+  it("returns identical cached HTML across repeated calls and evicts cleanly under bounded LRU", () => {
+    clearHighlightCache();
+    const snippet = "export function add(a: number, b: number) { return a + b; }";
+    const first = highlightCodeToHtml(snippet, "typescript");
+    const second = highlightCodeToHtml(snippet, "typescript");
+    expect(second).toBe(first);
+
+    // Fill past the 40-entry LRU bound to verify eviction does not break subsequent lookups
+    for (let i = 0; i < 55; i++) {
+      highlightCodeToHtml(`const v${i} = ${i};`, "typescript");
+    }
+    const recomputed = highlightCodeToHtml(snippet, "typescript");
+    expect(recomputed).toBe(first);
+  });
+
+  it("counts lines accurately without splitting into intermediate string arrays", () => {
+    expect(countLines("")).toBe(1);
+    expect(countLines("single line")).toBe(1);
+    expect(countLines("a\nb")).toBe(2);
+    expect(countLines("a\nb\n")).toBe(3);
+    expect(countLines("\n\n\n")).toBe(4);
   });
 });

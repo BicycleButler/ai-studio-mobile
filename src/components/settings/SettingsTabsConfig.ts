@@ -32,7 +32,7 @@ export const SETTINGS_TABS_CONFIG: SettingsTabConfig[] = [
   { id: "audio", label: "Audio", title: "Voice & Audio", icon: Volume2 },
   { id: "library", label: "Library", title: "Prompt Library", icon: FolderHeart },
   { id: "export", label: "Code", title: "Get Code", icon: Code2 },
-  { id: "companion", label: "Guide", title: "Companion & Guide", icon: Compass },
+  { id: "companion", label: "Guide", title: "Helm Guide", icon: Compass },
 ];
 
 export function resolveSettingsTab(tab?: string): SettingsTab {

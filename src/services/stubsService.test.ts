@@ -255,6 +255,122 @@ describe('StubsClient', () => {
         );
         expect(result).toEqual(mockSync);
     });
+
+    it('should call runBatchPreFlight correctly', async () => {
+        const mockBatch = {
+            targets: ['src/types.ts', 'src/App.tsx'],
+            safe: true,
+            overallRiskScore: 'MEDIUM' as const,
+            maxNumericRisk: 35,
+            guardThreshold: 'high' as const,
+            autonomyLevel: 'act_with_gate' as const,
+            blockedReasons: [],
+            unifiedEditOrder: ['src/types.ts', 'src/App.tsx'],
+            directCallersUnion: [],
+            dependenciesUnion: [],
+            domainBoundariesCrossed: [],
+            estimatedTotalTokens: 420,
+        };
+        mockApiClient.fetch.mockResolvedValueOnce(mockBatch);
+
+        const result = await client.runBatchPreFlight(['src/types.ts', 'src/App.tsx'], 'high');
+
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/pre-flight-batch',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targets: ['src/types.ts', 'src/App.tsx'], guard: 'high' }),
+            },
+            'Failed to compute multi-target batch pre-flight'
+        );
+        expect(result).toEqual(mockBatch);
+    });
+
+    it('should call createTask, updateTask, and fetchSessionHandoff correctly', async () => {
+        const mockTask = {
+            id: 'task_1',
+            title: 'Test Durable Task',
+            goal: 'Verify durable ledger',
+            status: 'in_progress' as const,
+            createdAt: 100,
+            updatedAt: 100,
+            autonomyLevel: 'act_with_gate' as const,
+            guardThreshold: 'high' as const,
+            targetFiles: ['src/types.ts'],
+            editPlan: [],
+            steps: [],
+            notes: [],
+        };
+        mockApiClient.fetch.mockResolvedValueOnce({ task: mockTask });
+
+        const created = await client.createTask({
+            title: 'Test Durable Task',
+            goal: 'Verify durable ledger',
+            targetFiles: ['src/types.ts'],
+        });
+        expect(created.task.id).toBe('task_1');
+
+        mockApiClient.fetch.mockResolvedValueOnce({ task: { ...mockTask, status: 'completed' } });
+        const updated = await client.updateTask({ taskId: 'task_1', taskStatus: 'completed' });
+        expect(updated.task.status).toBe('completed');
+
+        const mockHandoff = {
+            generatedAt: 200,
+            projectName: 'ai-studio-mobile',
+            activeTask: mockTask,
+            changedModules: [],
+            driftedSidecars: [],
+            nextRecommendedActions: ['Run npx stubs run'],
+            handoffMarkdown: '# Handoff',
+        };
+        mockApiClient.fetch.mockResolvedValueOnce(mockHandoff);
+        const handoff = await client.fetchSessionHandoff('task_1');
+        expect(handoff.handoffMarkdown).toBe('# Handoff');
+
+        const mockVerify = {
+            task: mockTask,
+            report: {
+                verifiedAt: 300,
+                passed: true,
+                preFlightSafe: true,
+                lintErrors: 0,
+                lintWarnings: 0,
+                driftedSidecars: 0,
+                designViolations: 0,
+                driftedTargetsCount: 1,
+                breakingContractsCount: 0,
+                affectedTests: ['src/services/stubsService.test.ts'],
+                recommendedTestCommand: 'npx vitest run src/services/stubsService.test.ts',
+                summary: 'All 5 durable task gates verified.',
+            },
+            pipeline: {
+                passed: true,
+                scannedFiles: 120,
+                edgesCount: 300,
+                lintErrors: 0,
+                lintWarnings: 0,
+                pruneIssues: 0,
+                driftedSidecars: 0,
+                contextMapsCount: 7,
+                designViolations: 0,
+                durationMs: 45,
+                steps: [],
+            },
+        };
+        mockApiClient.fetch.mockResolvedValueOnce(mockVerify);
+        const verified = await client.verifyTask('task_1');
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/tasks/verify',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskId: 'task_1' }),
+            },
+            'Failed to verify durable agentic task gates'
+        );
+        expect(verified.report.passed).toBe(true);
+    });
 });
 
 describe('StubsClient Stream Config', () => {

@@ -20,7 +20,7 @@ export const PWAUpdateBanner: React.FC<{ isGenerating?: boolean }> = ({ isGenera
         <span className="truncate">
           {isGenerating
             ? "A new version is ready. Finish streaming, then refresh."
-            : "A new version of AI Studio Mobile is ready."}
+            : "A new version of Helm is ready."}
         </span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">

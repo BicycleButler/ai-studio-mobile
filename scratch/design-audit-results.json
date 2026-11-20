@@ -1,10 +1,38 @@
 {
   "targetDir": "src",
-  "totalFiles": 291,
-  "filesWithViolationsCount": 0,
-  "cleanFilesCount": 291,
-  "totalViolations": 0,
-  "byRule": {},
-  "byDir": [],
-  "violations": []
+  "totalFiles": 295,
+  "filesWithViolationsCount": 1,
+  "cleanFilesCount": 294,
+  "totalViolations": 1,
+  "byRule": {
+    "Semantic Color at Rest": 1
+  },
+  "byDir": [
+    {
+      "domain": "components/ChatMessageItem.tsx",
+      "violationCount": 1,
+      "violations": [
+        {
+          "file": "src/components/ChatMessageItem.tsx",
+          "line": 149,
+          "rule": "Semantic Color at Rest",
+          "adr": "ADR 0036 §1",
+          "severity": "ERROR",
+          "snippet": "<div className=\"mt-2 p-2 rounded-lg bg-muted/40 border border-destructive/30 text-destructive text-xs\">",
+          "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+        }
+      ]
+    }
+  ],
+  "violations": [
+    {
+      "file": "src/components/ChatMessageItem.tsx",
+      "line": 149,
+      "rule": "Semantic Color at Rest",
+      "adr": "ADR 0036 §1",
+      "severity": "ERROR",
+      "snippet": "<div className=\"mt-2 p-2 rounded-lg bg-muted/40 border border-destructive/30 text-destructive text-xs\">",
+      "description": "Semantic alert color (destructive/success/warning) on a resting surface. Only allowed in toasts, open AlertDialogs, blur-triggered form validation, or hover inside open overflow menus."
+    }
+  ]
 }

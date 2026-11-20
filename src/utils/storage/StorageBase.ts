@@ -105,22 +105,9 @@ export class StorageBase<T> extends Observable<T> implements IStorageBase<T> {
       const toStore = this.options.transformIn ? this.options.transformIn(item) : item;
       this.adapter.set(this.key, toStore);
 
-      let rawValueToCache: T;
-      try {
-          rawValueToCache = structuredClone(toStore);
-      } catch {
-          try {
-              const serialized = this.options.serializer
-                  ? this.options.serializer.serialize(toStore)
-                  : JSON.stringify(toStore);
-              rawValueToCache = this.options.serializer
-                  ? this.options.serializer.deserialize(serialized)
-                  : JSON.parse(serialized);
-          } catch {
-              rawValueToCache = toStore;
-          }
-      }
-      this.cachedSnapshot = this.processRawValue(rawValueToCache);
+      // processRawValue runs transformOut and deepFreeze (which deeply clones non-frozen structures),
+      // so we avoid an extra structuredClone/JSON round-trip on every save.
+      this.cachedSnapshot = this.processRawValue(toStore);
       savedSnapshot = this.cachedSnapshot;
     } catch (err) {
       this.logger.warn(`StorageBase[${this.key}]: save error`, err);

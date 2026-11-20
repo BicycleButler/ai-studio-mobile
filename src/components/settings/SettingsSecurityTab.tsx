@@ -33,7 +33,7 @@ export const SettingsSecurityTab: React.FC<SettingsSecurityTabProps> = ({
 
   const handleDownloadDiagnostics = async () => {
     await fileDownloadService.downloadText(
-      `ai-studio-diagnostics-${new Date().toISOString().slice(0, 10)}.json`,
+      `helm-diagnostics-${new Date().toISOString().slice(0, 10)}.json`,
       errorReporter.exportDiagnosticsJson()
     );
   };
@@ -84,10 +84,10 @@ export const SettingsSecurityTab: React.FC<SettingsSecurityTabProps> = ({
           <span>Data Sovereignty & Privacy</span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed font-normal">
-          Your API keys, prompts, and project configurations are encrypted and stored locally on your device. Requests are sent only to your active provider endpoint (Google AI Studio or your connected OpenAI, Anthropic, OpenRouter, Groq, or custom endpoints). WebGPU and Ollama local models execute directly on your device or local network with zero cloud transfer.
+          Your API keys, prompts, and project configurations are encrypted and stored locally on your device. Requests are sent only to your active provider endpoint (Google Gemini or your connected OpenAI, Anthropic, OpenRouter, Groq, or custom endpoints). WebGPU and Ollama local models execute directly on your device or local network with zero cloud transfer.
         </p>
         <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>AI Studio &amp; Multi-Provider Client</span>
+          <span>Helm Multi-Provider Agentic Workspace</span>
           <span className="text-primary font-medium">Encrypted Local Keys</span>
         </div>
       </div>

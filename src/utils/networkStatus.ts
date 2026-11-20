@@ -27,6 +27,7 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
   private cleanupFns: Array<() => void> = [];
   private intervalId: unknown = null;
   private isProbing = false;
+  private lastSuccessfulProbeAt = 0;
 
   constructor(platformService?: IPlatformService, config: BrowserNetworkStatusConfig = {}) {
     this.platformService = platformService || new BrowserPlatformService();
@@ -67,7 +68,7 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
     });
   }
 
-  public async probeReachability(): Promise<boolean> {
+  public async probeReachability(force = false): Promise<boolean> {
     if (!this.platformService.isBrowserEnv() || typeof fetch !== "function") {
       return this.isOnline();
     }
@@ -78,6 +79,10 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
     }
     if (this.isProbing) {
       return this.statusObservable.getSnapshot()!.isOnline;
+    }
+    const now = Date.now();
+    if (!force && this.lastSuccessfulProbeAt > 0 && now - this.lastSuccessfulProbeAt < 5_000 && this.statusObservable.getSnapshot()?.isOnline) {
+      return true;
     }
 
     this.isProbing = true;
@@ -93,6 +98,9 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
         signal: controller?.signal,
       });
       const reachable = response.ok || response.status < 500;
+      if (reachable) {
+        this.lastSuccessfulProbeAt = Date.now();
+      }
       this.setOnlineState(reachable);
       return reachable;
     } catch {
@@ -113,7 +121,7 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
     this.cleanupFns.push(
       this.platformService.addEventListener("online", () => {
         if (this.config.enableActiveHealthCheck) {
-          void this.probeReachability();
+          void this.probeReachability(true);
         } else {
           this.setOnlineState(true);
         }
@@ -131,7 +139,7 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
         this.platformService.addDocumentListener("visibilitychange", () => {
           const doc = this.platformService.getDocument();
           if (doc && doc.visibilityState === "visible") {
-            void this.probeReachability();
+            void this.probeReachability(false);
           }
         })
       );
@@ -139,7 +147,7 @@ export class BrowserNetworkStatusProvider implements INetworkStatusProvider {
       this.intervalId = this.platformService.setInterval(() => {
         const doc = this.platformService.getDocument();
         if (!doc || doc.visibilityState === "visible") {
-          void this.probeReachability();
+          void this.probeReachability(false);
         }
       }, this.config.probeIntervalMs);
     }

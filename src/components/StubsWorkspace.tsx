@@ -1,7 +1,6 @@
 import { getErrorMessage } from "../utils/errorHandling";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  GitBranch,
   Cpu,
   Layers,
   ShieldCheck,
@@ -12,7 +11,6 @@ import {
   Play,
   Sparkles,
 } from "lucide-react";
-import mermaid from "mermaid";
 
 import { StubsTerminalTab } from "./stubs/StubsTerminalTab";
 import { StubsLintTab } from "./stubs/StubsLintTab";
@@ -34,15 +32,32 @@ type StubsSubTab = "graph" | "diagram" | "lint" | "impact" | "specs" | "terminal
 
 export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
   const { onOpenBottomNav: _onOpenBottomNav, onOpenParameters: _onOpenParameters, onOpenFileInIDE } = useWorkspace();
-  const { logger, clipboardService, platformService } = useServices();
+  const { clipboardService, platformService } = useServices();
 
   const [activeTab, setActiveTab] = useState<StubsSubTab>("graph");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof platformService.setTimeout> | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof platformService.setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        platformService.clearTimeout(toastTimerRef.current);
+      }
+      if (copyTimerRef.current !== null) {
+        platformService.clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, [platformService]);
 
   const showToast = React.useCallback(
     (msg: string) => {
       setToastMessage(msg);
-      platformService.setTimeout(() => {
+      if (toastTimerRef.current !== null) {
+        platformService.clearTimeout(toastTimerRef.current);
+      }
+      toastTimerRef.current = platformService.setTimeout(() => {
+        toastTimerRef.current = null;
         setToastMessage(null);
       }, 3500);
     },
@@ -72,6 +87,16 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
     pipelineResult,
     isRunningPipeline,
     runPipeline,
+    activeTask,
+    tasks,
+    isMutatingTask,
+    createTask,
+    updateTask,
+    verifyTask,
+    sessionHandoff,
+    isLoadingHandoff,
+    loadSessionHandoff,
+    clearSessionHandoff,
     diagramGroupBy,
     setDiagramGroupBy,
     diagramType,
@@ -100,6 +125,9 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
     setImpactGuard,
     isLoadingImpact,
     loadImpact,
+    batchPreFlightResult,
+    isLoadingBatchPreFlight,
+    runBatchPreFlight,
   } = useStubsData(showToast);
 
   const {
@@ -125,27 +153,19 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
         await clipboardService.writeText(content);
         setCopiedSpecId(id);
         showToast("Copied to clipboard.");
-        platformService.setTimeout(() => setCopiedSpecId(null), 2000);
+        if (copyTimerRef.current !== null) {
+          platformService.clearTimeout(copyTimerRef.current);
+        }
+        copyTimerRef.current = platformService.setTimeout(() => {
+          copyTimerRef.current = null;
+          setCopiedSpecId(null);
+        }, 2000);
       } catch {
         // Ignored
       }
     },
     [clipboardService, platformService, showToast]
   );
-
-  // Initialize Mermaid
-  useEffect(() => {
-    try {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: "dark",
-        securityLevel: "loose",
-        flowchart: { curve: "basis" },
-      });
-    } catch {
-      logger.warn("Mermaid initialization warning: suppressed");
-    }
-  }, [logger]);
 
   // Auto-scroll terminal
   useEffect(() => {
@@ -201,7 +221,25 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
     [setDiagramTarget, setDiagramType]
   );
 
-  const availableNodes = graphData?.nodes.map((n) => n.id) || [];
+  const handleStartDurableTaskFromTargets = useCallback(
+    (targets: string[]) => {
+      void createTask({
+        title: `Multi-Target Refactoring (${targets.length} modules)`,
+        goal: `Execute topological edit plan across ${targets.join(", ")}`,
+        targets,
+      }).then((created) => {
+        if (created) {
+          setActiveTab("graph");
+        }
+      });
+    },
+    [createTask]
+  );
+
+  const availableNodes = useMemo(
+    () => graphData?.nodes.map((n) => n.id) || [],
+    [graphData]
+  );
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground select-text overflow-hidden relative font-sans">
@@ -217,39 +255,34 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
       )}
 
       {/* 52px Unified Section Toolbar */}
-      <div className="h-[52px] min-h-[52px] bg-card border-b border-border px-3 flex items-center justify-between gap-2.5 z-10 shrink-0">
+      <div className="h-[52px] min-h-[52px] bg-card border-b border-border px-2 flex items-center justify-between gap-1.5 z-10 shrink-0">
         {/* Left: Segmented Sub-Tab Bar */}
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1 min-w-0 flex-1">
+        <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none py-1 min-w-0 flex-1">
           <button
             type="button"
             id="stubs-tab-graph"
             onClick={() => setActiveTab("graph")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "graph"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
             }`}
           >
-            <Cpu className="w-3.5 h-3.5" />
-            <span>Graph & Query</span>
-            {graphData && (
-              <span className="ms-1 text-[11px] font-mono tabular-nums opacity-80">
-                {graphData.nodes.length}
-              </span>
-            )}
+            <Cpu className="w-3 h-3 shrink-0" />
+            <span>Graph</span>
           </button>
 
           <button
             type="button"
             id="stubs-tab-diagram"
             onClick={() => setActiveTab("diagram")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "diagram"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
+            <Layers className="w-3 h-3 shrink-0" />
             <span>Diagrams</span>
           </button>
 
@@ -257,89 +290,71 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             type="button"
             id="stubs-tab-lint"
             onClick={() => setActiveTab("lint")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "lint"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Lint & Hygiene</span>
-            <span className="ms-1 text-[11px] font-mono tabular-nums opacity-80">
-              {lintViolations.length}
-            </span>
+            <ShieldCheck className="w-3 h-3 shrink-0" />
+            <span>Lint</span>
           </button>
 
           <button
             type="button"
             id="stubs-tab-impact"
             onClick={() => setActiveTab("impact")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "impact"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
             }`}
           >
-            <AlertOctagon className="w-3.5 h-3.5" />
-            <span>Impact & Pre-Flight</span>
+            <AlertOctagon className="w-3 h-3 shrink-0" />
+            <span>Pre-Flight</span>
           </button>
 
           <button
             type="button"
             id="stubs-tab-specs"
             onClick={() => setActiveTab("specs")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "specs"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
             }`}
           >
-            <FileCode2 className="w-3.5 h-3.5" />
-            <span>Specs & Lifecycle</span>
-            <span className="ms-1 text-[11px] font-mono tabular-nums opacity-80">
-              {specs.length}
-            </span>
+            <FileCode2 className="w-3 h-3 shrink-0" />
+            <span>Specs</span>
           </button>
 
           <button
             type="button"
             id="stubs-tab-terminal"
             onClick={() => setActiveTab("terminal")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === "terminal"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
             }`}
           >
-            <Terminal className="w-3.5 h-3.5" />
-            <span>CLI Console</span>
+            <Terminal className="w-3 h-3 shrink-0" />
+            <span>CLI</span>
           </button>
         </div>
 
-        {/* Right Zone: Workspace Metadata & Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground px-2">
-            <GitBranch className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span className="font-medium text-foreground truncate max-w-[160px]">
-              {graphData?.projectName || "ai-studio-mobile"}
-            </span>
-            {graphData?.autonomyLevel && (
-              <span className="text-[11px] font-mono text-muted-foreground hidden xl:inline">
-                · {graphData.autonomyLevel}
-              </span>
-            )}
-          </div>
-
+        {/* Right Zone: Workspace Actions */}
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             id="stubs-header-scan-btn"
             onClick={() => handleRunCommand("scan")}
             disabled={isExecutingCommand || isLoadingGraph}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-background hover:bg-muted text-foreground border border-border text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
+            className="flex items-center justify-center p-1.5 rounded-lg bg-background hover:bg-muted text-foreground border border-border text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 shrink-0"
             title="Scan AST & refresh SQLite graph database"
+            aria-label="Scan AST"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoadingGraph || isExecutingCommand ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">Scan AST</span>
           </button>
 
           <button
@@ -347,12 +362,12 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             id="stubs-header-run-btn"
             onClick={runPipeline}
             disabled={isRunningPipeline || isExecutingCommand}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-medium transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
             title="Run unified stubs pipeline (scan, lint-arch, prune, sidecars)"
           >
-            <Play className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">
-              {isRunningPipeline ? "Running..." : "Run Pipeline"}
+            <Play className="w-3 h-3 shrink-0" />
+            <span>
+              {isRunningPipeline ? "..." : "Verify"}
             </span>
           </button>
         </div>
@@ -371,6 +386,16 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             onRunQuery={runQuery}
             onClearQuery={clearQuery}
             pipelineResult={pipelineResult}
+            activeTask={activeTask}
+            tasks={tasks}
+            isMutatingTask={isMutatingTask}
+            onCreateTask={createTask}
+            onUpdateTask={updateTask}
+            onVerifyTask={verifyTask}
+            sessionHandoff={sessionHandoff}
+            isLoadingHandoff={isLoadingHandoff}
+            onLoadSessionHandoff={loadSessionHandoff}
+            onClearSessionHandoff={clearSessionHandoff}
             onInspectImpact={handleInspectImpact}
             onViewSliceDiagram={handleViewSliceDiagram}
             onCopyText={(text) => void handleCopyText("level1-stub", text)}
@@ -421,6 +446,10 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             impactGuard={impactGuard}
             onSetImpactGuard={setImpactGuard}
             onRefreshImpact={loadImpact}
+            batchPreFlightResult={batchPreFlightResult}
+            isLoadingBatchPreFlight={isLoadingBatchPreFlight}
+            onRunBatchPreFlight={runBatchPreFlight}
+            onStartDurableTaskFromTargets={handleStartDurableTaskFromTargets}
             availableNodes={availableNodes}
             isLoading={isLoadingImpact}
             onCopyBriefing={(md) => handleCopyText("tiered-context", md)}

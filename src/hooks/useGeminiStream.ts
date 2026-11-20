@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { GenerateRequestBody } from "../types";
 import { GeminiApiError } from "../services/geminiStreamService";
 import { useServices } from "../services/ServiceContext";
+import { createStreamCoalescer, StreamCoalescer } from "../utils/streamCoalescer";
 
 export interface UseGeminiStreamOptions {
   customApiKey?: string;
@@ -25,8 +26,10 @@ export interface UseGeminiStreamReturn {
   clearError: () => void;
 }
 
+const STREAM_COALESCE_INTERVAL_MS = 32;
+
 export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGeminiStreamReturn {
-  const { geminiStreamService, platformService } = useServices();
+  const { geminiStreamService, platformService, timeProvider } = useServices();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<GeminiApiError | null>(null);
@@ -34,13 +37,16 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
   const [tokenCount, setTokenCount] = useState(0);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const activeCoalescerRef = useRef<StreamCoalescer<string> | null>(null);
   const lastErrorRef = useRef<GeminiApiError | null>(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
-  // Cleanup abort controller on unmount
+  // Cleanup abort controller and pending coalescer timer on unmount
   useEffect(() => {
     return () => {
+      activeCoalescerRef.current?.cancel();
+      activeCoalescerRef.current = null;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -48,6 +54,8 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
   }, []);
 
   const stopStream = useCallback(() => {
+    activeCoalescerRef.current?.cancel();
+    activeCoalescerRef.current = null;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -68,7 +76,9 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
       payload: GenerateRequestBody,
       chunkCallback?: (accumulatedText: string) => void
     ): Promise<{ text: string; durationMs: number; totalTokens: number } | null> => {
-      // Abort any existing stream
+      // Abort any existing stream and drop pending coalesced chunks
+      activeCoalescerRef.current?.cancel();
+      activeCoalescerRef.current = null;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -79,6 +89,22 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
       }
       abortControllerRef.current = controller;
       lastErrorRef.current = null;
+
+      const coalescer = createStreamCoalescer<string>(
+        (accumulatedText) => {
+          if (abortControllerRef.current !== controller) return;
+          chunkCallback?.(accumulatedText);
+          optionsRef.current.onChunk?.(accumulatedText);
+        },
+        {
+          intervalMs: STREAM_COALESCE_INTERVAL_MS,
+          schedule: (cb, delayMs) => platformService.setTimeout(cb, delayMs),
+          cancelSchedule: (handle) =>
+            platformService.clearTimeout(handle as ReturnType<typeof setTimeout>),
+          now: () => timeProvider.now(),
+        }
+      );
+      activeCoalescerRef.current = coalescer;
 
       setIsGenerating(true);
       setError(null);
@@ -92,11 +118,11 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
           {
             onChunk: (accumulatedText) => {
               if (abortControllerRef.current !== controller) return;
-              chunkCallback?.(accumulatedText);
-              optionsRef.current.onChunk?.(accumulatedText);
+              coalescer.push(accumulatedText);
             },
             onDone: (meta) => {
               if (abortControllerRef.current !== controller) return;
+              coalescer.flush();
               setDurationMs(meta.durationMs);
               setTokenCount(meta.totalTokens);
             },
@@ -108,10 +134,12 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
         );
 
         if (abortControllerRef.current === controller) {
+          coalescer.flush();
           optionsRef.current.onComplete?.(result);
         }
         return result;
       } catch (err: unknown) {
+        coalescer.cancel();
         // Map raw unknown errors cleanly through the abstraction layer using `geminiStreamService.formatStreamError`
         const apiErr = geminiStreamService.formatStreamError(err);
         if (abortControllerRef.current === controller) {
@@ -122,13 +150,17 @@ export function useGeminiStream(options: UseGeminiStreamOptions = {}): UseGemini
         }
         return null;
       } finally {
+        if (activeCoalescerRef.current === coalescer) {
+          coalescer.cancel();
+          activeCoalescerRef.current = null;
+        }
         if (abortControllerRef.current === controller) {
           setIsGenerating(false);
           abortControllerRef.current = null;
         }
       }
     },
-    [geminiStreamService, platformService]
+    [geminiStreamService, platformService, timeProvider]
   );
 
   return {

@@ -19,7 +19,12 @@ export interface StubsTerminalTabProps {
 
 const QUICK_COMMANDS: Array<{ label: string; command: StubsCommandName; args: string[] }> = [
   { label: "stubs run", command: "run", args: [] },
-  { label: "stubs scan", command: "scan", args: [] },
+  { label: "stubs task verify", command: "task", args: ["verify"] },
+  { label: "stubs task list", command: "task", args: ["list"] },
+  { label: "stubs handoff", command: "handoff", args: [] },
+  { label: 'stubs query "tests: stubsService"', command: "query", args: ["tests: stubsService"] },
+  { label: 'stubs query "drift:"', command: "query", args: ["drift:"] },
+  { label: 'stubs query "hubs:"', command: "query", args: ["hubs:"] },
   { label: 'stubs query "map:"', command: "query", args: ["map:"] },
   { label: 'stubs query "stub: StubsClient"', command: "query", args: ["stub: StubsClient"] },
   { label: "stubs map --generate", command: "map", args: ["--generate"] },
@@ -83,7 +88,7 @@ export const StubsTerminalTab: React.FC<StubsTerminalTabProps> = ({
             type="text"
             value={rawCommand}
             onChange={(e) => setRawCommand(e.target.value)}
-            placeholder='query "explain: StubsClient" | pre-flight src/types.ts | lint-arch | prune'
+            placeholder='task list | handoff | query "drift:" | pre-flight src/types.ts src/App.tsx --order'
             className="flex-1 bg-transparent text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none min-w-0"
           />
         </div>

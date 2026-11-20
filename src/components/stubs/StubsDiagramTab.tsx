@@ -54,14 +54,32 @@ export const StubsDiagramTab: React.FC<StubsDiagramTabProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const svgContainerRef = useRef<HTMLDivElement>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current !== null) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = () => {
     onCopyMermaid(diagramMermaid);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    if (copyTimerRef.current !== null) {
+      clearTimeout(copyTimerRef.current);
+    }
+    copyTimerRef.current = setTimeout(() => {
+      copyTimerRef.current = null;
+      setCopied(false);
+    }, 1800);
   };
 
-  const nodeOptions = availableNodes.map((n) => ({ id: n, label: n }));
+  const nodeOptions = useMemo(
+    () => availableNodes.map((n) => ({ id: n, label: n })),
+    [availableNodes]
+  );
 
   const sanitizedIdToPath = useMemo(() => {
     const map = new Map<string, string>();

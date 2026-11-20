@@ -1,5 +1,5 @@
 import { useServices } from "../services/ServiceContext";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAppAuth } from "./useAppAuth";
 import { usePromptTemplates } from "./usePromptTemplates";
 
@@ -8,6 +8,7 @@ import { useProjectManager } from "./useProjectManager";
 import { useUIState } from "./useUIState";
 import { useModelConfig } from "./useModelConfig";
 import { PromptType, ChatMessage, ChatSession, SavedPrompt, ProjectInfo } from "../types";
+import type { DraftState } from "../utils/storage/draftState";
 
 
 
@@ -15,10 +16,13 @@ export function useAppState() {
   // External Services
   const { chatHistoryService, appAuthManager, promptTemplateService, draftStateService, projectService, savedPromptsService, firestoreSyncService, platformService, timeProvider, logger } = useServices();
 
-  // Load initial app draft safely before deriving other states
-  const initialActiveProjectId = projectService.getActiveProjectId();
-
-  const initialDraft = draftStateService.loadDraftState(initialActiveProjectId);
+  // Load initial app draft once per hook mount instead of synchronously reading storage on every render
+  const initialDraftRef = useRef<DraftState | null>(null);
+  if (initialDraftRef.current === null) {
+    const initialActiveProjectId = projectService.getActiveProjectId();
+    initialDraftRef.current = draftStateService.loadDraftState(initialActiveProjectId);
+  }
+  const initialDraft = initialDraftRef.current;
 
   const [promptType, setPromptType] = useState<PromptType>(initialDraft.promptType);
 
@@ -67,7 +71,15 @@ export function useAppState() {
   // Model Config
   const modelConfig = useModelConfig(customApiKey);
 
-  const handleLoadPrompt = (prompt: SavedPrompt) => {
+  const {
+    setMessages: setChatMessages,
+    setCurrentSessionId: setChatSessionId,
+    handleStartNewChat: startNewChatSession,
+  } = chatSession;
+  const { handleProjectActivated: activateProject } = projectManager;
+  const { refreshModels } = modelConfig;
+
+  const handleLoadPrompt = useCallback((prompt: SavedPrompt) => {
     const validPromptTypes: PromptType[] = ["chat", "code", "stubs"];
     const targetType: PromptType = validPromptTypes.includes(prompt.type as PromptType)
       ? (prompt.type as PromptType)
@@ -75,16 +87,16 @@ export function useAppState() {
     setPromptType(targetType);
     setConfig(prompt.config);
     if (prompt.messages && prompt.messages.length > 0) {
-      chatSession.setMessages(prompt.messages);
+      setChatMessages(prompt.messages);
     }
-  };
+  }, [setChatMessages]);
 
-  const handleSaveApiKeyWithModels = (key: string) => {
+  const handleSaveApiKeyWithModels = useCallback((key: string) => {
     handleSaveApiKey(key);
     if (key.trim()) {
-      modelConfig.refreshModels(key.trim(), true);
+      refreshModels(key.trim(), true);
     }
-  };
+  }, [handleSaveApiKey, refreshModels]);
 
 
 
@@ -93,40 +105,41 @@ export function useAppState() {
   const pendingChatSaveRef = useRef<(() => void) | null>(null);
   const lastStreamSaveAtRef = useRef<number>(0);
 
-  const handleSelectChatSession = (session: ChatSession, onStopStream?: () => void) => {
+  const handleSelectChatSession = useCallback((session: ChatSession, onStopStream?: () => void) => {
     if (onStopStream) {
       onStopStream();
     }
     pendingDraftSaveRef.current?.();
     pendingChatSaveRef.current?.();
-    chatSession.setCurrentSessionId(session.id);
-    chatSession.setMessages(session.messages || []);
+    setChatSessionId(session.id);
+    setChatMessages(session.messages || []);
     if (session.model) {
       setConfig((prev) => ({ ...prev, model: session.model! }));
     }
-  };
+  }, [setChatSessionId, setChatMessages]);
 
-  const handleStartNewChatWithFlush = (onStopStream?: () => void) => {
+  const handleStartNewChatWithFlush = useCallback((onStopStream?: () => void) => {
     if (onStopStream) {
       onStopStream();
     }
     pendingDraftSaveRef.current?.();
     pendingChatSaveRef.current?.();
-    chatSession.handleStartNewChat();
-  };
+    startNewChatSession();
+  }, [startNewChatSession]);
 
-  const handleProjectActivatedWithFlush = (project: ProjectInfo, onStopStream?: () => void) => {
+  const handleProjectActivatedWithFlush = useCallback((project: ProjectInfo, onStopStream?: () => void) => {
     if (onStopStream) {
       onStopStream();
     }
     pendingDraftSaveRef.current?.();
     pendingChatSaveRef.current?.();
-    projectManager.handleProjectActivated(project);
-  };
+    activateProject(project);
+  }, [activateProject]);
 
-  // Draft Save Effect (debounced + flushable on background/unmount)
+  // Draft Save Effect (debounced + flushable on background/unmount; wider window while actively streaming)
   useEffect(() => {
     const projectId = activeProject?.id;
+    const isStreaming = chatSession.messages.some((m) => m.isStreaming);
     const draftSnapshot = {
       promptType,
       config,
@@ -140,7 +153,8 @@ export function useAppState() {
       draftStateService.saveDraftState(draftSnapshot, projectId);
     };
     pendingDraftSaveRef.current = persistDraft;
-    const timeout = platformService.setTimeout(persistDraft, 500);
+    const debounceMs = isStreaming ? 1500 : 500;
+    const timeout = platformService.setTimeout(persistDraft, debounceMs);
     return () => platformService.clearTimeout(timeout);
   }, [promptType, config, chatSession.freeformText, chatSession.structuredExamples, chatSession.messages, promptTemplates.selectedTemplateIds, activeProject?.id, draftStateService, platformService]);
 

@@ -23,6 +23,8 @@ const VALID_COMMANDS = new Set<StubsCommandName>([
   "context",
   "map",
   "harness",
+  "task",
+  "handoff",
 ]);
 
 function tokenizeArgs(input: string): string[] {

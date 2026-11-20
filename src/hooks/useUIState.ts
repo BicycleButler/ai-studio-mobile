@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
-import { DeviceFrameMode, SettingsTab } from "../types";
+import { useState } from "react";
+import { SettingsTab } from "../types";
 import { SpeechSettings } from "../services/speechVoices";
 import { useServices } from "../services/ServiceContext";
 
 export function useUIState() {
-  const { speechVoicesService, platformService } = useServices();
-  const [deviceMode, setDeviceMode] = useState<DeviceFrameMode>("responsive");
+  const { speechVoicesService } = useServices();
   const [showBottomNav, setShowBottomNav] = useState(false);
   const [showTunerSheet, setShowTunerSheet] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -23,16 +22,7 @@ export function useUIState() {
     setShowSettingsModal(true);
   };
 
-  useEffect(() => {
-    const win = platformService.getWindow();
-    if (win && win.innerWidth >= 1024) {
-      setDeviceMode("pixel");
-    }
-  }, [platformService]);
-
   return {
-    deviceMode,
-    setDeviceMode,
     showBottomNav,
     setShowBottomNav,
     showTunerSheet,

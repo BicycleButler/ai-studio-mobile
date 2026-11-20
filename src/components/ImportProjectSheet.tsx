@@ -68,7 +68,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
   useEffect(() => {
     if (isOpen) {
       const projects = projectService.loadStoredProjects();
-      const defaultName = `AI Studio Project ${projects.length + 1}`;
+      const defaultName = `Helm Project ${projects.length + 1}`;
       setProjectName(defaultName);
       setSelectedModel("gemini-2.5-flash");
       setShowRawKey(false);
@@ -148,7 +148,7 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
     try {
       // 1. Save project & its parameters to encrypted storage and mark as active
       const savedProject = projectService.saveAndActivateProject({
-        name: projectName.trim() || "AI Studio Project",
+        name: projectName.trim() || "Helm Project",
         apiKey: trimmedKey,
         defaultModel: selectedModel,
         lastVerifiedAt: timeProvider.now(),
@@ -230,10 +230,10 @@ export const ImportProjectSheet: React.FC<ImportProjectSheetProps> = ({
             </div>
             <div className="min-w-0">
               <h2 id="import-project-title" className="text-sm font-semibold text-foreground truncate">
-                Import AI Studio Project
+                Import Project &amp; Gemini Key
               </h2>
               <p className="text-[11px] text-muted-foreground truncate">
-                Configure and activate your Google AI Studio project credentials
+                Configure and activate your project with a Google AI Studio API key
               </p>
             </div>
           </div>

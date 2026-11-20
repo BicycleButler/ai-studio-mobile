@@ -60,7 +60,7 @@ export const SettingsAudioTab: React.FC<SettingsAudioTabProps> = ({
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <span>Gemini AI Studio</span>
+                <span>Google Gemini HD</span>
               </div>
               {currentSpeechSettings.engine === "gemini" && (
                 <span className="text-xs text-muted-foreground/70 font-medium ml-1.5">
