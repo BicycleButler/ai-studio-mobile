@@ -22,10 +22,10 @@ export const OfflineIndicator: React.FC = () => {
     <div
       id="pwa-sync-warning-indicator"
       role="alert"
-      className="sticky top-0 z-[100] w-full flex items-center justify-between gap-2 px-4 py-2 bg-destructive/10 text-destructive border-b border-destructive/30 text-xs font-medium"
+      className="sticky top-0 z-[100] w-full flex items-center justify-between gap-2 px-4 py-2 bg-muted text-foreground border-b border-border/60 text-xs font-medium"
     >
       <div className="flex items-center gap-2 min-w-0">
-        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate">{syncWarning}</span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
@@ -33,7 +33,7 @@ export const OfflineIndicator: React.FC = () => {
           <button
             type="button"
             onClick={() => void retryDeadLetters()}
-            className="px-2 py-0.5 rounded bg-destructive/15 hover:bg-destructive/25 text-destructive font-semibold transition-colors"
+            className="px-2 py-0.5 rounded bg-background hover:bg-background/80 text-foreground font-semibold transition-colors"
           >
             Retry ({deadLetterCount})
           </button>
@@ -42,7 +42,7 @@ export const OfflineIndicator: React.FC = () => {
           type="button"
           onClick={dismissSyncWarning}
           aria-label="Dismiss sync warning"
-          className="p-1 -mr-1 rounded hover:bg-destructive/15"
+          className="p-1 -mr-1 rounded hover:bg-background/60"
         >
           <X className="w-3.5 h-3.5" />
         </button>

@@ -1,6 +1,6 @@
 import { IOfflineQueueStore } from "./offlineQueueStore";
 import { ILogger, DefaultLoggerFactory } from "./logger";
-import { ConflictData, SyncHandler } from "./offlineService";
+import type { ConflictData, SyncHandler } from "./offlineService";
 import { IQueueProcessingStrategy, StrictFifoQueueProcessingStrategy } from "./syncEngineStrategy";
 
 export interface ISyncEngine {

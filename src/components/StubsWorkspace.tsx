@@ -175,9 +175,9 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
       onSuccess: () => {
         showToast(`'stubs ${command}' completed.`);
         loadGraph();
-        if (command === "lint-arch" || command === "prune" || command === "run") loadLint();
+        if (command === "lint-arch" || command === "prune" || command === "run" || command === "harness") loadLint();
         if (command === "diagram") loadDiagram();
-        if (command === "sand" || command === "phase") loadSpecs();
+        if (command === "sand" || command === "phase" || command === "map" || command === "run" || command === "harness") loadSpecs();
       },
       onError: (err) => showToast(`Execution error: ${getErrorMessage(err)}`),
     });
@@ -373,6 +373,7 @@ export const StubsWorkspace: React.FC<StubsWorkspaceProps> = () => {
             pipelineResult={pipelineResult}
             onInspectImpact={handleInspectImpact}
             onViewSliceDiagram={handleViewSliceDiagram}
+            onCopyText={(text) => void handleCopyText("level1-stub", text)}
           />
         )}
 

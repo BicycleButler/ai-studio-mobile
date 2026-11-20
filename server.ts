@@ -54,6 +54,8 @@ import {
   saveSpecContent,
   materializeSpec,
   sandSpec,
+  extractInterfaceStub,
+  generateContextMaps,
   runStubsPipeline,
   runCliCommand,
   stubsEvents,
@@ -1863,6 +1865,35 @@ app.get("/api/stubs/lint", async (_req: Request, res: Response): Promise<void> =
 app.get("/api/stubs/prune", async (_req: Request, res: Response): Promise<void> => {
   try {
     const result = await pruneWorkspace();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * GET /api/stubs/stub - Extracts Level 1 Interface Skeleton Stub with line numbers and token savings
+ */
+app.get("/api/stubs/stub", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const target = req.query.target as string;
+    if (!target) {
+      res.status(400).json({ error: "Missing required 'target' query parameter." });
+      return;
+    }
+    const result = await extractInterfaceStub(target);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
+ * POST /api/stubs/map - Synchronizes all domain context maps and root context-map.md from live AST graph
+ */
+app.post("/api/stubs/map", requireTrustedWorkspaceOrigin, stubsExecRateLimiter, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await generateContextMaps();
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: getErrorMessage(error) });

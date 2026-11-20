@@ -1,6 +1,7 @@
 import { IPlatformService } from "../../services/IPlatformService";
 import { IStorageAdapter } from "./types";
-import { FallbackStorageWrapper } from "./FallbackStorageWrapper";
+import { FallbackStorageWrapper, MemoryStorage } from "./FallbackStorageWrapper";
+export { MemoryStorage };
 
 import { ILogger, DefaultLoggerFactory } from "../logger";
 
@@ -39,46 +40,6 @@ export function createDefaultStorageInstance(platformService: IPlatformService =
     }
   }
   return new MemoryStorage();
-}
-
-
-export class MemoryStorage implements Storage {
-  private store: Map<string, string>;
-  private keysCache: string[] | null = null;
-
-  constructor() {
-    this.store = new Map();
-  }
-
-  getItem(key: string): string | null {
-    return this.store.get(key) ?? null;
-  }
-
-  setItem(key: string, value: string): void {
-    this.store.set(key, value);
-    this.keysCache = null;
-  }
-
-  removeItem(key: string): void {
-    this.store.delete(key);
-    this.keysCache = null;
-  }
-
-  clear(): void {
-    this.store.clear();
-    this.keysCache = null;
-  }
-
-  key(index: number): string | null {
-    if (!this.keysCache) {
-      this.keysCache = Array.from(this.store.keys());
-    }
-    return this.keysCache[index] ?? null;
-  }
-
-  get length(): number {
-    return this.store.size;
-  }
 }
 
 export function safeParseStorageItem<T>(

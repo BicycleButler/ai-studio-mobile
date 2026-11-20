@@ -20,17 +20,18 @@ AST dependency graph in `.stubs/graph.sqlite`. Query through `npx stubs query "<
 
 ## Core CLI Commands
 
-- **Unified Repository Pipeline:** `npx stubs run` (runs scan, map, sand, lint-arch & automated tale remediation)
-- **GraphRAG Surgical Query:** `npx stubs query "explain: <target>"` | `path: <A> to <B>` | `blast: <target>`
-- **Architecture Mapping:** `npx stubs map --generate` (refreshes prerequisite domain maps + root context-map.md)
-- **Spec & Architecture Grilling:** `npx stubs grill <file.md>` | `npx stubs abstract-grill <file.md>`
-- **Export Knowledge Graph:** `npx stubs export <obsidian|wiki> [--out <dir>]`
+- **Unified 5-Stage Repository Pipeline:** `npx stubs run` (runs AST scan, context map & sidecar sand sync, `lint-arch`, `prune`, and design compliance gate; records checkpoint to `.stubs/harness-ledger.json`)
+- **GraphRAG Surgical Query:** `npx stubs query "map:"` | `npx stubs query "stub: <target>"` | `npx stubs query "explain: <target>"` | `npx stubs query "path: <A> to <B>"` | `npx stubs query "blast: <target>"` | `npx stubs query "pkg:<package>"`
+- **Pre-Flight Blast Radius & Topological Edit Sequence:** `npx stubs pre-flight <target>` | `npx stubs context <target>`
+- **Architecture Mapping:** `npx stubs map --generate` (refreshes `knowledge/architecture/domains/*-domain-map.md`, `knowledge/architecture/context-map.md`, and `knowledge/architecture/visual-map.md` from live AST graph)
+- **Sidecar Reverse Sanding:** `npx stubs sand [file.ts.md]` (synchronizes `ast_hash`, `depends_on`, and `status_flag: clean`)
+- **Design System Compliance Audit:** `npx tsx scripts/audit-design-system-compliance.ts`
 <!-- stubs-instructions-end -->
 
 ## Toolchain & Conventions
 
-- Package manager: npm (npx for binaries)
-- Testing framework: jest
-- Linter: eslint
-- Formatter: prettier
-- Design principles: adhere to DESIGN_PHILOSOPHY.md (deep modules, pull complexity downward, code cohesion)
+- Package manager: npm (`npx` for binaries)
+- Testing framework: Vitest (`npm test` / `npx vitest run`) & Node native test runner (`npx --yes tsx --test`)
+- Typecheck & Linter: TypeScript + ESLint (`npm run lint`)
+- Design system rules: adhere to `RULES.md` and `.agents/rules/design-rules.md` (zero resting alert colors, total badge/pill ban, single primary CTA, 24px font cap)
+- Design principles: adhere to `DESIGN_PHILOSOPHY.md` (deep modules, pull complexity downward, strict 7-layer hierarchy, code cohesion)

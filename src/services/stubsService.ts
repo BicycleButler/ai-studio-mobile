@@ -13,6 +13,7 @@ import {
   StubsDiagramGroupBy,
   StubsDiagramType,
   StubsCommandName,
+  StubsInterfaceStub,
   StubsWorkspaceFileContent,
   WorkspaceFileTreeResponse,
 } from "../types";
@@ -56,6 +57,8 @@ export interface IStubsClient {
   ): Promise<StubsDiagramResponse>;
   fetchImpact(target: string, guard?: "low" | "medium" | "high" | "critical"): Promise<StubsImpactResult>;
   fetchContextPackage(target: string): Promise<StubsTieredContext>;
+  fetchInterfaceStub(target: string): Promise<StubsInterfaceStub>;
+  syncContextMaps(): Promise<{ updatedFiles: string[]; totalModules: number }>;
   fetchLintResults(): Promise<StubsLintResponse>;
   fetchPruneResults(): Promise<StubsPruneResult>;
   runPipeline(): Promise<StubsRunResult>;
@@ -140,6 +143,25 @@ export class StubsClient implements IStubsClient {
       `/api/stubs/context?target=${encodeURIComponent(target)}`,
       undefined,
       "Failed to fetch tiered agent context"
+    );
+  }
+
+  public async fetchInterfaceStub(target: string): Promise<StubsInterfaceStub> {
+    return this.config.apiClient.fetch<StubsInterfaceStub>(
+      `/api/stubs/stub?target=${encodeURIComponent(target)}`,
+      undefined,
+      "Failed to extract Level 1 Interface Skeleton Stub"
+    );
+  }
+
+  public async syncContextMaps(): Promise<{ updatedFiles: string[]; totalModules: number }> {
+    return this.config.apiClient.fetch<{ updatedFiles: string[]; totalModules: number }>(
+      "/api/stubs/map",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      },
+      "Failed to synchronize architecture context maps"
     );
   }
 

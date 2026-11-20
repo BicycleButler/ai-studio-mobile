@@ -166,14 +166,14 @@ export function useStubsData(showToast: (msg: string) => void) {
 
   const runPipeline = useCallback(async () => {
     setIsRunningPipeline(true);
-    showToast("Running stubs pipeline (scan, lint-arch, prune, specs)...");
+    showToast("Running durable 5-stage harness pipeline (scan, maps & sand, lint-arch, prune, design audit)...");
     try {
       const res = await stubsClient.runPipeline();
       setPipelineResult(res);
       await Promise.all([loadGraph(), loadLint()]);
       showToast(
         res.passed
-          ? `Pipeline passed in ${res.durationMs}ms (${res.scannedFiles} modules)`
+          ? `Harness verified in ${res.durationMs}ms (${res.scannedFiles} modules · checkpoint ${res.checkpointId || "saved"})`
           : `Pipeline completed with ${res.lintErrors} errors in ${res.durationMs}ms`
       );
     } catch (err: unknown) {
@@ -182,6 +182,16 @@ export function useStubsData(showToast: (msg: string) => void) {
       setIsRunningPipeline(false);
     }
   }, [loadGraph, loadLint, showToast, stubsClient]);
+
+  const syncMaps = useCallback(async () => {
+    try {
+      const res = await stubsClient.syncContextMaps();
+      await loadGraph();
+      showToast(`Synchronized ${res.updatedFiles.length} context maps across ${res.totalModules} modules.`);
+    } catch (err: unknown) {
+      showToast(`Failed to sync context maps: ${getErrorMessage(err)}`);
+    }
+  }, [loadGraph, showToast, stubsClient]);
 
   // Establish SSE connection to listen for graph invalidation
   useEffect(() => {
@@ -203,10 +213,11 @@ export function useStubsData(showToast: (msg: string) => void) {
     runQuery,
     clearQuery: () => setQueryResult(null),
 
-    // Unified pipeline
+    // Unified pipeline & context maps
     pipelineResult,
     isRunningPipeline,
     runPipeline,
+    syncMaps,
 
     // Diagram
     diagramGroupBy,

@@ -310,7 +310,7 @@ export const IDEFileExplorerSidebar: React.FC<IDEFileExplorerSidebarProps> = ({
                   <div className="h-5 bg-muted/60 rounded animate-pulse w-5/6" />
                 </div>
               ) : treeError ? (
-                <div className="px-2.5 py-2 text-xs text-destructive space-y-1.5">
+                <div className="px-2.5 py-2 text-xs text-muted-foreground space-y-1.5">
                   <p className="leading-snug">{treeError}</p>
                   <button
                     type="button"

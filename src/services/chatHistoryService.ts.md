@@ -9,6 +9,17 @@ tags:
   - history
   - sessions
   - workspaces
+depends_on:
+  - src/services/IPlatformService.ts
+  - src/utils/storage/index.ts
+  - src/types.ts
+  - src/utils/storage/types.ts
+  - src/utils/logger.ts
+  - src/services/platformService.ts
+  - src/utils/mockDefinitions.ts
+  - src/utils/timeProvider.ts
+status_flag: clean
+ast_hash: 684c8df0e100
 ---
 
 # Chat History & Session Service Specification

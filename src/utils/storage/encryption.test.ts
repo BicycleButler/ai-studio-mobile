@@ -13,14 +13,14 @@ describe('storage encryption', () => {
   });
 
   it('round-trips UTF-8 Unicode and emoji secrets safely', () => {
-    const secret = 'key-🔐-日本語-café-Δ';
+    const secret = 'key-\u{1F510}-日本語-café-Δ';
     const encrypted = encryptSecret(secret);
     expect(encrypted.startsWith('enc:v3:')).toBe(true);
     expect(decryptSecret(encrypted)).toBe(secret);
   });
 
   it('decrypts legacy enc:v2: envelopes for backward compatibility', () => {
-    const plain = 'v2_key_🔒';
+    const plain = 'v2_key_\u{1F512}';
     const saltBytes = new TextEncoder().encode('ais_mobile_vault_v2_77391');
     const plainBytes = new TextEncoder().encode(plain);
     const out = new Uint8Array(plainBytes.length);

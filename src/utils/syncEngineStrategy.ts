@@ -1,5 +1,5 @@
 import { ILogger, DefaultLoggerFactory } from "./logger";
-import { OfflineMutation, ConflictData, SyncHandler } from "./offlineService";
+import type { OfflineMutation, ConflictData, SyncHandler } from "./offlineService";
 
 export interface QueueProcessResult {
   success: boolean;

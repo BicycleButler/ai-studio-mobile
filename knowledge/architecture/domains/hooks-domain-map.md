@@ -1,54 +1,48 @@
 ---
-title: Hooks Domain — Domain Context Map
+title: "Hooks Domain Map"
 type: domain-context-map
+status: active
 domain: hooks
-parent_map: ../context-map.md
-description: Deep-dive context map for the hooks domain, subsystem responsibilities, and internal modules.
-tags:
-  - domain-map
-  - hooks
-  - agent-optimized
+layer: 3
 ---
 
-# Hooks Domain — Domain Context Map
+# Hooks Domain Map
 
-Parent Context Map: knowledge/architecture/context-map.md
+> Modular React state hooks for chat streaming, voice input, settings, integrations, and Stubs architecture intelligence.
 
-## Domain Purpose & Responsibilities
-The Hooks Domain coordinates domain logic, core types, and services for the hooks subsystem.
+## Domain Metrics & Canonical Hubs
+- **Layer Tier**: Layer 3 (React Hooks & State Orchestration)
+- **Production Modules**: 30
+- **Canonical Hubs**: `src/hooks/useStore.ts` (fan-in: 8, fan-out: 1), `src/hooks/useBackNavigation.ts` (fan-in: 4, fan-out: 1), `src/hooks/useBatchSelection.ts` (fan-in: 4, fan-out: 3), `src/hooks/useIntegrations.ts` (fan-in: 4, fan-out: 5)
 
-## Key Modules & Files
-src/hooks/useSpeechToText.ts (Hub) -> deps: none | caps: ISpeechRecognitionFactory, UseSpeechToTextOptions, UseSpeechToTextReturn, useSpeechToText
-src/hooks/useGeminiStream.ts -> deps: none | caps: UseGeminiStreamOptions, UseGeminiStreamReturn, useGeminiStream
-src/hooks/stubs/useStubsTerminal.ts -> deps: none | caps: LogEntry, useStubsTerminal
-src/hooks/useBatchSelection.ts -> deps: none | caps: UseBatchSelectionProps, useBatchSelection
-src/hooks/useBulkActionConfirm.ts -> deps: none | caps: UseBulkActionConfirmProps, useBulkActionConfirm
-src/hooks/useClipboardKeySniffer.ts -> deps: none | caps: UseClipboardKeySnifferOptions, useClipboardKeySniffer
-src/hooks/useControllableState.ts -> deps: none | caps: UseControllableStateParams, useControllableState
-src/hooks/useKeyboardNavigation.ts -> deps: none | caps: UseKeyboardNavigationOptions, useKeyboardNavigation
-src/hooks/useOfflineSync.ts -> deps: none | caps: ReconnectState, useOfflineSync
-src/hooks/useWindowSecurity.ts -> deps: none | caps: UseWindowSecurityOptions, useWindowSecurity
-src/hooks/settings/useSettingsProjectsState.ts -> deps: none | caps: useSettingsProjectsState
-src/hooks/stubs/useStubsData.ts -> deps: none | caps: useStubsData
-src/hooks/stubs/useStubsSpecs.ts -> deps: none | caps: useStubsSpecs
-src/hooks/useAppAuth.ts -> deps: none | caps: useAppAuth
-src/hooks/useBackNavigation.ts -> deps: none | caps: useBackNavigation
-src/hooks/useChatSession.ts -> deps: none | caps: useChatSession
-src/hooks/useGlobalKeydown.ts -> deps: none | caps: useGlobalKeydown
-src/hooks/useGoogleAuth.ts -> deps: none | caps: useGoogleAuth
-src/hooks/useJules.ts -> deps: none | caps: useJules
-src/hooks/useModelConfig.ts -> deps: none | caps: useModelConfig
-src/hooks/useNetworkStatus.ts -> deps: none | caps: useNetworkStatus
-src/hooks/useOfflineQueue.ts -> deps: none | caps: useOfflineQueue
-src/hooks/usePWAInstall.ts -> deps: none | caps: usePWAInstall
-src/hooks/useProjectManager.ts -> deps: none | caps: useProjectManager
-src/hooks/usePromptTemplates.ts -> deps: none | caps: usePromptTemplates
-src/hooks/useStore.ts -> deps: none | caps: useStore
-src/hooks/useTheme.ts -> deps: none | caps: useTheme
-src/hooks/useAppState.ts -> deps: none | caps: useAppState
-src/hooks/useUIState.ts -> deps: none | caps: useUIState
-
-## Domain Invariants
-- Downward dependencies only: cross-domain calls must target canonical domain hubs.
-- External consumers must interface through useSpeechToText.ts, never private internal helpers.
-- State changes must adhere to lifecycle and containment invariants.
+## Module Inventory & Dependency Contracts
+- `src/hooks/useStore.ts` (L3, 24L, fan-in:8) — `[deps: observable.ts]` · `[caps: useStore]`
+- `src/hooks/useBackNavigation.ts` (L3, 76L, fan-in:4) — `[deps: ServiceContext.tsx]` · `[caps: useBackNavigation]`
+- `src/hooks/useBatchSelection.ts` (L3, 112L, fan-in:4) — `[deps: batchSelectionManager.ts, useStore.ts, ServiceContext.tsx]` · `[caps: UseBatchSelectionProps, useBatchSelection, SelectionState]`
+- `src/hooks/useIntegrations.ts` (L3, 326L, fan-in:4) — `[deps: integrations.ts, ServiceContext.tsx, integrationService.ts, integrationCatalog.ts, errorHandling.ts]` · `[caps: ConnectIntegrationInput, useIntegrations]`
+- `src/hooks/useProviderConnections.ts` (L3, 271L, fan-in:4) — `[deps: types.ts, ServiceContext.tsx, localModelService.ts, providerCatalog.ts, errorHandling.ts]` · `[caps: ConnectProviderInput, useProviderConnections]`
+- `src/hooks/useGlobalKeydown.ts` (L3, 44L, fan-in:3) — `[deps: ServiceContext.tsx]` · `[caps: useGlobalKeydown]`
+- `src/hooks/useOfflineQueue.ts` (L3, 11L, fan-in:3) — `[deps: offlineService.ts, ServiceContext.tsx, useStore.ts]` · `[caps: useOfflineQueue]`
+- `src/hooks/useAppState.ts` (L3, 334L, fan-in:2) — `[deps: ServiceContext.tsx, useAppAuth.ts, usePromptTemplates.ts, useChatSession.ts, useProjectManager.ts, useUIState.ts]` · `[caps: useAppState]`
+- `src/hooks/useControllableState.ts` (L3, 42L, fan-in:2) — `[deps: none]` · `[caps: UseControllableStateParams, useControllableState]`
+- `src/hooks/useGeminiStream.ts` (L3, 146L, fan-in:2) — `[deps: types.ts, geminiStreamService.ts, ServiceContext.tsx]` · `[caps: UseGeminiStreamOptions, UseGeminiStreamReturn, useGeminiStream]`
+- `src/hooks/useGoogleAuth.ts` (L3, 67L, fan-in:2) — `[deps: types.ts, ServiceContext.tsx]` · `[caps: useGoogleAuth]`
+- `src/hooks/useKeyboardNavigation.ts` (L3, 44L, fan-in:2) — `[deps: none]` · `[caps: UseKeyboardNavigationOptions, useKeyboardNavigation]`
+- `src/hooks/useNetworkStatus.ts` (L3, 17L, fan-in:2) — `[deps: useStore.ts, networkStatus.ts, ServiceContext.tsx]` · `[caps: useNetworkStatus]`
+- `src/hooks/useOfflineSync.ts` (L3, 271L, fan-in:2) — `[deps: useNetworkStatus.ts, offlineService.ts, ServiceContext.tsx, useOfflineQueue.ts, syncConflictBus.ts, syncVersionTracker.ts]` · `[caps: ReconnectState, useOfflineSync]`
+- `src/hooks/useTheme.ts` (L3, 29L, fan-in:2) — `[deps: themeService.ts, ServiceContext.tsx]` · `[caps: useTheme]`
+- `src/hooks/settings/useSettingsProjectsState.ts` (L3, 41L, fan-in:1) — `[deps: useBatchSelection.ts, types.ts]` · `[caps: useSettingsProjectsState]`
+- `src/hooks/stubs/useStubsData.ts` (L3, 257L, fan-in:1) — `[deps: ServiceContext.tsx, errorHandling.ts, types.ts]` · `[caps: useStubsData]`
+- `src/hooks/stubs/useStubsSpecs.ts` (L3, 127L, fan-in:1) — `[deps: errorHandling.ts, types.ts, ServiceContext.tsx]` · `[caps: useStubsSpecs]`
+- `src/hooks/stubs/useStubsTerminal.ts` (L3, 119L, fan-in:1) — `[deps: ServiceContext.tsx, types.ts]` · `[caps: LogEntry, useStubsTerminal]`
+- `src/hooks/useAppAuth.ts` (L3, 80L, fan-in:1) — `[deps: types.ts, ServiceContext.tsx]` · `[caps: useAppAuth]`
+- `src/hooks/useBulkActionConfirm.ts` (L3, 37L, fan-in:1) — `[deps: none]` · `[caps: UseBulkActionConfirmProps, useBulkActionConfirm]`
+- `src/hooks/useChatSession.ts` (L3, 86L, fan-in:1) — `[deps: ServiceContext.tsx, types.ts, promptTemplateService.ts, useStore.ts]` · `[caps: useChatSession]`
+- `src/hooks/useClipboardKeySniffer.ts` (L3, 111L, fan-in:1) — `[deps: ServiceContext.tsx]` · `[caps: useClipboardKeySniffer]`
+- `src/hooks/useModelConfig.ts` (L3, 67L, fan-in:1) — `[deps: types.ts, ServiceContext.tsx, modelCatalog.ts]` · `[caps: useModelConfig]`
+- `src/hooks/useProjectManager.ts` (L3, 152L, fan-in:1) — `[deps: ServiceContext.tsx, useStore.ts, types.ts]` · `[caps: useProjectManager]`
+- `src/hooks/usePromptTemplates.ts` (L3, 33L, fan-in:1) — `[deps: none]` · `[caps: usePromptTemplates]`
+- `src/hooks/usePWAInstall.ts` (L3, 39L, fan-in:1) — `[deps: ServiceContext.tsx, useStore.ts]` · `[caps: usePWAInstall]`
+- `src/hooks/useSpeechToText.ts` (L3, 356L, fan-in:1) — `[deps: ServiceContext.tsx, speechRecognition.ts]` · `[caps: ISpeechRecognitionFactory, UseSpeechToTextOptions, UseSpeechToTextReturn, useSpeechToText]`
+- `src/hooks/useUIState.ts` (L3, 57L, fan-in:1) — `[deps: types.ts, speechVoices.ts, ServiceContext.tsx]` · `[caps: useUIState]`
+- `src/hooks/useWindowSecurity.ts` (L3, 39L, fan-in:1) — `[deps: ServiceContext.tsx, useStore.ts]` · `[caps: useWindowSecurity]`

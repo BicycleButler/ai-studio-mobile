@@ -83,24 +83,27 @@ When developing or auditing UI code, execute the appropriate scripts in [scripts
 # Scans TSX/TS files and generates scratch/design-audit-report.md and scratch/design-audit-results.json
 npx tsx scripts/audit-design-system-compliance.ts [optional-target-dir]
 
-# 2. Automated Badge Deprecation Remediation
+# 2. Unified Durable Agentic Harness Pipeline (AST Graph + Context Maps + Lint-Arch + Prune + Design Gate)
+npx stubs run
+
+# 3. Automated Badge Deprecation Remediation
 # Replaces deprecated <Badge> and status dot patterns with Concept C sub-label stacking
-npx tsx scripts/remediate-badge-deprecation.ts [optional-target-dir]
+npx tsx .agents/skills/design/scripts/remediate-badge-deprecation.ts [optional-target-dir]
 
-# 3. Static Resting Color Remediation
+# 4. Static Resting Color Remediation
 # Converts static resting alert fills to neutral resting states with hover-gated accents
-npx tsx scripts/remediate-static-colors.ts [optional-target-dir]
+npx tsx .agents/skills/design/scripts/remediate-static-colors.ts [optional-target-dir]
 
-# 4. Fallback Strings & Accessible Button Remediation
+# 5. Fallback Strings & Accessible Button Remediation
 # Standardizes fallback strings to em-dashes ('—') and injects missing button aria-labels
-npx tsx scripts/remediate-deterministic-fallbacks-and-a11y.ts [optional-target-dir]
+npx tsx .agents/skills/design/scripts/remediate-deterministic-fallbacks-and-a11y.ts [optional-target-dir]
 
-# 5. Residual Alert Fill Remediation
+# 6. Residual Alert Fill Remediation
 # Replaces lingering resting destructive/warning/success container fills based on audit JSON
-npx tsx scripts/remediate-design-violations.ts
+npx tsx .agents/skills/design/scripts/remediate-design-violations.ts
 
-# 6. Verify Design ADR Integrity & Links
-node scripts/verify-design-adrs.mjs
-python3 scripts/ci/validate_frontmatter.py .
-python3 scripts/ci/validate_links.py .
+# 7. Verify Design ADR Integrity & Frontmatter/Links
+npx tsx .agents/skills/design/scripts/verify-design-adrs.ts
+npx tsx .agents/skills/design/scripts/ci/validate-frontmatter.ts
+npx tsx .agents/skills/design/scripts/ci/validate-links.ts
 ```

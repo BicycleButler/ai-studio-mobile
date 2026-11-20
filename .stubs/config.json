@@ -5,6 +5,14 @@
   "paths": {
     "specs_dir": "src",
     "templates_dir": ".stubs/templates",
-    "database_path": ".stubs/graph.sqlite"
+    "database_path": ".stubs/graph.sqlite",
+    "ledger_path": ".stubs/harness-ledger.json",
+    "context_maps_dir": "knowledge/architecture"
+  },
+  "harness": {
+    "auto_mtime_scan": true,
+    "default_guard_threshold": "high",
+    "enforce_layer_hierarchy": true,
+    "enforce_design_compliance": true
   }
 }

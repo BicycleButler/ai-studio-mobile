@@ -21,9 +21,10 @@ const QUICK_COMMANDS: Array<{ label: string; command: StubsCommandName; args: st
   { label: "stubs run", command: "run", args: [] },
   { label: "stubs scan", command: "scan", args: [] },
   { label: 'stubs query "map:"', command: "query", args: ["map:"] },
+  { label: 'stubs query "stub: StubsClient"', command: "query", args: ["stub: StubsClient"] },
+  { label: "stubs map --generate", command: "map", args: ["--generate"] },
   { label: "stubs lint-arch", command: "lint-arch", args: [] },
   { label: "stubs prune", command: "prune", args: [] },
-  { label: "stubs phase status", command: "phase", args: ["status"] },
   { label: "stubs sand", command: "sand", args: [] },
 ];
 

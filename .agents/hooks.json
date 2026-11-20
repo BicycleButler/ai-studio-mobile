@@ -1,12 +1,18 @@
 {
-  "version": "1.0.0",
-  "description": "Automatic stubs AST dependency graph sync hooks",
+  "version": "1.1.0",
+  "description": "Durable agentic coding hooks for automatic AST graph synchronization and architectural verification",
   "hooks": [
     {
       "event": "post_tool_execution",
       "matcher": "replace_file_content|write_to_file|multi_replace_file_content",
       "command": "npx stubs scan",
-      "description": "Automatically synchronizes .stubs/graph.sqlite when files are modified"
+      "description": "Automatically synchronizes .stubs/graph.sqlite when source files are modified"
+    },
+    {
+      "event": "pre_completion",
+      "matcher": "compile_applet|lint_applet",
+      "command": "npx stubs run",
+      "description": "Executes the 5-stage durable harness pipeline (scan, maps & sand, lint-arch, prune, design compliance) and records checkpoint"
     }
   ]
 }

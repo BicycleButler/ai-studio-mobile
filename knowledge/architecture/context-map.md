@@ -1,38 +1,47 @@
 ---
-title: Project Architecture Context Map
+title: "System Architecture Context Map"
 type: context-map
-description: High-level architectural map of core domains, subsystem responsibilities, and dependency flows.
-tags:
-  - architecture
-  - context-map
-  - agent-optimized
+status: active
+domain: core
 ---
 
-# Architecture Context Map
+# System Architecture Context Map
 
-## Routing & Entrypoints
-Entry (Layer 0): src/types.ts -> domain: core
-Entry (Layer 0): src/types/speechRecognition.ts -> domain: core
-Entry (Layer 0): src/types/stubs.ts -> domain: core
+> **Agent Entry Point (Tier 1 Progressive Disclosure)**: Read this macro map first, then drill into the relevant domain map or query `npx stubs query "stub: <module>"` for Level 1 Interface Skeleton signatures.
 
-## Subsystem Matrix
-Utils Domain (L1): src/utils/platform.ts -> deps: none | caps: AppRuntime, isBrowserEnvironment, WindowWithMatchMedia, WindowWithSpeech
-Components Domain (L2): src/components/ui/index.ts -> deps: none | caps: AccountSettingsProps, ProjectSettingsProps, SpeechSettingsProps, LibrarySettingsProps
-Services Domain (L3): src/services/platformService.ts -> deps: none | caps: BrowserPlatformService, getStorageEventObservable, getStorageQuotaObservable, isInputFocused
-Hooks Domain (L4): src/hooks/useSpeechToText.ts -> deps: none | caps: ISpeechRecognitionFactory, UseSpeechToTextOptions, UseSpeechToTextReturn, useSpeechToText
-Core Entrypoints & Runtime (L5): src/types.ts -> deps: none | caps: PromptType, SettingsTab, ModelInfo, MessageAttachment
+## 1. Strict 7-Layer Dependency Hierarchy
+- **Layer 0 (`core`)**: Foundational TypeScript interfaces & Zod schemas (`src/types.ts`, `src/types/stubs.ts`, `src/schemas/validation.ts`). Imports nothing from higher layers.
+- **Layer 1 (`utils`)**: Pure utilities, platform detection, API client, and AES-GCM storage (`src/utils/**`, `src/data/**`).
+- **Layer 2 (`services`)**: Stateful domain services and API clients (`src/services/**`).
+- **Layer 3 (`hooks` / `core`)**: React hooks and workspace contexts (`src/hooks/**`, `src/contexts/**`).
+- **Layer 4 (`components`)**: UI components and workspace views (`src/components/**`).
+- **Layer 5 (`core`)**: Application entrypoints (`src/App.tsx`, `src/main.tsx`).
+- **Layer 6 (`server`)**: Express server runtime and SQLite AST GraphRAG engine (`server.ts`, `server/**`).
 
-## Domain Maps & Specs
-- utils: knowledge/architecture/domains/utils-domain-map.md (hub: src/utils/platform.ts)
-- components: knowledge/architecture/domains/components-domain-map.md (hub: src/components/ui/index.ts)
-- services: knowledge/architecture/domains/services-domain-map.md (hub: src/services/platformService.ts)
-- hooks: knowledge/architecture/domains/hooks-domain-map.md (hub: src/hooks/useSpeechToText.ts)
-- core: knowledge/architecture/domains/core-domain-map.md (hub: src/types.ts)
+## 2. Prerequisite Domain Maps
+- **[CORE Domain Map](domains/core-domain-map.md)** (8 modules) — Hubs: `src/types.ts` (fan-in 71), `src/types/integrations.ts` (fan-in 18), `src/types/stubs.ts` (fan-in 14)
+- **[UTILS Domain Map](domains/utils-domain-map.md)** (80 modules) — Hubs: `src/utils/logger.ts` (fan-in 51), `src/utils/apiClient.ts` (fan-in 22), `src/utils/observable.ts` (fan-in 20)
+- **[SERVICES Domain Map](domains/services-domain-map.md)** (32 modules) — Hubs: `src/services/ServiceContext.tsx` (fan-in 50), `src/services/IPlatformService.ts` (fan-in 31), `src/services/platformService.ts` (fan-in 25)
+- **[HOOKS Domain Map](domains/hooks-domain-map.md)** (30 modules) — Hubs: `src/hooks/useStore.ts` (fan-in 8), `src/hooks/useBackNavigation.ts` (fan-in 4), `src/hooks/useBatchSelection.ts` (fan-in 4)
+- **[COMPONENTS Domain Map](domains/components-domain-map.md)** (76 modules) — Hubs: `src/components/settings/SettingsSectionCard.tsx` (fan-in 5), `src/components/BatchDeleteOverlay.tsx` (fan-in 4), `src/components/BatchSelectionHeader.tsx` (fan-in 4)
+- **[SERVER Domain Map](domains/server-domain-map.md)** (8 modules) — Hubs: `server/stateStore.ts` (fan-in 3), `server/stubsService.ts` (fan-in 3), `server.ts` (fan-in 2)
 
-## Boundary Invariants
-- Downward dependencies only: consumers depend on lower layers, never higher layers.
-- Cross-domain calls must target the domain canonical hub module, never internal private helpers.
-- Repo-level architectural decisions recorded in knowledge/architecture/ADR/. Module nuances recorded in domain maps and sidecars.
+## 3. Global High-Centrality Hubs (Top 10 by Fan-In)
+1. `src/types.ts` — Domain: `core` · Layer 0 · Fan-In: **71** · Fan-Out: 2 · Exports: PromptType, SettingsTab, ModelProviderId, ModelInfo, ProviderConnection
+2. `src/utils/logger.ts` — Domain: `utils` · Layer 1 · Fan-In: **51** · Fan-Out: 0 · Exports: ILogger, ConsoleLogger, NoOpLogger, ILoggerFactory, DefaultLoggerFactory
+3. `src/services/ServiceContext.tsx` — Domain: `services` · Layer 2 · Fan-In: **50** · Fan-Out: 52 · Exports: IServices, ServiceProvider, useServices, createServices
+4. `src/services/IPlatformService.ts` — Domain: `services` · Layer 2 · Fan-In: **31** · Fan-Out: 3 · Exports: IPlatformService
+5. `src/services/platformService.ts` — Domain: `services` · Layer 2 · Fan-In: **25** · Fan-Out: 5 · Exports: BrowserPlatformService
+6. `src/utils/apiClient.ts` — Domain: `utils` · Layer 1 · Fan-In: **22** · Fan-Out: 5 · Exports: ApiClientConfig, IApiClient, ApiClient
+7. `src/utils/observable.ts` — Domain: `utils` · Layer 1 · Fan-In: **20** · Fan-Out: 1 · Exports: Listener, IReadableStore, IObservable, Observable
+8. `src/utils/storage/types.ts` — Domain: `utils` · Layer 1 · Fan-In: **19** · Fan-Out: 1 · Exports: StorageSaveOptions, IStorageBase, IDisposable, CollectionOperationResult, ICollectionEngine
+9. `src/utils/errorHandling.ts` — Domain: `utils` · Layer 1 · Fan-In: **19** · Fan-Out: 0 · Exports: extractMessageFromUnknown, getErrorMessage
+10. `src/types/integrations.ts` — Domain: `core` · Layer 0 · Fan-In: **18** · Fan-Out: 0 · Exports: IntegrationProviderId, IntegrationAuthMethod, IntegrationConnection, IntegrationCredentialsPayload, RemoteFileSource
 
-## Visual Architecture Map
-Human visual Mermaid diagrams: knowledge/architecture/visual-map.md (agents: do not read unless requested)
+## 4. Surgical GraphRAG Query Protocol
+- `npx stubs query "map:"` — Level 0 Macro Map summary
+- `npx stubs query "stub: <target>"` — Level 1 Interface Skeleton Stubs (stripped bodies + line links)
+- `npx stubs query "explain: <target>"` — Level 2 Symbol Profile (callers, callees, exports)
+- `npx stubs query "path: <A> to <B>"` — Shortest directed dependency chain
+- `npx stubs query "blast: <target>"` — Downstream impact radius & topological edit order
+- `npx stubs query "pkg:<package>"` — Package-scoped consumer audit

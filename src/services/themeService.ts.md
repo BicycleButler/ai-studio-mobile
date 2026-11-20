@@ -13,6 +13,14 @@ tags:
   - adr-0020
   - adr-0028
   - adr-0041
+depends_on:
+  - src/services/IPlatformService.ts
+  - src/services/platformService.ts
+  - src/utils/storage/index.ts
+  - src/utils/storage/types.ts
+  - src/utils/observable.ts
+status_flag: clean
+ast_hash: 983c17c59ea0
 ---
 
 # Theme System Architecture & Theme Service Specification

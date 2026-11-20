@@ -211,6 +211,50 @@ describe('StubsClient', () => {
         );
         expect(result).toEqual(mockFile);
     });
+
+    it('should call fetchInterfaceStub correctly', async () => {
+        const mockStub = {
+            path: 'src/services/stubsService.ts',
+            domain: 'services',
+            layer: 2,
+            lineCount: 258,
+            fullTokens: 2400,
+            stubTokens: 420,
+            tokenSavingsPct: 83,
+            skeletonCode: '// Level 1 Interface Skeleton',
+            symbols: [],
+        };
+        mockApiClient.fetch.mockResolvedValueOnce(mockStub);
+
+        const result = await client.fetchInterfaceStub('src/services/stubsService.ts');
+
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/stub?target=src%2Fservices%2FstubsService.ts',
+            undefined,
+            'Failed to extract Level 1 Interface Skeleton Stub'
+        );
+        expect(result).toEqual(mockStub);
+    });
+
+    it('should call syncContextMaps correctly', async () => {
+        const mockSync = {
+            updatedFiles: ['knowledge/architecture/context-map.md'],
+            totalModules: 140,
+        };
+        mockApiClient.fetch.mockResolvedValueOnce(mockSync);
+
+        const result = await client.syncContextMaps();
+
+        expect(mockApiClient.fetch).toHaveBeenCalledWith(
+            '/api/stubs/map',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            },
+            'Failed to synchronize architecture context maps'
+        );
+        expect(result).toEqual(mockSync);
+    });
 });
 
 describe('StubsClient Stream Config', () => {

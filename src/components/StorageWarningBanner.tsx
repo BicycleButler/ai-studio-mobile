@@ -15,10 +15,10 @@ export const StorageWarningBanner: React.FC = () => {
   return (
     <div
       role="alert"
-      className="mx-3 mt-2 flex items-center justify-between gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground shadow-sm"
+      className="mx-3 mt-2 flex items-center justify-between gap-2.5 rounded-xl border border-border bg-muted/60 px-3 py-2 text-xs text-foreground shadow-xs"
     >
       <div className="flex items-center gap-2 min-w-0">
-        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate">
           {state.reason || "Browser storage is full or restricted. New changes are stored temporarily in memory."}
         </span>

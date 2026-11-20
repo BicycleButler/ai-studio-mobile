@@ -25,11 +25,47 @@ export interface StubsEdge {
   weight: number;
 }
 
+export interface StubsInterfaceSymbol {
+  name: string;
+  kind: "interface" | "type" | "class" | "function" | "enum" | "const";
+  lineStart: number;
+  lineEnd: number;
+  signature: string;
+  exported: boolean;
+}
+
+export interface StubsInterfaceStub {
+  path: string;
+  domain: string;
+  layer: number;
+  lineCount: number;
+  fullTokens: number;
+  stubTokens: number;
+  tokenSavingsPct: number;
+  skeletonCode: string;
+  symbols: StubsInterfaceSymbol[];
+}
+
+export interface StubsHarnessCheckpoint {
+  id: string;
+  timestamp: number;
+  passed: boolean;
+  scannedFiles: number;
+  edgesCount: number;
+  lintErrors: number;
+  lintWarnings: number;
+  pruneIssues: number;
+  designViolations: number;
+  contextMapsSynced: number;
+  durationMs: number;
+}
+
 export interface StubsGraphData {
   projectName: string;
   version: string;
   autonomyLevel?: string;
   cliAvailable?: boolean;
+  lastCheckpoint?: StubsHarnessCheckpoint;
   nodes: StubsNode[];
   edges: StubsEdge[];
   summary: {
@@ -45,7 +81,7 @@ export interface StubsGraphData {
   };
 }
 
-export type StubsQueryMode = "explain" | "path" | "blast" | "map" | "search";
+export type StubsQueryMode = "explain" | "path" | "blast" | "map" | "stub" | "pkg" | "search";
 
 export interface StubsQueryMatch {
   node: StubsNode;
@@ -82,6 +118,18 @@ export interface StubsQueryResult {
       nodeCount: number;
       hubFile?: string;
       avgLayer: number;
+    }>;
+  };
+  stubResult?: StubsInterfaceStub;
+  pkgResult?: {
+    packageName: string;
+    consumerCount: number;
+    consumers: Array<{
+      id: string;
+      domain: string;
+      layer: number;
+      fanIn: number;
+      exportsCount: number;
     }>;
   };
 }
@@ -140,6 +188,7 @@ export interface StubsTieredContext {
     layer: number;
   }>;
   tier2Boundary: string[];
+  interfaceStub?: StubsInterfaceStub;
   briefingMarkdown: string;
 }
 
@@ -207,6 +256,8 @@ export interface StubsRunResult {
   pruneIssues: number;
   driftedSidecars: number;
   contextMapsCount: number;
+  designViolations?: number;
+  checkpointId?: string;
   durationMs: number;
   steps: StubsRunStep[];
 }
@@ -226,7 +277,8 @@ export type StubsCommandName =
   | "prune"
   | "phase"
   | "context"
-  | "map";
+  | "map"
+  | "harness";
 
 export interface StubsWorkspaceFileContent {
   path: string;

@@ -8,6 +8,7 @@ import {
   Check,
   ArrowUpRight,
   ArrowDownLeft,
+  ArrowRight,
 } from "lucide-react";
 import { StubsImpactResult } from "../../types/stubs";
 import { Combobox } from "../Combobox";
@@ -36,12 +37,18 @@ export const StubsImpactTab: React.FC<StubsImpactTabProps> = ({
   onCopyBriefing,
 }) => {
   const [copiedBriefing, setCopiedBriefing] = useState(false);
+  const [contextViewMode, setContextViewMode] = useState<"briefing" | "stub">("briefing");
 
   const nodeOptions = availableNodes.map((n) => ({ id: n, label: n }));
 
+  const activeContextText =
+    contextViewMode === "stub" && impactResult?.tieredContext?.interfaceStub
+      ? impactResult.tieredContext.interfaceStub.skeletonCode
+      : impactResult?.tieredContext?.briefingMarkdown || "";
+
   const handleCopyBriefing = () => {
-    if (!impactResult?.tieredContext?.briefingMarkdown) return;
-    onCopyBriefing(impactResult.tieredContext.briefingMarkdown);
+    if (!activeContextText) return;
+    onCopyBriefing(activeContextText);
     setCopiedBriefing(true);
     setTimeout(() => setCopiedBriefing(false), 1800);
   };
@@ -104,35 +111,68 @@ export const StubsImpactTab: React.FC<StubsImpactTabProps> = ({
 
       {impactResult ? (
         <>
-          {/* Pre-Flight Safety Gate Banner */}
+          {/* Pre-Flight Safety Gate Banner & Topological Edit Sequence */}
           {impactResult.preFlight && (
-            <div className="p-3.5 rounded-xl bg-card border border-border flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-start gap-2.5 min-w-0">
-                {impactResult.preFlight.safe ? (
-                  <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                ) : (
-                  <AlertTriangle className="w-5 h-5 text-foreground shrink-0 mt-0.5" />
-                )}
-                <div className="space-y-1 min-w-0">
-                  <div className="text-xs font-semibold text-foreground">
-                    {impactResult.preFlight.safe
-                      ? `Pre-Flight Gate Passed (Guard: ${impactResult.preFlight.guardThreshold.toUpperCase()})`
-                      : `Pre-Flight Gate Blocked (Guard: ${impactResult.preFlight.guardThreshold.toUpperCase()})`}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {impactResult.preFlight.blockedReason ||
-                      `Safe to modify under '${impactResult.preFlight.autonomyLevel}' autonomy.`}
-                  </p>
-                  {impactResult.domainBoundariesCrossed && impactResult.domainBoundariesCrossed.length > 0 && (
-                    <p className="text-[11px] font-mono text-muted-foreground">
-                      External domains affected: {impactResult.domainBoundariesCrossed.join(", ")}
-                    </p>
+            <div className="p-3.5 rounded-xl bg-card border border-border space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  {impactResult.preFlight.safe ? (
+                    <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-foreground shrink-0 mt-0.5" />
                   )}
+                  <div className="space-y-1 min-w-0">
+                    <div className="text-xs font-semibold text-foreground">
+                      {impactResult.preFlight.safe
+                        ? `Pre-Flight Gate Passed (Guard: ${impactResult.preFlight.guardThreshold.toUpperCase()})`
+                        : `Pre-Flight Gate Blocked (Guard: ${impactResult.preFlight.guardThreshold.toUpperCase()})`}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {impactResult.preFlight.blockedReason ||
+                        `Safe to modify under '${impactResult.preFlight.autonomyLevel}' autonomy.`}
+                    </p>
+                    {impactResult.domainBoundariesCrossed && impactResult.domainBoundariesCrossed.length > 0 && (
+                      <p className="text-[11px] font-mono text-muted-foreground">
+                        External domains affected: {impactResult.domainBoundariesCrossed.join(", ")}
+                      </p>
+                    )}
+                  </div>
                 </div>
+                <span className="text-xs font-mono tabular-nums text-muted-foreground shrink-0">
+                  {impactResult.domain} · L{impactResult.layer}
+                </span>
               </div>
-              <span className="text-xs font-mono tabular-nums text-muted-foreground shrink-0">
-                {impactResult.domain} · L{impactResult.layer}
-              </span>
+
+              {impactResult.preFlight.editOrder.length > 0 && (
+                <div className="pt-2.5 border-t border-border/60 space-y-1.5">
+                  <div className="text-[11px] font-medium text-muted-foreground">
+                    Topological Edit Sequence (Dependencies → Target → Callers)
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
+                    {impactResult.preFlight.editOrder.map((step, idx) => {
+                      const isTarget = step === impactResult.target;
+                      return (
+                        <React.Fragment key={step}>
+                          <button
+                            type="button"
+                            onClick={() => handlePivotTarget(step)}
+                            className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                              isTarget
+                                ? "bg-primary/15 border-primary/50 text-foreground font-semibold"
+                                : "bg-background border-border text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {idx + 1}. {step}
+                          </button>
+                          {idx < impactResult.preFlight!.editOrder.length - 1 && (
+                            <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -233,38 +273,69 @@ export const StubsImpactTab: React.FC<StubsImpactTabProps> = ({
             </div>
           </div>
 
-          {/* Tiered Agent Context Package (`stubs context`) */}
+          {/* Tiered Agent Context Package (`stubs context` & Level 1 Interface Stub) */}
           {impactResult.tieredContext && (
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <div className="p-3 bg-muted/30 border-b border-border flex flex-wrap items-center justify-between gap-2">
-                <div>
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold text-foreground">
-                    Tiered Agent Context Briefing (stubs context)
+                    Tiered Agent Context Briefing
                   </span>
-                  <span className="text-[11px] font-mono tabular-nums text-muted-foreground ms-2">
-                    ~{impactResult.tieredContext.estimatedTokens} tokens · L0 + {impactResult.tieredContext.tier1Deps.length} L1 deps + {impactResult.tieredContext.tier2Boundary.length} L2 boundary
+                  <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
+                    ~{impactResult.tieredContext.estimatedTokens} tokens
+                    {impactResult.tieredContext.interfaceStub
+                      ? ` · ${impactResult.tieredContext.interfaceStub.tokenSavingsPct}% L1 stub compression`
+                      : ""}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCopyBriefing}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border border-border hover:bg-muted text-xs font-medium text-foreground cursor-pointer"
-                >
-                  {copiedBriefing ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-primary" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy Briefing</span>
-                    </>
+                <div className="flex items-center gap-1.5">
+                  {impactResult.tieredContext.interfaceStub && (
+                    <div className="flex items-center rounded-md bg-background border border-border p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setContextViewMode("briefing")}
+                        className={`px-2 py-0.5 rounded text-[11px] font-medium cursor-pointer ${
+                          contextViewMode === "briefing"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        L0/L1/L2 Briefing
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContextViewMode("stub")}
+                        className={`px-2 py-0.5 rounded text-[11px] font-medium cursor-pointer ${
+                          contextViewMode === "stub"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        L1 Skeleton Stub
+                      </button>
+                    </div>
                   )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleCopyBriefing}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background border border-border hover:bg-muted text-xs font-medium text-foreground cursor-pointer"
+                  >
+                    {copiedBriefing ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-primary" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy {contextViewMode === "stub" ? "Stub" : "Briefing"}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
               <pre className="p-3.5 text-xs font-mono text-foreground/90 whitespace-pre-wrap overflow-x-auto max-h-64 leading-relaxed bg-background">
-                {impactResult.tieredContext.briefingMarkdown}
+                {activeContextText}
               </pre>
             </div>
           )}

@@ -2,7 +2,7 @@ import { IPlatformService } from "../services/IPlatformService";
 import { IMutex, Mutex } from "./mutex";
 import { Observable, IObservable } from "./observable";
 import { ILogger, DefaultLoggerFactory } from "./logger";
-import { OfflineMutation } from "./offlineService";
+import type { OfflineMutation } from "./offlineService";
 import { ICrossTabNotifier, ICrossTabNotifierFactory } from "./crossTabNotifier";
 
 

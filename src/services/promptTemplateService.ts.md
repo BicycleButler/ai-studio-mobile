@@ -9,6 +9,15 @@ tags:
   - templates
   - compose
   - chat
+depends_on:
+  - src/utils/timeProvider.ts
+  - src/types.ts
+  - src/utils/storage/index.ts
+  - src/utils/storage/types.ts
+  - src/utils/idGenerator.ts
+  - src/services/firestoreSyncService.ts
+status_flag: clean
+ast_hash: b92bc32565a5
 ---
 
 # Prompt Template Service & Selection Architecture Specification

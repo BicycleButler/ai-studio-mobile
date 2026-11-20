@@ -11,6 +11,8 @@ import {
   X,
   CheckCircle2,
   AlertTriangle,
+  Copy,
+  Package,
 } from "lucide-react";
 import {
   StubsGraphData,
@@ -31,13 +33,16 @@ export interface StubsGraphTabProps {
   pipelineResult: StubsRunResult | null;
   onInspectImpact: (target: string) => void;
   onViewSliceDiagram: (target: string) => void;
+  onCopyText?: (text: string) => void;
 }
 
 const QUERY_PRESETS = [
   { label: "map:", value: "map:" },
+  { label: "stub:", value: "stub: src/services/stubsService.ts" },
   { label: "explain:", value: "explain: StubsWorkspace.tsx" },
   { label: "path:", value: "path: App.tsx to stubs.ts" },
   { label: "blast:", value: "blast: src/types.ts" },
+  { label: "pkg:", value: "pkg:react" },
 ];
 
 export const StubsGraphTab: React.FC<StubsGraphTabProps> = ({
@@ -52,6 +57,7 @@ export const StubsGraphTab: React.FC<StubsGraphTabProps> = ({
   pipelineResult,
   onInspectImpact,
   onViewSliceDiagram,
+  onCopyText,
 }) => {
   const [domainFilter, setDomainFilter] = useState<string>("all");
   const [graphRagInput, setGraphRagInput] = useState<string>("");
@@ -104,13 +110,14 @@ export const StubsGraphTab: React.FC<StubsGraphTabProps> = ({
               ) : (
                 <AlertTriangle className="w-4 h-4 text-foreground shrink-0" />
               )}
-              <span>Unified Pipeline Scorecard</span>
+              <span>Durable Agentic Harness Scorecard</span>
             </div>
             <span className="text-xs text-muted-foreground font-mono tabular-nums">
-              {pipelineResult.passed ? "Passed" : "Attention required"} · {pipelineResult.durationMs}ms
+              {pipelineResult.passed ? "Verified" : "Attention required"}
+              {pipelineResult.checkpointId ? ` · ${pipelineResult.checkpointId}` : ""} · {pipelineResult.durationMs}ms
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
             {pipelineResult.steps.map((step) => (
               <div
                 key={step.name}
@@ -136,6 +143,21 @@ export const StubsGraphTab: React.FC<StubsGraphTabProps> = ({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {!pipelineResult && graphData.lastCheckpoint && (
+        <div className="px-3.5 py-2.5 rounded-xl bg-card border border-border flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-foreground">
+            <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span className="font-medium">Durable Harness Ledger</span>
+            <span className="text-muted-foreground font-mono">
+              {graphData.lastCheckpoint.id} · {graphData.lastCheckpoint.passed ? "Verified" : "Action Needed"}
+            </span>
+          </div>
+          <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
+            {graphData.lastCheckpoint.lintErrors} arch errors · {graphData.lastCheckpoint.designViolations} design violations · {graphData.lastCheckpoint.contextMapsSynced} context maps
+          </span>
         </div>
       )}
 
@@ -375,6 +397,77 @@ export const StubsGraphTab: React.FC<StubsGraphTabProps> = ({
                 >
                   Open Pre-Flight
                 </button>
+              </div>
+            )}
+
+            {queryResult.stubResult && (
+              <div className="rounded-lg bg-background border border-border overflow-hidden">
+                <div className="px-3 py-2 bg-muted/30 border-b border-border flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 font-mono">
+                    <span className="font-semibold text-foreground">{queryResult.stubResult.path}</span>
+                    <span className="text-muted-foreground text-[11px] tabular-nums">
+                      L{queryResult.stubResult.layer} · {queryResult.stubResult.domain} · {queryResult.stubResult.tokenSavingsPct}% token savings (~{queryResult.stubResult.stubTokens} vs ~{queryResult.stubResult.fullTokens} tokens)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {onCopyText && (
+                      <button
+                        type="button"
+                        onClick={() => onCopyText(queryResult.stubResult!.skeletonCode)}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-background border border-border hover:bg-muted text-[11px] font-medium text-foreground cursor-pointer"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Copy Skeleton</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onInspectImpact(queryResult.stubResult!.path)}
+                      className="px-2.5 py-1 rounded-md bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground cursor-pointer"
+                    >
+                      Inspect Impact
+                    </button>
+                  </div>
+                </div>
+                <pre className="p-3 text-[11px] font-mono text-foreground/90 whitespace-pre-wrap overflow-x-auto max-h-64 leading-relaxed">
+                  {queryResult.stubResult.skeletonCode}
+                </pre>
+              </div>
+            )}
+
+            {queryResult.pkgResult && (
+              <div className="space-y-2">
+                {queryResult.pkgResult.consumers.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No workspace modules import package &apos;{queryResult.pkgResult.packageName}&apos;.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                    {queryResult.pkgResult.consumers.map((consumer) => (
+                      <div
+                        key={consumer.id}
+                        className="p-2.5 rounded-lg bg-background border border-border flex items-center justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-foreground truncate">
+                            <Package className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="truncate">{consumer.id}</span>
+                          </div>
+                          <div className="text-[11px] text-muted-foreground font-mono tabular-nums mt-0.5">
+                            {consumer.domain} · L{consumer.layer} · fan-in:{consumer.fanIn} · {consumer.exportsCount} exports
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onInspectImpact(consumer.id)}
+                          className="px-2 py-1 rounded bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground shrink-0 cursor-pointer"
+                        >
+                          Impact
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

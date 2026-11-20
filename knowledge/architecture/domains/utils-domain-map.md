@@ -1,94 +1,98 @@
 ---
-title: Utils Domain — Domain Context Map
+title: "Utils Domain Map"
 type: domain-context-map
+status: active
 domain: utils
-parent_map: ../context-map.md
-description: Deep-dive context map for the utils domain, subsystem responsibilities, and internal modules.
-tags:
-  - domain-map
-  - utils
-  - agent-optimized
+layer: 1
 ---
 
-# Utils Domain — Domain Context Map
+# Utils Domain Map
 
-Parent Context Map: knowledge/architecture/context-map.md
+> Pure utility functions, platform detection, API client helpers, and AES-GCM encrypted local storage adapters.
 
-## Domain Purpose & Responsibilities
-The Utils Domain coordinates domain logic, core types, and services for the utils subsystem.
+## Domain Metrics & Canonical Hubs
+- **Layer Tier**: Layer 1 (Utilities & Encrypted Storage)
+- **Production Modules**: 80
+- **Canonical Hubs**: `src/utils/logger.ts` (fan-in: 51, fan-out: 0), `src/utils/apiClient.ts` (fan-in: 22, fan-out: 5), `src/utils/observable.ts` (fan-in: 20, fan-out: 1), `src/utils/errorHandling.ts` (fan-in: 19, fan-out: 0)
 
-## Key Modules & Files
-src/utils/platform.ts (Hub) -> deps: none | caps: AppRuntime, isBrowserEnvironment, WindowWithMatchMedia, WindowWithSpeech, WindowWithCapacitor, NavigatorWithStandalone, WindowWithLocalStorage, WindowWithSpeechSynthesis
-src/utils/storage/core.ts -> deps: none | caps: createDefaultStorageInstance, MemoryStorage, getItem, setItem, removeItem, clear, key, safeParseStorageItem
-src/utils/offlineQueueStore.ts -> deps: none | caps: IOfflineQueueStore, OfflineQueueStoreConfig, OfflineQueueStore, getObservable, notifyQueue, syncCacheFromStorage, getSnapshot, safeGetQueue
-src/utils/offlineService.ts -> deps: none | caps: OfflineMutation, ConflictData, SyncHandler, IOfflineService, OfflineServiceConfig, OfflineService, getObservable, registerSyncHandler
-src/utils/logger.ts -> deps: none | caps: ILogger, ConsoleLogger, debug, info, warn, error, NoOpLogger, ILoggerFactory
-src/utils/storage/jules.ts -> deps: none | caps: IJulesStorageService, JulesStorageServiceConfig, JulesStorageService, loadStoredJulesApiKey, saveStoredJulesApiKey, isMockJulesSession, fetchJulesSessionsFromServer, loadStoredJulesSettings
-src/utils/apiClient.ts -> deps: none | caps: ApiClientConfig, IApiClient, ApiClient, addInterceptor, clearInterceptors, addResponseInterceptor, prepareRequest, fetchWithRetry
-src/utils/imageCompressor.ts -> deps: none | caps: CompressionOptions, calculateProportionalDimensions, IImageCompressionStrategy, CanvasImageCompressionStrategyConfig, CanvasImageCompressionStrategy, isWebPSupported, compress, IImageCompressor
-src/utils/apiClientInterceptors.ts -> deps: none | caps: RequestInterceptor, Interceptor, ResponseInterceptor, IInterceptorManager, InterceptorManager, addInterceptor, clearInterceptors, applyInterceptors
-src/utils/asyncStorage.ts -> deps: none | caps: AsyncStorage, IndexedDbAsyncStorage, getItem, setItem, MemoryAsyncStorage, FallbackAsyncStorage
-src/utils/storage/ActiveItemManager.ts -> deps: none | caps: ActiveItemManagerOptions, ActiveItemManagerState, IActiveItemManager, ActiveItemManager, getSnapshot, getItems, getActiveId, setActiveId
-src/utils/batchSelectionManager.ts -> deps: none | caps: SelectionState, BatchSelectionState, IBatchSelectionManager, BatchSelectionManager, clearSelection, toggleSelection, toggleSelectAll, removeFromSelection
-src/utils/computedStore.ts -> deps: none | caps: ComputedStore, startObservingDependencies, stopObservingDependencies, subscribe, updateLastKnownDependencies, checkDependenciesChanged, markDirty, getSnapshot
-src/utils/observable.ts -> deps: none | caps: Listener, IReadableStore, IObservable, Observable, subscribe, notify, notifySync, getSnapshot
-src/utils/storage/MapCollection.ts -> deps: none | caps: MapCollection, update, processUpdates, processUpserts, bulkUpdate, delete, bulkDelete, upsert
-src/utils/storage/StorageBase.ts -> deps: none | caps: StorageBaseOptions, StorageBase, processRawValue, handleStorageEvent, getSnapshot, load, save, clear
-src/utils/storage/StorageCollection.ts -> deps: none | caps: StorageCollectionOptions, StorageCollection, applyOperation, update, bulkUpdate, bulkDelete, delete, upsert
-src/utils/sseParser.ts -> deps: none | caps: SSEEventCallback, ISSEStreamParser, ISSEStreamParserFactory, SSEStreamParser, processChunk, flush, dispatchCurrentEvent, processLines
-src/utils/storage/projects.ts -> deps: none | caps: IProjectService, ProjectServiceConfig, ProjectService, loadStoredProjects, saveStoredProjects, getActiveProjectId, setActiveProjectId, saveAndActivateProject
-src/utils/storage/draftState.ts -> deps: none | caps: DraftState, IDraftStateService, DraftStateServiceConfig, DraftStateService, getProjectDraftKey, getDraftSingleton, loadDraftState, saveDraftState
-src/utils/delayStrategy.ts -> deps: none | caps: IDelayStrategy, FixedIntervalDelayStrategy, getNextDelayMs, withBaseDelay, ExponentialBackoffDelayStrategy
-src/utils/storage/FallbackStorageWrapper.ts -> deps: none | caps: FallbackStorageWrapper, promoteToMemory, getItem, setItem, removeItem, clear, key
-src/utils/storage/general.ts -> deps: none | caps: IGeneralSettingsService, GeneralSettingsServiceConfig, GeneralSettingsService, loadStoredApiKey, saveStoredApiKey, isFlagSecureEnabled, setFlagSecureEnabled
-src/utils/storage/syncAdapter.ts -> deps: none | caps: IStorageSyncAdapter, ISyncTransport, ApiClientSyncTransport, transmit, NetworkStorageSyncAdapterConfig, NetworkStorageSyncAdapter, syncItem
-src/utils/storage/types.ts -> deps: none | caps: IStorageBase, IDisposable, CollectionOperationResult, ICollectionEngine, IMutableCollection, IMutableSingleton, IStorageAdapter
-src/utils/eventEmitter.ts -> deps: none | caps: EventListener, IEventEmitter, EventEmitter, subscribe, emit, clearListeners
-src/utils/networkStatus.ts -> deps: none | caps: NetworkStatus, INetworkStatusProvider, BrowserNetworkStatusProvider, getObservable, initListeners, isOnline
-src/utils/storage/StorageFactory.ts -> deps: none | caps: IStorageFactory, DefaultStorageFactory, getStorageInstance, createCollection, createSingleton, createRegistry
-src/utils/storage/StorageRegistry.ts -> deps: none | caps: IStorageRegistry, StorageRegistry, get, delete, clear, disposeStore
-src/utils/apiClientErrors.ts -> deps: none | caps: BaseApiError, fromResponse, isRetryable, isAbortError, parseErrorResponse
-src/utils/crossTabNotifier/BroadcastChannelNotifier.ts -> deps: none | caps: BroadcastChannelNotifier, notify, onMessage, dispose, isSupported
-src/utils/crossTabNotifier/FallbackCrossTabNotifier.ts -> deps: none | caps: FallbackCrossTabNotifier, isSupported, notify, onMessage, dispose
-src/utils/crossTabNotifier/StorageEventNotifier.ts -> deps: none | caps: StorageEventNotifier, handleStorageEvent, notify, onMessage, dispose
-src/utils/polling.ts -> deps: none | caps: IPollingStrategy, FixedIntervalPollingStrategy, ExponentialBackoffPollingStrategy, PollingOptions, startPolling
-src/utils/storage/prompts.ts -> deps: none | caps: ISavedPromptsService, SavedPromptsServiceConfig, SavedPromptsService, loadSavedPrompts, persistSavedPrompts
-src/utils/storage/selectionStrategy.ts -> deps: none | caps: ISelectionStrategy, FirstItemSelectionStrategy, selectImplicitItem, NoImplicitSelectionStrategy
-src/utils/syncOrchestrator.ts -> deps: none | caps: SyncHandlerConfig, ISyncOrchestrator, SyncOrchestrator, createGenericSyncHandler, registerHandlers
-src/utils/timeProvider.ts -> deps: none | caps: ITimeProvider, DefaultTimeProvider, now, date, formatRelative
-src/utils/storage/helpers.ts -> deps: none | caps: EntityMapper, cleanMockData, fastDeepEqual, getNestedValue, deepFreeze
-src/utils/apiClientRetry.ts -> deps: none | caps: RetryConfig, IRetryStrategy, ExponentialBackoffRetryStrategy, execute
-src/utils/apiResponseParser.ts -> deps: none | caps: IResponseParser, DefaultResponseParser, parseStream, parse
-src/utils/mutex.ts -> deps: none | caps: IMutex, Mutex, acquire, run
-src/utils/storage/ActiveItemManagerFactory.ts -> deps: none | caps: CreateActiveItemManagerOptions, IActiveItemManagerFactory, DefaultActiveItemManagerFactory, create
-src/utils/syncEngine.ts -> deps: none | caps: ISyncEngine, SyncEngine, registerSyncHandler, processOfflineMutations
-src/utils/urlUtils.ts -> deps: none | caps: IUrlBuilder, DefaultUrlBuilder, build, buildUrlWithParams
-src/utils/crossTabNotifier/types.ts -> deps: none | caps: ICrossTabNotifier, CrossTabNotifierConfig, ICrossTabNotifierFactory
-src/utils/errorHandling.ts -> deps: none | caps: extractMessageFromUnknown, tryParseJsonMessage, getErrorMessage
-src/utils/idGenerator.ts -> deps: none | caps: IIdGenerator, DefaultIdGenerator, generate
-src/utils/modelCatalog.ts -> deps: none | caps: fetchModels, isDeprecatedOrUnusableModel, sanitizeModelId
-src/utils/randomProvider.ts -> deps: none | caps: IRandomProvider, DefaultRandomProvider, random
-src/utils/storage/offlineRetryStrategy.ts -> deps: none | caps: IOfflineRetryStrategy, DefaultOfflineRetryStrategy, shouldEnqueue
-src/utils/storage/serializer/JsonSerializer.ts -> deps: none | caps: JsonSerializer, serialize, deserialize
-src/utils/syncEngineStrategy.ts -> deps: none | caps: IQueueProcessingStrategy, StrictFifoQueueProcessingStrategy, process
-src/utils/crossTabNotifier/CrossTabNotifierFactory.ts -> deps: none | caps: DefaultCrossTabNotifierFactory, createCrossTabNotifier
-src/utils/storage/StorageSingleton.ts -> deps: none | caps: StorageSingletonOptions, StorageSingleton
-src/utils/storage/encryption.ts -> deps: none | caps: encryptSecret, decryptSecret
-src/utils/storage/syncAdapterFormData.ts -> deps: none | caps: FormDataSyncTransport, transmit
-src/utils/speechExtractor.ts -> deps: none | caps: extractSpokenText
-src/utils/storage/serializer/types.ts -> deps: none | caps: ISerializer
-src/utils/storage/syncAdapterErrors.ts -> deps: none | caps: SyncAdapterError
-src/utils/testUtils/storageEvent.ts -> deps: none | caps: StorageEventCtor
-src/utils/mockDefinitions.ts -> deps: none | caps: isMockSession
-src/utils/syncRegistry.ts -> deps: none | caps: initializeSyncHandlers
-src/utils/codeGenerators.ts -> deps: none | caps: internal
-src/utils/crossTabNotifier/index.ts -> deps: none | caps: internal
-src/utils/index.ts -> deps: none | caps: internal
-src/utils/storage/serializer/index.ts -> deps: none | caps: internal
-src/utils/storage/constants.ts -> deps: none | caps: internal
-src/utils/storage/index.ts -> deps: none | caps: internal
-
-## Domain Invariants
-- Downward dependencies only: cross-domain calls must target canonical domain hubs.
-- External consumers must interface through platform.ts, never private internal helpers.
-- State changes must adhere to lifecycle and containment invariants.
+## Module Inventory & Dependency Contracts
+- `src/utils/logger.ts` (L1, 50L, fan-in:51) — `[deps: none]` · `[caps: ILogger, ConsoleLogger, NoOpLogger, ILoggerFactory, DefaultLoggerFactory, NoOpLoggerFactory]`
+- `src/utils/apiClient.ts` (L1, 151L, fan-in:22) — `[deps: urlUtils.ts, apiClientErrors.ts, apiClientInterceptors.ts, apiClientRetry.ts, apiResponseParser.ts]` · `[caps: ApiClientConfig, IApiClient, ApiClient]`
+- `src/utils/observable.ts` (L1, 75L, fan-in:20) — `[deps: logger.ts]` · `[caps: Listener, IReadableStore, IObservable, Observable]`
+- `src/utils/errorHandling.ts` (L1, 49L, fan-in:19) — `[deps: none]` · `[caps: extractMessageFromUnknown, getErrorMessage]`
+- `src/utils/storage/types.ts` (L1, 49L, fan-in:19) — `[deps: observable.ts]` · `[caps: StorageSaveOptions, IStorageBase, IDisposable, CollectionOperationResult, ICollectionEngine, IMutableCollection]`
+- `src/utils/timeProvider.ts` (L1, 38L, fan-in:18) — `[deps: none]` · `[caps: ITimeProvider, DefaultTimeProvider]`
+- `src/utils/offlineService.ts` (L1, 219L, fan-in:15) — `[deps: IPlatformService.ts, observable.ts, asyncStorage.ts, logger.ts, offlineQueueStore.ts, syncEngine.ts]` · `[caps: OfflineMutation, ConflictData, SyncHandler, OFFLINE_QUEUE_KEY, IOfflineService, OfflineServiceConfig]`
+- `src/utils/storage/StorageFactory.ts` (L1, 41L, fan-in:13) — `[deps: types.ts, StorageCollection.ts, StorageSingleton.ts, StorageRegistry.ts, MapCollection.ts, core.ts]` · `[caps: IStorageFactory, DefaultStorageFactory]`
+- `src/utils/providerCatalog.ts` (L1, 440L, fan-in:10) — `[deps: types.ts]` · `[caps: ProviderDefinition, CLOUD_PROVIDER_DEFINITIONS, LOCAL_PROVIDER_DEFINITIONS, ALL_PROVIDER_DEFINITIONS, getProviderDefinition, getProviderDisplayName]`
+- `src/utils/storage/constants.ts` (L1, 17L, fan-in:10) — `[deps: none]` · `[caps: STORAGE_KEYS]`
+- `src/utils/storage/index.ts` (L1, 27L, fan-in:10) — `[deps: constants.ts, encryption.ts, helpers.ts, general.ts, draftState.ts, projects.ts]` · `[caps: StorageCollection, StorageSingleton, MapCollection]`
+- `src/utils/errorReporter.ts` (L1, 119L, fan-in:9) — `[deps: eventEmitter.ts]` · `[caps: ReliabilityEventCategory, ReliabilityEvent, errorReporter]`
+- `src/utils/apiClientErrors.ts` (L1, 60L, fan-in:8) — `[deps: errorHandling.ts]` · `[caps: RETRYABLE_STATUS_CODES, BaseApiError, isAbortError, parseErrorResponse]`
+- `src/utils/apiClientInterceptors.ts` (L1, 52L, fan-in:8) — `[deps: none]` · `[caps: RequestInterceptor, Interceptor, ResponseInterceptor, IInterceptorManager, InterceptorManager]`
+- `src/utils/apiResponseParser.ts` (L1, 33L, fan-in:8) — `[deps: apiClientErrors.ts]` · `[caps: IResponseParser, DefaultResponseParser]`
+- `src/utils/eventEmitter.ts` (L1, 40L, fan-in:8) — `[deps: logger.ts]` · `[caps: EventListener, IEventEmitter, EventEmitter]`
+- `src/utils/idGenerator.ts` (L1, 24L, fan-in:8) — `[deps: timeProvider.ts, randomProvider.ts]` · `[caps: IIdGenerator, DefaultIdGenerator]`
+- `src/utils/storage/general.ts` (L1, 85L, fan-in:8) — `[deps: StorageFactory.ts, constants.ts, core.ts, types.ts, observable.ts]` · `[caps: IGeneralSettingsService, GeneralSettingsServiceConfig, GeneralSettingsService]`
+- `src/utils/urlUtils.ts` (L1, 57L, fan-in:8) — `[deps: IPlatformService.ts, platformService.ts]` · `[caps: IUrlBuilder, DefaultUrlBuilder, buildUrlWithParams]`
+- `src/utils/storage/helpers.ts` (L1, 174L, fan-in:7) — `[deps: mockDefinitions.ts]` · `[caps: EntityMapper, cleanMockData, fastDeepEqual, getNestedValue, deepFreeze]`
+- `src/utils/asyncStorage.ts` (L1, 86L, fan-in:6) — `[deps: logger.ts]` · `[caps: AsyncStorage, IndexedDbAsyncStorage, MemoryAsyncStorage, FallbackAsyncStorage]`
+- `src/utils/integrationCatalog.ts` (L1, 85L, fan-in:6) — `[deps: integrations.ts]` · `[caps: IntegrationProviderDefinition, INTEGRATION_PROVIDER_DEFINITIONS, getIntegrationDefinition]`
+- `src/utils/networkStatus.ts` (L1, 174L, fan-in:6) — `[deps: IPlatformService.ts, observable.ts, platformService.ts]` · `[caps: NetworkStatus, INetworkStatusProvider, BrowserNetworkStatusConfig, BrowserNetworkStatusProvider]`
+- `src/utils/storage/ActiveItemManager.ts` (L1, 106L, fan-in:6) — `[deps: observable.ts, computedStore.ts, types.ts, selectionStrategy.ts]` · `[caps: ActiveItemManagerOptions, ActiveItemManagerState, IActiveItemManager, ActiveItemManager]`
+- `src/utils/storage/core.ts` (L1, 167L, fan-in:6) — `[deps: IPlatformService.ts, types.ts, FallbackStorageWrapper.ts, logger.ts, index.ts, platformService.ts]` · `[caps: MemoryStorage, createDefaultStorageInstance, safeParseStorageItem, safeGetStorage, safeGetStorageKeys, safeSetStorage]`
+- `src/utils/storage/syncAdapter.ts` (L1, 162L, fan-in:6) — `[deps: offlineService.ts, apiClient.ts, networkStatus.ts, offlineRetryStrategy.ts, logger.ts, syncAdapterErrors.ts]` · `[caps: IStorageSyncAdapter, ISyncTransport, ApiClientSyncTransport, NetworkStorageSyncAdapterConfig, NetworkStorageSyncAdapter]`
+- `src/utils/crossTabNotifier/CrossTabNotifierFactory.ts` (L1, 21L, fan-in:5) — `[deps: types.ts, BroadcastChannelNotifier.ts, StorageEventNotifier.ts, FallbackCrossTabNotifier.ts, logger.ts]` · `[caps: DefaultCrossTabNotifierFactory]`
+- `src/utils/crossTabNotifier/types.ts` (L1, 25L, fan-in:5) — `[deps: IPlatformService.ts, logger.ts, timeProvider.ts, types.ts]` · `[caps: ICrossTabNotifier, CrossTabNotifierConfig, ICrossTabNotifierFactory]`
+- `src/utils/modelCatalog.ts` (L1, 178L, fan-in:5) — `[deps: types.ts, apiClient.ts]` · `[caps: fetchModels, FALLBACK_MODEL_ID, CURATED_MODELS, isDeprecatedOrUnusableModel, sanitizeModelId]`
+- `src/utils/offlineQueueStore.ts` (L1, 172L, fan-in:5) — `[deps: IPlatformService.ts, mutex.ts, observable.ts, logger.ts, offlineService.ts, index.ts]` · `[caps: IOfflineQueueStore, OfflineQueueStoreConfig, OfflineQueueStore]`
+- `src/utils/storage/draftState.ts` (L1, 184L, fan-in:5) — `[deps: types.ts, templates.ts, StorageFactory.ts, StorageRegistry.ts, types.ts, constants.ts]` · `[caps: DraftState, IDraftStateService, DraftStateServiceConfig, DraftStateService]`
+- `src/utils/storage/encryption.ts` (L1, 159L, fan-in:5) — `[deps: none]` · `[caps: encryptSecret, decryptSecret]`
+- `src/utils/storage/offlineRetryStrategy.ts` (L1, 22L, fan-in:5) — `[deps: apiClientErrors.ts]` · `[caps: IOfflineRetryStrategy, DefaultOfflineRetryStrategy]`
+- `src/utils/storage/providers.ts` (L1, 177L, fan-in:5) — `[deps: types.ts, idGenerator.ts, constants.ts, encryption.ts, StorageFactory.ts, types.ts]` · `[caps: IProviderConnectionService, ProviderConnectionServiceConfig, ProviderConnectionService]`
+- `src/utils/storage/selectionStrategy.ts` (L1, 19L, fan-in:5) — `[deps: none]` · `[caps: ISelectionStrategy, FirstItemSelectionStrategy, NoImplicitSelectionStrategy]`
+- `src/utils/storage/StorageRegistry.ts` (L1, 56L, fan-in:5) — `[deps: none]` · `[caps: IStorageRegistry, StorageRegistry]`
+- `src/utils/batchSelectionManager.ts` (L1, 130L, fan-in:4) — `[deps: observable.ts, helpers.ts]` · `[caps: SelectionState, BatchSelectionState, IBatchSelectionManager, BatchSelectionManager]`
+- `src/utils/delayStrategy.ts` (L1, 50L, fan-in:4) — `[deps: randomProvider.ts]` · `[caps: IDelayStrategy, FixedIntervalDelayStrategy, ExponentialBackoffDelayStrategy]`
+- `src/utils/speechExtractor.ts` (L1, 74L, fan-in:4) — `[deps: none]` · `[caps: extractSpokenText]`
+- `src/utils/storage/projects.ts` (L1, 132L, fan-in:4) — `[deps: types.ts, idGenerator.ts, constants.ts, core.ts, encryption.ts, ActiveItemManagerFactory.ts]` · `[caps: IProjectService, ProjectServiceConfig, ProjectService]`
+- `src/utils/storage/serializer/index.ts` (L1, 3L, fan-in:4) — `[deps: types.ts, JsonSerializer.ts]` · `[caps: internal]`
+- `src/utils/storage/serializer/types.ts` (L1, 5L, fan-in:4) — `[deps: none]` · `[caps: ISerializer]`
+- `src/data/templates.ts` (L1, 83L, fan-in:3) — `[deps: timeProvider.ts, types.ts]` · `[caps: DEFAULT_CONFIG, getStarterTemplates]`
+- `src/utils/apiClientRetry.ts` (L1, 135L, fan-in:3) — `[deps: IPlatformService.ts, apiClientErrors.ts, delayStrategy.ts, platformService.ts]` · `[caps: RetryConfig, IRetryStrategy, ExponentialBackoffRetryStrategy]`
+- `src/utils/crossTabNotifier/BroadcastChannelNotifier.ts` (L1, 52L, fan-in:3) — `[deps: IPlatformService.ts, types.ts, logger.ts]` · `[caps: BroadcastChannelNotifier]`
+- `src/utils/crossTabNotifier/FallbackCrossTabNotifier.ts` (L1, 60L, fan-in:3) — `[deps: types.ts, logger.ts]` · `[caps: FallbackCrossTabNotifier]`
+- `src/utils/crossTabNotifier/StorageEventNotifier.ts` (L1, 76L, fan-in:3) — `[deps: IPlatformService.ts, timeProvider.ts, types.ts, logger.ts, JsonSerializer.ts, types.ts]` · `[caps: StorageEventNotifier]`
+- `src/utils/fileTree.ts` (L1, 146L, fan-in:3) — `[deps: stubs.ts]` · `[caps: collectAncestorPaths, collectDirectoryPaths, filterFileTree, countTreeNodes, FileVisualCategory, getFileCategory]`
+- `src/utils/randomProvider.ts` (L1, 11L, fan-in:3) — `[deps: none]` · `[caps: IRandomProvider, DefaultRandomProvider]`
+- `src/utils/sseParser.ts` (L1, 90L, fan-in:3) — `[deps: none]` · `[caps: SSEEventCallback, ISSEStreamParser, ISSEStreamParserFactory, SSEStreamParser]`
+- `src/utils/storage/ActiveItemManagerFactory.ts` (L1, 55L, fan-in:3) — `[deps: ActiveItemManager.ts, StorageCollection.ts, StorageFactory.ts, StorageSingleton.ts, types.ts, selectionStrategy.ts]` · `[caps: CreateActiveItemManagerOptions, IActiveItemManagerFactory, DefaultActiveItemManagerFactory]`
+- `src/utils/storage/integrations.ts` (L1, 152L, fan-in:3) — `[deps: integrations.ts, idGenerator.ts, constants.ts, encryption.ts, StorageFactory.ts, types.ts]` · `[caps: IIntegrationConnectionService, IntegrationConnectionServiceConfig, IntegrationConnectionService]`
+- `src/utils/storage/MapCollection.ts` (L1, 147L, fan-in:3) — `[deps: types.ts, helpers.ts]` · `[caps: MapCollection]`
+- `src/utils/storage/serializer/JsonSerializer.ts` (L1, 12L, fan-in:3) — `[deps: types.ts]` · `[caps: JsonSerializer]`
+- `src/utils/storage/StorageBase.ts` (L1, 154L, fan-in:3) — `[deps: types.ts, observable.ts, logger.ts, helpers.ts, eventEmitter.ts, index.ts]` · `[caps: StorageBaseOptions, StorageBase]`
+- `src/utils/storage/StorageCollection.ts` (L1, 121L, fan-in:3) — `[deps: StorageBase.ts, types.ts, eventEmitter.ts, logger.ts, index.ts]` · `[caps: StorageCollectionOptions, StorageCollection]`
+- `src/utils/storage/StorageSingleton.ts` (L1, 18L, fan-in:3) — `[deps: StorageBase.ts, types.ts, index.ts]` · `[caps: StorageSingletonOptions, StorageSingleton]`
+- `src/utils/syncConflictBus.ts` (L1, 17L, fan-in:3) — `[deps: eventEmitter.ts, offlineService.ts]` · `[caps: syncConflictBus]`
+- `src/utils/syncEngine.ts` (L1, 67L, fan-in:3) — `[deps: offlineQueueStore.ts, logger.ts, offlineService.ts, syncEngineStrategy.ts]` · `[caps: ISyncEngine, SyncEngine]`
+- `src/utils/syncVersionTracker.ts` (L1, 69L, fan-in:3) — `[deps: none]` · `[caps: SyncResourceKind, syncVersionTracker]`
+- `src/utils/computedStore.ts` (L1, 120L, fan-in:2) — `[deps: observable.ts]` · `[caps: ComputedStore]`
+- `src/utils/crossTabNotifier/index.ts` (L1, 6L, fan-in:2) — `[deps: types.ts, BroadcastChannelNotifier.ts, StorageEventNotifier.ts, FallbackCrossTabNotifier.ts, CrossTabNotifierFactory.ts]` · `[caps: internal]`
+- `src/utils/imageCompressor.ts` (L1, 154L, fan-in:2) — `[deps: IPlatformService.ts, types.ts, idGenerator.ts, platformService.ts]` · `[caps: CompressionOptions, calculateProportionalDimensions, IImageCompressionStrategy, CanvasImageCompressionStrategyConfig, CanvasImageCompressionStrategy, IImageCompressor]`
+- `src/utils/mockDefinitions.ts` (L1, 73L, fan-in:2) — `[deps: none]` · `[caps: COMMON_MOCK_PREFIXES, MOCK_SESSION_EXACT_IDS, MOCK_SESSION_TITLES, MOCK_MESSAGE_IDS, MOCK_MESSAGE_TEXTS, isMockSession]`
+- `src/utils/mutex.ts` (L1, 63L, fan-in:2) — `[deps: IPlatformService.ts, logger.ts]` · `[caps: IMutex, Mutex]`
+- `src/utils/platform.ts` (L1, 263L, fan-in:2) — `[deps: none]` · `[caps: AppRuntime, isBrowserEnvironment, WindowWithMatchMedia, WindowWithSpeech, WindowWithCapacitor, NavigatorWithStandalone]`
+- `src/utils/pwaUpdate.ts` (L1, 84L, fan-in:2) — `[deps: none]` · `[caps: PwaUpdateState, pwaUpdateManager]`
+- `src/utils/storage/degradationState.ts` (L1, 67L, fan-in:2) — `[deps: errorReporter.ts]` · `[caps: StorageDegradationState, storageDegradationTracker]`
+- `src/utils/storage/FallbackStorageWrapper.ts` (L1, 203L, fan-in:2) — `[deps: IPlatformService.ts, platformService.ts, eventEmitter.ts, logger.ts]` · `[caps: MemoryStorage, FallbackStorageWrapper]`
+- `src/utils/storage/prompts.ts` (L1, 63L, fan-in:2) — `[deps: types.ts, ActiveItemManagerFactory.ts, constants.ts, ActiveItemManager.ts, syncAdapter.ts, StorageFactory.ts]` · `[caps: ISavedPromptsService, SavedPromptsServiceConfig, SavedPromptsService]`
+- `src/utils/storage/syncAdapterFormData.ts` (L1, 29L, fan-in:2) — `[deps: apiClient.ts, syncAdapter.ts]` · `[caps: FormDataSyncTransport]`
+- `src/utils/syncEngineStrategy.ts` (L1, 151L, fan-in:2) — `[deps: logger.ts, offlineService.ts]` · `[caps: QueueProcessResult, IQueueProcessingStrategy, StrictFifoStrategyOptions, StrictFifoQueueProcessingStrategy]`
+- `src/utils/syncOrchestrator.ts` (L1, 89L, fan-in:2) — `[deps: offlineService.ts, apiClient.ts]` · `[caps: SyncHandlerConfig, ISyncOrchestrator, SyncOrchestrator]`
+- `src/utils/syntaxHighlight.ts` (L1, 100L, fan-in:2) — `[deps: none]` · `[caps: escapeHtml, normalizeEditorLanguage, highlightCodeToHtml]`
+- `src/utils/polling.ts` (L1, 83L, fan-in:1) — `[deps: IPlatformService.ts, delayStrategy.ts, platformService.ts]` · `[caps: IPollingStrategy, FixedIntervalPollingStrategy, ExponentialBackoffPollingStrategy, PollingOptions, startPolling]`
+- `src/utils/storage/syncAdapterErrors.ts` (L1, 10L, fan-in:1) — `[deps: apiClientErrors.ts]` · `[caps: SyncAdapterError]`
+- `src/utils/syncRegistry.ts` (L1, 56L, fan-in:1) — `[deps: syncOrchestrator.ts, offlineService.ts, apiClient.ts, syncVersionTracker.ts]` · `[caps: DEFAULT_SYNC_HANDLERS, initializeSyncHandlers]`
+- `src/utils/testUtils/storageEvent.ts` (L1, 11L, fan-in:1) — `[deps: none]` · `[caps: StorageEventCtor]`
+- `src/utils/codeGenerators.ts` (L1, 2L, fan-in:0) — `[deps: codeGeneratorService.ts]` · `[caps: internal]`
+- `src/utils/index.ts` (L1, 6L, fan-in:0) — `[deps: offlineService.ts, networkStatus.ts, logger.ts, syncEngineStrategy.ts, syncEngine.ts]` · `[caps: internal]`

@@ -1,9 +1,47 @@
 import { IPlatformService } from "../../services/IPlatformService";
-import { MemoryStorage } from "./core";
-import { BrowserPlatformService } from "../../services/platformService"
+import { BrowserPlatformService } from "../../services/platformService";
 
 import { EventEmitter } from "../eventEmitter";
 import { ILogger, DefaultLoggerFactory } from "../logger";
+
+export class MemoryStorage implements Storage {
+  private store: Map<string, string>;
+  private keysCache: string[] | null = null;
+
+  constructor() {
+    this.store = new Map();
+  }
+
+  getItem(key: string): string | null {
+    return this.store.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.store.set(key, value);
+    this.keysCache = null;
+  }
+
+  removeItem(key: string): void {
+    this.store.delete(key);
+    this.keysCache = null;
+  }
+
+  clear(): void {
+    this.store.clear();
+    this.keysCache = null;
+  }
+
+  key(index: number): string | null {
+    if (!this.keysCache) {
+      this.keysCache = Array.from(this.store.keys());
+    }
+    return this.keysCache[index] ?? null;
+  }
+
+  get length(): number {
+    return this.store.size;
+  }
+}
 
 export class FallbackStorageWrapper implements Storage {
   private primaryStorage: Storage;

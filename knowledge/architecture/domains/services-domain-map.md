@@ -1,59 +1,50 @@
 ---
-title: Services Domain — Domain Context Map
+title: "Services Domain Map"
 type: domain-context-map
+status: active
 domain: services
-parent_map: ../context-map.md
-description: Deep-dive context map for the services domain, subsystem responsibilities, and internal modules.
-tags:
-  - domain-map
-  - services
-  - agent-optimized
+layer: 2
 ---
 
-# Services Domain — Domain Context Map
+# Services Domain Map
 
-Parent Context Map: knowledge/architecture/context-map.md
+> Stateful business services, Stubs GraphRAG client, platform service facades, and Gemini/chat persistence engines.
 
-## Domain Purpose & Responsibilities
-The Services Domain coordinates domain logic, core types, and services for the services subsystem.
+## Domain Metrics & Canonical Hubs
+- **Layer Tier**: Layer 2 (Domain Services)
+- **Production Modules**: 32
+- **Canonical Hubs**: `src/services/ServiceContext.tsx` (fan-in: 50, fan-out: 52), `src/services/IPlatformService.ts` (fan-in: 31, fan-out: 3), `src/services/platformService.ts` (fan-in: 25, fan-out: 5), `src/services/speechVoices.ts` (fan-in: 9, fan-out: 6)
 
-## Key Modules & Files
-src/services/platformService.ts (Hub) -> deps: none | caps: BrowserPlatformService, getStorageEventObservable, getStorageQuotaObservable, isInputFocused, blurActiveElement, openUrl, reloadWindow, isKeyboardVisible
-src/services/themeService.ts -> deps: none | caps: ThemeMode, ResolvedTheme, ThemeState, ThemeListener, IThemeService, ThemeServiceConfig, ThemeService, getSystemResolvedTheme
-src/services/chatHistoryService.ts -> deps: none | caps: IChatHistoryService, ChatHistoryServiceConfig, ChatHistoryService, handleQuotaExceeded, getChatCollectionByKey, getChatCollection, getChatSessionsStorageKey, isMockChatSession
-src/services/julesService.ts -> deps: none | caps: JulesTaskPayload, JulesServiceConfig, IJulesClient, JulesClient, setConfig, resolveApiKey, getSettings, verifyApiKey
-src/services/stubsService.ts -> deps: none | caps: StubsDiagramResponse, StubsLintResponse, StubsSpecsResponse, StubsExecuteResponse, IStubsClient, StubsClientConfig, StubsClient, fetchGraphData
-src/services/googleAuth.ts -> deps: none | caps: GoogleAuthServiceConfig, IGoogleAuthService, GoogleAuthService, setAuthProvider, getAccessToken, loadStoredGoogleUser, saveStoredGoogleUser, syncGoogleUserWithBackend
-src/services/appAuthManager.ts -> deps: none | caps: IAppAuthManager, AppAuthManagerConfig, AppAuthManager, getGoogleUser, hasServerKey, getCustomApiKey, hasAnyApiKey, saveCustomApiKey
-src/services/sentenceSpeechQueue.ts -> deps: none | caps: SentenceQueueOptions, ISentenceSpeechQueue, SentenceSpeechQueue, updateSettings, feed, finalize, enqueueSentence, startHeartbeat
-src/services/geminiStreamService.ts -> deps: none | caps: StreamCallbacks, StreamOptions, GeminiApiError, IGeminiStreamService, GeminiStreamServiceConfig, GeminiStreamService, sanitizeLogMessage, sanitizeHeadersForLogging
-src/services/julesSessionOrchestrator.ts -> deps: none | caps: OrchestratorState, IJulesSessionOrchestrator, JulesSessionOrchestratorConfig, JulesSessionOrchestrator, getStateStore, setState, stopPolling, clearMessages
-src/services/promptTemplateService.ts -> deps: none | caps: IPromptTemplateService, PromptTemplateServiceConfig, PromptTemplateService, getBuiltinTemplates, getCustomTemplates, getAllTemplates, getTemplateById, saveCustomTemplate
-src/services/speechVoices.ts -> deps: none | caps: GeminiVoiceOption, DeviceVoiceOption, SpeechSettings, ISpeechVoicesService, SpeechVoicesServiceConfig, SpeechVoicesService, fetchTTSAudioUrl, loadSpeechSettings
-src/services/windowSecurityService.ts -> deps: none | caps: ShieldState, WindowSecurityServiceConfig, IWindowSecurityService, WindowSecurityService, clearScheduledTimer, updateShield, initListeners, setContext
-src/services/keyVerification.ts -> deps: none | caps: IKeyVerificationService, KeyVerificationServiceConfig, KeyVerificationService, isValidGoogleApiKeyFormat, detectGoogleApiKey, maskApiKey, verifyGoogleApiKey, clearClipboardSafe
-src/services/auth.ts -> deps: none | caps: IAuthService, AuthServiceConfig, AuthService, fetchAuthStatus, fetchServerHealth, getAuthHeaders
-src/services/codeGeneratorService.ts -> deps: none | caps: ICodeGeneratorService, CodeGeneratorServiceConfig, CodeGeneratorService, registerGenerator, getGenerator, getAllGenerators
-src/services/firebaseAuthProvider.ts -> deps: none | caps: FirebaseAuthProvider, getFirebaseAuth, getGoogleAuthProvider, signIn, signOut, onAuthStateChanged
-src/services/pwaInstallService.ts -> deps: none | caps: BeforeInstallPromptEvent, PWAInstallState, PwaInstallServiceConfig, IPwaInstallService, PwaInstallService, initListeners
-src/services/clipboardService.ts -> deps: none | caps: IClipboardService, BrowserClipboardService, readText, writeText
-src/services/codeGenerators/BaseCodeGenerator.ts -> deps: none | caps: BaseCodeGenerator, escapeStringForCode, extractPromptContext, generate
-src/services/fileDownloadService.ts -> deps: none | caps: IFileDownloadService, BrowserFileDownloadService, downloadText
-src/services/ServiceContext.tsx -> deps: none | caps: IServices, useServices, createServices
-src/services/authProvider.ts -> deps: none | caps: AuthSignInResult, IAuthProvider
-src/services/codeGenerators/CurlGenerator.ts -> deps: none | caps: CurlGenerator, generate
-src/services/codeGenerators/ICodeGeneratorPlugin.ts -> deps: none | caps: CodeLangId, ICodeGeneratorPlugin
-src/services/codeGenerators/KotlinGenerator.ts -> deps: none | caps: KotlinGenerator, generate
-src/services/codeGenerators/PythonGenerator.ts -> deps: none | caps: PythonGenerator, generate
-src/services/codeGenerators/TypeScriptGenerator.ts -> deps: none | caps: TypeScriptGenerator, generate
-src/services/IPlatformService.ts -> deps: none | caps: IPlatformService
-src/services/chatHistoryService.ts.md -> deps: none | caps: internal
-src/services/codeGenerators/index.ts -> deps: none | caps: internal
-src/services/julesService.ts.md -> deps: none | caps: internal
-src/services/promptTemplateService.ts.md -> deps: none | caps: internal
-src/services/themeService.ts.md -> deps: none | caps: internal
-
-## Domain Invariants
-- Downward dependencies only: cross-domain calls must target canonical domain hubs.
-- External consumers must interface through platformService.ts, never private internal helpers.
-- State changes must adhere to lifecycle and containment invariants.
+## Module Inventory & Dependency Contracts
+- `src/services/ServiceContext.tsx` (L2, 366L, fan-in:50) — `[deps: IPlatformService.ts, urlUtils.ts, apiResponseParser.ts, apiClientInterceptors.ts, appAuthManager.ts, platformService.ts]` · `[caps: IServices, ServiceProvider, useServices, createServices]`
+- `src/services/IPlatformService.ts` (L2, 49L, fan-in:31) — `[deps: eventEmitter.ts, platform.ts, speechRecognition.ts]` · `[caps: IPlatformService]`
+- `src/services/platformService.ts` (L2, 256L, fan-in:25) — `[deps: IPlatformService.ts, platform.ts, logger.ts, speechRecognition.ts, eventEmitter.ts]` · `[caps: BrowserPlatformService]`
+- `src/services/speechVoices.ts` (L2, 267L, fan-in:9) — `[deps: IPlatformService.ts, apiClient.ts, auth.ts, index.ts, types.ts, platformService.ts]` · `[caps: GeminiVoiceOption, DeviceVoiceOption, SpeechSettings, GEMINI_VOICES, DEFAULT_SPEECH_SETTINGS, ISpeechVoicesService]`
+- `src/services/integrationService.ts` (L2, 746L, fan-in:7) — `[deps: integrations.ts, apiClient.ts, IPlatformService.ts]` · `[caps: OAuthProviderAvailability, IntegrationVerifyResponse, IIntegrationApiService, IntegrationApiService]`
+- `src/services/codeGenerators/ICodeGeneratorPlugin.ts` (L2, 11L, fan-in:6) — `[deps: types.ts]` · `[caps: CodeLangId, ICodeGeneratorPlugin]`
+- `src/services/auth.ts` (L2, 59L, fan-in:5) — `[deps: apiClient.ts]` · `[caps: IAuthService, AuthServiceConfig, AuthService]`
+- `src/services/codeGenerators/BaseCodeGenerator.ts` (L2, 27L, fan-in:5) — `[deps: types.ts, ICodeGeneratorPlugin.ts]` · `[caps: BaseCodeGenerator]`
+- `src/services/codeGeneratorService.ts` (L2, 40L, fan-in:5) — `[deps: index.ts]` · `[caps: CodeLangId, CodeGenerator, ICodeGeneratorService, CodeGeneratorServiceConfig, CodeGeneratorService]`
+- `src/services/codeGenerators/index.ts` (L2, 7L, fan-in:4) — `[deps: ICodeGeneratorPlugin.ts, BaseCodeGenerator.ts, PythonGenerator.ts, TypeScriptGenerator.ts, KotlinGenerator.ts, CurlGenerator.ts]` · `[caps: internal]`
+- `src/services/geminiStreamService.ts` (L2, 629L, fan-in:4) — `[deps: IPlatformService.ts, types.ts, apiClient.ts, sseParser.ts, logger.ts, platformService.ts]` · `[caps: StreamCallbacks, StreamOptions, GeminiApiError, IGeminiStreamService, GeminiStreamServiceConfig, GeminiStreamService]`
+- `src/services/sentenceSpeechQueue.ts` (L2, 294L, fan-in:4) — `[deps: IPlatformService.ts, platformService.ts, speechExtractor.ts, speechVoices.ts]` · `[caps: SentenceQueueOptions, ISentenceSpeechQueue, SentenceSpeechQueue]`
+- `src/services/themeService.ts` (L2, 203L, fan-in:4) — `[deps: IPlatformService.ts, platformService.ts, index.ts, types.ts, observable.ts]` · `[caps: ThemeMode, ResolvedTheme, ThemeState, ThemeListener, IThemeService, ThemeServiceConfig]`
+- `src/services/authProvider.ts` (L2, 18L, fan-in:3) — `[deps: types.ts]` · `[caps: AuthSignInResult, IAuthProvider]`
+- `src/services/clipboardService.ts` (L2, 38L, fan-in:3) — `[deps: IPlatformService.ts, logger.ts]` · `[caps: IClipboardService, BrowserClipboardService]`
+- `src/services/googleAuth.ts` (L2, 351L, fan-in:3) — `[deps: IPlatformService.ts, timeProvider.ts, types.ts, index.ts, types.ts, apiClient.ts]` · `[caps: GoogleAuthServiceConfig, IGoogleAuthService, GoogleAuthService]`
+- `src/services/localModelService.ts` (L2, 833L, fan-in:3) — `[deps: types.ts, observable.ts, logger.ts, errorHandling.ts, providerCatalog.ts]` · `[caps: LocalStreamCallbacks, BrowserAIAvailability, ILocalModelService, LocalModelService]`
+- `src/services/promptTemplateService.ts` (L2, 269L, fan-in:3) — `[deps: timeProvider.ts, types.ts, index.ts, types.ts, idGenerator.ts, firestoreSyncService.ts]` · `[caps: IPromptTemplateService, BUILTIN_PROMPT_TEMPLATES, PromptTemplateServiceConfig, PromptTemplateService]`
+- `src/services/chatHistoryService.ts` (L2, 235L, fan-in:2) — `[deps: IPlatformService.ts, index.ts, types.ts, types.ts, logger.ts, platformService.ts]` · `[caps: IChatHistoryService, ChatHistoryServiceConfig, ChatHistoryService]`
+- `src/services/fileDownloadService.ts` (L2, 39L, fan-in:2) — `[deps: IPlatformService.ts, logger.ts, platformService.ts]` · `[caps: IFileDownloadService, BrowserFileDownloadService]`
+- `src/services/firebase.ts` (L2, 118L, fan-in:2) — `[deps: none]` · `[caps: OperationType, FirestoreErrorInfo, app, db, auth, getFirebaseAuthInstance]`
+- `src/services/firestoreSyncService.ts` (L2, 589L, fan-in:2) — `[deps: types.ts, firebase.ts, logger.ts]` · `[caps: sanitizeFirestoreId, FirestoreSyncCallbacks, IFirestoreSyncService, FirestoreSyncService, firestoreSyncService]`
+- `src/services/keyVerification.ts` (L2, 149L, fan-in:2) — `[deps: timeProvider.ts, errorHandling.ts, types.ts, apiClient.ts, logger.ts, clipboardService.ts]` · `[caps: STANDARD_GOOGLE_KEY_REGEX, AISTUDIO_PROJECT_KEY_REGEX, IKeyVerificationService, KeyVerificationServiceConfig, KeyVerificationService]`
+- `src/services/stubsService.ts` (L2, 280L, fan-in:2) — `[deps: IPlatformService.ts, apiClient.ts, types.ts, logger.ts, platformService.ts]` · `[caps: StubsDiagramResponse, StubsLintResponse, StubsSpecsResponse, StubsExecuteResponse, IStubsClient, StubsClientConfig]`
+- `src/services/appAuthManager.ts` (L2, 147L, fan-in:1) — `[deps: types.ts, googleAuth.ts, auth.ts, general.ts, providers.ts, logger.ts]` · `[caps: IAppAuthManager, AppAuthManagerConfig, AppAuthManager]`
+- `src/services/codeGenerators/CurlGenerator.ts` (L2, 80L, fan-in:1) — `[deps: types.ts, BaseCodeGenerator.ts, ICodeGeneratorPlugin.ts]` · `[caps: CurlGenerator]`
+- `src/services/codeGenerators/KotlinGenerator.ts` (L2, 45L, fan-in:1) — `[deps: types.ts, BaseCodeGenerator.ts, ICodeGeneratorPlugin.ts]` · `[caps: KotlinGenerator]`
+- `src/services/codeGenerators/PythonGenerator.ts` (L2, 94L, fan-in:1) — `[deps: types.ts, BaseCodeGenerator.ts, ICodeGeneratorPlugin.ts]` · `[caps: PythonGenerator]`
+- `src/services/codeGenerators/TypeScriptGenerator.ts` (L2, 141L, fan-in:1) — `[deps: types.ts, BaseCodeGenerator.ts, ICodeGeneratorPlugin.ts]` · `[caps: TypeScriptGenerator]`
+- `src/services/firebaseAuthProvider.ts` (L2, 164L, fan-in:1) — `[deps: IPlatformService.ts, authProvider.ts, types.ts, firebase.ts, logger.ts, platformService.ts]` · `[caps: FirebaseAuthProvider]`
+- `src/services/pwaInstallService.ts` (L2, 75L, fan-in:1) — `[deps: IPlatformService.ts, observable.ts, platformService.ts]` · `[caps: BeforeInstallPromptEvent, PWAInstallState, PwaInstallServiceConfig, IPwaInstallService, PwaInstallService]`
+- `src/services/windowSecurityService.ts` (L2, 126L, fan-in:1) — `[deps: IPlatformService.ts, observable.ts, general.ts, platformService.ts]` · `[caps: ShieldState, WindowSecurityServiceConfig, IWindowSecurityService, WindowSecurityService]`

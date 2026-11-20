@@ -14,7 +14,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit && eslint .",
     "test": "vitest run",
-    "stubs": "node -e \"const fs=require('fs'); if(fs.existsSync('./.agents/skills/stubs/dist/cli.cjs')) { require('./.agents/skills/stubs/dist/cli.cjs') } else { console.error('Stubs CLI not found. Please build the agent skills first.'); process.exit(1); }\""
+    "stubs": "tsx scripts/stubs-cli.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

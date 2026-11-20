@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 
-import { IDEWorkspaceProps } from "./WorkspaceRouter";
+import type { IDEWorkspaceProps } from "./WorkspaceRouter";
 import { useWorkspace } from "../contexts/WorkspaceContext";
 import { useServices } from "../services/ServiceContext";
 import { CodeEditor } from "./CodeEditor";
@@ -791,7 +791,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                   </span>
                 )}
                 {workspaceFileError && (
-                  <span className="text-[11px] text-destructive font-mono truncate">
+                  <span className="text-[11px] text-muted-foreground font-mono truncate">
                     {workspaceFileError}
                   </span>
                 )}
@@ -869,7 +869,7 @@ export const MobileIDEWorkspace: React.FC<MobileIDEWorkspaceProps> = ({
                 </div>
               ) : isPendingWorkspaceFile && workspaceFileError ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-2 bg-card">
-                  <p className="text-xs font-mono text-destructive">{workspaceFileError}</p>
+                  <p className="text-xs font-mono text-muted-foreground">{workspaceFileError}</p>
                   <button
                     type="button"
                     onClick={() => {
